@@ -1,0 +1,156 @@
+{
+	"module_name" : "unit_test",
+	"module_enums" : {
+		"TestEnum1" : [ "Value1", "Value2", "Value3", "Value4" ],
+		"TestEnum2" : [ 
+			{ "Value1" : 7 }, 
+			{ "Value2" : 1337 }, 
+			  "Value3", 
+			{ "Value4" : 1337 }
+		]
+	},
+	
+	"module_types" : {
+		"Pods" : {
+			"members" : [
+				{ "name" : "int8",   "type" : "int8"   },
+				{ "name" : "int16",  "type" : "int16"  },
+				{ "name" : "int32",  "type" : "int32"  },
+				{ "name" : "int64",  "type" : "int64"  },
+				{ "name" : "uint8",  "type" : "uint8"  },
+				{ "name" : "uint16", "type" : "uint16" },
+				{ "name" : "uint32", "type" : "uint32" },
+				{ "name" : "uint64", "type" : "uint64" },
+				{ "name" : "fp32",   "type" : "fp32"   },
+				{ "name" : "fp64",   "type" : "fp64"   }
+			]
+		},
+		
+		"MorePods"     : { "members" : [ { "name" : "Pods1", "type" : "Pods"  },  { "name" : "Pods2", "type" : "Pods" }   ] },
+		"Pods2"        : { "members" : [ { "name" : "Int1",  "type" : "uint32" }, { "name" : "Int2",  "type" : "uint32" } ] },
+		"Pod2InStruct" : { "members" : [ { "name" : "Pod1",  "type" : "Pods2" },  { "name" : "Pod2",  "type" : "Pods2" }  ] },
+		
+		"Pod2InStructInStruct"        : { "members" : [ { "name" : "Pod2InStruct", "type" : "Pod2InStruct" } ] }, 
+		"WithInlineArray"             : { "members" : [ { "name" : "Array",        "type" : "inline-array", "subtype" : "uint32",                "count" : 3 } ] },
+		"WithInlineStructArray"       : { "members" : [ { "name" : "Array",        "type" : "inline-array", "subtype" : "Pods2",                 "count" : 3 } ] },
+		"WithInlineStructStructArray" : { "members" : [ { "name" : "Array",        "type" : "inline-array", "subtype" : "WithInlineStructArray", "count" : 2 } ] },
+		
+		"PodArray1"    : { "members" : [ { "name" : "Array", "type" : "array", "subtype" : "uint32" } ] }, 
+		"PodArray2"    : { "members" : [ { "name" : "Array", "type" : "array", "subtype" : "PodArray1" } ] }, 
+		
+		"StructArray1" : { "members" : [ { "name" : "Array", "type" : "array", "subtype" : "Pods2" }  ] },
+		
+		"Strings"           : { "members" : [ { "name" : "Str1", "type" : "string" }, { "name" : "Str2", "type" : "string" } ] },
+		"StringInlineArray" : { "members" : [ { "name" : "Strings", "type" : "inline-array", "subtype" : "string", "count" : 3 } ] },
+		"StringArray"       : { "members" : [ { "name" : "Strings", "type" : "array", "subtype" : "string" } ] },
+		
+		"TestBits" : {
+			"members" : [ 
+				{ "name" : "Bit1", "type" : "bitfield", "bits" : 1 },
+				{ "name" : "Bit2", "type" : "bitfield", "bits" : 2 },
+				{ "name" : "Bit3", "type" : "bitfield", "bits" : 3 },
+				{ "name" : "make_it_uneven", "type" : "uint8" },
+				{ "name" : "Bit4", "type" : "bitfield", "bits" : 1 },
+				{ "name" : "Bit5", "type" : "bitfield", "bits" : 2 },
+				{ "name" : "Bit6", "type" : "bitfield", "bits" : 3 }
+			]
+		},
+		
+		"MoreBits" : {
+			"members" : [ 
+				{ "name" : "Bit1", "type" : "bitfield", "bits" : 15 },
+				{ "name" : "Bit2", "type" : "bitfield", "bits" : 7 }
+			]
+		},
+		
+		"64BitBitfield" : {
+			"members" : [
+				{ "name" : "Package",  "type" : "bitfield", "bits" : 7 },
+				{ "name" : "FileType", "type" : "bitfield", "bits" : 9 },
+				{ "name" : "PathHash", "type" : "bitfield", "bits" : 16 },
+				{ "name" : "FileHash", "type" : "bitfield", "bits" : 32 }
+			]
+		},
+		
+		"SimplePtr" : {
+			"members" : [ 
+				{ "name" : "Ptr1", "type" : "pointer", "subtype" : "Pods" },
+				{ "name" : "Ptr2", "type" : "pointer", "subtype" : "Pods" } 
+			] 
+		},
+		
+		"PtrChain" : {
+			"members" : [
+				{ "name" : "Int",  "type" : "uint32" },
+				{ "name" : "Next", "type" : "pointer", "subtype" : "PtrChain" }
+			]
+		},
+		
+		"DoublePtrChain" : {
+			"members" : [
+				{ "name" : "Int",  "type" : "uint32" },
+				{ "name" : "Next", "type" : "pointer", "subtype" : "DoublePtrChain" },
+				{ "name" : "Prev", "type" : "pointer", "subtype" : "DoublePtrChain" }
+			]
+		},
+		
+		"A128BitAlignedType" : { "align" : 128, "members" : [ { "name" : "Int",  "type" : "uint32" } ] },
+		
+		"TestingEnum" : { "members" : [ { "name" : "TheEnum", "type" : "TestEnum1" } ] },
+		
+		"InlineArrayEnum" : { "members" : [ { "name" : "EnumArr", "type" : "inline-array", "subtype" : "TestEnum2", "count" : 4 } ] },
+		"ArrayEnum"       : { "members" : [ { "name" : "EnumArr", "type" : "array",        "subtype" : "TestEnum2" } ] },
+		
+		// testing a comment here
+		"PodsDefaults" : {
+			"members" : [
+				{ "name" : "int8",   "type" : "int8"   , "default" : 2 },
+				{ "name" : "int16",  "type" : "int16"  , "default" : 3 },
+				{ "name" : "int32",  "type" : "int32"  , "default" : 4 },
+				{ "name" : "int64",  "type" : "int64"  , "default" : 5 },
+				{ "name" : "uint8",  "type" : "uint8"  , "default" : 6 },
+				{ "name" : "uint16", "type" : "uint16" , "default" : 7 },
+				{ "name" : "uint32", "type" : "uint32" , "default" : 8 },
+				{ "name" : "uint64", "type" : "uint64" , "default" : 9 },
+				{ "name" : "fp32",   "type" : "fp32"   , "default" : 10.0 },
+				{ "name" : "fp64",   "type" : "fp64"   , "default" : 11.0 }
+			]
+		},
+
+		/*
+			And a multiline comment here
+		*/
+		"DefaultStr"  :         { "members" : [ { "name" : "Str",    "type" : "string",       "default" : "cowbells ftw!"              } ] },
+		"DefaultEnum" :         { "members" : [ { "name" : "Enum",   "type" : "TestEnum1",    "default" : "Value3"                     } ] },
+		"DefaultStruct" :       { "members" : [ { "name" : "Struct", "type" : "Pods2",        "default" : { "Int1" : 13, "Int2" : 37 } } ] },
+		"DefaultPtr"  :         { "members" : [ { "name" : "Ptr",    "type" : "pointer",      "default" : null,                        "subtype" : "Pods" } ] },
+		
+		/**
+			another comment
+		*/
+		"DefaultInlArrayPod"  : { "members" : [ { "name" : "Arr",  "type" : "inline-array", "default" : [ 1, 3, 3, 7 ],                             "subtype" : "uint32",    "count" : 4 } ] },
+		"DefaultInlArrayStr"  : { "members" : [ { "name" : "Arr",  "type" : "inline-array", "default" : [ "cow", "bells", "are", "cool" ],          "subtype" : "string",    "count" : 4 } ] },
+		"DefaultInlArrayEnum" : { "members" : [ { "name" : "Arr",  "type" : "inline-array", "default" : [ "Value3", "Value1", "Value2", "Value4" ], "subtype" : "TestEnum1", "count" : 4 } ] },
+		
+		///* hard one
+		"DefaultArrayPod"  :    { "members" : [ { "name" : "Arr",  "type" : "array",        "default" : [ 1, 3, 3, 7 ],                             "subtype" : "uint32"    } ] },
+		"DefaultArrayStr"  :    { "members" : [ { "name" : "Arr",  "type" : "array",        "default" : [ "cow", "bells", "are", "cool" ],          "subtype" : "string"    } ] },
+		"DefaultArrayEnum" :    { "members" : [ { "name" : "Arr",  "type" : "array",        "default" : [ "Value3", "Value1", "Value2", "Value4" ], "subtype" : "TestEnum1" } ] },
+		
+		
+		"BugTest1_InArray" : { "members" : [ { "name" : "u64_1", "type" : "uint64" },
+											 { "name" : "u64_2", "type" : "uint64" },
+											 { "name" : "u16",   "type" : "uint16" } ] },
+											 
+		"BugTest1" : { "members" : [ { "name" : "Arr", "type" : "array", "subtype" : "BugTest1_InArray" } ] },
+		
+		"BugTest2_WithMat" : {
+			"members" : [
+				{ "name" : "iSubModel", "type" : "uint32" },
+				{ "name" : "Transform", "type" : "inline-array", "subtype" : "fp32", "count" : 16 }
+			]
+		},
+                         
+		"BugTest2" : { "members" : [ { "name" : "Instances", "type" : "array", "subtype" : "BugTest2_WithMat" } ] }
+	}
+}
