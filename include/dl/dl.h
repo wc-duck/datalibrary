@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 #ifndef DL_DL_H_INCLUDED
 #define DL_DL_H_INCLUDED
 
@@ -35,13 +37,13 @@ typedef struct SDLContext* HDLContext;
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
 	DL_ERROR_BUFFER_TO_SMALL                               - Provided buffer is to small.
 	DL_ERROR_ENDIAN_ERROR                                  - Endianness of provided data is not the same as the platforms.
-	
+
 	DL_ERROR_TXT_PARSE_ERROR                               - Syntax error while parsing txt-file. Check log for details.
 	DL_ERROR_TXT_MEMBER_MISSING                            - A member is missing in a struct and in do not have a default value.
 	DL_ERROR_TXT_MEMBER_SET_TWICE,                         - A member is set twice in one struct.
 
 	DL_ERROR_UTIL_FILE_NOT_FOUND                           - A argument-file is not found.
-	
+
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
 */
 enum EDLError
