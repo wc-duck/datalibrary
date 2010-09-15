@@ -1,3 +1,5 @@
+''' copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info '''
+
 '''
 	DL-binding for python
 '''

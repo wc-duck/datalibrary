@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 using System;
 using System.IO;
 using System.Reflection;

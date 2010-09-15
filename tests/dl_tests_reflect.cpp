@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 #include <gtest/gtest.h>
 
 #include <dl/dl_reflect.h>

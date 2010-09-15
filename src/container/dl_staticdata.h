@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 #ifndef CONTAINER_STATICDATA_H_INCLUDED
 #define CONTAINER_STATICDATA_H_INCLUDED
 

@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 #ifndef COMMON_UTIL_GETOPT_H_INCLUDED
 #define COMMON_UTIL_GETOPT_H_INCLUDED
 

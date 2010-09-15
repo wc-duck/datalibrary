@@ -1,3 +1,5 @@
+''' copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info '''
+
 HEADER_TEMPLATE = '''#ifndef %(module)s_H_INCLUDED
 #define %(module)s_H_INCLUDED
 

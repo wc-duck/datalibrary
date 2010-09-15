@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 #include <dl/dl.h>
 #include "dl_types.h"
 #include "dl_binary_writer.h"

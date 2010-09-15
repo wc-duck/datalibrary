@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 #ifndef DL_DL_DEFINES_H_INCLUDED
 #define DL_DL_DEFINES_H_INCLUDED
 

@@ -1,3 +1,5 @@
+''' copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info '''
+
 import logging, struct, os, sys, platform, ctypes, json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../bind/python/')))

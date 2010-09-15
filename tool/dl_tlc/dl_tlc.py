@@ -1,3 +1,5 @@
+''' copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info '''
+
 import json, sys
 
 def read_type_library_definition(filename):

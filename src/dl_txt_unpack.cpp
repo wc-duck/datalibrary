@@ -1,3 +1,5 @@
+/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
+
 #include <dl/dl_txt.h>
 
 #include "dl_types.h"
@@ -28,7 +30,7 @@ public:
 		for (uint iSubdata = 0; iSubdata < m_lSubdataMembers.Len(); ++iSubdata)
 			if (m_lSubdataMembers[iSubdata].m_pData == _pData)
 				return iSubdata;
-		
+
 		return uint(-1);
 	}
 
@@ -157,7 +159,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						if(pSubType == 0x0) { DL_LOG_DL_ERROR("Type for inline-array member %s not found!", Member.m_Name); return; }
 
 						pint Size  = pSubType->m_Size[DL_PTR_SIZE_HOST];
-						pint Count = Member.m_Size[DL_PTR_SIZE_HOST] / Size;						
+						pint Count = Member.m_Size[DL_PTR_SIZE_HOST] / Size;
 
 						for(pint iElem = 0; iElem < Count; ++iElem)
 							DLWriteInstance(_Ctx, pSubType, pMemberData + (iElem * Size), _pDataBase);
@@ -192,7 +194,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						}
 					}
 					break;
-					
+
 					default: // default is a standard pod-type
 					{
 						M_ASSERT(Member.IsSimplePod());
