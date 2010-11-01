@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 
-#if 0 // BinaryWriterVerbose
+#if 1 // BinaryWriterVerbose
 	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...)
 #else
 	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...) printf("DL:" _Fmt, ##__VA_ARGS__)
@@ -27,8 +27,8 @@ public:
 		, m_DataSize(_OutDataSize)
 		{}
 
-	void SeekSet (pint _pPos) { DL_LOG_BIN_WRITER_VERBOSE("Seek: %u", _pPos); m_Pos  = _pPos; }
-	void SeekEnd ()           { DL_LOG_BIN_WRITER_VERBOSE("Seek End: %u", m_NeededSize); m_Pos  = m_NeededSize; }
+	void SeekSet (pint _pPos) { DL_LOG_BIN_WRITER_VERBOSE("Seek: %lu", _pPos); m_Pos  = _pPos; }
+	void SeekEnd ()           { DL_LOG_BIN_WRITER_VERBOSE("Seek End: %lu", m_NeededSize); m_Pos  = m_NeededSize; }
 	pint Tell()               { return m_Pos; }
 	pint NeededSize()         { return m_NeededSize; }
 
@@ -36,7 +36,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write: %u + %u (%u)", m_Pos, _Size, *(pint*)_pData);
+			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%lu)", m_Pos, _Size, *(pint*)_pData);
 			M_ASSERT(m_Pos + _Size <= m_DataSize && "To small buffer!");
 			memcpy(m_Data + m_Pos, _pData, _Size);
 		}
@@ -60,7 +60,7 @@ public:
 	{
 		if(m_SourceEndian != m_TargetEndian)
 			_Val = DLSwapEndian(_Val);
-		
+
 		Write(&_Val, sizeof(T));
 	}
 
@@ -68,9 +68,9 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write Array: %u + %u (%u)", m_Pos, sizeof(T), _Count);
+			DL_LOG_BIN_WRITER_VERBOSE("Write Array: %lu + %lu (%lu)", m_Pos, sizeof(T), _Count);
 			for (pint i = 0; i < _Count; ++i)
-				DL_LOG_BIN_WRITER_VERBOSE("%u = %u", i, (uint32)_pArray[i]);
+				DL_LOG_BIN_WRITER_VERBOSE("%lu = %u", i, (uint32)_pArray[i]);
 		}
 
 		if(m_SourceEndian != m_TargetEndian)
@@ -111,7 +111,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write zero: %u + %u", m_Pos, _Bytes);
+			DL_LOG_BIN_WRITER_VERBOSE("Write zero: %lu + %lu", m_Pos, _Bytes);
 			M_ASSERT(m_Pos + _Bytes <= m_DataSize && "To small buffer!");
 			memset(m_Data + m_Pos, 0x0, _Bytes);
 		}
@@ -137,7 +137,7 @@ public:
 		pint Alignment = AlignUp(m_Pos, _Alignment);
 		if(!m_Dummy && Alignment != m_Pos) 
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Align: %u + %u (%u)", m_Pos, Alignment - m_Pos, _Alignment);
+			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu (%lu)", m_Pos, Alignment - m_Pos, _Alignment);
 			memset(m_Data + m_Pos, 0x0, Alignment - m_Pos);
 		}
 		m_Pos = Alignment;
@@ -152,7 +152,7 @@ private:
 	ECpuEndian m_TargetEndian;
 	EDLPtrSize m_PtrSize;
 	pint       m_Pos;
-	pint       m_NeededSize;		
+	pint       m_NeededSize;
 	uint8*     m_Data;
 	pint       m_DataSize;
 };

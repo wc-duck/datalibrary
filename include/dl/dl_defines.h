@@ -3,20 +3,18 @@
 #ifndef DL_DL_DEFINES_H_INCLUDED
 #define DL_DL_DEFINES_H_INCLUDED
 
-// TODO: Fix for other compilers and platforms
-#define DL_COMPILER_MSVC
-#define DL_TAG_WINAPI
-
-#if defined(DL_COMPILER_MSVC)
+#if defined(_MSC_VER)
 	#define DL_FORCEINLINE __forceinline
 	#define DL_DLL_EXPORT  __declspec(dllexport)
 	#define DL_ALIGN(x)    __declspec(align(x))
 	#define DL_RESTRICT    __restrict
-#elif defined(DL_COMPILER_GCC)
+#elif defined(__GNUC__)
 	#define DL_FORCEINLINE inline __attribute__((always_inline))
 	#define DL_DLL_EXPORT
 	#define DL_ALIGN(x)    __attribute__((aligned(x)))
 	#define DL_RESTRICT    __restrict__
+#else
+	#error No supported compiler
 #endif
 
 #define DL_UNUSED (void)
@@ -30,8 +28,8 @@ struct TAlignmentOf
 #define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
 
 // remove me!
-#if defined(DL_COMPILER_MSVC)
-	typedef unsigned int uint;
+#if defined(_MSC_VER)
+
 	typedef signed   __int8  int8;
 	typedef signed   __int16 int16;
 	typedef signed   __int32 int32;
@@ -41,16 +39,9 @@ struct TAlignmentOf
 	typedef unsigned __int32 uint32;
 	typedef unsigned __int64 uint64;
 
-	typedef long long fint;
-	typedef int       bint;
+#elif defined(__GNUC__)
 
-
-	// this is not even correct on all platforms!
-	typedef unsigned long pint;
-
-#elif defined(DL_COMPILER_GCC)
 	#include <stdint.h>
-	typedef unsigned int uint;
 	typedef int8_t   int8;
 	typedef int16_t  int16;
 	typedef int32_t  int32;
@@ -60,12 +51,21 @@ struct TAlignmentOf
 	typedef uint32_t uint32;
 	typedef uint64_t uint64;
 
-	typedef uint32_t pint;
-
-	typedef long long fint;
-	typedef int       bint;
 #endif
 
+#if defined( __LP64__ )
+	#define DL_PTR_SIZE_64
+	#define DL_INT64_FMT_STR  "%ld"
+	#define DL_UINT64_FMT_STR "%lu"
+	typedef uint64 pint;
+#else
+	#define DL_PTR_SIZE_32
+	#define DL_INT64_FMT_STR  "%lld"
+	#define DL_UINT64_FMT_STR "%llu"
+	typedef uint32 pint;
+#endif // DL_PTR_SIZE_32
+
+// remove, replace with float/double
 typedef float  fp32;
 typedef double fp64;
 
@@ -87,6 +87,7 @@ enum ECpuEndian
 // #endif // defined(M_CPU_ENDIAN_*)
 };
 
+// remove and replace with standard
 static const int8  DL_INT8_MAX  = 0x7F;
 static const int16 DL_INT16_MAX = 0x7FFF;
 static const int32 DL_INT32_MAX = 0x7FFFFFFFL;

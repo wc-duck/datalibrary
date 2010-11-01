@@ -4,9 +4,9 @@
 #define DL_DL_TEST_COMMON_H_INCLUDED
 
 // header file generated from unittest-type lib
-#include "generated/dl/unittest.h"
+#include "generated/unittest.h"
 
-static void* MyAlloc(pint  _Size, pint _Alignment) { M_UNUSED(_Alignment); return malloc(_Size); }
+static void* MyAlloc(pint  _Size, pint _Alignment) { DL_UNUSED(_Alignment); return malloc(_Size); }
 static void  MyFree (void* _pPtr) { free(_pPtr); }
 
 class DL : public ::testing::Test
@@ -19,7 +19,7 @@ protected:
 		// bake the unittest-type library into the exe!
 		static const uint8 TypeLib[] = 
 		{
-			#include "generated/dl/unittest.bin.h"
+			#include "generated/unittest.bin.h"
 		};
 
 		MyAllocs.m_Alloc = MyAlloc;

@@ -1,39 +1,101 @@
---[[ 
+BUILD_PATH = "local"
 
-    TODO: This file is a real hackwork and should be prio one to get working right!
-    
-    * Add configs
-    * Add builds for more platforms
-    * Build unittests and needed headers with !
-    ... and more!
---]]
+function DLTypeLibrary( tlc_file  )
+	local output_path = PathJoin( BUILD_PATH, 'generated' )
+	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
+	local out_header = out_file .. ".h"
+	local out_lib    = out_file .. ".bin"
+	local out_lib_h  = out_file .. ".bin.h"
 
-settings = NewSettings()
+	AddJob( out_header, 
+		"tlc " .. out_file,
+		"python2.6 tool/dl_tlc/dl_tlc.py -o " .. out_lib .. " -c " .. out_header .. " " .. tlc_file, 
+		tlc_file )
 
--- ugly add!
-settings.cc.includes:Add("S:/Source/Engine2/external/yajl-1.0.8/include")
-settings.cc.includes:Add("include")
-settings.cc.Output = function(settings, path) return PathJoin("local/obj", PathFilename(PathBase(path)) .. settings.config_ext) end
+	AddDependency( out_header, Collect( "tool/dl_tlc/*.py" ) )
 
-settings.link.libpath:Add("local/lib", "S:/Source/Engine2/dev/local/debug/win32")
-settings.link.libs:Add("yajl")
-settings.link.flags:Add("/DEBUG")
-settings.dll.libpath:Add("local/lib", "S:/Source/Engine2/dev/local/debug/win32")
-settings.dll.libs:Add("yajl")
-settings.dll.flags:Add("/DEBUG")
+	-- dump type-lib to header
+	AddJob( out_lib_h, 
+		out_lib .. " -> " .. out_lib_h, 
+		"python2.6 build/bin_to_hex.py " .. out_lib .. " > " .. out_lib_h, 
+		out_lib )
 
-files = CollectRecursive("src/*.cpp")
-objs = Compile(settings, files)
-lib = StaticLibrary(settings, "local/lib/dl", objs)
-sh  = SharedLibrary(settings, "local/dll/dldyn", objs)
+end
 
--- mod settings to build dl_pack
-settings.cc.includes:Add("src")
-settings.link.libs:Add("dl")
-dl_pack = Link(settings, "local/exe/dl_pack", Compile(settings, Collect("tool/dl_pack/*.cpp")), lib)
 
--- for unittests to build python-scripts need to run to generate unittest.h
+function DefaultGCC( platform, config )
+	local settings = NewSettings()
+	settings.cc.includes:Add("include")
+	settings.cc.includes:Add("local")
+	settings.cc.flags:Add("-Werror", "-ansi")
 
--- mod settings to build dl_tests
-settings.cc.includes:Add("extern/gtest-1.3.0/include")
-unittests = Link(settings, "local/exe/dl_tests", Compile(settings, Collect("tests/*.cpp", "external/gtest-1.3.0/src")), lib)
+	settings.dll.libs:Add("yajl")
+	settings.link.libs:Add("yajl")
+
+	local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
+	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
+	settings.cc.Output = output_func
+	settings.lib.Output = output_func	
+	settings.dll.Output = output_func
+	settings.link.Output = output_func
+
+	return settings
+end
+
+function DefaultGCCLinux32( config )
+	local settings = DefaultGCC( "linux32", config )
+	settings.cc.flags:Add( "-m32" )
+	settings.cc.flags:Add( "-malign-double" ) -- TODO: temporary workaround, dl should support natural alignment for double
+	settings.dll.flags:Add( "-m32" )
+	settings.link.flags:Add( "-m32" )
+	return settings
+end
+
+function DefaultGCCLinux64( config )
+	local settings = DefaultGCC( "linux64", config )
+	settings.cc.flags:Add( "-m64" )
+	settings.dll.flags:Add( "-m64" )
+	settings.link.flags:Add( "-m64" )
+	return settings
+end
+
+settings = 
+{
+	linux32 = { debug = DefaultGCCLinux32( "debug" ), release = DefaultGCCLinux32( "release" ) },
+	linux64 = { debug = DefaultGCCLinux64( "debug" ), release = DefaultGCCLinux64( "release" ) }
+}
+
+platform = ScriptArgs["platform"]
+config   = ScriptArgs["config"]
+
+if not platform then error( "platform need to be set. example \"platform=linux32\"" ) end
+if not config then   error( "config need to be set. example \"config=debug\"" )       end
+
+platform_settings = settings[platform]
+if not platform_settings then              error( platform .. " is not a supported platform" )    end
+build_settings = platform_settings[config]
+if not build_settings then                 error( config .. " is not a supported configuration" ) end
+
+build_settings = settings[ platform ][ config ]
+
+lib_files = Collect( "src/*.cpp" )
+obj_files = Compile( build_settings, lib_files )
+
+-- ugly fugly, need -fPIC on .so-files!
+local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
+local output_func = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
+build_settings.cc.Output = output_func
+build_settings.cc.flags:Add( "-fPIC" )
+dll_files = Compile( build_settings, lib_files )
+
+static_library = StaticLibrary( build_settings, "dl", obj_files )
+shared_library = SharedLibrary( build_settings, "dl", dll_files )
+
+dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
+
+DLTypeLibrary( "tests/unittest.tld" )
+
+build_settings.link.libs:Add( "gtest" )
+build_settings.link.libs:Add( "pthread" )
+unittests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
+

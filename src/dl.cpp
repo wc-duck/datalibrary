@@ -19,8 +19,8 @@ EDLError DLContextCreate(HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFunc
 		_pDLAllocFuncs = &g_DLMallocFreeFuncs;
 
 	SDLContext* pCtx = (SDLContext*)_pDLAllocFuncs->m_Alloc(sizeof(SDLContext), sizeof(void*));
-	
-	if(pCtx == 0x0) 
+
+	if(pCtx == 0x0)
 		return DL_ERROR_OUT_OF_LIBRARY_MEMORY;
 
 	pCtx->m_DLAllocFuncs       = _pDLAllocFuncs;
@@ -44,10 +44,10 @@ EDLError DLContextDestroy(HDLContext _Context)
 }
 
 EDLError DLInternalConvertNoHeader( HDLContext     _Context,
-								    uint8*         _pData, 
+								    uint8*         _pData,
 								    uint8*         _pBaseData,
-								    uint8*         _pOutData, 
-								    pint           _OutDataSize, 
+								    uint8*         _pOutData,
+								    pint           _OutDataSize,
 								    pint*          _pNeededSize,
 								    ECpuEndian     _SourceEndian,
 								    ECpuEndian     _TargetEndian,
@@ -84,10 +84,10 @@ static void DLPatchPtr(const uint8* _pPtr, const uint8* _pBaseData)
 		pReadMe->m_RealData = _pBaseData + pReadMe->m_Offset;
 };
 
-static EDLError DLPatchLoadedPtrs( HDLContext         _Context, 
-								  SPatchedInstances* _pPatchedInstances, 
-								  const uint8*       _pInstance, 
-								  const SDLType*     _pType, 
+static EDLError DLPatchLoadedPtrs( HDLContext         _Context,
+								  SPatchedInstances* _pPatchedInstances,
+								  const uint8*       _pInstance,
+								  const SDLType*     _pType,
 								  const uint8*       _pBaseData )
 {
 	// TODO: Optimize this please, linear search might not be the best if many subinstances is in file!
@@ -378,7 +378,7 @@ EDLError DLLoadInstanceInplace(HDLContext _Context, void* _pInstance, const uint
 	return DL_ERROR_OK;
 }
 
-#if 0 // BinaryWriterVerbose
+#if 1 // BinaryWriterVerbose
 	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...)
 #else
 	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...) printf("DL:" _Fmt, ##__VA_ARGS__)
@@ -400,7 +400,7 @@ public:
 		if(!m_Dummy)
 		{
 			M_ASSERT(m_WritePtr < m_OutDataSize);
-			DL_LOG_BIN_WRITER_VERBOSE("Write: %u + %u (%u)", m_WritePtr, _DataSize, *(pint*)_pData);
+			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%lu)", m_WritePtr, _DataSize, *(pint*)_pData);
 			memcpy(m_OutData + m_WritePtr, _pData, _DataSize);
 		}
 		m_WritePtr += _DataSize;
@@ -417,16 +417,16 @@ public:
 		if(!m_Dummy)
 		{
 			memset(m_OutData + m_WritePtr, 0x0, MoveMe);
-			DL_LOG_BIN_WRITER_VERBOSE("Align: %u + %u", m_WritePtr, MoveMe);
+			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu", m_WritePtr, MoveMe);
 		}
 		m_WritePtr += MoveMe;
 		m_WriteEnd = Max(m_WriteEnd, m_WritePtr);
 	}
 
 	pint Tell()              { return m_WritePtr; }
-	void SeekSet(pint Pos)   { DL_LOG_BIN_WRITER_VERBOSE("Seek set: %u", Pos);                       m_WritePtr = Pos;  }
-	void SeekEnd()           { DL_LOG_BIN_WRITER_VERBOSE("Seek end: %u", m_WriteEnd);                m_WritePtr = m_WriteEnd; }
-	void Reserve(pint Bytes) { DL_LOG_BIN_WRITER_VERBOSE("Reserve: end %u + %u", m_WriteEnd, Bytes); m_WriteEnd += Bytes; }
+	void SeekSet(pint Pos)   { DL_LOG_BIN_WRITER_VERBOSE("Seek set: %lu", Pos);                       m_WritePtr = Pos;  }
+	void SeekEnd()           { DL_LOG_BIN_WRITER_VERBOSE("Seek end: %lu", m_WriteEnd);                m_WritePtr = m_WriteEnd; }
+	void Reserve(pint Bytes) { DL_LOG_BIN_WRITER_VERBOSE("Reserve: end %lu + %lu", m_WriteEnd, Bytes); m_WriteEnd += Bytes; }
 
 	pint FindWrittenPtr(void* _Ptr)
 	{

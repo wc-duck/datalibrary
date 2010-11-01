@@ -96,16 +96,18 @@ DL_TO_PY_TYPE = { DL_TYPE_STORAGE_INT8   : 0,
 				  DL_TYPE_STORAGE_PTR    : None }
 				 
 # Hack fix: (how should we find the dl-dll, right now the path is hard-codede and it tries to find one dll that fits!)
-DLDllPath = os.getcwd() + '/local/%s/win32/dldyn.dll' if platform.architecture()[0] == '32bit' else '/local/%s/winx64/dldyn.dll'
+#DLDllPath = os.getcwd() + '/local/%s/win32/dldyn.dll' if platform.architecture()[0] == '32bit' else '/local/%s/winx64/dldyn.dll'
+DLDllPath = os.path.join( os.getcwd(), 'local/linux32/' if platform.architecture()[0] == '32bit' else 'local/linux64/', '%s/dl.so' )
 
 if 'DL_DLL_PATH' in os.environ: # was the path to the dll set as an environment variable? (might not be the best solution but it has to do for now)
 	DLDllPath = os.environ['DL_DLL_PATH']
 else:
-	for conf in [ 'rtm', 'optimized', 'debug' ]:
-		if os.path.exists(DLDllPath % conf):
-			DLDllPath = DLDllPath % conf
+	for conf in [ 'release', 'debug' ]:
+		path = DLDllPath % conf
+		if os.path.exists(path):
+			DLDllPath = path
 			break
-		
+
 global g_DLDll
 g_DLDll = CDLL(DLDllPath)
 g_DLDll.DLErrorToString.restype = c_char_p

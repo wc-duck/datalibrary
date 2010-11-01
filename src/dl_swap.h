@@ -32,6 +32,7 @@ DL_FORCEINLINE uint64 DLSwapEndian(uint64 _SwapMe)
 	return conv.m_u64;
 }
 
+/*
 #if !defined(M_PLATFORM_PS3) && !defined(M_PLATFORM_WINX64) // compiler complains about redefinition on these platforms????
 DL_FORCEINLINE pint DLSwapEndian(pint _SwapMe)
 {
@@ -44,16 +45,15 @@ DL_FORCEINLINE pint DLSwapEndian(pint _SwapMe)
 	}
 }
 #endif // !defined(M_PLATFORM_PS3) && !defined(M_PLATFORM_WINX64)
+*/
 
 DL_FORCEINLINE void* DLSwapEndian(void* _SwapMe)
 {
-	switch(sizeof(void*))
-	{
-		case 4: return (void*)DLSwapEndian((uint32)_SwapMe);
-		case 8: return (void*)DLSwapEndian((uint64)_SwapMe);
-		default: 
-			return 0;
-	}
+#ifdef DL_PTR_SIZE32
+	return (void*)DLSwapEndian(uint32(_SwapMe));
+#else
+	return (void*)DLSwapEndian(uint64(_SwapMe));
+#endif
 }
 
 DL_FORCEINLINE fp32 DLSwapEndian(fp32 _SwapMe)

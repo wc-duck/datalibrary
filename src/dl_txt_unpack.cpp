@@ -19,19 +19,19 @@ public:
 	HDLContext m_Ctx;
 	yajl_gen   m_JsonGen;
 
- 	uint AddSubDataMember(const SDLMember* _pMember, const uint8* _pData, uint32 _ArrayCount)
+ 	unsigned int AddSubDataMember(const SDLMember* _pMember, const uint8* _pData, uint32 _ArrayCount)
 	{
 		m_lSubdataMembers.Add(SSubDataMember(_pMember, _pData, _ArrayCount));
-		return uint(m_lSubdataMembers.Len() - 1);
+		return (unsigned int)(m_lSubdataMembers.Len() - 1);
 	}
 
-	uint FindSubDataMember(const uint8* _pData)
+	unsigned int FindSubDataMember(const uint8* _pData)
 	{
-		for (uint iSubdata = 0; iSubdata < m_lSubdataMembers.Len(); ++iSubdata)
+		for (unsigned int iSubdata = 0; iSubdata < m_lSubdataMembers.Len(); ++iSubdata)
 			if (m_lSubdataMembers[iSubdata].m_pData == _pData)
 				return iSubdata;
 
-		return uint(-1);
+		return (unsigned int)(-1);
 	}
 
 	// subdata!

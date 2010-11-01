@@ -6,8 +6,8 @@
 #include <string.h>
 
 // #include "dl_types.h"
-#include "getopt/getopt.h"
-#include "container/dl_array.h"
+#include "../../src/getopt/getopt.h" // these includes are horrific!
+#include "../../src/container/dl_array.h"
 
 // #include <platform/cpu.h>
 // #include <platform/string.h>
@@ -30,7 +30,7 @@ void PrintHelp(SGetOptContext* _pCtx)
 {
 	char Buffer[2048];
 	printf("usage: dl_pack.exe [options] file_to_pack\n\n");
-	printf(GetOptCreateHelpString(_pCtx, Buffer, 2048));
+	printf("%s", GetOptCreateHelpString(_pCtx, Buffer, 2048));
 }
 
 uint8* ReadFile(FILE* _pFile, pint* Size)
@@ -84,7 +84,7 @@ HDLContext CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStati
 				pint Size;
 				uint8* TL = ReadFile(File, &Size);
 				err = DLLoadTypeLibrary(Ctx, TL, Size);
-				if(err != DL_ERROR_OK) 
+				if(err != DL_ERROR_OK)
 					M_ERROR_AND_FAIL( "SBDL error while loading type library (%s): %s", Path, DLErrorToString(err));
 
 				free(TL);
@@ -101,7 +101,7 @@ HDLContext CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStati
 
 int main(int argc, char** argv)
 {
-	static const SOption OptionList[] = 
+	static const SOption OptionList[] =
 	{
 		{"help",    'h', E_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message"},
 		{"libpath", 'L', E_OPTION_TYPE_REQUIRED, 0x0,        'L', "add type-library include path", "path"},
@@ -130,30 +130,30 @@ int main(int argc, char** argv)
 		switch(opt)
 		{
 			case 'h': PrintHelp(&GOCtx); return 0;
-			case 'L': 
+			case 'L':
 				if(lLibPaths.Full())
-					M_ERROR_AND_QUIT("dl_pack only supports %u libpaths!", lLibPaths.Capacity());
+					M_ERROR_AND_QUIT("dl_pack only supports %u libpaths!", (uint32)lLibPaths.Capacity());
 
 				lLibPaths.Add(GOCtx.m_CurrentOptArg);
 				break;
 			case 'l':
 				if(lLibs.Full())
-					M_ERROR_AND_QUIT("dl_pack only supports %u type libraries libs!", lLibs.Capacity());
+					M_ERROR_AND_QUIT("dl_pack only supports %u type libraries libs!", (uint32)lLibs.Capacity());
 
 				lLibs.Add(GOCtx.m_CurrentOptArg);
 				break;
-			case 'o': 
+			case 'o':
 				if(pOutput[0] != '\0')
 					M_ERROR_AND_QUIT("output-file already set to: \"%s\", trying to set it to \"%s\"", pOutput, GOCtx.m_CurrentOptArg);
 
-				pOutput = GOCtx.m_CurrentOptArg; 
+				pOutput = GOCtx.m_CurrentOptArg;
 				break;
 			case 'e':
 				if(strcmp(GOCtx.m_CurrentOptArg, "little") == 0)
 					Endian = ENDIAN_LITTLE;
 				else if(strcmp(GOCtx.m_CurrentOptArg, "big") == 0) 
 					Endian = ENDIAN_BIG;
-				else 
+				else
 					M_ERROR_AND_QUIT("endian-flag need \"little\" or \"big\", not \"%s\"!", GOCtx.m_CurrentOptArg);
 				break;
 			case 'p':

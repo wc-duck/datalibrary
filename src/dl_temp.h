@@ -67,10 +67,10 @@ template<typename T> DL_FORCEINLINE T Max(T _ValA, T _ValB) { return _ValA < _Va
 		Value greater than zero indicates that the first char that differs between <_pStr1> and <_pStr2> are greater in <_pStr1>
 		Value less than zero indicates that the first char that differs between <_pStr1> and <_pStr2> are greater in <_pStr2>
 */
-DL_FORCEINLINE int StrCaseCompareLen(const char* _pStr1, const char* _pStr2, uint _Len)
+DL_FORCEINLINE int StrCaseCompareLen(const char* _pStr1, const char* _pStr2, unsigned int _Len)
 {
 #if defined (DL_TAG_WINAPI)
-	for(uint i = 0; i < _Len; i++)
+	for(unsigned int i = 0; i < _Len; i++)
 	{
 		int C1 = tolower(_pStr1[i]);
 		int C2 = tolower(_pStr2[i]);

@@ -172,7 +172,7 @@ struct SDLPackContext
 		if( m_StateStack.Top().m_State == DL_PACK_STATE_ARRAY )
 		{
 			m_StateStack.Top().m_ArrayCount++;
-			
+
 			switch(OldState.m_State)
 			{
 				case DL_PACK_STATE_STRUCT: PushStructState(OldState.m_pType); break;
@@ -240,28 +240,28 @@ struct SDLPackContext
 private:
 	uint m_CurrentSubdataElement;
 	// positions for different subdata-elements;
-	struct  
+	struct
 	{
 		pint m_Pos;
 		uint32 m_Count;
 	} m_SubdataElements[128];
 };
 
-static int DLOnNull(void* _pCtx)  
+static int DLOnNull(void* _pCtx)
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 	M_ASSERT(pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID);
 	pCtx->m_Writer->Write(pint(-1)); // mark Null-ptr
 	pCtx->PopState();
 	return 1;
-}  
+}
 
-static int DLOnBool(void* _pCtx, int _Boolean)  
+static int DLOnBool(void* _pCtx, int _Boolean)
 {
 	DL_UNUSED(_pCtx); DL_UNUSED(_Boolean);
 	M_ASSERT(false && "No support for bool yet!");
 	return 1;
-}  
+}
 
 template<typename T> DL_FORCEINLINE bool Between(T _Val, T _Min, T _Max) { return _Val <= _Max && _Val >= _Min; }
 
@@ -271,14 +271,14 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 
 	union { int64 m_Signed; uint64 m_Unsigned; } Min;
 	union { int64 m_Signed; uint64 m_Unsigned; } Max;
-	char* pFmt = "";
+	const char* pFmt = "";
 
 	EDLPackState State = pCtx->CurrentPackState();
 
 	if((State & DL_TYPE_ATOM_MASK) == DL_TYPE_ATOM_BITFIELD)
 	{
 		uint64 Val;
-		if(sscanf(_pStringVal, "%llu", &Val) != 1)
+		if(sscanf(_pStringVal, DL_UINT64_FMT_STR, &Val) != 1)
 			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as bitfield member!", _StringLen, _pStringVal);
 
 		uint BFBits   = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED);
@@ -286,7 +286,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 
 		uint64 MaxVal = (uint64(1) << BFBits) - uint64(1);
 		if(Val > MaxVal)
-			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Value %llu will not fit in a bitfield with %u bits!", Val, BFBits);
+			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", Val, BFBits);
 
 		EDLType StorageType = EDLType(State & DL_TYPE_STORAGE_MASK);
 
@@ -309,14 +309,14 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 
 	switch(State)
 	{
-		case DL_PACK_STATE_POD_INT8:   Min.m_Signed  =   int64(DL_INT8_MIN);   Max.m_Signed   =  int64(DL_INT8_MAX);   pFmt = "%lld"; break;
-		case DL_PACK_STATE_POD_INT16:  Min.m_Signed  =   int64(DL_INT16_MIN);  Max.m_Signed   =  int64(DL_INT16_MAX);  pFmt = "%lld"; break;
-		case DL_PACK_STATE_POD_INT32:  Min.m_Signed  =   int64(DL_INT32_MIN);  Max.m_Signed   =  int64(DL_INT32_MAX);  pFmt = "%lld"; break;
-		case DL_PACK_STATE_POD_INT64:  Min.m_Signed  =   int64(DL_INT64_MIN);  Max.m_Signed   =  int64(DL_INT64_MAX);  pFmt = "%lld"; break;
-		case DL_PACK_STATE_POD_UINT8:  Min.m_Unsigned = uint64(DL_UINT8_MIN);  Max.m_Unsigned = uint64(DL_UINT8_MAX);  pFmt = "%llu"; break;
-		case DL_PACK_STATE_POD_UINT16: Min.m_Unsigned = uint64(DL_UINT16_MIN); Max.m_Unsigned = uint64(DL_UINT16_MAX); pFmt = "%llu"; break;
-		case DL_PACK_STATE_POD_UINT32: Min.m_Unsigned = uint64(DL_UINT32_MIN); Max.m_Unsigned = uint64(DL_UINT32_MAX); pFmt = "%llu"; break;
-		case DL_PACK_STATE_POD_UINT64: Min.m_Unsigned = uint64(DL_UINT64_MIN); Max.m_Unsigned = uint64(DL_UINT64_MAX); pFmt = "%llu"; break;
+		case DL_PACK_STATE_POD_INT8:   Min.m_Signed  =   int64(DL_INT8_MIN);   Max.m_Signed   =  int64(DL_INT8_MAX);   pFmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT16:  Min.m_Signed  =   int64(DL_INT16_MIN);  Max.m_Signed   =  int64(DL_INT16_MAX);  pFmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT32:  Min.m_Signed  =   int64(DL_INT32_MIN);  Max.m_Signed   =  int64(DL_INT32_MAX);  pFmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT64:  Min.m_Signed  =   int64(DL_INT64_MIN);  Max.m_Signed   =  int64(DL_INT64_MAX);  pFmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT8:  Min.m_Unsigned = uint64(DL_UINT8_MIN);  Max.m_Unsigned = uint64(DL_UINT8_MAX);  pFmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT16: Min.m_Unsigned = uint64(DL_UINT16_MIN); Max.m_Unsigned = uint64(DL_UINT16_MAX); pFmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT32: Min.m_Unsigned = uint64(DL_UINT32_MIN); Max.m_Unsigned = uint64(DL_UINT32_MAX); pFmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT64: Min.m_Unsigned = uint64(DL_UINT64_MIN); Max.m_Unsigned = uint64(DL_UINT64_MAX); pFmt = DL_UINT64_FMT_STR; break;
 
 		case DL_PACK_STATE_POD_FP32:   pCtx->m_Writer->Write((fp32)atof(_pStringVal)); pCtx->ArrayItemPop(); return 1;
 		case DL_PACK_STATE_POD_FP64:   pCtx->m_Writer->Write(      atof(_pStringVal)); pCtx->ArrayItemPop(); return 1;
@@ -328,7 +328,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
 
 			pCtx->AddPatchPosition(uint(ID));
-			
+
 			// this is the pos that will be patched, but we need to make room for the array now!
 			pCtx->m_Writer->WriteZero(pCtx->m_PatchPosition[pCtx->m_PatchPosition.Len() - 1].m_pMember->m_Size[DL_PTR_SIZE_HOST]);
 
@@ -352,14 +352,14 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 		case DL_PACK_STATE_POD_INT32:
 		case DL_PACK_STATE_POD_INT64:
 			if(!Between(Val.m_Signed, Min.m_Signed, Max.m_Signed))
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "%lld will not fit in type", Val.m_Signed);
+				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, DL_INT64_FMT_STR " will not fit in type", Val.m_Signed);
 			break;
 		case DL_PACK_STATE_POD_UINT8:
 		case DL_PACK_STATE_POD_UINT16:
 		case DL_PACK_STATE_POD_UINT32:
 		case DL_PACK_STATE_POD_UINT64:
 			if(!Between(Val.m_Unsigned, Min.m_Unsigned, Max.m_Unsigned))
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "%llu will not fit in type", Val.m_Unsigned);
+				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, DL_UINT64_FMT_STR " will not fit in type", Val.m_Unsigned);
 			break;
 		default:
 			break;
@@ -397,7 +397,7 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 
 			if(pCtx->m_pRootType == 0x0) 
 				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", _StringLen, _pStringVal);
-			
+
 			pCtx->PopState(); // back to last state plox!
 		break;
 		case DL_PACK_STATE_STRING:

@@ -7,44 +7,41 @@
 
 #include "dl_test_common.h"
 
-#include <platform/memory.h>
-#include <platform/string.h>
-
-#include <debug/log.h>
+#include <float.h>
 
 void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _pUnpackMe)
 {
 	uint8 OutDataInstance[1024];
 	char  TxtOut[2048];
 
-	MemZero(OutDataInstance, sizeof(OutDataInstance));
-	MemZero(TxtOut,  sizeof(TxtOut));
+	memset(OutDataInstance, 0x0, sizeof(OutDataInstance));
+	memset(TxtOut, 0x0,  sizeof(TxtOut));
 
 	// store instance to binary
-	EDLError err = DLStoreInstace(_Ctx, _TypeHash, _pPackMe, OutDataInstance, M_ARRAY_LENGTH(OutDataInstance));
+	EDLError err = DLStoreInstace(_Ctx, _TypeHash, _pPackMe, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-	EXPECT_EQ(sizeof(void*), DLInstancePtrSize(OutDataInstance, M_ARRAY_LENGTH(OutDataInstance)));
-	EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(OutDataInstance,  M_ARRAY_LENGTH(OutDataInstance)));
-	EXPECT_EQ(_TypeHash,     DLInstanceRootType(OutDataInstance, M_ARRAY_LENGTH(OutDataInstance)));
+	EXPECT_EQ(sizeof(void*), DLInstancePtrSize(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance)));
+	EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(OutDataInstance,   DL_ARRAY_LENGTH(OutDataInstance)));
+	EXPECT_EQ(_TypeHash,     DLInstanceRootType(OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance)));
 
 	// unpack binary to txt
-	err = DLUnpack(_Ctx, OutDataInstance, M_ARRAY_LENGTH(OutDataInstance), TxtOut, M_ARRAY_LENGTH(TxtOut));
+	err = DLUnpack(_Ctx, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	// M_LOG_INFO("%s", TxtOut);
 
 	uint8 OutDataText[1024];
-	MemZero(OutDataText, M_ARRAY_LENGTH(OutDataText));
+	memset(OutDataText, 0x0, DL_ARRAY_LENGTH(OutDataText));
 
 	// pack txt to binary
-	err = DLPackText(_Ctx, TxtOut, OutDataText, M_ARRAY_LENGTH(OutDataText));
+	err = DLPackText(_Ctx, TxtOut, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-	EXPECT_EQ(sizeof(void*), DLInstancePtrSize(OutDataText, M_ARRAY_LENGTH(OutDataText)));
-	EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(OutDataText,  M_ARRAY_LENGTH(OutDataText)));
-	EXPECT_EQ(_TypeHash,     DLInstanceRootType(OutDataText, M_ARRAY_LENGTH(OutDataText)));
+	EXPECT_EQ(sizeof(void*), DLInstancePtrSize(OutDataText,  DL_ARRAY_LENGTH(OutDataText)));
+	EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(OutDataText,   DL_ARRAY_LENGTH(OutDataText)));
+	EXPECT_EQ(_TypeHash,     DLInstanceRootType(OutDataText, DL_ARRAY_LENGTH(OutDataText)));
 
 	// load binary
-	err = DLLoadInstanceInplace(_Ctx, _pUnpackMe, OutDataText, M_ARRAY_LENGTH(OutDataText));
+	err = DLLoadInstanceInplace(_Ctx, _pUnpackMe, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	ECpuEndian OtherEndian  = ENDIAN_HOST == ENDIAN_BIG ? ENDIAN_LITTLE : ENDIAN_BIG;
@@ -52,36 +49,36 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 
 	// check if we can convert only endianness!
 	{
-		uint8 SwitchedEndian[M_ARRAY_LENGTH(OutDataText)];
-		MemCopy(SwitchedEndian, OutDataText, M_ARRAY_LENGTH(OutDataText));
+		uint8 SwitchedEndian[DL_ARRAY_LENGTH(OutDataText)];
+		memcpy(SwitchedEndian, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 
-		err = DLConvertInstanceInplace(_Ctx, SwitchedEndian, M_ARRAY_LENGTH(SwitchedEndian), OtherEndian, sizeof(void*));
+		err = DLConvertInstanceInplace(_Ctx, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), OtherEndian, sizeof(void*));
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-		EXPECT_EQ(sizeof(void*), DLInstancePtrSize(SwitchedEndian, M_ARRAY_LENGTH(SwitchedEndian)));
-		EXPECT_EQ(OtherEndian,   DLInstanceEndian(SwitchedEndian,  M_ARRAY_LENGTH(SwitchedEndian)));
+		EXPECT_EQ(sizeof(void*), DLInstancePtrSize(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian)));
+		EXPECT_EQ(OtherEndian,   DLInstanceEndian(SwitchedEndian,  DL_ARRAY_LENGTH(SwitchedEndian)));
 
-		EXPECT_NE(0, MemCompare(OutDataText, SwitchedEndian, M_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
+		EXPECT_NE(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
-		err = DLConvertInstanceInplace(_Ctx, SwitchedEndian, M_ARRAY_LENGTH(SwitchedEndian), ENDIAN_HOST, sizeof(void*));
+		err = DLConvertInstanceInplace(_Ctx, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), ENDIAN_HOST, sizeof(void*));
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-		EXPECT_EQ(sizeof(void*), DLInstancePtrSize(SwitchedEndian, M_ARRAY_LENGTH(SwitchedEndian)));
-		EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(SwitchedEndian,  M_ARRAY_LENGTH(SwitchedEndian)));
-		EXPECT_EQ(_TypeHash,     DLInstanceRootType(SwitchedEndian, M_ARRAY_LENGTH(SwitchedEndian)));
+		EXPECT_EQ(sizeof(void*), DLInstancePtrSize(SwitchedEndian,  DL_ARRAY_LENGTH(SwitchedEndian)));
+		EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(SwitchedEndian,   DL_ARRAY_LENGTH(SwitchedEndian)));
+		EXPECT_EQ(_TypeHash,     DLInstanceRootType(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian)));
 
-		EXPECT_EQ(0, MemCompare(OutDataText, SwitchedEndian, M_ARRAY_LENGTH(OutDataText))); // original data should be equal !
+		EXPECT_EQ(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should be equal !
 	}
 
 	// check problems when only ptr-size!
 	{
-		uint8 OriginalData[M_ARRAY_LENGTH(OutDataText)];
-		MemCopy(OriginalData, OutDataText, M_ARRAY_LENGTH(OutDataText));
+		uint8 OriginalData[DL_ARRAY_LENGTH(OutDataText)];
+		memcpy(OriginalData, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 
 		pint PackedSize = 0;
 		err = DLInstaceSizeStored(_Ctx, _TypeHash, _pPackMe, &PackedSize);
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 		pint ConvertedSize = 0;
-		err = DLInstanceSizeConverted(_Ctx, OriginalData, M_ARRAY_LENGTH(OriginalData), OtherPtrSize, &ConvertedSize);
+		err = DLInstanceSizeConverted(_Ctx, OriginalData, DL_ARRAY_LENGTH(OriginalData), OtherPtrSize, &ConvertedSize);
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 		if(OtherPtrSize <= sizeof(void*)) EXPECT_LE(ConvertedSize, PackedSize);
@@ -91,38 +88,38 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 		if(OtherPtrSize < sizeof(void*))
 		{
 			// if this is true, the conversion is doable with inplace-version.
-			uint8 ConvertedData[M_ARRAY_LENGTH(OutDataText)];
-			MemCopy(ConvertedData, OriginalData, M_ARRAY_LENGTH(OriginalData));
+			uint8 ConvertedData[DL_ARRAY_LENGTH(OutDataText)];
+			memcpy(ConvertedData, OriginalData, DL_ARRAY_LENGTH(OriginalData));
 
-			err = DLConvertInstanceInplace(_Ctx, ConvertedData, M_ARRAY_LENGTH(ConvertedData), ENDIAN_HOST, OtherPtrSize);
+			err = DLConvertInstanceInplace(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ENDIAN_HOST, OtherPtrSize);
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(OtherPtrSize, DLInstancePtrSize(ConvertedData, M_ARRAY_LENGTH(ConvertedData)));
-			EXPECT_EQ(ENDIAN_HOST,  DLInstanceEndian(ConvertedData,  M_ARRAY_LENGTH(ConvertedData)));
-			EXPECT_EQ(_TypeHash,    DLInstanceRootType(ConvertedData, M_ARRAY_LENGTH(ConvertedData)));
+			EXPECT_EQ(OtherPtrSize, DLInstancePtrSize(ConvertedData,  DL_ARRAY_LENGTH(ConvertedData)));
+			EXPECT_EQ(ENDIAN_HOST,  DLInstanceEndian(ConvertedData,   DL_ARRAY_LENGTH(ConvertedData)));
+			EXPECT_EQ(_TypeHash,    DLInstanceRootType(ConvertedData, DL_ARRAY_LENGTH(ConvertedData)));
 
-			EXPECT_NE(0, MemCompare(OutDataText, ConvertedData, M_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
+			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
-			uint8 OriginalConverted[M_ARRAY_LENGTH(OutDataText)];
-			MemCopy(OriginalConverted, ConvertedData, M_ARRAY_LENGTH(OriginalData));
+			uint8 OriginalConverted[DL_ARRAY_LENGTH(OutDataText)];
+			memcpy(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalData));
 
 			pint ReConvertedSize = 0;
-			err = DLInstanceSizeConverted(_Ctx, ConvertedData, M_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
+			err = DLInstanceSizeConverted(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
 
-			uint8 ReConvertedData[M_ARRAY_LENGTH(OutDataText) * 3];
+			uint8 ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
 			ReConvertedData[ReConvertedSize + 1] = 'L';
 			ReConvertedData[ReConvertedSize + 2] = 'O';
 			ReConvertedData[ReConvertedSize + 3] = 'L';
 			ReConvertedData[ReConvertedSize + 4] = '!';
 
-			err = DLConvertInstance(_Ctx, ConvertedData, M_ARRAY_LENGTH(ConvertedData), ReConvertedData, M_ARRAY_LENGTH(ReConvertedData), ENDIAN_HOST, sizeof(void*));
+			err = DLConvertInstance(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), ENDIAN_HOST, sizeof(void*));
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(sizeof(void*), DLInstancePtrSize(ReConvertedData, M_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(ReConvertedData,  M_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(_TypeHash,     DLInstanceRootType(ReConvertedData, M_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_EQ(sizeof(void*), DLInstancePtrSize(ReConvertedData,  DL_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(ReConvertedData,   DL_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_EQ(_TypeHash,     DLInstanceRootType(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData)));
 
-			EXPECT_EQ(0, MemCompare(OriginalConverted, ConvertedData, M_ARRAY_LENGTH(OriginalConverted))); // original data should be equal !
+			EXPECT_EQ(0, memcmp(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalConverted))); // original data should be equal !
 
 			EXPECT_EQ('L', ReConvertedData[ReConvertedSize + 1]);
 			EXPECT_EQ('O', ReConvertedData[ReConvertedSize + 2]);
@@ -132,42 +129,42 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 
 		// check both endian and ptrsize convert!
 		{
-			uint8 ConvertedData[M_ARRAY_LENGTH(OutDataText) * 3];
+			uint8 ConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
 			ConvertedData[ConvertedSize + 1] = 'L';
 			ConvertedData[ConvertedSize + 2] = 'O';
 			ConvertedData[ConvertedSize + 3] = 'L';
 			ConvertedData[ConvertedSize + 4] = '!';
 
-			err = DLConvertInstance(_Ctx, OriginalData, M_ARRAY_LENGTH(OriginalData), ConvertedData, M_ARRAY_LENGTH(ConvertedData), OtherEndian, OtherPtrSize);
+			err = DLConvertInstance(_Ctx, OriginalData, DL_ARRAY_LENGTH(OriginalData), ConvertedData, DL_ARRAY_LENGTH(ConvertedData), OtherEndian, OtherPtrSize);
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(OtherPtrSize, DLInstancePtrSize(ConvertedData, M_ARRAY_LENGTH(ConvertedData)));
-			EXPECT_EQ(OtherEndian,  DLInstanceEndian(ConvertedData,  M_ARRAY_LENGTH(ConvertedData)));
+			EXPECT_EQ(OtherPtrSize, DLInstancePtrSize(ConvertedData, DL_ARRAY_LENGTH(ConvertedData)));
+			EXPECT_EQ(OtherEndian,  DLInstanceEndian(ConvertedData,  DL_ARRAY_LENGTH(ConvertedData)));
 
 			EXPECT_EQ('L', ConvertedData[ConvertedSize + 1]);
 			EXPECT_EQ('O', ConvertedData[ConvertedSize + 2]);
 			EXPECT_EQ('L', ConvertedData[ConvertedSize + 3]);
 			EXPECT_EQ('!', ConvertedData[ConvertedSize + 4]);
 
-			EXPECT_NE(0, MemCompare(OutDataText, ConvertedData, M_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
+			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
 			pint ReConvertedSize = 0;
-			err = DLInstanceSizeConverted(_Ctx, ConvertedData, M_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
+			err = DLInstanceSizeConverted(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
 
-			uint8 ReConvertedData[M_ARRAY_LENGTH(OutDataText) * 2];
+			uint8 ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 2];
 			ReConvertedData[ReConvertedSize + 1] = 'L';
 			ReConvertedData[ReConvertedSize + 2] = 'O';
 			ReConvertedData[ReConvertedSize + 3] = 'L';
 			ReConvertedData[ReConvertedSize + 4] = '!';
 
-			err = DLConvertInstance(_Ctx, ConvertedData, M_ARRAY_LENGTH(ConvertedData), ReConvertedData, M_ARRAY_LENGTH(ReConvertedData), ENDIAN_HOST, sizeof(void*));
+			err = DLConvertInstance(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), ENDIAN_HOST, sizeof(void*));
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(sizeof(void*), DLInstancePtrSize(ReConvertedData, M_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(ReConvertedData,  M_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(_TypeHash,     DLInstanceRootType(ReConvertedData, M_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_EQ(sizeof(void*), DLInstancePtrSize(ReConvertedData,  DL_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_EQ(ENDIAN_HOST,   DLInstanceEndian(ReConvertedData,   DL_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_EQ(_TypeHash,     DLInstanceRootType(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData)));
 
-			EXPECT_EQ(0, MemCompare(OutDataText, ReConvertedData, PackedSize)); // original data should be equal !
+			EXPECT_EQ(0, memcmp(OutDataText, ReConvertedData, PackedSize)); // original data should be equal !
 
 			EXPECT_EQ('L', ReConvertedData[ReConvertedSize + 1]);
 			EXPECT_EQ('O', ReConvertedData[ReConvertedSize + 2]);
@@ -198,7 +195,7 @@ TEST_F(DL, TestPack)
 
 TEST_F(DL, MaxPod)
 {
-	SPods P1Original = { M_INT8_MAX, M_INT16_MAX, M_INT32_MAX, M_INT64_MAX, M_UINT8_MAX, M_UINT16_MAX, M_UINT32_MAX, M_UINT64_MAX, M_FP32_MAX, M_FP64_MAX };
+	SPods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
 	SPods P1         = { 0 };
 
 	DoTheRoundAbout(Ctx, SPods::TYPE_ID, &P1Original, &P1);
@@ -218,7 +215,7 @@ TEST_F(DL, MaxPod)
 
 TEST_F(DL, MinPod)
 {
-	SPods P1Original = { M_INT8_MIN, M_INT16_MIN, M_INT32_MIN, M_INT64_MIN, M_UINT8_MIN, M_UINT16_MIN, M_UINT32_MIN, M_UINT64_MIN, M_FP32_MIN, M_FP64_MIN };
+	SPods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
 	SPods P1         = { 0 };
 
 	DoTheRoundAbout(Ctx, SPods::TYPE_ID, &P1Original, &P1);
@@ -426,7 +423,7 @@ TEST_F(DL, SimpleString)
 
 TEST_F(DL, InlineArrayString)
 {
-	SStringInlineArray Orig = { { "awsum", "cowbells", "FTW!" } } ;
+	SStringInlineArray Orig = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
 	SStringInlineArray* New;
 
 	SStringInlineArray Loaded[5]; // this is so ugly!
@@ -442,7 +439,7 @@ TEST_F(DL, InlineArrayString)
 
 TEST_F(DL, ArrayString)
 {
-	char* TheStringArray[] = { "I like", "the", "1337 ", "cowbells of doom!" };
+	char* TheStringArray[] = { (char*)"I like", (char*)"the", (char*)"1337 ", (char*)"cowbells of doom!" };
 	SStringArray Orig = { { TheStringArray, 4 } };
 	SStringArray* New;
 
@@ -699,7 +696,7 @@ TEST_F(DL, BugTest1)
 	SBugTest1_InArray Arr[3] = { { 1337, 1338, 18 }, { 7331, 8331, 19 }, { 31337, 73313, 20 } } ;
 	SBugTest1 Inst;
 	Inst.m_lArr.m_pData  = Arr;
-	Inst.m_lArr.m_nCount = M_ARRAY_LENGTH(Arr);
+	Inst.m_lArr.m_nCount = DL_ARRAY_LENGTH(Arr);
 
 	SBugTest1 Loaded[10];
 
@@ -719,14 +716,14 @@ TEST_F(DL, BugTest1)
 template<typename T>
 const char* ArrayToString(T* _pArr, pint _Count, char* pBuffer, pint nBuffer)
 {
-	pint Pos = StrFormat(pBuffer, nBuffer, "{ %f", _pArr[0]);
+	pint Pos = snprintf(pBuffer, nBuffer, "{ %f", _pArr[0]);
 
 	for(pint i = 1; i < _Count && Pos < nBuffer; ++i)
 	{
-		Pos += StrFormat(pBuffer + Pos, nBuffer - Pos, ", %f", _pArr[i]);
+		Pos += snprintf(pBuffer + Pos, nBuffer - Pos, ", %f", _pArr[i]);
 	}
 
-	StrFormat(pBuffer + Pos, nBuffer - Pos, " }");
+	snprintf(pBuffer + Pos, nBuffer - Pos, " }");
 	return pBuffer;
 }
 
@@ -740,9 +737,9 @@ const char* ArrayToString(T* _pArr, pint _Count, char* pBuffer, pint nBuffer)
 		char ExpectBuf[1024]; \
 		char ActualBuf[1024]; \
 		char Err[2048]; \
-		StrFormat(Err, M_ARRAY_LENGTH(Err), "Arrays diffed!\nExpected:\n%s\nActual:\n%s", \
-											ArrayToString(_Expect, _Count, ExpectBuf, M_ARRAY_LENGTH(ExpectBuf)), \
-											ArrayToString(_Actual, _Count, ActualBuf, M_ARRAY_LENGTH(ActualBuf))); \
+		snprintf(Err, DL_ARRAY_LENGTH(Err), "Arrays diffed!\nExpected:\n%s\nActual:\n%s", \
+											ArrayToString(_Expect, _Count, ExpectBuf, DL_ARRAY_LENGTH(ExpectBuf)), \
+											ArrayToString(_Actual, _Count, ActualBuf, DL_ARRAY_LENGTH(ActualBuf))); \
 		EXPECT_TRUE(WasEq) << Err; \
 	} while (false);
 

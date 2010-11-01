@@ -7,8 +7,6 @@
 
 #include "dl_test_common.h"
 
-#include <platform/memory.h>
-
 TEST_F(DL, TextMemberOrder)
 {
 	// test to pack a txt-instance that is not in order!
@@ -360,3 +358,4 @@ TEST_F(DL, TextDefaultArrayString)
 	EXPECT_STREQ("are",   P1[0].m_lpArr[2]);
 	EXPECT_STREQ("cool",  P1[0].m_lpArr[3]);
 }
+
