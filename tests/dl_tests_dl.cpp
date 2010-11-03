@@ -9,9 +9,29 @@
 
 #include <float.h>
 
+// TODO: Check these versus standard defines!
+#define DL_INT8_MAX  (0x7F)
+#define DL_INT16_MAX (0x7FFF)
+static const int32 DL_INT32_MAX = 0x7FFFFFFFL;
+static const int64 DL_INT64_MAX = 0x7FFFFFFFFFFFFFFFLL;
+static const int8  DL_INT8_MIN  = (-DL_INT8_MAX  - 1);
+static const int16 DL_INT16_MIN = (-DL_INT16_MAX - 1);
+static const int32 DL_INT32_MIN = (-DL_INT32_MAX - 1);
+static const int64 DL_INT64_MIN = (-DL_INT64_MAX - 1);
+
+#define DL_UINT8_MAX  (0xFFU)
+#define DL_UINT16_MAX (0xFFFFU)
+static const uint32 DL_UINT32_MAX = 0xFFFFFFFFUL;
+static const uint64 DL_UINT64_MAX = 0xFFFFFFFFFFFFFFFFULL;
+static const uint8  DL_UINT8_MIN  = 0x00U;
+static const uint16 DL_UINT16_MIN = 0x0000U;
+static const uint32 DL_UINT32_MIN = 0x00000000UL;
+static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
+
+
 void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _pUnpackMe)
 {
-	uint8 OutDataInstance[1024];
+	unsigned char OutDataInstance[1024];
 	char  TxtOut[2048];
 
 	memset(OutDataInstance, 0x0, sizeof(OutDataInstance));
@@ -30,7 +50,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 
 	// M_LOG_INFO("%s", TxtOut);
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 	memset(OutDataText, 0x0, DL_ARRAY_LENGTH(OutDataText));
 
 	// pack txt to binary
@@ -44,8 +64,8 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 	err = DLLoadInstanceInplace(_Ctx, _pUnpackMe, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-	ECpuEndian OtherEndian  = ENDIAN_HOST == ENDIAN_BIG ? ENDIAN_LITTLE : ENDIAN_BIG;
-	pint       OtherPtrSize = sizeof(void*) == 4 ? 8 : 4;
+	ECpuEndian   OtherEndian  = ENDIAN_HOST == ENDIAN_BIG ? ENDIAN_LITTLE : ENDIAN_BIG;
+	unsigned int OtherPtrSize = sizeof(void*) == 4 ? 8 : 4;
 
 	// check if we can convert only endianness!
 	{
@@ -70,14 +90,14 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 
 	// check problems when only ptr-size!
 	{
-		uint8 OriginalData[DL_ARRAY_LENGTH(OutDataText)];
+		unsigned char OriginalData[DL_ARRAY_LENGTH(OutDataText)];
 		memcpy(OriginalData, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 
-		pint PackedSize = 0;
+		unsigned int PackedSize = 0;
 		err = DLInstaceSizeStored(_Ctx, _TypeHash, _pPackMe, &PackedSize);
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-		pint ConvertedSize = 0;
+		unsigned int ConvertedSize = 0;
 		err = DLInstanceSizeConverted(_Ctx, OriginalData, DL_ARRAY_LENGTH(OriginalData), OtherPtrSize, &ConvertedSize);
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
@@ -99,15 +119,15 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 
 			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
-			uint8 OriginalConverted[DL_ARRAY_LENGTH(OutDataText)];
+			unsigned char OriginalConverted[DL_ARRAY_LENGTH(OutDataText)];
 			memcpy(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalData));
 
-			pint ReConvertedSize = 0;
+			unsigned int ReConvertedSize = 0;
 			err = DLInstanceSizeConverted(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
 
-			uint8 ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
+			unsigned char ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
 			ReConvertedData[ReConvertedSize + 1] = 'L';
 			ReConvertedData[ReConvertedSize + 2] = 'O';
 			ReConvertedData[ReConvertedSize + 3] = 'L';
@@ -129,7 +149,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 
 		// check both endian and ptrsize convert!
 		{
-			uint8 ConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
+			unsigned char ConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
 			ConvertedData[ConvertedSize + 1] = 'L';
 			ConvertedData[ConvertedSize + 2] = 'O';
 			ConvertedData[ConvertedSize + 3] = 'L';
@@ -147,7 +167,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 
 			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
-			pint ReConvertedSize = 0;
+			unsigned int ReConvertedSize = 0;
 			err = DLInstanceSizeConverted(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
 			M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
@@ -714,11 +734,11 @@ TEST_F(DL, BugTest1)
 }
 
 template<typename T>
-const char* ArrayToString(T* _pArr, pint _Count, char* pBuffer, pint nBuffer)
+const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned int nBuffer)
 {
-	pint Pos = snprintf(pBuffer, nBuffer, "{ %f", _pArr[0]);
+	unsigned int Pos = snprintf(pBuffer, nBuffer, "{ %f", _pArr[0]);
 
-	for(pint i = 1; i < _Count && Pos < nBuffer; ++i)
+	for(unsigned int i = 1; i < _Count && Pos < nBuffer; ++i)
 	{
 		Pos += snprintf(pBuffer + Pos, nBuffer - Pos, ", %f", _pArr[i]);
 	}

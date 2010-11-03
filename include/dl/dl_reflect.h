@@ -17,8 +17,8 @@
 */
 struct SDLTypeInfo
 {
-	const char* m_Name;
-	uint32      m_nMembers;
+	const char*  m_Name;
+	unsigned int m_nMembers;
 };
 
 /*
@@ -27,10 +27,10 @@ struct SDLTypeInfo
 */
 struct SDLMemberInfo
 {
-	const char* m_Name;
-	EDLType     m_Type;
-	StrHash     m_TypeID;
-	uint32      m_ArrayCount;
+	const char*  m_Name;
+	EDLType      m_Type;
+	StrHash      m_TypeID;
+	unsigned int m_ArrayCount;
 };
 
 #ifdef __cplusplus
@@ -40,7 +40,7 @@ extern "C" {
 /*
 	Function: DLReflectGetTypeInfo
 		Retrieve information about a certain type in a type-library.
-	
+
 	Parameters:
 		_Context  - A valid handle to e DLContext
 		_TypeID   - TypeID of the type to get information about.
@@ -51,7 +51,7 @@ extern "C" {
 	Returns:
 		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if _pMembers do not fit all members, or other error if apropriate!
 */
-EDLError DL_DLL_EXPORT DLReflectGetTypeInfo(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, pint _nMembers);
+EDLError DL_DLL_EXPORT DLReflectGetTypeInfo(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, unsigned int _nMembers);
 
 /*
 	Function: DLSizeOfType
@@ -64,7 +64,7 @@ EDLError DL_DLL_EXPORT DLReflectGetTypeInfo(HDLContext _Context, StrHash _TypeID
 	Returns:
 		The size of the type or 0 if not found in context.
 */
-uint32 DLSizeOfType(HDLContext _Context, StrHash _TypeHash);
+unsigned int DLSizeOfType(HDLContext _Context, StrHash _TypeHash);
 
 /*
 	Function: DLAlignmentOfType
@@ -77,10 +77,10 @@ uint32 DLSizeOfType(HDLContext _Context, StrHash _TypeHash);
 	Returns:
 		The alignment of the type or 0 if not found in context.
 */
-uint32 DLAlignmentOfType(HDLContext _Context, StrHash _TypeHash);
+unsigned int DLAlignmentOfType(HDLContext _Context, StrHash _TypeHash);
 
 #ifdef __cplusplus
 }
-#endif // __cplusplus 
+#endif // __cplusplus
 
 #endif // DL_DL_REFLECT_H_INCLUDED

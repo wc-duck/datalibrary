@@ -12,7 +12,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 /*
 	Function: DLPackText
@@ -27,7 +27,7 @@ extern "C" {
 	Note:
 		The instance after pack will be in current platform endian.
 */
-EDLError DL_DLL_EXPORT DLPackText(HDLContext _Context, const char* _pTxtData, uint8* _pPackedData, pint _PackedDataSize);
+EDLError DL_DLL_EXPORT DLPackText(HDLContext _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize);
 
 /*
 	Function: DLRequiredTextPackSize
@@ -38,7 +38,7 @@ EDLError DL_DLL_EXPORT DLPackText(HDLContext _Context, const char* _pTxtData, ui
 		_pTxtData        - Zero-terminated string to calculate binary blob size of.
 		_pPackedDataSize - Size required to pack _pTxtData.
 */
-EDLError DL_DLL_EXPORT DLRequiredTextPackSize(HDLContext _Context, const char* _pTxtData, pint* _pPackedDataSize);
+EDLError DL_DLL_EXPORT DLRequiredTextPackSize(HDLContext _Context, const char* _pTxtData, unsigned int* _pPackedDataSize);
 
 /*
 	Function: DLUnpack
@@ -54,7 +54,7 @@ EDLError DL_DLL_EXPORT DLRequiredTextPackSize(HDLContext _Context, const char* _
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-EDLError DL_DLL_EXPORT DLUnpack(HDLContext _Context, const uint8* _pPackedData, pint _PackedDataSize, char* _pTxtData, pint _TxtDataSize);
+EDLError DL_DLL_EXPORT DLUnpack(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize);
 
 /*
 	Function: DLRequiredUnpackSize
@@ -69,10 +69,10 @@ EDLError DL_DLL_EXPORT DLUnpack(HDLContext _Context, const uint8* _pPackedData, 
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-EDLError DL_DLL_EXPORT DLRequiredUnpackSize(HDLContext _Context, const uint8* _pPackedData, pint _PackedDataSize, pint* _pTxtDataSize);
+EDLError DL_DLL_EXPORT DLRequiredUnpackSize(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize);
 
 #ifdef __cplusplus
 }
-#endif  
+#endif
 
 #endif // DL_DL_TXT_H_INCLUDED

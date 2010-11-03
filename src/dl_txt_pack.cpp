@@ -43,10 +43,10 @@ class CFlagField
 	DL_STATIC_ASSERT(TBits % 32 == 0, only_even_32_bits);
 	uint32 m_Storage[TBits / 32];
 
-	enum 
-	{ 
+	enum
+	{
 		BITS_PER_STORAGE = DL_BITS_IN_TYPE(uint32),
-		BITS_FOR_FIELD   = 5 
+		BITS_FOR_FIELD   = 5
 	};
 
 	uint Field(uint _Bit) { return (_Bit & ~(BITS_PER_STORAGE - 1)) >> BITS_FOR_FIELD; }
@@ -72,28 +72,28 @@ struct SDLPackState
 {
 	SDLPackState() {}
 
-	SDLPackState(EDLPackState _State) 
+	SDLPackState(EDLPackState _State)
 		: m_State(_State)
 		, m_pType(0x0)
 		, m_StructStartPos(pint(-1))
 		, m_ArrayCount(0)
 	{}
 
-	SDLPackState(EDLPackState _State, const SDLMember* _pMember) 
+	SDLPackState(EDLPackState _State, const SDLMember* _pMember)
 		: m_State(_State)
 		, m_pMember(_pMember)
 		, m_StructStartPos(0)
 		, m_ArrayCount(0)
 	{}
 
-	SDLPackState(EDLPackState _State, const SDLEnum* _pEnum) 
+	SDLPackState(EDLPackState _State, const SDLEnum* _pEnum)
 		: m_State(_State)
 		, m_pEnum(_pEnum)
 		, m_StructStartPos(0)
 		, m_ArrayCount(0)
 	{}
 
-	SDLPackState(EDLPackState _State, const SDLType* _pType, pint _StructStartPos) 
+	SDLPackState(EDLPackState _State, const SDLType* _pType, pint _StructStartPos)
 		: m_State(_State)
 		, m_pType(_pType)
 		, m_StructStartPos(_StructStartPos)
@@ -164,7 +164,7 @@ struct SDLPackContext
 
 		if(OldState.m_State == DL_PACK_STATE_STRUCT)
 		{
-			// end should be just after the current struct. but we might not be there since 
+			// end should be just after the current struct. but we might not be there since
 			// members could have been written in an order that is not according to type.
 			m_Writer->SeekSet(OldState.m_StructStartPos + OldState.m_pType->m_Size[DL_PTR_SIZE_HOST]);
 		}
@@ -233,8 +233,6 @@ struct SDLPackContext
 	};
 
 	CArrayStatic<SStringItem, 1024> m_lStrings;
-
-//private:
 	CStackStatic<SDLPackState, 128> m_StateStack;
 
 private:
@@ -318,8 +316,8 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 		case DL_PACK_STATE_POD_UINT32: Min.m_Unsigned = uint64(DL_UINT32_MIN); Max.m_Unsigned = uint64(DL_UINT32_MAX); pFmt = DL_UINT64_FMT_STR; break;
 		case DL_PACK_STATE_POD_UINT64: Min.m_Unsigned = uint64(DL_UINT64_MIN); Max.m_Unsigned = uint64(DL_UINT64_MAX); pFmt = DL_UINT64_FMT_STR; break;
 
-		case DL_PACK_STATE_POD_FP32:   pCtx->m_Writer->Write((fp32)atof(_pStringVal)); pCtx->ArrayItemPop(); return 1;
-		case DL_PACK_STATE_POD_FP64:   pCtx->m_Writer->Write(      atof(_pStringVal)); pCtx->ArrayItemPop(); return 1;
+		case DL_PACK_STATE_POD_FP32:   pCtx->m_Writer->Write((float)atof(_pStringVal)); pCtx->ArrayItemPop(); return 1;
+		case DL_PACK_STATE_POD_FP64:   pCtx->m_Writer->Write(       atof(_pStringVal)); pCtx->ArrayItemPop(); return 1;
 
 		case DL_PACK_STATE_SUBDATA_ID:
 		{
@@ -632,9 +630,9 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 	}
 
 	return 1;
-}  
+}
 
-static int DLOnMapStart(void* _pCtx)  
+static int DLOnMapStart(void* _pCtx)
 {
 	// check that we are in a correct state here!
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
@@ -651,10 +649,10 @@ static int DLOnMapStart(void* _pCtx)
 			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
 	}
 	return 1;
-}  
+}
 
 
-static int DLOnMapEnd(void* _pCtx)  
+static int DLOnMapEnd(void* _pCtx)
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 
@@ -717,7 +715,7 @@ static int DLOnMapEnd(void* _pCtx)
 				{
 					if(pMember->m_DefaultValueOffset == DL_UINT32_MAX) // no default-value avaliable for tihs!
 						DL_PACK_ERROR_AND_FAIL(DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->m_Name, PackState.m_pType->m_Name);
-					
+
 					pint  MemberPos = PackState.m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
 					uint8* pDefMember = pCtx->m_DLContext->m_pDefaultInstances + pMember->m_DefaultValueOffset;
 
@@ -798,13 +796,13 @@ static int DLOnMapEnd(void* _pCtx)
 			M_ASSERT(false && "This should not happen!");
 	}
 	return 1;
-}  
+}
 
-static int DLOnArrayStart(void* _pCtx)  
+static int DLOnArrayStart(void* _pCtx)
 {
 	DL_UNUSED(_pCtx);
 	return 1;
-}  
+}
 
 static int DLOnArrayEnd(void* _pCtx)
 {
@@ -816,11 +814,11 @@ static int DLOnArrayEnd(void* _pCtx)
 	if (pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA)
 		pCtx->RegisterSubdataElementEnd(ArrayCount);
 	return 1;
-}  
+}
 
-static yajl_callbacks g_YAJLParseCallbacks = {  
-	DLOnNull,  
-	DLOnBool,  
+static yajl_callbacks g_YAJLParseCallbacks = {
+	DLOnNull,
+	DLOnBool,
 	NULL, // integer,
 	NULL, // double,
 	DLOnNumber,
@@ -852,13 +850,13 @@ static EDLError DLInternalPack(SDLPackContext* PackContext, const char* _pTxtDat
 	YAJLHandle = yajl_alloc(&g_YAJLParseCallbacks, &YAJLCfg, &YAJLAlloc, (void*)PackContext);
 
 	YAJLStat = yajl_parse(YAJLHandle, TxtData, (unsigned int)TxtLen); // read file data, pass to parser
-	
+
 	uint BytesConsumed = yajl_get_bytes_consumed(YAJLHandle);
 
 	YAJLStat = yajl_parse_complete(YAJLHandle); // parse any remaining buffered data
 
-	if (YAJLStat != yajl_status_ok && YAJLStat != yajl_status_insufficient_data)  
-	{  
+	if (YAJLStat != yajl_status_ok && YAJLStat != yajl_status_insufficient_data)
+	{
 		if(BytesConsumed != 0) // error occured!
 		{
 			uint Line = 1;
@@ -889,7 +887,7 @@ static EDLError DLInternalPack(SDLPackContext* PackContext, const char* _pTxtDat
 
 		if(PackContext->m_ErrorCode == DL_ERROR_OK)
 			return DL_ERROR_TXT_PARSE_ERROR;
-	}	
+	}
 
 	if(PackContext->m_pRootType == 0x0)
 	{
@@ -900,7 +898,7 @@ static EDLError DLInternalPack(SDLPackContext* PackContext, const char* _pTxtDat
 	return PackContext->m_ErrorCode;
 }
 
-EDLError DLPackText(HDLContext _Context, const char* _pTxtData, uint8* _pPackedData, pint _PackedDataSize)
+EDLError DLPackText(HDLContext _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = false;
 	CDLBinaryWriter Writer(_pPackedData + sizeof(SDLDataHeader), _PackedDataSize -  sizeof(SDLDataHeader), IS_DUMMY_WRITER, ENDIAN_HOST, ENDIAN_HOST, DL_PTR_SIZE_HOST);
@@ -926,7 +924,7 @@ EDLError DLPackText(HDLContext _Context, const char* _pTxtData, uint8* _pPackedD
 	return DL_ERROR_OK;
 }
 
-EDLError DLRequiredTextPackSize(HDLContext _Context, const char* _pTxtData, pint* _pPackedDataSize)
+EDLError DLRequiredTextPackSize(HDLContext _Context, const char* _pTxtData, unsigned int* _pPackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = true;
 	CDLBinaryWriter Writer(0x0, 0, IS_DUMMY_WRITER, ENDIAN_HOST, ENDIAN_HOST, DL_PTR_SIZE_HOST);

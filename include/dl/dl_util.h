@@ -12,9 +12,9 @@
 
 /*
 	Function: DLUtilLoadInstanceFromFile
-		Function that loads a DL-instance from file. 
+		Function that loads a DL-instance from file.
 
-	Note: 
+	Note:
 		This function allocates dynamic memory and should therefore be used accordingly.
 		The pointer returned in _ppInstance need to be freed with free();
 
@@ -27,13 +27,13 @@
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilLoadInstanceFromFile(HDLContext _Ctx, const char* _pFileName, uint32 _DLType, void** _ppInstance);
+EDLError DLUtilLoadInstanceFromFile(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void** _ppInstance);
 
 /*
 	Function: DLUtilLoadInstanceFromTextFile
-		Function that loads a DL-instance from text file. 
+		Function that loads a DL-instance from text file.
 
-	Note: 
+	Note:
 		This function allocates dynamic memory and should therefore be used accordingly.
 		The pointer returned in _ppInstance need to be freed with free();
 
@@ -49,11 +49,11 @@ EDLError DLUtilLoadInstanceFromTextFile(HDLContext _Ctx, const char* _pFileName,
 
 /*
 	Function: DLUtilLoadInstanceFromTextFile
-		Function that loads a DL-instance from text file. 
+		Function that loads a DL-instance from text file.
 		Data pointed to by _pInstance is assumed to point to a pointer of the correct type.
 		If the data will not fit in the buffer pointed to by _pInstance an error will be generated.
 
-	Note: 
+	Note:
 		This function allocates dynamic memory and should therefore be used accordingly.
 
 	Parameters:
@@ -65,13 +65,13 @@ EDLError DLUtilLoadInstanceFromTextFile(HDLContext _Ctx, const char* _pFileName,
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilLoadInstanceFromTextFileInplace(HDLContext _Ctx, const char* _pFileName, void* _pInstance, pint _InstanceSize);
+EDLError DLUtilLoadInstanceFromTextFileInplace(HDLContext _Ctx, const char* _pFileName, void* _pInstance, unsigned int _InstanceSize);
 
 /*
 	Function: DLUtilStoreInstanceToFile
-		Function that writes a DL-instance to file. 
+		Function that writes a DL-instance to file.
 
-	Note: 
+	Note:
 		This function allocates dynamic memory and should therefore be used accordingly.
 
 	Parameters:
@@ -85,13 +85,13 @@ EDLError DLUtilLoadInstanceFromTextFileInplace(HDLContext _Ctx, const char* _pFi
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilStoreInstanceToFile(HDLContext _Ctx, const char* _pFileName, uint32 _DLType, void* _pInstance, ECpuEndian _OutEndian, pint _OutPtrSize);
+EDLError DLUtilStoreInstanceToFile(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance, ECpuEndian _OutEndian, unsigned int _OutPtrSize);
 
 /*
 	Function: DLUtilStoreInstanceToTextFile
-		Function that writes a DL-instance to file in text-format. 
+		Function that writes a DL-instance to file in text-format.
 
-	Note: 
+	Note:
 		This function allocates dynamic memory and should therefore be used accordingly.
 
 	Parameters:
@@ -103,6 +103,6 @@ EDLError DLUtilStoreInstanceToFile(HDLContext _Ctx, const char* _pFileName, uint
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilStoreInstanceToTextFile(HDLContext _Ctx, const char* _pFileName, uint32 _DLType, void* _pInstance);
+EDLError DLUtilStoreInstanceToTextFile(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance);
 
 #endif // DL_DL_UTIL_H_INCLUDED

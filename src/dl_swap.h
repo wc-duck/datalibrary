@@ -56,17 +56,17 @@ DL_FORCEINLINE void* DLSwapEndian(void* _SwapMe)
 #endif
 }
 
-DL_FORCEINLINE fp32 DLSwapEndian(fp32 _SwapMe)
+DL_FORCEINLINE float DLSwapEndian(float _SwapMe)
 {
-	union { uint32 m_u32; fp32 m_fp32; } conv;
+	union { uint32 m_u32; float m_fp32; } conv;
 	conv.m_fp32 = _SwapMe;
 	conv.m_u32 = DLSwapEndian(conv.m_u32);
 	return conv.m_fp32;
 }
 
-DL_FORCEINLINE fp64 DLSwapEndian(fp64 _SwapMe)
+DL_FORCEINLINE double DLSwapEndian(double _SwapMe)
 {
-	union { uint64 m_u64; fp64 m_fp64; } conv;
+	union { uint64 m_u64; double m_fp64; } conv;
 	conv.m_fp64 = _SwapMe;
 	conv.m_u64 = DLSwapEndian(conv.m_u64);
 	return conv.m_fp64;

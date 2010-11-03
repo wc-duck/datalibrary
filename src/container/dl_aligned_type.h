@@ -4,8 +4,9 @@
 #define CONTAINER_ALIGNED_TYPE_H_INCLUDED
 
 #include <dl/dl_defines.h>
+#include "../dl_types.h" // TODO: Ugly fugly for type
 
-template<pint N> struct TAlignedType  
+template<pint N> struct TAlignedType
 {
 	DL_STATIC_ASSERT(N > 0, no_negative_alignment);
 	DL_STATIC_ASSERT(N <= 256, not_implemented_yet);

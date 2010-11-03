@@ -9,7 +9,7 @@
 #include <stdio.h> // printf
 #include <stdlib.h> // malloc, free
 
-static void* DLMallocAlloc(pint  _Size, pint _Alignment) { DL_UNUSED(_Alignment); return malloc(_Size); }
+static void* DLMallocAlloc(unsigned int  _Size, unsigned int _Alignment) { DL_UNUSED(_Alignment); return malloc(_Size); }
 static void  DLMallocFree (void* _pPtr) { free(_pPtr); }
 static SDLAllocFunctions g_DLMallocFreeFuncs = { DLMallocAlloc, DLMallocFree };
 
@@ -44,17 +44,17 @@ EDLError DLContextDestroy(HDLContext _Context)
 }
 
 EDLError DLInternalConvertNoHeader( HDLContext     _Context,
-								    uint8*         _pData,
-								    uint8*         _pBaseData,
-								    uint8*         _pOutData,
-								    pint           _OutDataSize,
-								    pint*          _pNeededSize,
-								    ECpuEndian     _SourceEndian,
-								    ECpuEndian     _TargetEndian,
-								    EDLPtrSize     _SourcePtrSize,
-								    EDLPtrSize     _TargetPtrSize,
-								    const SDLType* _pRootType,
-									pint           _BaseOffset );
+                                    unsigned char* _pData,
+                                    unsigned char* _pBaseData,
+                                    unsigned char* _pOutData,
+                                    unsigned int   _OutDataSize,
+                                    unsigned int*  _pNeededSize,
+                                    ECpuEndian     _SourceEndian,
+                                    ECpuEndian     _TargetEndian,
+                                    EDLPtrSize     _SourcePtrSize,
+                                    EDLPtrSize     _TargetPtrSize,
+                                    const SDLType* _pRootType,
+                                    unsigned int   _BaseOffset );
 
 struct SPatchedInstances
 {
@@ -210,17 +210,17 @@ static void DLLoadTypeLibraryLoadDefaults(HDLContext _Context, const uint8* _pDe
 				SOneMemberType Dummy(pMember);
 
 				pint BaseOffset = pint(pDst) - pint(_Context->m_pDefaultInstances);
-				pint NeededSize;
-				DLInternalConvertNoHeader( _Context, 
-										   pSrc, 
-										   (uint8*)_pDefaultData, 
-										   pDst, 
+				unsigned int NeededSize;
+				DLInternalConvertNoHeader( _Context,
+										   pSrc,
+										   (unsigned char*)_pDefaultData,
+										   pDst,
 										   1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
 										   &NeededSize,
-										   ENDIAN_LITTLE, ENDIAN_HOST, 
-										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST, 
-										   Dummy.AsDLType(), 
-										   BaseOffset );
+										   ENDIAN_LITTLE, ENDIAN_HOST,
+										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
+										   Dummy.AsDLType(),
+										   (unsigned int)BaseOffset ); // TODO: Ugly cast, remove plox!
 
 				SPatchedInstances PI;
 				DLPatchLoadedPtrs(_Context, &PI, pDst, Dummy.AsDLType(), _Context->m_pDefaultInstances);
@@ -253,7 +253,7 @@ static void DLReadTLHeader(SDLTypeLibraryHeader* _pHeader, const uint8* _pData)
 	}
 }
 
-EDLError DLLoadTypeLibrary(HDLContext _Context, const uint8* _pData, pint _DataSize)
+EDLError DLLoadTypeLibrary(HDLContext _Context, const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLTypeLibraryHeader))
 		return DL_ERROR_MALFORMED_DATA;
@@ -351,13 +351,7 @@ EDLError DLLoadTypeLibrary(HDLContext _Context, const uint8* _pData, pint _DataS
 	return DL_ERROR_OK;
 }
 
-EDLError DLLoadInstance(HDLContext _Context, void** _ppInstance, uint8* _pData, pint _DataSize)
-{
-	DL_UNUSED(_Context); DL_UNUSED(_ppInstance); DL_UNUSED(_pData); DL_UNUSED(_DataSize);
-	return DL_ERROR_INTERNAL_ERROR;
-}
-
-EDLError DLLoadInstanceInplace(HDLContext _Context, void* _pInstance, const uint8* _pData, pint _DataSize)
+EDLError DLLoadInstanceInplace(HDLContext _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
@@ -658,7 +652,7 @@ static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pTy
 	return DL_ERROR_OK;
 }
 
-EDLError DLStoreInstace(HDLContext _Context, StrHash _TypeHash, void* _pInstance, uint8* _pData, pint _DataSize)
+EDLError DLStoreInstace(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -689,7 +683,7 @@ EDLError DLStoreInstace(HDLContext _Context, StrHash _TypeHash, void* _pInstance
 	return err;
 }
 
-EDLError DLInstaceSizeStored(HDLContext _Context, StrHash _TypeHash, void* _pInstance, pint* _pDataSize)
+EDLError DLInstaceSizeStored(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -738,24 +732,24 @@ const char* DLErrorToString(EDLError _Err)
 #undef M_DL_ERR_TO_STR
 }
 
-pint DLInstancePtrSize(const uint8* _pData, pint _DataSize)
+unsigned int DLInstancePtrSize(const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLDataHeader)) return 0;
 
 	return ((SDLDataHeader*)_pData)->m_64BitPtr ? 8 : 4;
 }
 
-ECpuEndian DLInstanceEndian(uint8* _pData, pint _DataSize)
+ECpuEndian DLInstanceEndian(const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLDataHeader)) return ENDIAN_HOST;
 
 	if(((SDLDataHeader*)_pData)->m_Id == DL_TYPE_DATA_ID_SWAPED)
 		return DLOtherEndian(ENDIAN_HOST);
-	
+
 	return ENDIAN_HOST;
 }
 
-uint32 DLInstanceRootType(const uint8* _pData, pint _DataSize)
+StrHash DLInstanceRootType(const unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLDataHeader* pHeader = (const SDLDataHeader*)_pData;
 

@@ -5,16 +5,8 @@
 
 #include <string.h>
 
-// #include "dl_types.h"
 #include "../../src/getopt/getopt.h" // these includes are horrific!
 #include "../../src/container/dl_array.h"
-
-// #include <platform/cpu.h>
-// #include <platform/string.h>
-// 
-// #include <common_util/getopt.h>
-// 
-// #include <container/array.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,19 +25,19 @@ void PrintHelp(SGetOptContext* _pCtx)
 	printf("%s", GetOptCreateHelpString(_pCtx, Buffer, 2048));
 }
 
-uint8* ReadFile(FILE* _pFile, pint* Size)
+unsigned char* ReadFile(FILE* _pFile, unsigned int* Size)
 {
 	fseek(_pFile, 0, SEEK_END);
 	*Size = ftell(_pFile);
 	fseek(_pFile, 0, SEEK_SET);
 
-	uint8* pData = (uint8*)malloc(*Size + 1);
+	unsigned char* pData = (unsigned char*)malloc(*Size + 1);
 	pData[*Size] = '\0';
 	fread(pData, 1, *Size, _pFile);
 	return pData;
 }
 
-void* MyAlloc(pint  _Size, pint _Alignment) { (void)_Alignment; return malloc(_Size); }
+void* MyAlloc(unsigned int  _Size, unsigned int _Alignment) { (void)_Alignment; return malloc(_Size); }
 void  MyFree (void* _pPtr) { free(_pPtr); }
 
 SDLAllocFunctions g_MyAllocs = { MyAlloc, MyFree };
@@ -62,14 +54,14 @@ HDLContext CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStati
 		M_ERROR_AND_FAIL( "SBDL error while creating context: %s", DLErrorToString(err));
 
 	// load all type-libs.
-	for(pint iLib = 0; iLib < _lLibs.Len(); iLib++)
+	for(unsigned int iLib = 0; iLib < _lLibs.Len(); iLib++)
 	{
 		// search for lib!
-		for (pint iPath = 0; iPath < _lLibPaths.Len(); ++iPath)
+		for (unsigned int iPath = 0; iPath < _lLibPaths.Len(); ++iPath)
 		{
 			// build testpath.
 			char Path[2048];
-			uint PathLen = strlen(_lLibPaths[iPath]);
+			unsigned int PathLen = strlen(_lLibPaths[iPath]);
 			strcpy(Path, _lLibPaths[iPath]);
 			if(PathLen != 0 && Path[PathLen - 1] != '/')
 				Path[PathLen++] = '/';
@@ -81,8 +73,8 @@ HDLContext CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStati
 			{
 				M_VERBOSE_OUTPUT("Reading type-library from file %s", Path);
 
-				pint Size;
-				uint8* TL = ReadFile(File, &Size);
+				unsigned int Size;
+				unsigned char* TL = ReadFile(File, &Size);
 				err = DLLoadTypeLibrary(Ctx, TL, Size);
 				if(err != DL_ERROR_OK)
 					M_ERROR_AND_FAIL( "SBDL error while loading type library (%s): %s", Path, DLErrorToString(err));
@@ -119,10 +111,10 @@ int main(int argc, char** argv)
 
 	CArrayStatic<const char*, 128> lLibPaths; lLibPaths.Add("");
 	CArrayStatic<const char*, 128> lLibs;
-	const char* pOutput  = "";
-	const char* pInput   = "";
-	ECpuEndian  Endian  = ENDIAN_HOST;
-	pint        PtrSize = sizeof(void*);
+	const char*  pOutput  = "";
+	const char*  pInput   = "";
+	ECpuEndian   Endian  = ENDIAN_HOST;
+	unsigned int PtrSize = sizeof(void*);
 
 	int32 opt;
 	while((opt = GetOpt(&GOCtx)) != -1)
@@ -132,13 +124,13 @@ int main(int argc, char** argv)
 			case 'h': PrintHelp(&GOCtx); return 0;
 			case 'L':
 				if(lLibPaths.Full())
-					M_ERROR_AND_QUIT("dl_pack only supports %u libpaths!", (uint32)lLibPaths.Capacity());
+					M_ERROR_AND_QUIT("dl_pack only supports %u libpaths!", (unsigned int)lLibPaths.Capacity());
 
 				lLibPaths.Add(GOCtx.m_CurrentOptArg);
 				break;
 			case 'l':
 				if(lLibs.Full())
-					M_ERROR_AND_QUIT("dl_pack only supports %u type libraries libs!", (uint32)lLibs.Capacity());
+					M_ERROR_AND_QUIT("dl_pack only supports %u type libraries libs!", (unsigned int)lLibs.Capacity());
 
 				lLibs.Add(GOCtx.m_CurrentOptArg);
 				break;
@@ -192,16 +184,16 @@ int main(int argc, char** argv)
 		if(pOutFile == 0x0) 
 			M_ERROR_AND_QUIT("Could not open output file: %s", pOutput);
 	}
-	
-	pint Size;
-	uint8* InData = ReadFile(pInFile, &Size);
+
+	unsigned int Size;
+	unsigned char* InData = ReadFile(pInFile, &Size);
 
 	HDLContext Ctx = CreateContext(lLibPaths, lLibs);
 	if(Ctx == 0x0)
 		return 1;
 
-	uint8* pOutData = 0x0;
-	pint   OutDataSize = 0;
+	unsigned char* pOutData = 0x0;
+	unsigned int   OutDataSize = 0;
 
 	if(g_Unpack == 1) // should unpack
 	{
@@ -215,13 +207,13 @@ int main(int argc, char** argv)
 		else
 		{
 			// instance might grow so ptr-data so the non-inplace unpack is needed.
-			pint SizeAfterConvert;
+			unsigned int SizeAfterConvert;
 			EDLError err = DLInstanceSizeConverted(Ctx, InData, Size, PtrSize, &SizeAfterConvert);
 
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", DLErrorToString(err));
 
-			uint8* pConverted = (uint8*)malloc(SizeAfterConvert);
+			unsigned char* pConverted = (unsigned char*)malloc(SizeAfterConvert);
 
 			err = DLConvertInstance(Ctx, InData, Size, pConverted, SizeAfterConvert, ENDIAN_HOST, sizeof(void*));
 			if(err != DL_ERROR_OK)
@@ -236,7 +228,7 @@ int main(int argc, char** argv)
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT( "SBDL error while calculating unpack size: %s", DLErrorToString(err));
 
-		pOutData = (uint8*)malloc(OutDataSize);
+		pOutData = (unsigned char*)malloc(OutDataSize);
 
 		err = DLUnpack(Ctx, InData, Size, (char*)pOutData, OutDataSize);
 		if(err != DL_ERROR_OK)
@@ -245,10 +237,10 @@ int main(int argc, char** argv)
 	else
 	{
 		EDLError err = DLRequiredTextPackSize(Ctx, (char*)InData, &OutDataSize);
-		if(err != DL_ERROR_OK) 
+		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT("SBDL error while calculating pack size: %s", DLErrorToString(err));
 
-		pOutData = (uint8*)malloc(OutDataSize);
+		pOutData = (unsigned char*)malloc(OutDataSize);
 
 		err = DLPackText(Ctx, (char*)InData, pOutData, OutDataSize);
 		if(err != DL_ERROR_OK)

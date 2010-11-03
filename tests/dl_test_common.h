@@ -6,7 +6,7 @@
 // header file generated from unittest-type lib
 #include "generated/unittest.h"
 
-static void* MyAlloc(pint  _Size, pint _Alignment) { DL_UNUSED(_Alignment); return malloc(_Size); }
+static void* MyAlloc(unsigned int  _Size, unsigned int _Alignment) { DL_UNUSED(_Alignment); return malloc(_Size); }
 static void  MyFree (void* _pPtr) { free(_pPtr); }
 
 class DL : public ::testing::Test
@@ -17,7 +17,7 @@ protected:
 	virtual void SetUp()
 	{
 		// bake the unittest-type library into the exe!
-		static const uint8 TypeLib[] = 
+		static const uint8 TypeLib[] =
 		{
 			#include "generated/unittest.bin.h"
 		};
