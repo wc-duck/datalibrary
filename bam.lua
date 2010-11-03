@@ -22,6 +22,9 @@ function DLTypeLibrary( tlc_file  )
 
 end
 
+function RunUnitTest( target_name, test_file, flags )
+	AddJob( target_name, "unittest", test_file, test_file )
+end
 
 function DefaultGCC( platform, config )
 	local settings = NewSettings()
@@ -83,8 +86,7 @@ obj_files = Compile( build_settings, lib_files )
 
 -- ugly fugly, need -fPIC on .so-files!
 local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
-local output_func = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
-build_settings.cc.Output = output_func
+build_settings.cc.Output = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
 build_settings.cc.flags:Add( "-fPIC" )
 dll_files = Compile( build_settings, lib_files )
 
@@ -97,5 +99,10 @@ DLTypeLibrary( "tests/unittest.tld" )
 
 build_settings.link.libs:Add( "gtest" )
 build_settings.link.libs:Add( "pthread" )
-unittests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
+dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
+RunUnitTest( "test", dl_tests )
+
+-- do not run unittest as default, only run
+PseudoTarget( "dl_default", dl_pack, dl_tests )
+DefaultTarget( "dl_default" )
