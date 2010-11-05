@@ -49,8 +49,8 @@ EDLError DLInternalConvertNoHeader( HDLContext     _Context,
                                     unsigned char* _pOutData,
                                     unsigned int   _OutDataSize,
                                     unsigned int*  _pNeededSize,
-                                    ECpuEndian     _SourceEndian,
-                                    ECpuEndian     _TargetEndian,
+                                    DLECpuEndian     _SourceEndian,
+                                    DLECpuEndian     _TargetEndian,
                                     EDLPtrSize     _SourcePtrSize,
                                     EDLPtrSize     _TargetPtrSize,
                                     const SDLType* _pRootType,
@@ -217,7 +217,7 @@ static void DLLoadTypeLibraryLoadDefaults(HDLContext _Context, const uint8* _pDe
 										   pDst,
 										   1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
 										   &NeededSize,
-										   ENDIAN_LITTLE, ENDIAN_HOST,
+										   DL_ENDIAN_LITTLE, DL_ENDIAN_HOST,
 										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
 										   Dummy.AsDLType(),
 										   (unsigned int)BaseOffset ); // TODO: Ugly cast, remove plox!
@@ -235,7 +235,7 @@ static void DLReadTLHeader(SDLTypeLibraryHeader* _pHeader, const uint8* _pData)
 {
 	memcpy(_pHeader, _pData, sizeof(SDLTypeLibraryHeader));
 
-	if(ENDIAN_HOST == ENDIAN_BIG)
+	if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 	{
 		_pHeader->m_Id          = DLSwapEndian(_pHeader->m_Id);
 		_pHeader->m_Version     = DLSwapEndian(_pHeader->m_Version);
@@ -278,7 +278,7 @@ EDLError dl_load_type_library(HDLContext _Context, const unsigned char* _pData, 
 	{
 		SDLContext::STypeLookUp& Look = _Context->m_TypeLookUp[i];
 
-		if(ENDIAN_HOST == ENDIAN_BIG)
+		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
 			Look.m_TypeID = DLSwapEndian(_pFromData->m_TypeID);
 			uint32 Offset = DLSwapEndian(_pFromData->m_Offset);
@@ -324,7 +324,7 @@ EDLError dl_load_type_library(HDLContext _Context, const unsigned char* _pData, 
 	{
 		SDLContext::SEnumLookUp& Look = _Context->m_EnumLookUp[i];
 
-		if(ENDIAN_HOST == ENDIAN_BIG)
+		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
 			Look.m_EnumID = DLSwapEndian(_pEnumFromData->m_TypeID);
 			uint32 Offset = DLSwapEndian(_pEnumFromData->m_Offset);
@@ -739,14 +739,14 @@ unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _Dat
 	return ((SDLDataHeader*)_pData)->m_64BitPtr ? 8 : 4;
 }
 
-ECpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
+DLECpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
 {
-	if(_DataSize < sizeof(SDLDataHeader)) return ENDIAN_HOST;
+	if(_DataSize < sizeof(SDLDataHeader)) return DL_ENDIAN_HOST;
 
 	if(((SDLDataHeader*)_pData)->m_Id == DL_TYPE_DATA_ID_SWAPED)
-		return DLOtherEndian(ENDIAN_HOST);
+		return DLOtherEndian(DL_ENDIAN_HOST);
 
-	return ENDIAN_HOST;
+	return DL_ENDIAN_HOST;
 }
 
 StrHash dl_instance_root_type(const unsigned char* _pData, unsigned int _DataSize)

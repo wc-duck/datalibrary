@@ -117,6 +117,21 @@ enum EDLType
 	DL_TYPE_FORCE_32_BIT = 0x7FFFFFFF
 };
 
+enum DLECpuEndian
+{
+	DL_ENDIAN_BIG,
+	DL_ENDIAN_LITTLE,
+};
+
+DL_FORCEINLINE DLECpuEndian dl_endian_host()
+{
+	union { unsigned char c[4]; unsigned int  i; } test;
+	test.i = 0xAABBCCDD;
+	return test.c[0] == 0xAA ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE;
+}
+
+#define DL_ENDIAN_HOST dl_endian_host()
+
 /*
 	Struct: SDLAllocFunctions
 */
@@ -232,7 +247,7 @@ EDLError DL_DLL_EXPORT dl_store_instace(HDLContext _Context, StrHash _TypeHash, 
 		_Endian      - Endian to convert the packed instance to.
 		_PtrSize     - Size in bytes of pointers after conversions, valid values 4 and 8.
 */
-EDLError DL_DLL_EXPORT dl_convert_instance(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, unsigned char* _pOutData, unsigned int _OutDataSize, ECpuEndian _Endian, unsigned int _PtrSize);
+EDLError DL_DLL_EXPORT dl_convert_instance(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, unsigned char* _pOutData, unsigned int _OutDataSize, DLECpuEndian _Endian, unsigned int _PtrSize);
 
 /*
 	Function: dl_convert_instance_inplace
@@ -248,7 +263,7 @@ EDLError DL_DLL_EXPORT dl_convert_instance(HDLContext _Context, unsigned char* _
 	Note:
 		Function is restricted to converting endianness and converting 8-byte ptr:s to 4-byte ptr:s
 */
-EDLError DL_DLL_EXPORT dl_convert_instance_inplace(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, ECpuEndian _Endian, unsigned int _PtrSize);
+EDLError DL_DLL_EXPORT dl_convert_instance_inplace(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, DLECpuEndian _Endian, unsigned int _PtrSize);
 
 /*
 	Function: dl_instance_size_converted
@@ -294,7 +309,7 @@ unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _Dat
 		_pData       - Ptr to memory-area where packed instance is to be found.
 		_DataSize    - Size of _pData.
 */
-ECpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize);
+DLECpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize);
 
 /*
 	Function: dl_instance_root_type

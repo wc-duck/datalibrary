@@ -901,7 +901,7 @@ static EDLError DLInternalPack(SDLPackContext* PackContext, const char* _pTxtDat
 EDLError dl_pack_text(HDLContext _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = false;
-	CDLBinaryWriter Writer(_pPackedData + sizeof(SDLDataHeader), _PackedDataSize -  sizeof(SDLDataHeader), IS_DUMMY_WRITER, ENDIAN_HOST, ENDIAN_HOST, DL_PTR_SIZE_HOST);
+	CDLBinaryWriter Writer(_pPackedData + sizeof(SDLDataHeader), _PackedDataSize -  sizeof(SDLDataHeader), IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
 
 	SDLPackContext PackContext;
 	PackContext.m_DLContext = _Context;
@@ -927,7 +927,7 @@ EDLError dl_pack_text(HDLContext _Context, const char* _pTxtData, unsigned char*
 EDLError dl_required_text_pack_size(HDLContext _Context, const char* _pTxtData, unsigned int* _pPackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = true;
-	CDLBinaryWriter Writer(0x0, 0, IS_DUMMY_WRITER, ENDIAN_HOST, ENDIAN_HOST, DL_PTR_SIZE_HOST);
+	CDLBinaryWriter Writer(0x0, 0, IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
 
 	SDLPackContext PackContext;
 	PackContext.m_DLContext = _Context;

@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 	CArrayStatic<const char*, 128> lLibs;
 	const char*  pOutput  = "";
 	const char*  pInput   = "";
-	ECpuEndian   Endian  = ENDIAN_HOST;
+	DLECpuEndian   Endian  = DL_ENDIAN_HOST;
 	unsigned int PtrSize = sizeof(void*);
 
 	int32 opt;
@@ -142,9 +142,9 @@ int main(int argc, char** argv)
 				break;
 			case 'e':
 				if(strcmp(GOCtx.m_CurrentOptArg, "little") == 0)
-					Endian = ENDIAN_LITTLE;
+					Endian = DL_ENDIAN_LITTLE;
 				else if(strcmp(GOCtx.m_CurrentOptArg, "big") == 0) 
-					Endian = ENDIAN_BIG;
+					Endian = DL_ENDIAN_BIG;
 				else
 					M_ERROR_AND_QUIT("endian-flag need \"little\" or \"big\", not \"%s\"!", GOCtx.m_CurrentOptArg);
 				break;
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
 		if(sizeof(void*) <= dl_instance_ptr_size(InData, Size))
 		{
 			// we are converting ptr-size down and can use the faster inplace load.
-			EDLError err = dl_convert_instance_inplace(Ctx, InData, Size, ENDIAN_HOST, sizeof(void*));
+			EDLError err = dl_convert_instance_inplace(Ctx, InData, Size, DL_ENDIAN_HOST, sizeof(void*));
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "SBDL error converting packed instance: %s", dl_error_to_string(err));
 		}
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
 
 			unsigned char* pConverted = (unsigned char*)malloc(SizeAfterConvert);
 
-			err = dl_convert_instance(Ctx, InData, Size, pConverted, SizeAfterConvert, ENDIAN_HOST, sizeof(void*));
+			err = dl_convert_instance(Ctx, InData, Size, pConverted, SizeAfterConvert, DL_ENDIAN_HOST, sizeof(void*));
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", dl_error_to_string(err));
 

@@ -85,7 +85,7 @@ EDLError dl_util_load_instance_from_text_file_inplace(HDLContext _Ctx, const cha
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError dl_util_store_instance_to_file(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance, ECpuEndian _OutEndian, unsigned int _OutPtrSize);
+EDLError dl_util_store_instance_to_file(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance, DLECpuEndian _OutEndian, unsigned int _OutPtrSize);
 
 /*
 	Function: DLUtilStoreInstanceToTextFile

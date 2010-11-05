@@ -25,20 +25,6 @@
 	typedef uint32_t StrHash;
 #endif
 
-enum ECpuEndian
-{
-	ENDIAN_BIG,
-	ENDIAN_LITTLE,
-
-// #if defined(M_CPU_ENDIAN_LITTLE)
-	ENDIAN_HOST = ENDIAN_LITTLE,
-// #elif defined(M_CPU_ENDIAN_BIG)
-// 	ENDIAN_HOST = ENDIAN_BIG,
-// #else // defined(M_CPU_ENDIAN_*)
-// 	#error no endianness specified
-// #endif // defined(M_CPU_ENDIAN_*)
-};
-
 // remove me?
 #define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
 #define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
