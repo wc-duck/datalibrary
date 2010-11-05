@@ -38,7 +38,7 @@ extern "C" {
 #endif // __cplusplus
 
 /*
-	Function: DLReflectGetTypeInfo
+	Function: dl_reflect_get_type_info
 		Retrieve information about a certain type in a type-library.
 
 	Parameters:
@@ -51,10 +51,10 @@ extern "C" {
 	Returns:
 		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if _pMembers do not fit all members, or other error if apropriate!
 */
-EDLError DL_DLL_EXPORT DLReflectGetTypeInfo(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, unsigned int _nMembers);
+EDLError DL_DLL_EXPORT dl_reflect_get_type_info(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, unsigned int _nMembers);
 
 /*
-	Function: DLSizeOfType
+	Function: dl_size_of_type
 		Returns the size of a loaded type.
 
 	Parameters:
@@ -64,10 +64,10 @@ EDLError DL_DLL_EXPORT DLReflectGetTypeInfo(HDLContext _Context, StrHash _TypeID
 	Returns:
 		The size of the type or 0 if not found in context.
 */
-unsigned int DLSizeOfType(HDLContext _Context, StrHash _TypeHash);
+unsigned int dl_size_of_type(HDLContext _Context, StrHash _TypeHash);
 
 /*
-	Function: DLAlignmentOfType
+	Function: dl_alignment_of_type
 		Returns the alignment of a loaded type.
 
 	Parameters:
@@ -77,7 +77,7 @@ unsigned int DLSizeOfType(HDLContext _Context, StrHash _TypeHash);
 	Returns:
 		The alignment of the type or 0 if not found in context.
 */
-unsigned int DLAlignmentOfType(HDLContext _Context, StrHash _TypeHash);
+unsigned int dl_alignment_of_type(HDLContext _Context, StrHash _TypeHash);
 
 #ifdef __cplusplus
 }

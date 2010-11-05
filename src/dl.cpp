@@ -13,7 +13,7 @@ static void* DLMallocAlloc(unsigned int  _Size, unsigned int _Alignment) { DL_UN
 static void  DLMallocFree (void* _pPtr) { free(_pPtr); }
 static SDLAllocFunctions g_DLMallocFreeFuncs = { DLMallocAlloc, DLMallocFree };
 
-EDLError DLContextCreate(HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs, SDLAllocFunctions* _pInstanceAllocFuncs)
+EDLError dl_context_create(HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs, SDLAllocFunctions* _pInstanceAllocFuncs)
 {
 	if(_pDLAllocFuncs == 0x0)
 		_pDLAllocFuncs = &g_DLMallocFreeFuncs;
@@ -34,7 +34,7 @@ EDLError DLContextCreate(HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFunc
 	return DL_ERROR_OK;
 }
 
-EDLError DLContextDestroy(HDLContext _Context)
+EDLError dl_context_destroy(HDLContext _Context)
 {
 	_Context->m_DLAllocFuncs->m_Free(_Context->m_TypeInfoData);
 	_Context->m_DLAllocFuncs->m_Free(_Context->m_EnumInfoData);
@@ -253,7 +253,7 @@ static void DLReadTLHeader(SDLTypeLibraryHeader* _pHeader, const uint8* _pData)
 	}
 }
 
-EDLError DLLoadTypeLibrary(HDLContext _Context, const unsigned char* _pData, unsigned int _DataSize)
+EDLError dl_load_type_library(HDLContext _Context, const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLTypeLibraryHeader))
 		return DL_ERROR_MALFORMED_DATA;
@@ -351,7 +351,7 @@ EDLError DLLoadTypeLibrary(HDLContext _Context, const unsigned char* _pData, uns
 	return DL_ERROR_OK;
 }
 
-EDLError DLLoadInstanceInplace(HDLContext _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
+EDLError dl_load_instance_inplace(HDLContext _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
@@ -652,7 +652,7 @@ static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pTy
 	return DL_ERROR_OK;
 }
 
-EDLError DLStoreInstace(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
+EDLError dl_store_instace(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -683,7 +683,7 @@ EDLError DLStoreInstace(HDLContext _Context, StrHash _TypeHash, void* _pInstance
 	return err;
 }
 
-EDLError DLInstaceSizeStored(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
+EDLError dl_instace_size_stored(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -702,7 +702,7 @@ EDLError DLInstaceSizeStored(HDLContext _Context, StrHash _TypeHash, void* _pIns
 	return err;
 }
 
-const char* DLErrorToString(EDLError _Err)
+const char* dl_error_to_string(EDLError _Err)
 {
 #define M_DL_ERR_TO_STR(ERR) case ERR: return #ERR
 	switch(_Err)
@@ -732,14 +732,14 @@ const char* DLErrorToString(EDLError _Err)
 #undef M_DL_ERR_TO_STR
 }
 
-unsigned int DLInstancePtrSize(const unsigned char* _pData, unsigned int _DataSize)
+unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLDataHeader)) return 0;
 
 	return ((SDLDataHeader*)_pData)->m_64BitPtr ? 8 : 4;
 }
 
-ECpuEndian DLInstanceEndian(const unsigned char* _pData, unsigned int _DataSize)
+ECpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLDataHeader)) return ENDIAN_HOST;
 
@@ -749,7 +749,7 @@ ECpuEndian DLInstanceEndian(const unsigned char* _pData, unsigned int _DataSize)
 	return ENDIAN_HOST;
 }
 
-StrHash DLInstanceRootType(const unsigned char* _pData, unsigned int _DataSize)
+StrHash dl_instance_root_type(const unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLDataHeader* pHeader = (const SDLDataHeader*)_pData;
 

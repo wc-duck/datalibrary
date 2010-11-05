@@ -6,12 +6,20 @@
 
 #include "dl_test_common.h"
 
+template<class T>
+struct TAlignmentOf
+{
+        struct CAlign { ~CAlign() {}; unsigned char m_Dummy; T m_T; };
+        enum { ALIGNOF = sizeof(CAlign) - sizeof(T) };
+};
+#define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
+
 TEST_F(DL, ReflectPods)
 {
 	SDLTypeInfo   Info;
 	SDLMemberInfo Members[128];
 
-	EDLError err = DLReflectGetTypeInfo(Ctx, SPods::TYPE_ID, &Info, Members, DL_ARRAY_LENGTH(Members));
+	EDLError err = dl_reflect_get_type_info(Ctx, SPods::TYPE_ID, &Info, Members, DL_ARRAY_LENGTH(Members));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_STREQ("Pods", Info.m_Name);
@@ -60,49 +68,49 @@ TEST_F(DL, ReflectPods)
 
 TEST_F(DL, SizeAndAlignment)
 {
-	EXPECT_EQ(sizeof(SPods2),                               DLSizeOfType(Ctx, SPods2::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SPods2),                       DLAlignmentOfType(Ctx, SPods2::TYPE_ID));
-	EXPECT_EQ(sizeof(SPtrChain),                            DLSizeOfType(Ctx, SPtrChain::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SPtrChain),                    DLAlignmentOfType(Ctx, SPtrChain::TYPE_ID));
-	EXPECT_EQ(sizeof(SPods),                                DLSizeOfType(Ctx, SPods::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SPods),                        DLAlignmentOfType(Ctx, SPods::TYPE_ID));
-	EXPECT_EQ(sizeof(SMoreBits),                            DLSizeOfType(Ctx, SMoreBits::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SMoreBits),                    DLAlignmentOfType(Ctx, SMoreBits::TYPE_ID));
-	EXPECT_EQ(sizeof(SMorePods),                            DLSizeOfType(Ctx, SMorePods::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SMorePods),                    DLAlignmentOfType(Ctx, SMorePods::TYPE_ID));
-	EXPECT_EQ(sizeof(SStrings),                             DLSizeOfType(Ctx, SStrings::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SStrings),                     DLAlignmentOfType(Ctx, SStrings::TYPE_ID));
-	EXPECT_EQ(sizeof(STestBits),                            DLSizeOfType(Ctx, STestBits::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(STestBits),                    DLAlignmentOfType(Ctx, STestBits::TYPE_ID));
-	EXPECT_EQ(sizeof(SPodArray1),                           DLSizeOfType(Ctx, SPodArray1::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SPodArray1),                   DLAlignmentOfType(Ctx, SPodArray1::TYPE_ID));
-	EXPECT_EQ(sizeof(SPodArray2),                           DLSizeOfType(Ctx, SPodArray2::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SPodArray2),                   DLAlignmentOfType(Ctx, SPodArray2::TYPE_ID));
-	EXPECT_EQ(sizeof(SSimplePtr),                           DLSizeOfType(Ctx, SSimplePtr::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SSimplePtr),                   DLAlignmentOfType(Ctx, SSimplePtr::TYPE_ID));
-	EXPECT_EQ(sizeof(SStringArray),                         DLSizeOfType(Ctx, SStringArray::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SStringArray),                 DLAlignmentOfType(Ctx, SStringArray::TYPE_ID));
-	EXPECT_EQ(sizeof(SStructArray1),                        DLSizeOfType(Ctx, SStructArray1::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SStructArray1),                DLAlignmentOfType(Ctx, SStructArray1::TYPE_ID));
-	EXPECT_EQ(sizeof(SPod2InStruct),                        DLSizeOfType(Ctx, SPod2InStruct::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SPod2InStruct),                DLAlignmentOfType(Ctx, SPod2InStruct::TYPE_ID));
-	EXPECT_EQ(sizeof(SWithInlineArray),                     DLSizeOfType(Ctx, SWithInlineArray::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SWithInlineArray),             DLAlignmentOfType(Ctx, SWithInlineArray::TYPE_ID));
-	EXPECT_EQ(sizeof(SStringInlineArray),                   DLSizeOfType(Ctx, SStringInlineArray::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SStringInlineArray),           DLAlignmentOfType(Ctx, SStringInlineArray::TYPE_ID));
-	EXPECT_EQ(sizeof(SPod2InStructInStruct),                DLSizeOfType(Ctx, SPod2InStructInStruct::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SPod2InStructInStruct),        DLAlignmentOfType(Ctx, SPod2InStructInStruct::TYPE_ID));
-	EXPECT_EQ(sizeof(SWithInlineStructArray),               DLSizeOfType(Ctx, SWithInlineStructArray::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SWithInlineStructArray),       DLAlignmentOfType(Ctx, SWithInlineStructArray::TYPE_ID));
-	EXPECT_EQ(sizeof(SWithInlineStructStructArray),         DLSizeOfType(Ctx, SWithInlineStructStructArray::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SWithInlineStructStructArray), DLAlignmentOfType(Ctx, SWithInlineStructStructArray::TYPE_ID));
-	EXPECT_EQ(sizeof(SDoublePtrChain),                      DLSizeOfType(Ctx, SDoublePtrChain::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SDoublePtrChain),              DLAlignmentOfType(Ctx, SDoublePtrChain::TYPE_ID));
-	EXPECT_EQ(sizeof(SA128BitAlignedType),                  DLSizeOfType(Ctx, SA128BitAlignedType::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SA128BitAlignedType),          DLAlignmentOfType(Ctx, SA128BitAlignedType::TYPE_ID));
+	EXPECT_EQ(sizeof(SPods2),                               dl_size_of_type(Ctx, SPods2::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SPods2),                       dl_alignment_of_type(Ctx, SPods2::TYPE_ID));
+	EXPECT_EQ(sizeof(SPtrChain),                            dl_size_of_type(Ctx, SPtrChain::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SPtrChain),                    dl_alignment_of_type(Ctx, SPtrChain::TYPE_ID));
+	EXPECT_EQ(sizeof(SPods),                                dl_size_of_type(Ctx, SPods::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SPods),                        dl_alignment_of_type(Ctx, SPods::TYPE_ID));
+	EXPECT_EQ(sizeof(SMoreBits),                            dl_size_of_type(Ctx, SMoreBits::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SMoreBits),                    dl_alignment_of_type(Ctx, SMoreBits::TYPE_ID));
+	EXPECT_EQ(sizeof(SMorePods),                            dl_size_of_type(Ctx, SMorePods::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SMorePods),                    dl_alignment_of_type(Ctx, SMorePods::TYPE_ID));
+	EXPECT_EQ(sizeof(SStrings),                             dl_size_of_type(Ctx, SStrings::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SStrings),                     dl_alignment_of_type(Ctx, SStrings::TYPE_ID));
+	EXPECT_EQ(sizeof(STestBits),                            dl_size_of_type(Ctx, STestBits::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(STestBits),                    dl_alignment_of_type(Ctx, STestBits::TYPE_ID));
+	EXPECT_EQ(sizeof(SPodArray1),                           dl_size_of_type(Ctx, SPodArray1::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SPodArray1),                   dl_alignment_of_type(Ctx, SPodArray1::TYPE_ID));
+	EXPECT_EQ(sizeof(SPodArray2),                           dl_size_of_type(Ctx, SPodArray2::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SPodArray2),                   dl_alignment_of_type(Ctx, SPodArray2::TYPE_ID));
+	EXPECT_EQ(sizeof(SSimplePtr),                           dl_size_of_type(Ctx, SSimplePtr::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SSimplePtr),                   dl_alignment_of_type(Ctx, SSimplePtr::TYPE_ID));
+	EXPECT_EQ(sizeof(SStringArray),                         dl_size_of_type(Ctx, SStringArray::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SStringArray),                 dl_alignment_of_type(Ctx, SStringArray::TYPE_ID));
+	EXPECT_EQ(sizeof(SStructArray1),                        dl_size_of_type(Ctx, SStructArray1::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SStructArray1),                dl_alignment_of_type(Ctx, SStructArray1::TYPE_ID));
+	EXPECT_EQ(sizeof(SPod2InStruct),                        dl_size_of_type(Ctx, SPod2InStruct::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SPod2InStruct),                dl_alignment_of_type(Ctx, SPod2InStruct::TYPE_ID));
+	EXPECT_EQ(sizeof(SWithInlineArray),                     dl_size_of_type(Ctx, SWithInlineArray::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SWithInlineArray),             dl_alignment_of_type(Ctx, SWithInlineArray::TYPE_ID));
+	EXPECT_EQ(sizeof(SStringInlineArray),                   dl_size_of_type(Ctx, SStringInlineArray::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SStringInlineArray),           dl_alignment_of_type(Ctx, SStringInlineArray::TYPE_ID));
+	EXPECT_EQ(sizeof(SPod2InStructInStruct),                dl_size_of_type(Ctx, SPod2InStructInStruct::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SPod2InStructInStruct),        dl_alignment_of_type(Ctx, SPod2InStructInStruct::TYPE_ID));
+	EXPECT_EQ(sizeof(SWithInlineStructArray),               dl_size_of_type(Ctx, SWithInlineStructArray::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SWithInlineStructArray),       dl_alignment_of_type(Ctx, SWithInlineStructArray::TYPE_ID));
+	EXPECT_EQ(sizeof(SWithInlineStructStructArray),         dl_size_of_type(Ctx, SWithInlineStructStructArray::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SWithInlineStructStructArray), dl_alignment_of_type(Ctx, SWithInlineStructStructArray::TYPE_ID));
+	EXPECT_EQ(sizeof(SDoublePtrChain),                      dl_size_of_type(Ctx, SDoublePtrChain::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SDoublePtrChain),              dl_alignment_of_type(Ctx, SDoublePtrChain::TYPE_ID));
+	EXPECT_EQ(sizeof(SA128BitAlignedType),                  dl_size_of_type(Ctx, SA128BitAlignedType::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SA128BitAlignedType),          dl_alignment_of_type(Ctx, SA128BitAlignedType::TYPE_ID));
 
-	EXPECT_EQ(sizeof(SBugTest1),                 DLSizeOfType(Ctx, SBugTest1::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SBugTest1),         DLAlignmentOfType(Ctx, SBugTest1::TYPE_ID));
-	EXPECT_EQ(sizeof(SBugTest1_InArray),         DLSizeOfType(Ctx, SBugTest1_InArray::TYPE_ID));
-	EXPECT_EQ(DL_ALIGNMENTOF(SBugTest1_InArray), DLAlignmentOfType(Ctx, SBugTest1_InArray::TYPE_ID));
+	EXPECT_EQ(sizeof(SBugTest1),                 dl_size_of_type(Ctx, SBugTest1::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SBugTest1),         dl_alignment_of_type(Ctx, SBugTest1::TYPE_ID));
+	EXPECT_EQ(sizeof(SBugTest1_InArray),         dl_size_of_type(Ctx, SBugTest1_InArray::TYPE_ID));
+	EXPECT_EQ(DL_ALIGNMENTOF(SBugTest1_InArray), dl_alignment_of_type(Ctx, SBugTest1_InArray::TYPE_ID));
 }

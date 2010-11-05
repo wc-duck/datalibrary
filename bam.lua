@@ -1,6 +1,6 @@
 BUILD_PATH = "local"
 
-function DLTypeLibrary( tlc_file  )
+function DLTypeLibrary( tlc_file, dl_shared_lib  )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header = out_file .. ".h"
@@ -9,7 +9,7 @@ function DLTypeLibrary( tlc_file  )
 
 	AddJob( out_header, 
 		"tlc " .. out_lib,
-		"python2.6 tool/dl_tlc/dl_tlc.py -c " .. out_lib .. " " .. tlc_file, 
+		"python2.6 tool/dl_tlc/dl_tlc.py -o " .. out_lib .. " " .. tlc_file, 
 		tlc_file )
 
 	AddJob( out_lib, 
@@ -18,6 +18,8 @@ function DLTypeLibrary( tlc_file  )
 		tlc_file )
 
 	AddDependency( tlc_file, Collect( "tool/dl_tlc/*.py" ) )
+	AddDependency( tlc_file, Collect( "bind/python/*.py" ) )
+	AddDependency( tlc_file, dl_shared_lib )
 
 	-- dump type-lib to header
 	AddJob( out_lib_h, 
@@ -103,7 +105,7 @@ shared_library = SharedLibrary( build_settings, "dl", dll_files )
 
 dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
 
-DLTypeLibrary( "tests/unittest.tld" )
+DLTypeLibrary( "tests/unittest.tld", shared_library )
 
 build_settings.link.libs:Add( "gtest" )
 build_settings.link.libs:Add( "pthread" )

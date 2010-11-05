@@ -443,12 +443,12 @@ static EDLError DLUnpackInternal(HDLContext _Context, const unsigned char* _pPac
 	return DL_ERROR_OK;
 };
 
-EDLError DLUnpack(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize)
+EDLError dl_unpack(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize)
 {
 	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, _pTxtData, &_TxtDataSize);
 }
 
-EDLError DLRequiredUnpackSize(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize)
+EDLError dl_required_unpack_size(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize)
 {
 	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, 0x0, _pTxtDataSize);
 }

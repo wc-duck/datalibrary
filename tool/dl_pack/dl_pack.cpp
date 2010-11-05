@@ -49,9 +49,9 @@ SDLAllocFunctions g_MyAllocs = { MyAlloc, MyFree };
 HDLContext CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<const char*, 128>& _lLibs)
 {
 	HDLContext Ctx;
-	EDLError err = DLContextCreate(&Ctx, &g_MyAllocs, &g_MyAllocs);
+	EDLError err = dl_context_create(&Ctx, &g_MyAllocs, &g_MyAllocs);
 	if(err != DL_ERROR_OK)
-		M_ERROR_AND_FAIL( "SBDL error while creating context: %s", DLErrorToString(err));
+		M_ERROR_AND_FAIL( "SBDL error while creating context: %s", dl_error_to_string(err));
 
 	// load all type-libs.
 	for(unsigned int iLib = 0; iLib < _lLibs.Len(); iLib++)
@@ -75,9 +75,9 @@ HDLContext CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStati
 
 				unsigned int Size;
 				unsigned char* TL = ReadFile(File, &Size);
-				err = DLLoadTypeLibrary(Ctx, TL, Size);
+				err = dl_load_type_library(Ctx, TL, Size);
 				if(err != DL_ERROR_OK)
-					M_ERROR_AND_FAIL( "SBDL error while loading type library (%s): %s", Path, DLErrorToString(err));
+					M_ERROR_AND_FAIL( "SBDL error while loading type library (%s): %s", Path, dl_error_to_string(err));
 
 				free(TL);
 				fclose(File);
@@ -197,58 +197,58 @@ int main(int argc, char** argv)
 
 	if(g_Unpack == 1) // should unpack
 	{
-		if(sizeof(void*) <= DLInstancePtrSize(InData, Size))
+		if(sizeof(void*) <= dl_instance_ptr_size(InData, Size))
 		{
 			// we are converting ptr-size down and can use the faster inplace load.
-			EDLError err = DLConvertInstanceInplace(Ctx, InData, Size, ENDIAN_HOST, sizeof(void*));
+			EDLError err = dl_convert_instance_inplace(Ctx, InData, Size, ENDIAN_HOST, sizeof(void*));
 			if(err != DL_ERROR_OK)
-				M_ERROR_AND_QUIT( "SBDL error converting packed instance: %s", DLErrorToString(err));
+				M_ERROR_AND_QUIT( "SBDL error converting packed instance: %s", dl_error_to_string(err));
 		}
 		else
 		{
 			// instance might grow so ptr-data so the non-inplace unpack is needed.
 			unsigned int SizeAfterConvert;
-			EDLError err = DLInstanceSizeConverted(Ctx, InData, Size, PtrSize, &SizeAfterConvert);
+			EDLError err = dl_instance_size_converted(Ctx, InData, Size, PtrSize, &SizeAfterConvert);
 
 			if(err != DL_ERROR_OK)
-				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", DLErrorToString(err));
+				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", dl_error_to_string(err));
 
 			unsigned char* pConverted = (unsigned char*)malloc(SizeAfterConvert);
 
-			err = DLConvertInstance(Ctx, InData, Size, pConverted, SizeAfterConvert, ENDIAN_HOST, sizeof(void*));
+			err = dl_convert_instance(Ctx, InData, Size, pConverted, SizeAfterConvert, ENDIAN_HOST, sizeof(void*));
 			if(err != DL_ERROR_OK)
-				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", DLErrorToString(err));
+				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", dl_error_to_string(err));
 
 			free(InData);
 			InData = pConverted;
 			Size   = SizeAfterConvert;
 		}
 
-		EDLError err = DLRequiredUnpackSize(Ctx, InData, Size, &OutDataSize);
+		EDLError err = dl_required_unpack_size(Ctx, InData, Size, &OutDataSize);
 		if(err != DL_ERROR_OK)
-			M_ERROR_AND_QUIT( "SBDL error while calculating unpack size: %s", DLErrorToString(err));
+			M_ERROR_AND_QUIT( "SBDL error while calculating unpack size: %s", dl_error_to_string(err));
 
 		pOutData = (unsigned char*)malloc(OutDataSize);
 
-		err = DLUnpack(Ctx, InData, Size, (char*)pOutData, OutDataSize);
+		err = dl_unpack(Ctx, InData, Size, (char*)pOutData, OutDataSize);
 		if(err != DL_ERROR_OK)
-			M_ERROR_AND_QUIT( "SBDL error while unpacking: %s", DLErrorToString(err));
+			M_ERROR_AND_QUIT( "SBDL error while unpacking: %s", dl_error_to_string(err));
 	}
 	else
 	{
-		EDLError err = DLRequiredTextPackSize(Ctx, (char*)InData, &OutDataSize);
+		EDLError err = dl_required_text_pack_size(Ctx, (char*)InData, &OutDataSize);
 		if(err != DL_ERROR_OK)
-			M_ERROR_AND_QUIT("SBDL error while calculating pack size: %s", DLErrorToString(err));
+			M_ERROR_AND_QUIT("SBDL error while calculating pack size: %s", dl_error_to_string(err));
 
 		pOutData = (unsigned char*)malloc(OutDataSize);
 
-		err = DLPackText(Ctx, (char*)InData, pOutData, OutDataSize);
+		err = dl_pack_text(Ctx, (char*)InData, pOutData, OutDataSize);
 		if(err != DL_ERROR_OK)
-			M_ERROR_AND_QUIT("SBDL error while packing: %s", DLErrorToString(err));
+			M_ERROR_AND_QUIT("SBDL error while packing: %s", dl_error_to_string(err));
 
-		err = DLConvertInstanceInplace(Ctx, pOutData, OutDataSize, Endian, PtrSize);
+		err = dl_convert_instance_inplace(Ctx, pOutData, OutDataSize, Endian, PtrSize);
 		if(err != DL_ERROR_OK)
-			M_ERROR_AND_QUIT("SBDL error while converting packed instance: %s", DLErrorToString(err));
+			M_ERROR_AND_QUIT("SBDL error while converting packed instance: %s", dl_error_to_string(err));
 	}
 
 	fwrite(pOutData, 1, OutDataSize, pOutFile);

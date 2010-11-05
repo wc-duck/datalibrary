@@ -17,16 +17,6 @@
 	#error No supported compiler
 #endif
 
-#define DL_UNUSED (void)
-
-template<class T>
-struct TAlignmentOf
-{
-	struct CAlign { ~CAlign() {}; unsigned char m_Dummy; T m_T; };
-	enum { ALIGNOF = sizeof(CAlign) - sizeof(T) };
-};
-#define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
-
 // remove me!
 #if defined(_MSC_VER)
 	typedef unsigned __int32 StrHash;
@@ -35,7 +25,6 @@ struct TAlignmentOf
 	typedef uint32_t StrHash;
 #endif
 
-// remove me!
 enum ECpuEndian
 {
 	ENDIAN_BIG,

@@ -34,6 +34,8 @@
 
 #endif
 
+#define DL_UNUSED (void)
+
 #define DL_INT8_MAX  (0x7F)
 #define DL_INT16_MAX (0x7FFF)
 static const int32 DL_INT32_MAX = 0x7FFFFFFFL;
@@ -62,6 +64,13 @@ static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
         typedef uint32 pint;
 #endif // DL_PTR_SIZE_32
 
+template<class T>
+struct TAlignmentOf
+{
+        struct CAlign { ~CAlign() {}; unsigned char m_Dummy; T m_T; };
+        enum { ALIGNOF = sizeof(CAlign) - sizeof(T) };
+};
+#define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
 
 #define DL_LOG_DL_ERROR(_Fmt, ...) fprintf(stderr, "DL: " _Fmt, ##__VA_ARGS__)
 
@@ -100,7 +109,7 @@ struct SDLTypeLibraryHeader
 	uint32 m_EnumsOffset;   // offset from start of data where enums are stored
 	uint32 m_EnumsSize;		// number of bytes that are enums
 
-	uint32 m_DefaultValuesOffset; 
+	uint32 m_DefaultValuesOffset;
 	uint32 m_DefaultValuesSize;
 };
 

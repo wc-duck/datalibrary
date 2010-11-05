@@ -11,7 +11,7 @@
 #include <dl/dl.h>
 
 /*
-	Function: DLUtilLoadInstanceFromFile
+	Function: dl_util_load_instance_from_file
 		Function that loads a DL-instance from file.
 
 	Note:
@@ -27,10 +27,10 @@
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilLoadInstanceFromFile(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void** _ppInstance);
+EDLError dl_util_load_instance_from_file(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void** _ppInstance);
 
 /*
-	Function: DLUtilLoadInstanceFromTextFile
+	Function: dl_util_load_instance_from_text_file
 		Function that loads a DL-instance from text file.
 
 	Note:
@@ -45,10 +45,10 @@ EDLError DLUtilLoadInstanceFromFile(HDLContext _Ctx, const char* _pFileName, Str
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilLoadInstanceFromTextFile(HDLContext _Ctx, const char* _pFileName, void** _ppInstance);
+EDLError dl_util_load_instance_from_text_file(HDLContext _Ctx, const char* _pFileName, void** _ppInstance);
 
 /*
-	Function: DLUtilLoadInstanceFromTextFile
+	Function: dl_util_load_instance_from_text_file_inplace
 		Function that loads a DL-instance from text file.
 		Data pointed to by _pInstance is assumed to point to a pointer of the correct type.
 		If the data will not fit in the buffer pointed to by _pInstance an error will be generated.
@@ -65,10 +65,10 @@ EDLError DLUtilLoadInstanceFromTextFile(HDLContext _Ctx, const char* _pFileName,
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilLoadInstanceFromTextFileInplace(HDLContext _Ctx, const char* _pFileName, void* _pInstance, unsigned int _InstanceSize);
+EDLError dl_util_load_instance_from_text_file_inplace(HDLContext _Ctx, const char* _pFileName, void* _pInstance, unsigned int _InstanceSize);
 
 /*
-	Function: DLUtilStoreInstanceToFile
+	Function: dl_util_store_instance_to_file
 		Function that writes a DL-instance to file.
 
 	Note:
@@ -85,7 +85,7 @@ EDLError DLUtilLoadInstanceFromTextFileInplace(HDLContext _Ctx, const char* _pFi
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilStoreInstanceToFile(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance, ECpuEndian _OutEndian, unsigned int _OutPtrSize);
+EDLError dl_util_store_instance_to_file(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance, ECpuEndian _OutEndian, unsigned int _OutPtrSize);
 
 /*
 	Function: DLUtilStoreInstanceToTextFile
@@ -103,6 +103,6 @@ EDLError DLUtilStoreInstanceToFile(HDLContext _Ctx, const char* _pFileName, StrH
 	Returns:
 		DL_UTIL_ERROR_OK on success.
 */
-EDLError DLUtilStoreInstanceToTextFile(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance);
+EDLError dl_util_store_instance_to_text_file(HDLContext _Ctx, const char* _pFileName, StrHash _DLType, void* _pInstance);
 
 #endif // DL_DL_UTIL_H_INCLUDED
