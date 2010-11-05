@@ -239,10 +239,10 @@ struct SDLContext
 	return a bitfield offset on a particular platform (currently endian-ness is used to set them apart, that might break ;) )
 	the bitfield offset are counted from least significant bit or most significant bit on different platforms.
 */
-inline unsigned int DLBitFieldOffset(DLECpuEndian _Endian, unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits) { return _Endian == DL_ENDIAN_LITTLE ? _Offset : (_BFSize * 8) - _Offset - _nBits; }
+inline unsigned int DLBitFieldOffset(EDLCpuEndian _Endian, unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits) { return _Endian == DL_ENDIAN_LITTLE ? _Offset : (_BFSize * 8) - _Offset - _nBits; }
 inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits)                     { return DLBitFieldOffset(DL_ENDIAN_HOST, _BFSize, _Offset, _nBits); }
 
-DL_FORCEINLINE DLECpuEndian DLOtherEndian(DLECpuEndian _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
+DL_FORCEINLINE EDLCpuEndian DLOtherEndian(EDLCpuEndian _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
 
 DL_FORCEINLINE pint DLPtrSize(EDLPtrSize _SizeEnum)
 {

@@ -49,8 +49,8 @@ EDLError DLInternalConvertNoHeader( HDLContext     _Context,
                                     unsigned char* _pOutData,
                                     unsigned int   _OutDataSize,
                                     unsigned int*  _pNeededSize,
-                                    DLECpuEndian     _SourceEndian,
-                                    DLECpuEndian     _TargetEndian,
+                                    EDLCpuEndian     _SourceEndian,
+                                    EDLCpuEndian     _TargetEndian,
                                     EDLPtrSize     _SourcePtrSize,
                                     EDLPtrSize     _TargetPtrSize,
                                     const SDLType* _pRootType,
@@ -739,7 +739,7 @@ unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _Dat
 	return ((SDLDataHeader*)_pData)->m_64BitPtr ? 8 : 4;
 }
 
-DLECpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
+EDLCpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLDataHeader)) return DL_ENDIAN_HOST;
 

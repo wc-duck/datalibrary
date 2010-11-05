@@ -25,7 +25,7 @@ struct SInstance
 class SConvertContext
 {
 public:
-	SConvertContext( DLECpuEndian _SourceEndian, DLECpuEndian _TargetEndian, EDLPtrSize _SourcePtrSize, EDLPtrSize _TargetPtrSize )
+	SConvertContext( EDLCpuEndian _SourceEndian, EDLCpuEndian _TargetEndian, EDLPtrSize _SourcePtrSize, EDLPtrSize _TargetPtrSize )
 		: m_SourceEndian(_SourceEndian)
 		, m_TargetEndian(_TargetEndian)
 		, m_SourcePtrSize(_SourcePtrSize)
@@ -40,8 +40,8 @@ public:
 		return false;
 	}
 
-	DLECpuEndian m_SourceEndian;
-	DLECpuEndian m_TargetEndian;
+	EDLCpuEndian m_SourceEndian;
+	EDLCpuEndian m_TargetEndian;
 	EDLPtrSize m_SourcePtrSize;
 	EDLPtrSize m_TargetPtrSize;
 
@@ -70,7 +70,7 @@ static inline void DLSwapHeader(SDLDataHeader* _pHeader)
 }
 
 static pint DLInternalReadPtrData( const uint8* _pPtrData,
-								   DLECpuEndian   _SourceEndian,
+								   EDLCpuEndian   _SourceEndian,
 								   EDLPtrSize   _PtrSize )
 {
 	switch(_PtrSize)
@@ -105,7 +105,7 @@ static pint DLInternalReadPtrData( const uint8* _pPtrData,
 static void DLInternalReadArrayData( const uint8* _pArrayData,
 									 pint*        _pOffset,
 									 uint32*      _pCount,
-									 DLECpuEndian   _SourceEndian,
+									 EDLCpuEndian   _SourceEndian,
 									 EDLPtrSize   _PtrSize )
 {
 	union { const uint8* m_u8; const uint32* m_u32; const uint64* m_u64; } pArrayData;
@@ -577,8 +577,8 @@ EDLError DLInternalConvertNoHeader( HDLContext     _Context,
                                     unsigned char* _pOutData,
                                     unsigned int   _OutDataSize,
                                     unsigned int*  _pNeededSize,
-                                    DLECpuEndian     _SourceEndian,
-                                    DLECpuEndian     _TargetEndian,
+                                    EDLCpuEndian     _SourceEndian,
+                                    EDLCpuEndian     _TargetEndian,
                                     EDLPtrSize     _SourcePtrSize,
                                     EDLPtrSize     _TargetPtrSize,
                                     const SDLType* _pRootType,
@@ -638,7 +638,7 @@ static EDLError DLInternalConvertInstance( HDLContext     _Context,
                                            unsigned char* _pData,
                                            unsigned char* _pOutData,
                                            unsigned int   _OutDataSize,
-                                           DLECpuEndian     _Endian,
+                                           EDLCpuEndian     _Endian,
                                            unsigned int   _PtrSize,
                                            unsigned int*  _pNeededSize )
 {
@@ -654,13 +654,13 @@ static EDLError DLInternalConvertInstance( HDLContext     _Context,
 		default: return DL_ERROR_INVALID_PARAMETER;
 	}
 
-	DLECpuEndian SourceEndian = DL_ENDIAN_HOST;
+	EDLCpuEndian SourceEndian = DL_ENDIAN_HOST;
 	if (pHeader->m_Id == DL_TYPE_DATA_ID_SWAPED)
 		SourceEndian = DLOtherEndian(DL_ENDIAN_HOST);
 
 	bool NeedSwap = SourceEndian != _Endian;
 
-	DLECpuEndian TargetEndian = NeedSwap ? _Endian : SourceEndian;
+	EDLCpuEndian TargetEndian = NeedSwap ? _Endian : SourceEndian;
 
 	StrHash RootHash = SourceEndian != DL_ENDIAN_HOST ? DLSwapEndian(pHeader->m_RootInstanceType) : pHeader->m_RootInstanceType;
 
@@ -708,7 +708,7 @@ static EDLError DLInternalConvertInstance( HDLContext     _Context,
 	return err;
 }
 
-static inline bool DLInternalDataNeedSwap(SDLDataHeader* _pHeader, DLECpuEndian _RequestedEndian)
+static inline bool DLInternalDataNeedSwap(SDLDataHeader* _pHeader, EDLCpuEndian _RequestedEndian)
 {
 	if(_pHeader->m_Id == DL_TYPE_DATA_ID)
 		return _RequestedEndian != DL_ENDIAN_HOST;
@@ -716,7 +716,7 @@ static inline bool DLInternalDataNeedSwap(SDLDataHeader* _pHeader, DLECpuEndian 
 		return _RequestedEndian == DL_ENDIAN_HOST;
 }
 
-EDLError dl_convert_instance_inplace(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, DLECpuEndian _Endian, unsigned int _PtrSize)
+EDLError dl_convert_instance_inplace(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, EDLCpuEndian _Endian, unsigned int _PtrSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
@@ -738,7 +738,7 @@ EDLError dl_convert_instance_inplace(HDLContext _Context, unsigned char* _pData,
 	return DLInternalConvertInstance( _Context, _pData, _pData, _DataSize, _Endian, _PtrSize, &NeededSize);
 }
 
-EDLError dl_convert_instance(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, unsigned char* _pOutData, unsigned int _OutDataSize, DLECpuEndian _Endian, unsigned int _PtrSize)
+EDLError dl_convert_instance(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, unsigned char* _pOutData, unsigned int _OutDataSize, EDLCpuEndian _Endian, unsigned int _PtrSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 

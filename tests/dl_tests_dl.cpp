@@ -64,7 +64,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 	err = dl_load_instance_inplace(_Ctx, _pUnpackMe, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-	DLECpuEndian   OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
+	EDLCpuEndian   OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
 	unsigned int OtherPtrSize = sizeof(void*) == 4 ? 8 : 4;
 
 	// check if we can convert only endianness!

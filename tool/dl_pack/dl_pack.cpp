@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 	CArrayStatic<const char*, 128> lLibs;
 	const char*  pOutput  = "";
 	const char*  pInput   = "";
-	DLECpuEndian   Endian  = DL_ENDIAN_HOST;
+	EDLCpuEndian   Endian  = DL_ENDIAN_HOST;
 	unsigned int PtrSize = sizeof(void*);
 
 	int32 opt;
