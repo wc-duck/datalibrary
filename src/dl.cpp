@@ -725,6 +725,7 @@ const char* dl_error_to_string(EDLError _Err)
 		M_DL_ERR_TO_STR(DL_ERROR_TXT_MEMBER_SET_TWICE);
 
 		M_DL_ERR_TO_STR(DL_ERROR_UTIL_FILE_NOT_FOUND);
+		M_DL_ERR_TO_STR(DL_ERROR_UTIL_FILE_TYPE_MISMATCH);
 
 		M_DL_ERR_TO_STR(DL_ERROR_INTERNAL_ERROR);
 		default: return "Unknown error!";

@@ -36,9 +36,10 @@ typedef struct SDLContext* HDLContext;
 
 	DL_ERROR_TXT_PARSE_ERROR                               - Syntax error while parsing txt-file. Check log for details.
 	DL_ERROR_TXT_MEMBER_MISSING                            - A member is missing in a struct and in do not have a default value.
-	DL_ERROR_TXT_MEMBER_SET_TWICE,                         - A member is set twice in one struct.
+	DL_ERROR_TXT_MEMBER_SET_TWICE                          - A member is set twice in one struct.
 
 	DL_ERROR_UTIL_FILE_NOT_FOUND                           - A argument-file is not found.
+	DL_ERROR_UTIL_FILE_TYPE_MISMATCH                       - File type specified to read do not match file content.
 
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
 */
@@ -62,6 +63,7 @@ enum EDLError
 	DL_ERROR_TXT_MEMBER_SET_TWICE,
 
 	DL_ERROR_UTIL_FILE_NOT_FOUND,
+	DL_ERROR_UTIL_FILE_TYPE_MISMATCH,
 
 	DL_ERROR_INTERNAL_ERROR
 };
