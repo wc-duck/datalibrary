@@ -46,7 +46,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 	EXPECT_EQ(_TypeHash,      dl_instance_root_type(OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance)));
 
 	// unpack binary to txt
-	err = dl_unpack(_Ctx, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut));
+	err = dl_txt_unpack(_Ctx, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	// M_LOG_INFO("%s", TxtOut);
@@ -55,7 +55,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 	memset(OutDataText, 0x0, DL_ARRAY_LENGTH(OutDataText));
 
 	// pack txt to binary
-	err = dl_pack_text(_Ctx, TxtOut, OutDataText, DL_ARRAY_LENGTH(OutDataText));
+	err = dl_txt_pack(_Ctx, TxtOut, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 	EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(OutDataText,  DL_ARRAY_LENGTH(OutDataText)));
 	EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(OutDataText,   DL_ARRAY_LENGTH(OutDataText)));

@@ -79,13 +79,13 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 		{
 			// calc needed space
 			unsigned int packed_size = 0;
-			error = dl_required_text_pack_size(_Ctx, (char*)file_content, &packed_size);
+			error = dl_txt_pack_calc_size(_Ctx, (char*)file_content, &packed_size);
 
 			if(error != DL_ERROR_OK) { free(file_content); return error; }
 
 			load_instance = (unsigned char*)malloc(packed_size);
 
-			error = dl_pack_text(_Ctx, (char*)file_content, load_instance, packed_size);
+			error = dl_txt_pack(_Ctx, (char*)file_content, load_instance, packed_size);
 
 			free(file_content);
 
@@ -179,7 +179,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 		case DL_UTIL_FILE_TYPE_TEXT:
 		{
 			// calculate pack-size
-			error = dl_required_unpack_size( _Ctx, packed_instance, packed_size, &out_size);
+			error = dl_txt_unpack_calc_size( _Ctx, packed_instance, packed_size, &out_size);
 
 			if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
@@ -187,7 +187,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 			out_data = (unsigned char*)malloc(out_size);
 
 			// pack data
-			error = dl_unpack( _Ctx, packed_instance, packed_size, (char*)out_data, out_size);
+			error = dl_txt_unpack( _Ctx, packed_instance, packed_size, (char*)out_data, out_size);
 
 			free(packed_instance);
 

@@ -505,11 +505,11 @@ class DLContext:
 		InstanceData = create_string_buffer(_Text)
 		DataSize = c_ulong(0)
 
-		if g_DLDll.dl_required_text_pack_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
+		if g_DLDll.dl_txt_pack_calc_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
 			raise DLError('Could not calculate txt-pack-size', err)
 
 		PackedData = create_string_buffer(DataSize.value)
-		if g_DLDll.dl_pack_text(self.DLContext, InstanceData, PackedData, DataSize) != 0:
+		if g_DLDll.dl_txt_pack(self.DLContext, InstanceData, PackedData, DataSize) != 0:
 			raise DLError('Could not pack txt', err)
 	
 		return PackedData.raw

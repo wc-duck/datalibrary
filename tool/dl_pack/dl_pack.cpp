@@ -225,25 +225,25 @@ int main(int argc, char** argv)
 			Size   = SizeAfterConvert;
 		}
 
-		EDLError err = dl_required_unpack_size(Ctx, InData, Size, &OutDataSize);
+		EDLError err = dl_txt_unpack_calc_size(Ctx, InData, Size, &OutDataSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT( "SBDL error while calculating unpack size: %s", dl_error_to_string(err));
 
 		pOutData = (unsigned char*)malloc(OutDataSize);
 
-		err = dl_unpack(Ctx, InData, Size, (char*)pOutData, OutDataSize);
+		err = dl_txt_unpack(Ctx, InData, Size, (char*)pOutData, OutDataSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT( "SBDL error while unpacking: %s", dl_error_to_string(err));
 	}
 	else
 	{
-		EDLError err = dl_required_text_pack_size(Ctx, (char*)InData, &OutDataSize);
+		EDLError err = dl_txt_pack_calc_size(Ctx, (char*)InData, &OutDataSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT("SBDL error while calculating pack size: %s", dl_error_to_string(err));
 
 		pOutData = (unsigned char*)malloc(OutDataSize);
 
-		err = dl_pack_text(Ctx, (char*)InData, pOutData, OutDataSize);
+		err = dl_txt_pack(Ctx, (char*)InData, pOutData, OutDataSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT("SBDL error while packing: %s", dl_error_to_string(err));
 

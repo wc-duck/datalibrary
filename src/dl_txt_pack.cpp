@@ -898,7 +898,7 @@ static EDLError DLInternalPack(SDLPackContext* PackContext, const char* _pTxtDat
 	return PackContext->m_ErrorCode;
 }
 
-EDLError dl_pack_text(HDLContext _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize)
+EDLError dl_txt_pack(HDLContext _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = false;
 	CDLBinaryWriter Writer(_pPackedData + sizeof(SDLDataHeader), _PackedDataSize -  sizeof(SDLDataHeader), IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
@@ -924,7 +924,7 @@ EDLError dl_pack_text(HDLContext _Context, const char* _pTxtData, unsigned char*
 	return DL_ERROR_OK;
 }
 
-EDLError dl_required_text_pack_size(HDLContext _Context, const char* _pTxtData, unsigned int* _pPackedDataSize)
+EDLError dl_txt_pack_calc_size(HDLContext _Context, const char* _pTxtData, unsigned int* _pPackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = true;
 	CDLBinaryWriter Writer(0x0, 0, IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
