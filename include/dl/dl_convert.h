@@ -13,7 +13,7 @@
 
 
 /*
-	Function: dl_convert_instance
+	Function: dl_convert
 		Converts a packed instance to an other format.
 
 	Parameters:
@@ -34,7 +34,7 @@ EDLError DL_DLL_EXPORT dl_convert( HDLContext     _Context,
                                    unsigned int   _PtrSize );
 
 /*
-	Function: dl_convert_instance_inplace
+	Function: dl_convert_inplace
 		Converts a packed instance to an other format inplace.
 
 	Parameters:
@@ -54,7 +54,7 @@ EDLError DL_DLL_EXPORT dl_convert_inplace( HDLContext     _Context,
                                            unsigned int   _PtrSize );
 
 /*
-	Function: dl_instance_size_converted
+	Function: dl_convert_calc_size
 		Calculates size of an instance after _PtrSize-conversion.
 
 	Parameters:
