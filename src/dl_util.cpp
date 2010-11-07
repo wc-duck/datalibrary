@@ -2,6 +2,7 @@
 
 #include <dl/dl_util.h>
 #include <dl/dl_txt.h>
+#include <dl/dl_convert.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +52,7 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 	{
 		case DL_UTIL_FILE_TYPE_BINARY:
 		{
-			error = dl_instance_size_converted( _Ctx, file_content, file_size, sizeof(void*), &load_size);
+			error = dl_convert_calc_size( _Ctx, file_content, file_size, sizeof(void*), &load_size);
 
 			if( error != DL_ERROR_OK ) { free( file_content ); return error; }
 
@@ -60,7 +61,7 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 			{
 				load_instance = (unsigned char*)malloc(load_size);
 
-				error = dl_convert_instance( _Ctx, file_content, file_size, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
+				error = dl_convert( _Ctx, file_content, file_size, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
 
 				free( file_content );
 			}
@@ -68,7 +69,7 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 			{
 				load_instance = file_content;
 				load_size     = file_size;
-				error = dl_convert_instance_inplace( _Ctx, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
+				error = dl_convert_inplace( _Ctx, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
 			}
 
 			if( error != DL_ERROR_OK ) { free( load_instance ); return error; }
@@ -148,7 +149,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 		case DL_UTIL_FILE_TYPE_BINARY:
 		{
 			// calc convert size
-			error = dl_instance_size_converted( _Ctx, packed_instance, packed_size, _PtrSize, &out_size);
+			error = dl_convert_calc_size( _Ctx, packed_instance, packed_size, _PtrSize, &out_size);
 
 			if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
@@ -159,7 +160,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 				out_data = (unsigned char*)malloc(out_size);
 
 				// convert
-				error = dl_convert_instance( _Ctx, packed_instance, packed_size, out_data, out_size, _Endian, _PtrSize );
+				error = dl_convert( _Ctx, packed_instance, packed_size, out_data, out_size, _Endian, _PtrSize );
 
 				free(packed_instance);
 
@@ -169,7 +170,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 			{
 				out_data = packed_instance;
 
-				error = dl_convert_instance_inplace( _Ctx, packed_instance, packed_size, _Endian, _PtrSize );
+				error = dl_convert_inplace( _Ctx, packed_instance, packed_size, _Endian, _PtrSize );
 
 				if( error != DL_ERROR_OK ) { free(out_data); return error; }
 			}

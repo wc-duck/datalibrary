@@ -2,6 +2,7 @@
 
 #include <dl/dl.h>
 #include <dl/dl_txt.h>
+#include <dl/dl_convert.h>
 
 #include <string.h>
 
@@ -200,7 +201,7 @@ int main(int argc, char** argv)
 		if(sizeof(void*) <= dl_instance_ptr_size(InData, Size))
 		{
 			// we are converting ptr-size down and can use the faster inplace load.
-			EDLError err = dl_convert_instance_inplace(Ctx, InData, Size, DL_ENDIAN_HOST, sizeof(void*));
+			EDLError err = dl_convert_inplace(Ctx, InData, Size, DL_ENDIAN_HOST, sizeof(void*));
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "SBDL error converting packed instance: %s", dl_error_to_string(err));
 		}
@@ -208,14 +209,14 @@ int main(int argc, char** argv)
 		{
 			// instance might grow so ptr-data so the non-inplace unpack is needed.
 			unsigned int SizeAfterConvert;
-			EDLError err = dl_instance_size_converted(Ctx, InData, Size, PtrSize, &SizeAfterConvert);
+			EDLError err = dl_convert_calc_size(Ctx, InData, Size, PtrSize, &SizeAfterConvert);
 
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", dl_error_to_string(err));
 
 			unsigned char* pConverted = (unsigned char*)malloc(SizeAfterConvert);
 
-			err = dl_convert_instance(Ctx, InData, Size, pConverted, SizeAfterConvert, DL_ENDIAN_HOST, sizeof(void*));
+			err = dl_convert(Ctx, InData, Size, pConverted, SizeAfterConvert, DL_ENDIAN_HOST, sizeof(void*));
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "SBDL error converting endian of data: %s", dl_error_to_string(err));
 
@@ -246,7 +247,7 @@ int main(int argc, char** argv)
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT("SBDL error while packing: %s", dl_error_to_string(err));
 
-		err = dl_convert_instance_inplace(Ctx, pOutData, OutDataSize, Endian, PtrSize);
+		err = dl_convert_inplace(Ctx, pOutData, OutDataSize, Endian, PtrSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT("SBDL error while converting packed instance: %s", dl_error_to_string(err));
 	}
