@@ -30,7 +30,7 @@ protected:
 		EDLError err = dl_context_create(&Ctx, &MyAllocs, &MyAllocs);
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-		err = dl_load_type_library(Ctx, TypeLib, sizeof(TypeLib));
+		err = dl_context_load_type_library(Ctx, TypeLib, sizeof(TypeLib));
 		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 	}
 

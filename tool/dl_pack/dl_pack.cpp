@@ -76,7 +76,7 @@ HDLContext CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStati
 
 				unsigned int Size;
 				unsigned char* TL = ReadFile(File, &Size);
-				err = dl_load_type_library(Ctx, TL, Size);
+				err = dl_context_load_type_library(Ctx, TL, Size);
 				if(err != DL_ERROR_OK)
 					M_ERROR_AND_FAIL( "SBDL error while loading type library (%s): %s", Path, dl_error_to_string(err));
 

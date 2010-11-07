@@ -365,7 +365,7 @@ class DLContext:
 			
 			_DataBuffer -- string with the binary file loaded.
 		'''
-		err = g_DLDll.dl_load_type_library(self.DLContext, _DataBuffer, len(_DataBuffer))	
+		err = g_DLDll.dl_context_load_type_library(self.DLContext, _DataBuffer, len(_DataBuffer))	
 		if err != 0:
 			raise DLError('Could not load type library into context DLContext', err)
 	

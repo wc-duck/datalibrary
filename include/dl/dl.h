@@ -159,16 +159,18 @@ struct SDLAllocFunctions
 		_pInstanceAllocFuncs - Allocation functions that will be used when allocating instance data when using this context. Could be NULL. 
 		                       This memory will NOT be freed by DL.
 */
-EDLError DL_DLL_EXPORT dl_context_create(HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs, SDLAllocFunctions* _pInstanceAllocFuncs);
+EDLError DL_DLL_EXPORT dl_context_create( HDLContext*        _pContext,
+                                          SDLAllocFunctions* _pDLAllocFuncs,
+                                          SDLAllocFunctions* _pInstanceAllocFuncs );
 
 /*
 	Function: dl_context_destroy
 		Destroys a context and free all memory allocated with the DLAllocFuncs-functions.
 */
-EDLError DL_DLL_EXPORT dl_context_destroy(HDLContext _Context);
+EDLError DL_DLL_EXPORT dl_context_destroy( HDLContext _Context );
 
 /*
-	Function: dl_load_type_library
+	Function: dl_context_load_type_library
 		Load a type-library from bin-data into the context for use.
 		One context can have multiple type libraries loaded and reference types within the different ones.
 
@@ -177,7 +179,9 @@ EDLError DL_DLL_EXPORT dl_context_destroy(HDLContext _Context);
 		_pData    - Pointer to binary-data with type-library.
 		_DataSize - Size of _pData.
 */
-EDLError DL_DLL_EXPORT dl_load_type_library(HDLContext _Context, const unsigned char* _pData, unsigned int _DataSize);
+EDLError DL_DLL_EXPORT dl_context_load_type_library( HDLContext           _Context,
+                                                     const unsigned char* _pData,
+                                                     unsigned int         _DataSize );
 
 
 /*
@@ -185,7 +189,7 @@ EDLError DL_DLL_EXPORT dl_load_type_library(HDLContext _Context, const unsigned 
 */
 
 /*
-	Function: dl_load_instance_inplace
+	Function: dl_instance_load
 		Load instances inplace from a binary blob of data.
 		Loads the instance to the memory area pointed to by _pInstance. Will return error if type is not constant size!
 
@@ -198,13 +202,16 @@ EDLError DL_DLL_EXPORT dl_load_type_library(HDLContext _Context, const unsigned 
 	Note:
 		Packed instance to load is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-EDLError DL_DLL_EXPORT dl_load_instance_inplace(HDLContext _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize);
+EDLError DL_DLL_EXPORT dl_instance_load( HDLContext           _Context,
+                                         void*                _pInstance,
+                                         const unsigned char* _pData,
+                                         unsigned int         _DataSize );
 
 /*
 	Group: Store
 */
 /*
-	Function: dl_instace_size_stored
+	Function: dl_instace_calc_size
 		Calculate size needed to store instance.
 
 	Parameters:
@@ -213,10 +220,13 @@ EDLError DL_DLL_EXPORT dl_load_instance_inplace(HDLContext _Context, void* _pIns
 		_pInstance      - Ptr to instance to calculate size of.
 		_pDataSize      - Ptr where to store the amount of bytes needed to store the instances.
 */
-EDLError DL_DLL_EXPORT dl_instace_size_stored(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize);
+EDLError DL_DLL_EXPORT dl_instace_calc_size( HDLContext    _Context,
+                                             StrHash       _TypeHash,
+                                             void*         _pInstance,
+                                             unsigned int* _pDataSize);
 
 /*
-	Function: dl_store_instace
+	Function: dl_instace_store
 		Store the instances.
 
 	Parameters:
@@ -229,7 +239,11 @@ EDLError DL_DLL_EXPORT dl_instace_size_stored(HDLContext _Context, StrHash _Type
 	Note:
 		The instance after pack will be in current platform endian.
 */
-EDLError DL_DLL_EXPORT dl_store_instace(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pOutBuffer, unsigned int _OutBufferSize);
+EDLError DL_DLL_EXPORT dl_instace_store( HDLContext     _Context,
+                                         StrHash        _TypeHash,
+                                         void*          _pInstance,
+                                         unsigned char* _pOutBuffer,
+                                         unsigned int   _OutBufferSize );
 
 
 /*
@@ -240,7 +254,7 @@ EDLError DL_DLL_EXPORT dl_store_instace(HDLContext _Context, StrHash _TypeHash, 
 	Function: dl_error_to_string
 		Converts EDLError to string.
 */
-DL_DLL_EXPORT const char* dl_error_to_string(EDLError _Err);
+DL_DLL_EXPORT const char* dl_error_to_string( EDLError _Err );
 
 /*
 	Function: dl_instance_ptr_size
@@ -253,7 +267,7 @@ DL_DLL_EXPORT const char* dl_error_to_string(EDLError _Err);
 	Returns:
 		The ptr size of stored instance (4 or 8) or 0 on error.
 */
-unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _DataSize);
+unsigned int dl_instance_ptr_size( const unsigned char* _pData, unsigned int _DataSize );
 
 /*
 	Function: dl_instance_endian
@@ -263,7 +277,7 @@ unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _Dat
 		_pData       - Ptr to memory-area where packed instance is to be found.
 		_DataSize    - Size of _pData.
 */
-EDLCpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize);
+EDLCpuEndian dl_instance_endian( const unsigned char* _pData, unsigned int _DataSize );
 
 /*
 	Function: dl_instance_root_type
@@ -276,7 +290,7 @@ EDLCpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataS
 		_pData       - Ptr to memory-area where packed instance is to be found.
 		_DataSize    - Size of _pData.
 */
-StrHash dl_instance_root_type(const unsigned char* _pData, unsigned int _DataSize);
+StrHash dl_instance_root_type( const unsigned char* _pData, unsigned int _DataSize );
 
 #ifdef __cplusplus
 }

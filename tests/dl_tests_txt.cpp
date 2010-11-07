@@ -38,7 +38,7 @@ TEST_F(DL, TextMemberOrder)
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, &P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(1,      P1.m_int8);
@@ -127,7 +127,7 @@ TEST_F(DL, TextPodDefaults)
 	SPodsDefaults P1;
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, &P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(2,     P1.m_int8);
@@ -156,7 +156,7 @@ TEST_F(DL, TextDefaultStr)
 	SDefaultStr P1[10]; // this is so ugly!
 	
 	// load binary
-	err = dl_load_instance_inplace(Ctx, P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_STREQ("cowbells ftw!", P1[0].m_pStr);
@@ -176,7 +176,7 @@ TEST_F(DL, TextDefaultPtr)
 	SDefaultPtr P1; // this is so ugly!
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, &P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(0x0, P1.m_pPtr);
@@ -194,7 +194,7 @@ TEST_F(DL, TextDefaultStruct)
 	SDefaultStruct P1; // this is so ugly!
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, &P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(13u, P1.m_Struct.m_Int1);
@@ -213,7 +213,7 @@ TEST_F(DL, TextDefaultEnum)
 	SDefaultEnum P1;
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, &P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.m_Enum);
@@ -233,7 +233,7 @@ TEST_F(DL, TextDefaultInlineArrayPod)
 	SDefaultInlArrayPod P1;
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, &P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(1u, P1.m_lArr[0]);
@@ -256,7 +256,7 @@ TEST_F(DL, TextDefaultInlineArrayEnum)
 	SDefaultInlArrayEnum P1;
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, &P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.m_lArr[0]);
@@ -279,7 +279,7 @@ TEST_F(DL, TextDefaultInlineArrayString)
 	SDefaultInlArrayStr P1[10];
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_STREQ("cow",   P1[0].m_lpArr[0]);
@@ -300,7 +300,7 @@ TEST_F(DL, TextDefaultArrayPod)
 	SDefaultArrayPod P1[10];
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(4u, P1[0].m_lArr.m_nCount);
@@ -323,7 +323,7 @@ TEST_F(DL, TextDefaultArrayEnum)
 	SDefaultArrayEnum P1[10];
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(4u, P1[0].m_lArr.m_nCount);
@@ -348,7 +348,7 @@ TEST_F(DL, TextDefaultArrayString)
 	SDefaultArrayStr P1[10];
 
 	// load binary
-	err = dl_load_instance_inplace(Ctx, P1, OutDataText, 1024);
+	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(4u, P1[0].m_lpArr.m_nCount);

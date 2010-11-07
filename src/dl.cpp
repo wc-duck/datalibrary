@@ -253,7 +253,7 @@ static void DLReadTLHeader(SDLTypeLibraryHeader* _pHeader, const uint8* _pData)
 	}
 }
 
-EDLError dl_load_type_library(HDLContext _Context, const unsigned char* _pData, unsigned int _DataSize)
+EDLError dl_context_load_type_library(HDLContext _Context, const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLTypeLibraryHeader))
 		return DL_ERROR_MALFORMED_DATA;
@@ -351,7 +351,7 @@ EDLError dl_load_type_library(HDLContext _Context, const unsigned char* _pData, 
 	return DL_ERROR_OK;
 }
 
-EDLError dl_load_instance_inplace(HDLContext _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
+EDLError dl_instance_load(HDLContext _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
@@ -652,7 +652,7 @@ static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pTy
 	return DL_ERROR_OK;
 }
 
-EDLError dl_store_instace(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
+EDLError dl_instace_store(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -683,7 +683,7 @@ EDLError dl_store_instace(HDLContext _Context, StrHash _TypeHash, void* _pInstan
 	return err;
 }
 
-EDLError dl_instace_size_stored(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
+EDLError dl_instace_calc_size(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)

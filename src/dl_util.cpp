@@ -96,7 +96,7 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 			M_ASSERT( false );
 	}
 
-	error = dl_load_instance_inplace(_Ctx, load_instance, load_instance, load_size);
+	error = dl_instance_load(_Ctx, load_instance, load_instance, load_size);
 
 	*_ppInstance = load_instance;
 
@@ -128,7 +128,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 	unsigned int packed_size = 0;
 
 	// calculate pack-size
-	EDLError error = dl_instace_size_stored( _Ctx, _DLType, _pInstance, &packed_size );
+	EDLError error = dl_instace_calc_size( _Ctx, _DLType, _pInstance, &packed_size );
 
 	if( error != DL_ERROR_OK)
 		return error;
@@ -137,7 +137,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 	unsigned char* packed_instance = (unsigned char*)malloc(packed_size);
 
 	// pack data
-	error =  dl_store_instace( _Ctx, _DLType, _pInstance, packed_instance, packed_size );
+	error =  dl_instace_store( _Ctx, _DLType, _pInstance, packed_instance, packed_size );
 
 	if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
