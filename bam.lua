@@ -3,18 +3,26 @@ BUILD_PATH = "local"
 function DLTypeLibrary( tlc_file, dl_shared_lib  )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
-	local out_header = out_file .. ".h"
-	local out_lib    = out_file .. ".bin"
-	local out_lib_h  = out_file .. ".bin.h"
+	local out_header    = out_file .. ".h"
+	local out_cs_header = out_file .. ".cs"
+	local out_lib       = out_file .. ".bin"
+	local out_lib_h     = out_file .. ".bin.h"
+
+	local DL_TLC = "python2.6 tool/dl_tlc/dl_tlc.py --dldll=local/linux64/debug/dl.so "
 
 	AddJob( out_header, 
 		"tlc " .. out_lib,
-		"python2.6 tool/dl_tlc/dl_tlc.py -o " .. out_lib .. " " .. tlc_file, 
+		DL_TLC .. " -o " .. out_lib .. " " .. tlc_file, 
+		tlc_file )
+
+	AddJob( out_cs_header, 
+		"tlc " .. out_cs_header,
+		DL_TLC .. " -cs " .. out_cs_header .. " " .. tlc_file, 
 		tlc_file )
 
 	AddJob( out_lib, 
 		"tlc " .. out_header,
-		"python2.6 tool/dl_tlc/dl_tlc.py -c " .. out_header .. " " .. tlc_file, 
+		DL_TLC .. " -c " .. out_header .. " " .. tlc_file, 
 		tlc_file )
 
 	AddDependency( tlc_file, Collect( "tool/dl_tlc/*.py" ) )
