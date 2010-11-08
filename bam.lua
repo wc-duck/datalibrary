@@ -22,16 +22,14 @@ function DLTypeLibrary( tlc_file  )
 
 end
 
-
-function DefaultGCC( platform, config )
+function DefaultSettings( platform, config )
 	local settings = NewSettings()
 	settings.cc.includes:Add("include")
 	settings.cc.includes:Add("local")
-	settings.cc.flags:Add("-Werror", "-ansi")
-
+	
 	settings.dll.libs:Add("yajl")
 	settings.link.libs:Add("yajl")
-
+	
 	local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
 	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
 	settings.cc.Output = output_func
@@ -39,6 +37,18 @@ function DefaultGCC( platform, config )
 	settings.dll.Output = output_func
 	settings.link.Output = output_func
 
+	return settings
+end
+
+function DefaultGCC( platform, config )
+	local settings = DefaultSettings( platform, config )
+	settings.cc.flags:Add("-Werror", "-ansi")
+	return settings
+end
+
+function DefaultMSVC( config )
+	local settings = DefaultSettings( "win32", config )
+	settings.cc.flags:Add("/W4", "-WX") -- settings.cc.flags:Add("/Wall", "-WX")
 	return settings
 end
 
@@ -62,7 +72,8 @@ end
 settings = 
 {
 	linux32 = { debug = DefaultGCCLinux32( "debug" ), release = DefaultGCCLinux32( "release" ) },
-	linux64 = { debug = DefaultGCCLinux64( "debug" ), release = DefaultGCCLinux64( "release" ) }
+	linux64 = { debug = DefaultGCCLinux64( "debug" ), release = DefaultGCCLinux64( "release" ) },
+	win32 =   { debug = DefaultMSVC( "debug" ),       release = DefaultMSVC( "release" ) }
 }
 
 platform = ScriptArgs["platform"]
@@ -85,7 +96,9 @@ obj_files = Compile( build_settings, lib_files )
 local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
 local output_func = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
 build_settings.cc.Output = output_func
-build_settings.cc.flags:Add( "-fPIC" )
+if not platform == "win32" then
+	build_settings.cc.flags:Add( "-fPIC" )
+end
 dll_files = Compile( build_settings, lib_files )
 
 static_library = StaticLibrary( build_settings, "dl", obj_files )
@@ -93,7 +106,7 @@ shared_library = SharedLibrary( build_settings, "dl", dll_files )
 
 dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
 
-DLTypeLibrary( "tests/unittest.tld" )
+-- DLTypeLibrary( "tests/unittest.tld" )
 
 build_settings.link.libs:Add( "gtest" )
 build_settings.link.libs:Add( "pthread" )
