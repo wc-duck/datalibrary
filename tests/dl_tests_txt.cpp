@@ -35,11 +35,11 @@ TEST_F(DL, TextMemberOrder)
 
 	// pack txt to binary
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	// load binary
 	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(1,      P1.m_int8);
  	EXPECT_EQ(2,      P1.m_int16);
@@ -80,7 +80,7 @@ TEST_F(DL, TextSetMemberTwice)
 
 	// pack txt to binary
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, err);
 }
 
 TEST_F(DL, TextNonExistMember)
@@ -98,7 +98,7 @@ TEST_F(DL, TextNonExistMember)
 
 	// pack txt to binary
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_MEMBER_NOT_FOUND, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_MEMBER_NOT_FOUND, err);
 }
 
 TEST_F(DL, TextErrorMissingMember)
@@ -110,7 +110,7 @@ TEST_F(DL, TextErrorMissingMember)
 
 	uint8 OutDataText[1024];
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, err);
 }
 
 TEST_F(DL, TextPodDefaults)
@@ -122,13 +122,13 @@ TEST_F(DL, TextPodDefaults)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SPodsDefaults P1;
 
 	// load binary
 	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(2,     P1.m_int8);
 	EXPECT_EQ(3,     P1.m_int16);
@@ -151,13 +151,13 @@ TEST_F(DL, TextDefaultStr)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultStr P1[10]; // this is so ugly!
 	
 	// load binary
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_STREQ("cowbells ftw!", P1[0].m_pStr);
 }
@@ -171,13 +171,13 @@ TEST_F(DL, TextDefaultPtr)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultPtr P1; // this is so ugly!
 
 	// load binary
 	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(0x0, P1.m_pPtr);
 }
@@ -189,13 +189,13 @@ TEST_F(DL, TextDefaultStruct)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultStruct P1; // this is so ugly!
 
 	// load binary
 	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(13u, P1.m_Struct.m_Int1);
 	EXPECT_EQ(37u, P1.m_Struct.m_Int2);
@@ -208,13 +208,13 @@ TEST_F(DL, TextDefaultEnum)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultEnum P1;
 
 	// load binary
 	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.m_Enum);
 }
@@ -228,13 +228,13 @@ TEST_F(DL, TextDefaultInlineArrayPod)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultInlArrayPod P1;
 
 	// load binary
 	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(1u, P1.m_lArr[0]);
 	EXPECT_EQ(3u, P1.m_lArr[1]);
@@ -251,13 +251,13 @@ TEST_F(DL, TextDefaultInlineArrayEnum)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultInlArrayEnum P1;
 
 	// load binary
 	err = dl_instance_load(Ctx, &P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.m_lArr[0]);
 	EXPECT_EQ(TESTENUM1_VALUE1, P1.m_lArr[1]);
@@ -274,13 +274,13 @@ TEST_F(DL, TextDefaultInlineArrayString)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultInlArrayStr P1[10];
 
 	// load binary
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_STREQ("cow",   P1[0].m_lpArr[0]);
 	EXPECT_STREQ("bells", P1[0].m_lpArr[1]);
@@ -295,13 +295,13 @@ TEST_F(DL, TextDefaultArrayPod)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultArrayPod P1[10];
 
 	// load binary
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(4u, P1[0].m_lArr.m_nCount);
 	
@@ -318,13 +318,13 @@ TEST_F(DL, TextDefaultArrayEnum)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultArrayEnum P1[10];
 
 	// load binary
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(4u, P1[0].m_lArr.m_nCount);
 
@@ -343,13 +343,13 @@ TEST_F(DL, TextDefaultArrayString)
 	uint8 OutDataText[1024];
 
 	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultArrayStr P1[10];
 
 	// load binary
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_EQ(4u, P1[0].m_lpArr.m_nCount);
 

@@ -6,7 +6,8 @@
 // header file generated from unittest-type lib
 #include "generated/unittest.h"
 
-#define M_EXPECT_DL_ERR_EQ(_Expect, _Res) do { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; } while (0);
+#define EXPECT_DL_ERR_EQ(_Expect, _Res) do { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; } while (0);
+#define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 
 static void* MyAlloc(unsigned int  _Size, unsigned int _Alignment) { (void)_Alignment; return malloc(_Size); }
 static void  MyFree (void* _pPtr) { free(_pPtr); }
@@ -28,10 +29,10 @@ protected:
 		MyAllocs.m_Free  = MyFree;
 
 		EDLError err = dl_context_create(&Ctx, &MyAllocs, &MyAllocs);
-		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 		err = dl_context_load_type_library(Ctx, TypeLib, sizeof(TypeLib));
-		M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 	}
 
 	virtual void TearDown()
