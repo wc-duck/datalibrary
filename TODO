@@ -1,0 +1,48 @@
+DONE
+
+BEFORE 1.0
+* get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 ))
+* remove all unnessesary stuff from public interface. No unneded symbols should be exposed from dl.
+* rename StrHash, user need not know that it is a string-hash ( it might not even be later on! ). dl_type_id?
+* add check for versions in data so errors are thrown if typelib and packed data of older version can not be loaded.
+* base-types in generated headers need to be configurable and default to uint32_t and friends.
+* code-style should be a c-isch interface. HDLContext -> dl_ctx_t etc.
+* make interface more consistent
+    - consistent order of parameters between functions
+    - consistent nameing of functions, dl_instance_*, dl_convert_*, dl_txt_*, dl_util_*
+    - rework functions to retrieve instance-info from dl_instance_endian, dl_instance_ptr_size, dl_instance_root_type to dl_instance_get_properties(dl_instance_properties* )
+
+* rework text-format for arrays from #1 to the same syntax as inline arrays.
+* fix how dl_tlc loads dl.so/.dll
+    - read from system paths ( 1. same path as dl_tlc 2. system installed )
+    - add flag to dl_tlc to specify shared lib to use in unittests
+* unittest for python should work and be incorprated into build-scripts
+* add dl_reflect_get_type_id( const char* type_name  ), to be able to build binds without exposing hash-function.
+
+* write readme and tutorials.
+* Question: sholud dl_load_instance and friends take dl_type_id even though the do not need it? Use it for error reporting.
+
+LATER
+* unittests should pass valgrind. ( might be done in 1.0 if there is not much to do )
+* more platforms
+* multi-dimensional arrays.
+* pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
+* benchmarks need to be written
+* unittest that are cross platform 
+    - pack on 32 bit -> unpack on 64 bit should be possible localy
+    - pack on little endian -> unpack on big endian is harder. Do via network?
+* add functionallity to stream txt_pack and unpack
+* cleanup in libdl.py and dl_tlc.py
+* Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
+  able to determine that they do not match.
+  
+  example:
+  MyStructVer1 { uint32 m_Int32; }
+  MyStructVer1 { uint32 m_Int32; uint32 m_Int32_2; }
+  
+  // these are not the same type any more, or are they?
+* Question: is it viable to get it to compile with -pedantic for gcc?
+
+EVEN LATER
+* bindings for other languages?
+
