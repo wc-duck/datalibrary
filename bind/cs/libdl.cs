@@ -143,40 +143,40 @@ public class CDLContext
 
     public IntPtr m_Context;
 
-    [DllImport("dldyn.dll", EntryPoint = "DLLoadTypeLibrary", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_context_load_lype_library", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLLoadTypeLibrary(IntPtr _Context, byte[] _pData, int _DataSize);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLContextDestroy", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_context_destroy", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLContextDestroy(IntPtr _Context);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLContextCreate", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_context_create", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLContextCreate(IntPtr _pContext, IntPtr _pDLAllocFuncs, IntPtr _pInstanceAllocFuncs);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLLoadInstanceInplace", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_instance_load", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLLoadInstanceInplace(IntPtr _Context, IntPtr _pInstance, byte[] _pData, int _DataSize);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLInstaceSizeStored", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_Instace_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLInstaceSizeStored(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pDataSize);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLStoreInstace", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_instace_store", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLStoreInstace(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pData, int _DataSize);
 
     
     
-    [DllImport("dldyn.dll", EntryPoint = "DLPackText", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_txt_pack", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLPackText(IntPtr _Context, string _pTxtData, byte[] _pPackedData, int _pPackedDataSize);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLRequiredTextPackSize", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_txt_pack_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLRequiredTextPackSize(IntPtr _Context, string _pTxtData, IntPtr _pPackedDataSize);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLUnpack", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_txt_unpack", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLUnpack(IntPtr _Context, byte[] _pPackedData, int _PackedDataSize, byte[] _pTxtData, int _TxtDataSize);
 
-    [DllImport("dldyn.dll", EntryPoint = "DLRequiredUnpackSize", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_txt_unpack_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLRequiredUnpackSize(IntPtr _Context, byte[] _pPackedData, int _PackedDataSize, IntPtr _TxtDataSize);
 
 
     
-    [DllImport("dldyn.dll", EntryPoint = "DLErrorToString", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    [DllImport("dldyn.dll", EntryPoint = "dl_error_to_string", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static string DLErrorToString(int _Err);
 }
