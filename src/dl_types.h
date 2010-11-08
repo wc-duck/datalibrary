@@ -100,10 +100,10 @@ struct SDLEnumValue
 	uint32 m_Value;
 };
 
-#ifdef M_COMPILER_MSVC
+#if defined( _MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4200) // disable warning for 0-size array
-#endif //M_COMPILER_MSVC
+#endif // defined( _MSC_VER )
 
 struct SDLType
 {
@@ -124,9 +124,9 @@ struct SDLEnum
 	SDLEnumValue m_lValues[0];
 };
 
-#ifdef M_COMPILER_MSVC
+#if defined( _MSC_VER )
 #pragma warning(pop)
-#endif //M_COMPILER_MSVC
+#endif // defined( _MSC_VER )
 
 struct SOneMemberType
 {
