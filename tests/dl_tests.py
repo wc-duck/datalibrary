@@ -4,7 +4,7 @@ import unittest
 
 import sys, os
 sys.path.append(os.path.dirname(__file__) + '/../bind/python/')
-from libdl import DLContext
+from libdl import DLContext, libdl_init
 
 NUMBER_OF_EXTRA_MEMBERS = 9
 
@@ -13,7 +13,7 @@ class TestLibDL(unittest.TestCase):
 	def setUp(self):
 		self.DLContext = DLContext()
 		import os
-		self.DLContext.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../../../local/generated/dl/unittest.bin')
+		self.DLContext.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../local/generated/unittest.bin')
 		
 	def tearDown(self):
 		self.DLContext = None
@@ -475,4 +475,5 @@ class TestLibDL(unittest.TestCase):
 		
 		
 if __name__ == '__main__':
+    libdl_init( "local/linux64/debug/dl.so" )
     unittest.main()

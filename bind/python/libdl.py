@@ -66,14 +66,14 @@ DL_TYPE_STORAGE_PTR    = M_INSERT_BITS(0x00000000, 12, DL_TYPE_STORAGE_MIN_BIT, 
 DL_TYPE_STORAGE_STRUCT = M_INSERT_BITS(0x00000000, 13, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
 DL_TYPE_STORAGE_ENUM   = M_INSERT_BITS(0x00000000, 14, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
 
-DL_TO_C_TYPE = { DL_TYPE_STORAGE_INT8   : c_byte,
-				 DL_TYPE_STORAGE_INT16  : c_short,
-				 DL_TYPE_STORAGE_INT32  : c_long,
-				 DL_TYPE_STORAGE_INT64  : c_longlong,
-				 DL_TYPE_STORAGE_UINT8  : c_ubyte,
-				 DL_TYPE_STORAGE_UINT16 : c_ushort,
-				 DL_TYPE_STORAGE_UINT32 : c_ulong,
-				 DL_TYPE_STORAGE_UINT64 : c_ulonglong,
+DL_TO_C_TYPE = { DL_TYPE_STORAGE_INT8   : c_int8,
+				 DL_TYPE_STORAGE_INT16  : c_int16,
+				 DL_TYPE_STORAGE_INT32  : c_int32,
+				 DL_TYPE_STORAGE_INT64  : c_int64,
+				 DL_TYPE_STORAGE_UINT8  : c_uint8,
+				 DL_TYPE_STORAGE_UINT16 : c_uint16,
+				 DL_TYPE_STORAGE_UINT32 : c_uint32,
+				 DL_TYPE_STORAGE_UINT64 : c_uint64,
 				 DL_TYPE_STORAGE_FP32   : c_float,
 				 DL_TYPE_STORAGE_FP64   : c_double,
 				 DL_TYPE_STORAGE_ENUM   : c_ulong,
@@ -107,8 +107,13 @@ class DLError(Exception):
 			self.value = 'Unknown error'
 	def __str__(self):
 		return self.err + ' Error-code: ' + self.value
-				 
-def get_dl_dll():
+			
+def libdl_init( dll_path ):
+	global g_DLDll
+	g_DLDll = CDLL( dll_path )
+	g_DLDll.dl_error_to_string.restype = c_char_p
+		 
+def try_default_dl_dll():
 	'''
 		load .so/.dll
 		
@@ -137,12 +142,9 @@ def get_dl_dll():
 		
 		if( os.path.exists( path ) ):
 			logging.debug( 'loading dl-shared library from: %s' % path )
-			return CDLL( path )
-	
-	raise DLError( 'could not find dl.so in any path!', None )
+			libdl_init( path )
 
-g_DLDll = get_dl_dll()
-g_DLDll.dl_error_to_string.restype = c_char_p
+try_default_dl_dll()
 
 class DLContext:
 	def __TypeIDOf(self, _TypeName):
@@ -207,7 +209,7 @@ class DLContext:
 		
 		class DLTypeInfo(Structure):   _fields_ = [ ('m_Name', c_char_p), ('m_nMembers', c_ulong) ]
 		class DLMemberInfo(Structure): 
-			_fields_ = [ ('m_Name', c_char_p), ('m_Type', c_ulong), ('m_TypeID', c_ulong), ('m_ArrayCount', c_ulong) ]
+			_fields_ = [ ('m_Name', c_char_p), ('m_Type', c_uint32), ('m_TypeID', c_uint32), ('m_ArrayCount', c_uint32) ]
 			
 			def AtomType(self):       return self.m_Type & DL_TYPE_ATOM_MASK
 			def StorageType(self):    return self.m_Type & DL_TYPE_STORAGE_MASK
@@ -427,7 +429,7 @@ class DLContext:
 		'''
 		UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
 		
-		err = g_DLDll.dl_load_instance_inplace(self.DLContext, byref(UnpackedData), _DataBuffer, len(_DataBuffer));
+		err = g_DLDll.dl_instance_load(self.DLContext, byref(UnpackedData), _DataBuffer, len(_DataBuffer));
 		if err != 0:
 			raise DLError('Could not store instance!', err)
 		
@@ -466,31 +468,31 @@ class DLContext:
 		c_instance = _Instance.AsCType()	
 		
 		DataSize = c_ulong(0)
-		err = g_DLDll.dl_instace_size_stored(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
+		err = g_DLDll.dl_instance_calc_size(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
 		if err != 0:
 			raise DLError('Could not calculate size!', err)
 			
 		PackedData = (c_ubyte * DataSize.value)()
 		
-		err = g_DLDll.dl_store_instace(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize)
+		err = g_DLDll.dl_instance_store(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize)
 		if err != 0:
 			raise DLError('Could not store instance!', err)
 		
 		ConvertedSize = c_ulong(0)
 		
-		err = g_DLDll.dl_instance_size_converted(self.DLContext, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
+		err = g_DLDll.dl_convert_calc_size(self.DLContext, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
 		if err != 0:
 			raise DLError('Could not calc convert instance size!', err)
 		
 		if DataSize == ConvertedSize:
 			# can convert inplace
-			err = g_DLDll.dl_convert_instance_inplace(self.DLContext, PackedData, len(PackedData), 0 if _Endian == 'big' else 1, _PtrSize);
+			err = g_DLDll.dl_convert_inplace(self.DLContext, PackedData, len(PackedData), 0 if _Endian == 'big' else 1, _PtrSize);
 			if err != 0:
 				raise DLError('Could not convert instance!', err)
 		else:
 			# need new memory
 			ConvertedData = (c_ubyte * ConvertedSize.value)()
-			err = g_DLDll.dl_convert_instance(self.DLContext, PackedData, len(PackedData), ConvertedData, len(ConvertedData), 0 if _Endian == 'big' else 1, _PtrSize);
+			err = g_DLDll.dl_convert(self.DLContext, PackedData, len(PackedData), ConvertedData, len(ConvertedData), 0 if _Endian == 'big' else 1, _PtrSize);
 			
 			PackedData = ConvertedData
 			
@@ -513,12 +515,12 @@ class DLContext:
 		
 		DataSize = c_ulong(0)
 		
-		if g_DLDll.dl_required_unpack_size(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
+		if g_DLDll.dl_txt_unpack_calc_size(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
 			raise DLError('Could not calculate txt-unpack-size', err)
 		
 		PackedData = create_string_buffer(DataSize.value)
 		
-		if g_DLDll.dl_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize) != 0:
+		if g_DLDll.dl_txt_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize) != 0:
 			raise DLError('Could not calculate txt-unpack-size', err)
 			
 		return PackedData.raw

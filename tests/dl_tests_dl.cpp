@@ -39,7 +39,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 	memset(TxtOut, 0x0,  sizeof(TxtOut));
 
 	// store instance to binary
-	EDLError err = dl_instace_store(_Ctx, _TypeHash, _pPackMe, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance));
+	EDLError err = dl_instance_store(_Ctx, _TypeHash, _pPackMe, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance));
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 	EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance)));
 	EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(OutDataInstance,   DL_ARRAY_LENGTH(OutDataInstance)));
@@ -95,7 +95,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 		memcpy(OriginalData, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 
 		unsigned int PackedSize = 0;
-		err = dl_instace_calc_size(_Ctx, _TypeHash, _pPackMe, &PackedSize);
+		err = dl_instance_calc_size(_Ctx, _TypeHash, _pPackMe, &PackedSize);
 		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 		unsigned int ConvertedSize = 0;

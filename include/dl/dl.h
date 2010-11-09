@@ -220,7 +220,7 @@ EDLError DL_DLL_EXPORT dl_instance_load( HDLContext           _Context,
 		_pInstance      - Ptr to instance to calculate size of.
 		_pDataSize      - Ptr where to store the amount of bytes needed to store the instances.
 */
-EDLError DL_DLL_EXPORT dl_instace_calc_size( HDLContext    _Context,
+EDLError DL_DLL_EXPORT dl_instance_calc_size( HDLContext    _Context,
                                              StrHash       _TypeHash,
                                              void*         _pInstance,
                                              unsigned int* _pDataSize);
@@ -239,7 +239,7 @@ EDLError DL_DLL_EXPORT dl_instace_calc_size( HDLContext    _Context,
 	Note:
 		The instance after pack will be in current platform endian.
 */
-EDLError DL_DLL_EXPORT dl_instace_store( HDLContext     _Context,
+EDLError DL_DLL_EXPORT dl_instance_store( HDLContext     _Context,
                                          StrHash        _TypeHash,
                                          void*          _pInstance,
                                          unsigned char* _pOutBuffer,

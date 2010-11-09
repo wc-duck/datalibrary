@@ -716,6 +716,10 @@ static inline bool DLInternalDataNeedSwap(SDLDataHeader* _pHeader, EDLCpuEndian 
 		return _RequestedEndian == DL_ENDIAN_HOST;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
 EDLError dl_convert_inplace(HDLContext _Context, unsigned char* _pData, unsigned int _DataSize, EDLCpuEndian _Endian, unsigned int _PtrSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
@@ -780,3 +784,7 @@ EDLError dl_convert_calc_size(HDLContext _Context, unsigned char* _pData, unsign
 
 	return DLInternalConvertInstance( _Context, _pData, 0x0, 0, DL_ENDIAN_HOST, _PtrSize, _pResultSize);
 }
+
+#ifdef __cplusplus
+}
+#endif  // __cplusplus

@@ -652,7 +652,7 @@ static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pTy
 	return DL_ERROR_OK;
 }
 
-EDLError dl_instace_store(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
+EDLError dl_instance_store(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -683,7 +683,7 @@ EDLError dl_instace_store(HDLContext _Context, StrHash _TypeHash, void* _pInstan
 	return err;
 }
 
-EDLError dl_instace_calc_size(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
+EDLError dl_instance_calc_size(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)

@@ -11,6 +11,9 @@
 
 #include <dl/dl.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
 
 /*
 	Function: dl_convert
@@ -69,5 +72,9 @@ EDLError DL_DLL_EXPORT dl_convert_calc_size( HDLContext     _Context,
                                              unsigned int   _DataSize,
                                              unsigned int   _PtrSize,
                                              unsigned int*  _pResultSize );
+
+#ifdef __cplusplus
+}
+#endif  // __cplusplus
 
 #endif // DL_DL_CONVERT_H_INCLUDED
