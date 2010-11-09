@@ -4,6 +4,18 @@
 
 #include "dl_types.h"
 
+EDLError DL_DLL_EXPORT dl_reflect_get_type_id( HDLContext _Context,
+                                               const char* _TypeName,
+                                               StrHash*    _pTypeID )
+{
+	*_pTypeID = DLHashString( _TypeName );
+	const SDLType* pType = DLFindType(_Context, *_pTypeID);
+	if(pType == 0x0)
+		return DL_ERROR_TYPE_NOT_FOUND;
+
+	return DL_ERROR_OK;
+}
+
 EDLError dl_reflect_get_type_info(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, unsigned int _nMembers)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeID);

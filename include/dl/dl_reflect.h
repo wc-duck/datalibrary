@@ -38,11 +38,26 @@ extern "C" {
 #endif // __cplusplus
 
 /*
+	Function: dl_reflect_get_type_id
+		Find typeid of a specified type by name.
+
+	Parameters:
+		_Context  - A valid handle to a DLContext to do the type-lookup in.
+		_TypeName - Name of type to lookup.
+		_pTypeID  - TypeID returned here.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+EDLError DL_DLL_EXPORT dl_reflect_get_type_id( HDLContext _Context,
+                                               const char* _TypeName,
+                                               StrHash*    _pTypeID );
+/*
 	Function: dl_reflect_get_type_info
 		Retrieve information about a certain type in a type-library.
 
 	Parameters:
-		_Context  - A valid handle to e DLContext
+		_Context  - A valid handle to a DLContext
 		_TypeID   - TypeID of the type to get information about.
 		_pType    - Ptr to struct to fill with type-information.
 		_pMembers - Ptr to array to fill with information about the members of the type.
@@ -51,7 +66,11 @@ extern "C" {
 	Returns:
 		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if _pMembers do not fit all members, or other error if apropriate!
 */
-EDLError DL_DLL_EXPORT dl_reflect_get_type_info(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, unsigned int _nMembers);
+EDLError DL_DLL_EXPORT dl_reflect_get_type_info( HDLContext     _Context,
+                                                 StrHash        _TypeID,
+                                                 SDLTypeInfo*   _pType,
+                                                 SDLMemberInfo* _pMembers,
+                                                 unsigned int   _nMembers );
 
 /*
 	Function: dl_size_of_type
@@ -64,7 +83,7 @@ EDLError DL_DLL_EXPORT dl_reflect_get_type_info(HDLContext _Context, StrHash _Ty
 	Returns:
 		The size of the type or 0 if not found in context.
 */
-unsigned int dl_size_of_type(HDLContext _Context, StrHash _TypeHash);
+unsigned int dl_size_of_type( HDLContext _Context, StrHash _TypeHash );
 
 /*
 	Function: dl_alignment_of_type
@@ -77,7 +96,7 @@ unsigned int dl_size_of_type(HDLContext _Context, StrHash _TypeHash);
 	Returns:
 		The alignment of the type or 0 if not found in context.
 */
-unsigned int dl_alignment_of_type(HDLContext _Context, StrHash _TypeHash);
+unsigned int dl_alignment_of_type( HDLContext _Context, StrHash _TypeHash );
 
 #ifdef __cplusplus
 }

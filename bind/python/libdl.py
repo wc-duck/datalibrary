@@ -148,11 +148,12 @@ try_default_dl_dll()
 
 class DLContext:
 	def __TypeIDOf(self, _TypeName):
-		# temporary hack to calculate a type-id!
-		hash = 5381
-		for char in _TypeName:
-			hash = (hash * 33) + ord(char)
-		return (hash - 5381) & 0xFFFFFFFF;
+		type_id = c_uint32()
+		err = g_DLDll.dl_reflect_get_type_id( self.DLContext, _TypeName, byref(type_id) )
+		if err != 0:
+			raise DLError('Could find type "%s"!' % _TypeName, err)
+		
+		return type_id.value
 	
 	def __GetTypes(self, _MemberInfo):
 		def GetSimpleCType(_StorageType, _SubTypeID):

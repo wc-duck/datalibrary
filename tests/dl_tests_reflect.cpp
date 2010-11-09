@@ -114,3 +114,19 @@ TEST_F(DL, SizeAndAlignment)
 	EXPECT_EQ(sizeof(SBugTest1_InArray),         dl_size_of_type(Ctx, SBugTest1_InArray::TYPE_ID));
 	EXPECT_EQ(DL_ALIGNMENTOF(SBugTest1_InArray), dl_alignment_of_type(Ctx, SBugTest1_InArray::TYPE_ID));
 }
+
+TEST_F(DL, TypeLookup)
+{
+	StrHash type_id;
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "Pods2", &type_id) );
+	EXPECT_TRUE(SPods2::TYPE_ID == type_id);
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "StructArray1", &type_id) );
+	EXPECT_TRUE(SStructArray1::TYPE_ID == type_id);
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "StringInlineArray", &type_id) );
+	EXPECT_TRUE(SStringInlineArray::TYPE_ID == type_id);
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "TestBits", &type_id) );
+	EXPECT_TRUE(STestBits::TYPE_ID == type_id);
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_reflect_get_type_id(Ctx, "bloobloo", &type_id) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_reflect_get_type_id(Ctx, "bopp", &type_id) );
+}
