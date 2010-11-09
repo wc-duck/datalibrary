@@ -11,98 +11,92 @@
 #include <dl/dl.h>
 
 /*
-	Function: DLUtilLoadInstanceFromFile
-		Function that loads a DL-instance from file. 
+	Enum: EDLUtilFileType
+		Enumeration of possible file types that can be read by util-functions.
 
-	Note: 
-		This function allocates dynamic memory and should therefore be used accordingly.
-		The pointer returned in _ppInstance need to be freed with free();
+	DL_UTIL_FILE_TYPE_BINARY - File must be an binary instance.
+	DL_UTIL_FILE_TYPE_TEXT   - File must be an text instance.
+	DL_UTIL_FILE_TYPE_AUTO   - Let the function decide if binary or text.
+*/
+enum EDLUtilFileType
+{
+	DL_UTIL_FILE_TYPE_BINARY = DL_BIT(0),
+	DL_UTIL_FILE_TYPE_TEXT   = DL_BIT(1),
+	DL_UTIL_FILE_TYPE_AUTO   = DL_UTIL_FILE_TYPE_BINARY  | DL_UTIL_FILE_TYPE_TEXT
+};
+
+/*
+	Function: dl_util_load_from_file
+		Utility function that loads an dl-instance from file.
+
+	Note:
+		This function allocates memory internally by use of malloc/free and should therefore
+		be used accordingly.
+		The pointer returned in _ppInstance need to be freed with free() when not needed any
+		more.
 
 	Parameters:
 		_Ctx        - Context to use for operations.
 		_pFileName  - Path to file to load from.
-		_DLType     - The type of the instance to read. (Example SMyDLType::TYPE_ID)
+		_FileType   - Type of file to read, see EDLUtilFileType.
 		_ppInstance - Pointer to fill with read instance.
 
 	Returns:
-		DL_UTIL_ERROR_OK on success.
+		DL_ERROR_OK on success.
 */
-EDLError DLUtilLoadInstanceFromFile(HDLContext _Ctx, const char* _pFileName, uint32 _DLType, void** _ppInstance);
+EDLError dl_util_load_from_file( HDLContext      _Ctx,
+                                 const char*     _pFileName,
+                                 EDLUtilFileType _FileType,
+                                 void**          _ppInstance );
 
 /*
-	Function: DLUtilLoadInstanceFromTextFile
-		Function that loads a DL-instance from text file. 
+	Function: dl_util_load_from_file_inplace
+		Utility function that loads an dl-instance from file to a specified memory-area.
 
-	Note: 
-		This function allocates dynamic memory and should therefore be used accordingly.
-		The pointer returned in _ppInstance need to be freed with free();
-
-	Parameters:
-		_Ctx        - Context to use for operations.
-		_pFileName  - Path to file to load from.
-		_ppInstance - Pointer to fill with read instance.
-
-	Returns:
-		DL_UTIL_ERROR_OK on success.
-*/
-EDLError DLUtilLoadInstanceFromTextFile(HDLContext _Ctx, const char* _pFileName, void** _ppInstance);
-
-/*
-	Function: DLUtilLoadInstanceFromTextFile
-		Function that loads a DL-instance from text file. 
-		Data pointed to by _pInstance is assumed to point to a pointer of the correct type.
-		If the data will not fit in the buffer pointed to by _pInstance an error will be generated.
-
-	Note: 
-		This function allocates dynamic memory and should therefore be used accordingly.
+	Note:
+		This function allocates memory internally by use of malloc/free and should therefore
+		be used accordingly.
 
 	Parameters:
 		_Ctx          - Context to use for operations.
 		_pFileName    - Path to file to load from.
-		_pInstance    - Pointer to instance to fill with read instance.
-		_InstanceSize - Size of buffer pointed to by _pInstance
+		_FileType     - Type of file to read, see EDLUtilFileType.
+		_ppInstance   - Pointer to area to load instance to.
+		_InstanceSize - Size of buffer pointed to by _ppInstance
 
 	Returns:
-		DL_UTIL_ERROR_OK on success.
+		DL_ERROR_OK on success.
 */
-EDLError DLUtilLoadInstanceFromTextFileInplace(HDLContext _Ctx, const char* _pFileName, void* _pInstance, pint _InstanceSize);
+EDLError dl_util_load_from_file_inplace( HDLContext      _Ctx,
+                                         const char*     _pFileName,
+                                         EDLUtilFileType _FileType,
+                                         void*           _ppInstance,
+                                         unsigned int    _InstanceSize );
 
 /*
-	Function: DLUtilStoreInstanceToFile
-		Function that writes a DL-instance to file. 
+	Function: dl_util_store_to_file
+		Utility function that writes an instance to file.
 
-	Note: 
-		This function allocates dynamic memory and should therefore be used accordingly.
-
-	Parameters:
-		_Ctx        - Context to use for operations.
-		_pFileName  - Path to file to write to.
-		_DLType     - The type of the instance to write. (Example SMyDLType::TYPE_ID)
-		_pInstance  - Pointer to instance to store.
-		_OutEndian  - Endian of stored instance in file.
-		_OutPtrSize - Pointer-size of data in stored instance.
-
-	Returns:
-		DL_UTIL_ERROR_OK on success.
-*/
-EDLError DLUtilStoreInstanceToFile(HDLContext _Ctx, const char* _pFileName, uint32 _DLType, void* _pInstance, ECpuEndian _OutEndian, pint _OutPtrSize);
-
-/*
-	Function: DLUtilStoreInstanceToTextFile
-		Function that writes a DL-instance to file in text-format. 
-
-	Note: 
-		This function allocates dynamic memory and should therefore be used accordingly.
+	Note:
+		This function allocates memory internally by use of malloc/free and should therefore
+		be used accordingly.
 
 	Parameters:
-		_Ctx       - Context to use for operations.
-		_pFileName - Path to file to write to.
-		_DLType    - The type of the instance to write. (Example SMyDLType::TYPE_ID)
-		_pInstance - Pointer to instance to store.
+		_Ctx          - Context to use for operations.
+		_pFileName    - Path to file to store to.
+		_FileType     - Type of file to write, see EDLUtilFileType.
+		_Endian       - Endian of stored instance if binary.
+		_PtrSize      - Pointer size of stored instance if binary.
+		_ppInstance   - Pointer to instance to write
 
 	Returns:
-		DL_UTIL_ERROR_OK on success.
+		DL_ERROR_OK on success.
 */
-EDLError DLUtilStoreInstanceToTextFile(HDLContext _Ctx, const char* _pFileName, uint32 _DLType, void* _pInstance);
+EDLError dl_util_store_to_file( HDLContext      _Ctx,
+                                const char*     _pFileName,
+                                EDLUtilFileType _FileType,
+                                EDLCpuEndian    _Endian,
+                                unsigned int    _PtrSize,
+                                void*           _ppInstance );
 
 #endif // DL_DL_UTIL_H_INCLUDED

@@ -54,8 +54,8 @@ static void DLWritePodMember(yajl_gen _Gen, EDLType _PodType, const uint8* _pDat
 {
 	switch(_PodType & DL_TYPE_STORAGE_MASK)
 	{
-		case DL_TYPE_STORAGE_FP32: yajl_gen_double( _Gen, *(fp32*)_pData); return;
-		case DL_TYPE_STORAGE_FP64: yajl_gen_double( _Gen, *(fp64*)_pData); return;
+		case DL_TYPE_STORAGE_FP32: yajl_gen_double( _Gen, *(float*)_pData); return;
+		case DL_TYPE_STORAGE_FP64: yajl_gen_double( _Gen, *(double*)_pData); return;
 		default: /*ignore*/ break;
 	}
 
@@ -251,7 +251,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 	yajl_gen_map_close(_Ctx->m_JsonGen);
 }
 
-static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uint8* _pData)
+static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const unsigned char* _pData)
 {
 	_Ctx->AddSubDataMember(0x0, _pData, 0); // add root-node as a subdata to be able to look it up as id 0!
 
@@ -271,7 +271,7 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uin
 			{
 				yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)"subdata", 7);
 				yajl_gen_map_open(_Ctx->m_JsonGen);
-				
+
 				// start at 1 to skip root-node!
 				for (uint iSubData = 1; iSubData < _Ctx->m_lSubdataMembers.Len(); ++iSubData)
 				{
@@ -401,7 +401,7 @@ void* DLUnpackReallocFunc(void* _pCtx, void* _pPtr, unsigned int _Sz)
 }
 
 
-static EDLError DLUnpackInternal(HDLContext _Context, const uint8* _pPackedData, pint _PackedDataSize, char* _pTxtData, pint* _pTxtDataSize)
+static EDLError DLUnpackInternal(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int* _pTxtDataSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pPackedData;
 
@@ -420,7 +420,7 @@ static EDLError DLUnpackInternal(HDLContext _Context, const uint8* _pPackedData,
 	SWriteTextContext WriteCtx = { _pTxtData, *_pTxtDataSize, 0 };
 	SDLUnpackStorage Storage;
 	yajl_alloc_funcs AllocCatch = { DLUnpackMallocFunc, DLUnpackReallocFunc, DLUnpackFreeFunc, &Storage };
-	
+
 	yajl_gen Generator;
 
 	if(_pTxtData == 0x0)
@@ -443,12 +443,12 @@ static EDLError DLUnpackInternal(HDLContext _Context, const uint8* _pPackedData,
 	return DL_ERROR_OK;
 };
 
-EDLError DLUnpack(HDLContext _Context, const uint8* _pPackedData, pint _PackedDataSize, char* _pTxtData, pint _TxtDataSize)
+EDLError dl_txt_unpack(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize)
 {
 	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, _pTxtData, &_TxtDataSize);
 }
 
-EDLError DLRequiredUnpackSize(HDLContext _Context, const uint8* _pPackedData, pint _PackedDataSize, pint* _pTxtDataSize)
+EDLError dl_txt_unpack_calc_size(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize)
 {
 	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, 0x0, _pTxtDataSize);
 }

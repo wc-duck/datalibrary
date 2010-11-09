@@ -1,6 +1,6 @@
 BUILD_PATH = "local"
 
-function DLTypeLibrary( tlc_file  )
+function DLTypeLibrary( tlc_file, dl_shared_lib  )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header = out_file .. ".h"
@@ -8,18 +8,28 @@ function DLTypeLibrary( tlc_file  )
 	local out_lib_h  = out_file .. ".bin.h"
 
 	AddJob( out_header, 
-		"tlc " .. out_file,
-		"python2.6 tool/dl_tlc/dl_tlc.py -o " .. out_lib .. " -c " .. out_header .. " " .. tlc_file, 
+		"tlc " .. out_lib,
+		"python2.6 tool/dl_tlc/dl_tlc.py -o " .. out_lib .. " " .. tlc_file, 
 		tlc_file )
 
-	AddDependency( out_header, Collect( "tool/dl_tlc/*.py" ) )
+	AddJob( out_lib, 
+		"tlc " .. out_header,
+		"python2.6 tool/dl_tlc/dl_tlc.py -c " .. out_header .. " " .. tlc_file, 
+		tlc_file )
+
+	AddDependency( tlc_file, Collect( "tool/dl_tlc/*.py" ) )
+	AddDependency( tlc_file, Collect( "bind/python/*.py" ) )
+	AddDependency( tlc_file, dl_shared_lib )
 
 	-- dump type-lib to header
 	AddJob( out_lib_h, 
 		out_lib .. " -> " .. out_lib_h, 
 		"python2.6 build/bin_to_hex.py " .. out_lib .. " > " .. out_lib_h, 
 		out_lib )
+end
 
+function RunUnitTest( target_name, test_file, flags )
+	AddJob( target_name, "unittest", test_file, test_file )
 end
 
 function DefaultSettings( platform, config )
@@ -94,21 +104,27 @@ obj_files = Compile( build_settings, lib_files )
 
 -- ugly fugly, need -fPIC on .so-files!
 local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
-local output_func = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
-build_settings.cc.Output = output_func
-if not platform == "win32" then
+if platform == "linux64" then
+	build_settings.cc.Output = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
 	build_settings.cc.flags:Add( "-fPIC" )
+	dll_files = Compile( build_settings, lib_files )
+else
+	dll_files = obj_files
 end
-dll_files = Compile( build_settings, lib_files )
 
 static_library = StaticLibrary( build_settings, "dl", obj_files )
 shared_library = SharedLibrary( build_settings, "dl", dll_files )
 
 dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
 
--- DLTypeLibrary( "tests/unittest.tld" )
+DLTypeLibrary( "tests/unittest.tld", shared_library )
 
 build_settings.link.libs:Add( "gtest" )
 build_settings.link.libs:Add( "pthread" )
-unittests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
+dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
+RunUnitTest( "test", dl_tests )
+
+-- do not run unittest as default, only run
+PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
+DefaultTarget( "dl_default" )

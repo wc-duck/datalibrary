@@ -4,7 +4,7 @@
 
 #include "dl_types.h"
 
-EDLError DLReflectGetTypeInfo(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, pint _nMembers)
+EDLError dl_reflect_get_type_info(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, unsigned int _nMembers)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeID);
 	if(pType == 0x0)
@@ -49,13 +49,13 @@ EDLError DLReflectGetTypeInfo(HDLContext _Context, StrHash _TypeID, SDLTypeInfo*
 	return DL_ERROR_OK;
 }
 
-uint32 DLSizeOfType(HDLContext _Context, StrHash _TypeHash)
+unsigned int dl_size_of_type(HDLContext _Context, StrHash _TypeHash)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	return pType == 0x0 ? 0 : pType->m_Size[DL_PTR_SIZE_HOST];
 }
 
-uint32 DLAlignmentOfType(HDLContext _Context, StrHash _TypeHash)
+unsigned int dl_alignment_of_type(HDLContext _Context, StrHash _TypeHash)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	return pType == 0x0 ? 0 : pType->m_Alignment[DL_PTR_SIZE_HOST];

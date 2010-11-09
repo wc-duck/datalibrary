@@ -12,10 +12,10 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif  
+#endif
 
 /*
-	Function: DLPackText
+	Function: dl_txt_pack
 		Pack string of intermediate-data to binary blob that is loadable by DLLoadInstances and DLLoadInstancesInplace.
 
 	Parameters:
@@ -27,10 +27,10 @@ extern "C" {
 	Note:
 		The instance after pack will be in current platform endian.
 */
-EDLError DL_DLL_EXPORT DLPackText(HDLContext _Context, const char* _pTxtData, uint8* _pPackedData, pint _PackedDataSize);
+EDLError DL_DLL_EXPORT dl_txt_pack(HDLContext _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize);
 
 /*
-	Function: DLRequiredTextPackSize
+	Function: dl_txt_pack_calc_size
 		Calculate the amount of memory needed to pack intermediate data to binary blob.
 
 	Parameters:
@@ -38,10 +38,10 @@ EDLError DL_DLL_EXPORT DLPackText(HDLContext _Context, const char* _pTxtData, ui
 		_pTxtData        - Zero-terminated string to calculate binary blob size of.
 		_pPackedDataSize - Size required to pack _pTxtData.
 */
-EDLError DL_DLL_EXPORT DLRequiredTextPackSize(HDLContext _Context, const char* _pTxtData, pint* _pPackedDataSize);
+EDLError DL_DLL_EXPORT dl_txt_pack_calc_size(HDLContext _Context, const char* _pTxtData, unsigned int* _pPackedDataSize);
 
 /*
-	Function: DLUnpack
+	Function: dl_txt_unpack
 		Unpack binary blob packed with SDBLPack to intermediate-data-format.
 
 	Parameters:
@@ -54,10 +54,10 @@ EDLError DL_DLL_EXPORT DLRequiredTextPackSize(HDLContext _Context, const char* _
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-EDLError DL_DLL_EXPORT DLUnpack(HDLContext _Context, const uint8* _pPackedData, pint _PackedDataSize, char* _pTxtData, pint _TxtDataSize);
+EDLError DL_DLL_EXPORT dl_txt_unpack(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize);
 
 /*
-	Function: DLRequiredUnpackSize
+	Function: dl_txt_unpack_calc_size
 		Calculate the amount of memory needed to unpack binary data to intermediate data.
 
 	Parameters:
@@ -69,10 +69,10 @@ EDLError DL_DLL_EXPORT DLUnpack(HDLContext _Context, const uint8* _pPackedData, 
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-EDLError DL_DLL_EXPORT DLRequiredUnpackSize(HDLContext _Context, const uint8* _pPackedData, pint _PackedDataSize, pint* _pTxtDataSize);
+EDLError DL_DLL_EXPORT dl_txt_unpack_calc_size(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize);
 
 #ifdef __cplusplus
 }
-#endif  
+#endif
 
 #endif // DL_DL_TXT_H_INCLUDED

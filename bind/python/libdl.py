@@ -110,12 +110,12 @@ else:
 
 global g_DLDll
 g_DLDll = CDLL(DLDllPath)
-g_DLDll.DLErrorToString.restype = c_char_p
+g_DLDll.dl_error_to_string.restype = c_char_p
 
 class DLError(Exception):
 	def __init__(self, err, value):
 		self.err = err
-		self.value = g_DLDll.DLErrorToString(value)
+		self.value = g_DLDll.dl_error_to_string(value)
 	def __str__(self):
 		return self.err + ' Error-code: ' + self.value
 
@@ -293,7 +293,7 @@ class DLContext:
 		type_info   = DLTypeInfo()
 		member_info = MemberInfo128()
 	
-		err = g_DLDll.DLReflectGetTypeInfo(self.DLContext, _TypeID, byref(type_info), member_info, c_ulong(128))
+		err = g_DLDll.dl_reflect_get_type_info(self.DLContext, _TypeID, byref(type_info), member_info, c_ulong(128))
 		if err != 0:
 			raise DLError('Could not create type!', err)
 		
@@ -341,7 +341,7 @@ class DLContext:
 		
 	def __init__(self, _TLBuffer = None, _TLFile = None):
 		self.DLContext = c_void_p(0)
-		err = g_DLDll.DLContextCreate(byref(self.DLContext), c_void_p(0), c_void_p(0))
+		err = g_DLDll.dl_context_create(byref(self.DLContext), c_void_p(0), c_void_p(0))
 		
 		if err != 0:
 			raise DLError('Could not create DLContext', err)
@@ -354,7 +354,7 @@ class DLContext:
 		if _TLFile   != None: self.LoadTypeLibraryFromFile(_TLFile)
 		
 	def __del__(self):
-		err = g_DLDll.DLContextDestroy(self.DLContext)
+		err = g_DLDll.dl_context_destroy(self.DLContext)
 		
 		if err != 0:
 			raise DLError('Could not destroy DLContext', err)
@@ -365,7 +365,7 @@ class DLContext:
 			
 			_DataBuffer -- string with the binary file loaded.
 		'''
-		err = g_DLDll.DLLoadTypeLibrary(self.DLContext, _DataBuffer, len(_DataBuffer))	
+		err = g_DLDll.dl_context_load_type_library(self.DLContext, _DataBuffer, len(_DataBuffer))	
 		if err != 0:
 			raise DLError('Could not load type library into context DLContext', err)
 	
@@ -402,7 +402,7 @@ class DLContext:
 		'''
 		UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
 		
-		err = g_DLDll.DLLoadInstanceInplace(self.DLContext, byref(UnpackedData), _DataBuffer, len(_DataBuffer));
+		err = g_DLDll.dl_load_instance_inplace(self.DLContext, byref(UnpackedData), _DataBuffer, len(_DataBuffer));
 		if err != 0:
 			raise DLError('Could not store instance!', err)
 		
@@ -441,31 +441,31 @@ class DLContext:
 		c_instance = _Instance.AsCType()	
 		
 		DataSize = c_ulong(0)
-		err = g_DLDll.DLInstaceSizeStored(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
+		err = g_DLDll.dl_instace_size_stored(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
 		if err != 0:
 			raise DLError('Could not calculate size!', err)
 			
 		PackedData = (c_ubyte * DataSize.value)()
 		
-		err = g_DLDll.DLStoreInstace(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize)
+		err = g_DLDll.dl_store_instace(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize)
 		if err != 0:
 			raise DLError('Could not store instance!', err)
 		
 		ConvertedSize = c_ulong(0)
 		
-		err = g_DLDll.DLInstanceSizeConverted(self.DLContext, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
+		err = g_DLDll.dl_instance_size_converted(self.DLContext, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
 		if err != 0:
 			raise DLError('Could not calc convert instance size!', err)
 		
 		if DataSize == ConvertedSize:
 			# can convert inplace
-			err = g_DLDll.DLConvertInstanceInplace(self.DLContext, PackedData, len(PackedData), 0 if _Endian == 'big' else 1, _PtrSize);
+			err = g_DLDll.dl_convert_instance_inplace(self.DLContext, PackedData, len(PackedData), 0 if _Endian == 'big' else 1, _PtrSize);
 			if err != 0:
 				raise DLError('Could not convert instance!', err)
 		else:
 			# need new memory
 			ConvertedData = (c_ubyte * ConvertedSize.value)()
-			err = g_DLDll.DLConvertInstance(self.DLContext, PackedData, len(PackedData), ConvertedData, len(ConvertedData), 0 if _Endian == 'big' else 1, _PtrSize);
+			err = g_DLDll.dl_convert_instance(self.DLContext, PackedData, len(PackedData), ConvertedData, len(ConvertedData), 0 if _Endian == 'big' else 1, _PtrSize);
 			
 			PackedData = ConvertedData
 			
@@ -488,12 +488,12 @@ class DLContext:
 		
 		DataSize = c_ulong(0)
 		
-		if g_DLDll.DLRequiredUnpackSize(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
+		if g_DLDll.dl_required_unpack_size(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
 			raise DLError('Could not calculate txt-unpack-size', err)
 		
 		PackedData = create_string_buffer(DataSize.value)
 		
-		if g_DLDll.DLUnpack(self.DLContext, Packed, len(Packed), PackedData, DataSize) != 0:
+		if g_DLDll.dl_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize) != 0:
 			raise DLError('Could not calculate txt-unpack-size', err)
 			
 		return PackedData.raw
@@ -505,11 +505,11 @@ class DLContext:
 		InstanceData = create_string_buffer(_Text)
 		DataSize = c_ulong(0)
 
-		if g_DLDll.DLRequiredTextPackSize(self.DLContext, InstanceData, byref(DataSize)) != 0:
+		if g_DLDll.dl_txt_pack_calc_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
 			raise DLError('Could not calculate txt-pack-size', err)
 
 		PackedData = create_string_buffer(DataSize.value)
-		if g_DLDll.DLPackText(self.DLContext, InstanceData, PackedData, DataSize) != 0:
+		if g_DLDll.dl_txt_pack(self.DLContext, InstanceData, PackedData, DataSize) != 0:
 			raise DLError('Could not pack txt', err)
 	
 		return PackedData.raw

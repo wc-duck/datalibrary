@@ -8,6 +8,8 @@
 #include "dl_staticdata.h"
 #include "dl_traits.h"
 
+#include "../dl_types.h" // TODO: Ugly fugly for types
+
 #include <new>
 #include <stdlib.h>
 
