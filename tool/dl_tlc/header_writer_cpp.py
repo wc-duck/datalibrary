@@ -9,8 +9,6 @@ HEADER_TEMPLATE = '''#ifndef %(module)s_H_INCLUDED
 
 // TODO: Remove this include when dl uses standard types, types should also be definable for users 
 //       to insert their own typedefs ( uint32, u32, uint32_t etc )
-// #include <platform/types.h>
-// #include <dl/dl_defines.h>
 
 // remove me!
 #if defined(_MSC_VER)
@@ -52,20 +50,37 @@ struct TDLArray
 	T*     m_pData;
 	uint32 m_nCount;
 
+	// TODO: Fix asserts so that user might specify them as they se fit!
 	T& operator[](uint _Index)
 	{
-		M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
+		// M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
 		return m_pData[_Index];
 	}
 
 	const T& operator[](uint _Index) const 
 	{
-		M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
+		// M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
 		return m_pData[_Index];
 	}
 };
 
 #endif // DL_ARRAY_CLASS_DEFINED 
+
+#ifndef DL_STATIC_ASSERT_DEFINED
+#define DL_STATIC_ASSERT_DEFINED
+
+#define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
+#define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
+#define DL_JOIN_TOKENS_DO_JOIN2(a,b) a##b
+
+namespace dl_staticassert
+{
+	template <bool x> struct STATIC_ASSERTION_FAILURE;
+	template <> struct STATIC_ASSERTION_FAILURE<true> { enum { value = 1 }; };
+};
+#define DL_STATIC_ASSERT(_Expr, _Msg) enum { DL_JOIN_TOKENS(_static_assert_enum_##_Msg, __LINE__) = sizeof(::dl_staticassert::STATIC_ASSERTION_FAILURE< (bool)( _Expr ) >) }
+
+#endif // DL_STATIC_ASSERT_DEFINED
 
 '''
 

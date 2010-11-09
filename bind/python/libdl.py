@@ -5,9 +5,9 @@
 '''
 
 from ctypes import *
-import platform, os, sys
+import platform, os, sys, logging
 
-def M_BIT(_Bit):
+def M_BIT(_Bit): 
 	return 1 << _Bit
 
 def M_BITMASK(_Bits):
@@ -94,30 +94,55 @@ DL_TO_PY_TYPE = { DL_TYPE_STORAGE_INT8   : 0,
 				 
 				  DL_TYPE_STORAGE_STR    : '',
 				  DL_TYPE_STORAGE_PTR    : None }
-				 
-# Hack fix: (how should we find the dl-dll, right now the path is hard-codede and it tries to find one dll that fits!)
-#DLDllPath = os.getcwd() + '/local/%s/win32/dldyn.dll' if platform.architecture()[0] == '32bit' else '/local/%s/winx64/dldyn.dll'
-DLDllPath = os.path.join( os.getcwd(), 'local/linux32/' if platform.architecture()[0] == '32bit' else 'local/linux64/', '%s/dl.so' )
-
-if 'DL_DLL_PATH' in os.environ: # was the path to the dll set as an environment variable? (might not be the best solution but it has to do for now)
-	DLDllPath = os.environ['DL_DLL_PATH']
-else:
-	for conf in [ 'release', 'debug' ]:
-		path = DLDllPath % conf
-		if os.path.exists(path):
-			DLDllPath = path
-			break
-
+	
 global g_DLDll
-g_DLDll = CDLL(DLDllPath)
-g_DLDll.dl_error_to_string.restype = c_char_p
+g_DLDll = None
 
 class DLError(Exception):
 	def __init__(self, err, value):
 		self.err = err
-		self.value = g_DLDll.dl_error_to_string(value)
+		if g_DLDll != None:
+			self.value = g_DLDll.dl_error_to_string(value)
+		else:
+			self.value = 'Unknown error'
 	def __str__(self):
 		return self.err + ' Error-code: ' + self.value
+				 
+def get_dl_dll():
+	'''
+		load .so/.dll
+		
+		search order:
+		1) check for "--dl-dll"-flag in argv for path
+		2) check cwd
+		3) check same path as libdl.py
+		4) system paths ( on linux? )
+	'''
+	
+	def find_dldll_in_argv():
+		for arg in sys.argv: 
+			if arg.startswith( "--dldll" ): 
+				return arg.split('=')[1]
+		return ""
+
+	dl_path_generators = [ 
+		find_dldll_in_argv, 
+		lambda: os.path.join( os.path.dirname(__file__), 'dl.so' ),
+		lambda: os.path.join( os.getcwd(), 'dl.so' ) ]
+	
+	for dl_path in dl_path_generators:
+		path = dl_path()
+		
+		logging.debug( 'trying to load dl-shared library from: %s' % path )
+		
+		if( os.path.exists( path ) ):
+			logging.debug( 'loading dl-shared library from: %s' % path )
+			return CDLL( path )
+	
+	raise DLError( 'could not find dl.so in any path!', None )
+
+g_DLDll = get_dl_dll()
+g_DLDll.dl_error_to_string.restype = c_char_p
 
 class DLContext:
 	def __TypeIDOf(self, _TypeName):

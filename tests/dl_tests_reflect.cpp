@@ -20,7 +20,7 @@ TEST_F(DL, ReflectPods)
 	SDLMemberInfo Members[128];
 
 	EDLError err = dl_reflect_get_type_info(Ctx, SPods::TYPE_ID, &Info, Members, DL_ARRAY_LENGTH(Members));
-	M_EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_STREQ("Pods", Info.m_Name);
 	EXPECT_EQ   (10u,    Info.m_nMembers);

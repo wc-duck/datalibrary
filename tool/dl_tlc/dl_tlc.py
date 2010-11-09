@@ -193,6 +193,7 @@ def parse_options():
 	from optparse import OptionParser
 
 	parser = OptionParser(description = "dl_tlc is the type library compiler for DL and converts a text-typelibrary to binary type-libraray.")
+	parser.add_option("", "--dldll")
 	parser.add_option("-o", "--output",                       dest="output",                 help="write type library to file")
 	parser.add_option("-c", "--cpp-header",                   dest="cppheader",              help="write C++-header to file")
 	parser.add_option("-s", "--cs-header",                    dest="csheader",               help="write C#-header to file")

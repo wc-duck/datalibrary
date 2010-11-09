@@ -35,6 +35,19 @@
 #endif
 
 #define DL_UNUSED (void)
+#define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
+#define M_ASSERT(_Expr, ...) // implement me plox!
+
+#define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
+#define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
+#define DL_JOIN_TOKENS_DO_JOIN2(a,b) a##b
+
+namespace dl_staticassert
+{
+	template <bool x> struct STATIC_ASSERTION_FAILURE;
+	template <> struct STATIC_ASSERTION_FAILURE<true> { enum { value = 1 }; };
+};
+#define DL_STATIC_ASSERT(_Expr, _Msg) enum { DL_JOIN_TOKENS(_static_assert_enum_##_Msg, __LINE__) = sizeof(::dl_staticassert::STATIC_ASSERTION_FAILURE< (bool)( _Expr ) >) }
 
 #define DL_INT8_MAX  (0x7F)
 #define DL_INT16_MAX (0x7FFF)
