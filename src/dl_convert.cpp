@@ -684,7 +684,7 @@ static EDLError DLInternalConvertInstance( HDLContext     _Context,
 	if(_pOutData != 0x0)
 	{
 		// write new header!
-		memcpy(_pOutData, _pData, sizeof(SDLDataHeader));
+		memmove(_pOutData, _pData, sizeof(SDLDataHeader));
 
 		SDLDataHeader* pNewHeader = (SDLDataHeader*)_pOutData;
 

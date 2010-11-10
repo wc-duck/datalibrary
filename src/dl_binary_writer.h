@@ -38,7 +38,7 @@ public:
 		{
 			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%lu)", m_Pos, _Size, *(pint*)_pData);
 			M_ASSERT(m_Pos + _Size <= m_DataSize && "To small buffer!");
-			memcpy(m_Data + m_Pos, _pData, _Size);
+			memmove(m_Data + m_Pos, _pData, _Size);
 		}
 
 		m_Pos += _Size;
