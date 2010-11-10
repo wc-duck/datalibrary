@@ -36,10 +36,6 @@ function DLTypeLibrary( tlc_file, dl_shared_lib  )
 		out_lib )
 end
 
-function RunUnitTest( target_name, test_file, flags )
-	AddJob( target_name, "unittest", test_file, test_file )
-end
-
 function DefaultGCC( platform, config )
 	local settings = NewSettings()
 	settings.cc.includes:Add("include")
@@ -119,7 +115,11 @@ build_settings.link.libs:Add( "gtest" )
 build_settings.link.libs:Add( "pthread" )
 dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
-RunUnitTest( "test", dl_tests )
+dl_tests_py = "tests/dl_tests.py"
+
+AddJob( "test",          "unittest c",               dl_tests,                   dl_tests ) -- c unit tests
+AddJob( "test_valgrind", "unittest valgrind",        "valgrind -v " .. dl_tests, dl_tests ) -- valgrind c unittests
+AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py,   dl_tests_py, shared_library ) -- python bindings unittests
 
 -- do not run unittest as default, only run
 PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
