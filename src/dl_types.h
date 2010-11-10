@@ -130,7 +130,7 @@ struct SDLDataHeader
 {
 	uint32  m_Id;
 	uint32  m_Version;
-	StrHash m_RootInstanceType;
+	dl_typeid_t m_RootInstanceType;
 	uint32  m_InstanceSize;
 
 	uint8   m_64BitPtr; // currently uses uint8 instead of bitfield to be compiler-compliant.
@@ -139,7 +139,7 @@ struct SDLDataHeader
 
 struct SDLTypeLookup
 {
-	StrHash m_TypeID;
+	dl_typeid_t m_TypeID;
 	uint32  m_Offset;
 };
 
@@ -154,8 +154,8 @@ enum EDLPtrSize
 struct SDLMember
 {
 	char m_Name[DL_MEMBER_NAME_MAX_LEN];
-	EDLType m_Type;
-	StrHash m_TypeID;
+	dl_type_t m_Type;
+	dl_typeid_t m_TypeID;
 
 	uint32 m_Size[2];
 	uint32 m_Alignment[2];
@@ -164,8 +164,8 @@ struct SDLMember
 	// if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32 m_DefaultValueOffset;
 
-	EDLType AtomType()       const { return EDLType( m_Type & DL_TYPE_ATOM_MASK); }
-	EDLType StorageType()    const { return EDLType( m_Type & DL_TYPE_STORAGE_MASK); }
+	dl_type_t AtomType()       const { return dl_type_t( m_Type & DL_TYPE_ATOM_MASK); }
+	dl_type_t StorageType()    const { return dl_type_t( m_Type & DL_TYPE_STORAGE_MASK); }
 	uint32  BitFieldBits()   const { return DL_EXTRACT_BITS(m_Type, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED); }
 	uint32  BitFieldOffset() const { return DL_EXTRACT_BITS(m_Type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED); }
 	bool    IsSimplePod()    const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
@@ -195,7 +195,7 @@ struct SDLType
 struct SDLEnum
 {
 	char    m_Name[DL_ENUM_NAME_MAX_LEN];
-	StrHash m_EnumID;
+	dl_typeid_t m_EnumID;
 
 	uint32 m_nValues;
 	SDLEnumValue m_lValues[0];
@@ -231,12 +231,12 @@ struct SOneMemberType
 
 DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
 
-struct SDLContext
+struct dl_context
 {
-	SDLAllocFunctions* m_DLAllocFuncs;
+	dl_alloc_functions_t* m_DLAllocFuncs;
 
-	struct STypeLookUp { StrHash  m_TypeID; SDLType* m_pType; } m_TypeLookUp[128]; // dynamic alloc?
-	struct SEnumLookUp { StrHash  m_EnumID; SDLEnum* m_pEnum; } m_EnumLookUp[128]; // dynamic alloc?
+	struct STypeLookUp { dl_typeid_t  m_TypeID; SDLType* m_pType; } m_TypeLookUp[128]; // dynamic alloc?
+	struct SEnumLookUp { dl_typeid_t  m_EnumID; SDLEnum* m_pEnum; } m_EnumLookUp[128]; // dynamic alloc?
 
 	unsigned int m_nTypes;
 	uint8* m_TypeInfoData;
@@ -251,10 +251,10 @@ struct SDLContext
 	return a bitfield offset on a particular platform (currently endian-ness is used to set them apart, that might break ;) )
 	the bitfield offset are counted from least significant bit or most significant bit on different platforms.
 */
-inline unsigned int DLBitFieldOffset(EDLCpuEndian _Endian, unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits) { return _Endian == DL_ENDIAN_LITTLE ? _Offset : (_BFSize * 8) - _Offset - _nBits; }
+inline unsigned int DLBitFieldOffset(dl_endian_t _Endian, unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits) { return _Endian == DL_ENDIAN_LITTLE ? _Offset : (_BFSize * 8) - _Offset - _nBits; }
 inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits)                     { return DLBitFieldOffset(DL_ENDIAN_HOST, _BFSize, _Offset, _nBits); }
 
-DL_FORCEINLINE EDLCpuEndian DLOtherEndian(EDLCpuEndian _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
+DL_FORCEINLINE dl_endian_t DLOtherEndian(dl_endian_t _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
 
 DL_FORCEINLINE pint DLPtrSize(EDLPtrSize _SizeEnum)
 {
@@ -266,7 +266,7 @@ DL_FORCEINLINE pint DLPtrSize(EDLPtrSize _SizeEnum)
 	}
 }
 
-static inline pint DLPodSize(EDLType _Type)
+static inline pint DLPodSize(dl_type_t _Type)
 {
 	switch(_Type & DL_TYPE_STORAGE_MASK)
 	{
@@ -291,7 +291,7 @@ static inline pint DLPodSize(EDLType _Type)
 	}
 }
 
-static inline const SDLType* DLFindType(HDLContext _Context, StrHash _TypeHash)
+static inline const SDLType* DLFindType(dl_ctx_t _Context, dl_typeid_t _TypeHash)
 {
 	// linear search right now!
 	for(unsigned int i = 0; i < _Context->m_nTypes; ++i)
@@ -301,11 +301,11 @@ static inline const SDLType* DLFindType(HDLContext _Context, StrHash _TypeHash)
 	return 0x0;
 }
 
-static inline const SDLEnum* DLFindEnum(HDLContext _Context, StrHash _EnumHash)
+static inline const SDLEnum* DLFindEnum(dl_ctx_t _Context, dl_typeid_t _EnumHash)
 {
 	for (unsigned int i = 0; i < _Context->m_nEnums; ++i)
 	{
-		const SDLContext::SEnumLookUp& LookUp = _Context->m_EnumLookUp[i];
+		const dl_context::SEnumLookUp& LookUp = _Context->m_EnumLookUp[i];
 
 		if(LookUp.m_EnumID == _EnumHash)
 			return LookUp.m_pEnum;
@@ -322,7 +322,7 @@ static inline uint32 DLFindEnumValue(const SDLEnum* _pEnum, const char* _Name, u
 	return 0;
 }
 
-static inline const char* DLFindEnumName(HDLContext _Context, StrHash _EnumHash, uint32 _Value)
+static inline const char* DLFindEnumName(dl_ctx_t _Context, dl_typeid_t _EnumHash, uint32 _Value)
 {
 	const SDLEnum* pEnum = DLFindEnum(_Context, _EnumHash);
 
@@ -336,7 +336,7 @@ static inline const char* DLFindEnumName(HDLContext _Context, StrHash _EnumHash,
 	return "UnknownEnum!";
 }
 
-static StrHash DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, StrHash _BaseHash)
+static dl_typeid_t DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, dl_typeid_t _BaseHash)
 {
 	M_ASSERT(_pBuffer != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;
@@ -345,7 +345,7 @@ static StrHash DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, StrHash 
 	return Hash - 5381;
 }
 
-static StrHash DLHashString(const char* _pStr, StrHash _BaseHash = 0)
+static dl_typeid_t DLHashString(const char* _pStr, dl_typeid_t _BaseHash = 0)
 {
 	M_ASSERT(_pStr != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;
@@ -354,7 +354,7 @@ static StrHash DLHashString(const char* _pStr, StrHash _BaseHash = 0)
 	return Hash - 5381; // So empty string == 0
 }
 
-static inline unsigned int DLFindMember(const SDLType* _pType, StrHash _NameHash)
+static inline unsigned int DLFindMember(const SDLType* _pType, dl_typeid_t _NameHash)
 {
 	// TODO: currently members only hold name, but they should hold a hash!
 

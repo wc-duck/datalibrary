@@ -15,12 +15,12 @@ extern "C" {
 #endif  // __cplusplus
 
 /*
-	Handle: HDLContext
+	Handle: dl_ctx_t
 */
-typedef struct SDLContext* HDLContext;
+typedef struct dl_context* dl_ctx_t;
 
 /*
-	Enum: EDLError
+	Enum: dl_error_t
 		Error-codes from DL
 
 	DL_ERROR_OK                                            - All went ok!
@@ -43,7 +43,7 @@ typedef struct SDLContext* HDLContext;
 
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
 */
-enum EDLError
+enum dl_error_t
 {
 	DL_ERROR_OK,
 	DL_ERROR_MALFORMED_DATA,
@@ -72,7 +72,7 @@ enum EDLError
 	Enum: EDLType
 		Enumeration that describes a specific type in DL.
 */
-enum EDLType
+enum dl_type_t
 {
 	// Type-layout
 	DL_TYPE_ATOM_MIN_BIT            = 0,
@@ -119,13 +119,13 @@ enum EDLType
 	DL_TYPE_FORCE_32_BIT = 0x7FFFFFFF
 };
 
-enum EDLCpuEndian
+enum dl_endian_t
 {
 	DL_ENDIAN_BIG,
 	DL_ENDIAN_LITTLE,
 };
 
-DL_FORCEINLINE EDLCpuEndian dl_endian_host()
+DL_FORCEINLINE dl_endian_t dl_endian_host()
 {
 	union { unsigned char c[4]; unsigned int  i; } test;
 	test.i = 0xAABBCCDD;
@@ -135,13 +135,13 @@ DL_FORCEINLINE EDLCpuEndian dl_endian_host()
 #define DL_ENDIAN_HOST dl_endian_host()
 
 /*
-	Struct: SDLAllocFunctions
+	Struct: dl_alloc_functions
 */
-struct SDLAllocFunctions
+typedef struct dl_alloc_functions
 {
 	void* (*m_Alloc)(unsigned int _Size, unsigned int _Alignment);
 	void  (*m_Free) (void* _pPtr);
-};
+} dl_alloc_functions_t;
 
 /*
 	Group: Context
@@ -157,13 +157,13 @@ struct SDLAllocFunctions
 		                       This memory will be freed by DL.
 							   If NULL, malloc/free will be used by default!
 */
-EDLError DL_DLL_EXPORT dl_context_create( HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs );
+dl_error_t DL_DLL_EXPORT dl_context_create( dl_ctx_t* _pContext, dl_alloc_functions_t* _pDLAllocFuncs );
 
 /*
 	Function: dl_context_destroy
 		Destroys a context and free all memory allocated with the DLAllocFuncs-functions.
 */
-EDLError DL_DLL_EXPORT dl_context_destroy( HDLContext _Context );
+dl_error_t DL_DLL_EXPORT dl_context_destroy( dl_ctx_t _Context );
 
 /*
 	Function: dl_context_load_type_library
@@ -175,9 +175,9 @@ EDLError DL_DLL_EXPORT dl_context_destroy( HDLContext _Context );
 		_pData    - Pointer to binary-data with type-library.
 		_DataSize - Size of _pData.
 */
-EDLError DL_DLL_EXPORT dl_context_load_type_library( HDLContext           _Context,
-                                                     const unsigned char* _pData,
-                                                     unsigned int         _DataSize );
+dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t             _Context,
+                                                       const unsigned char* _pData,
+                                                       unsigned int         _DataSize );
 
 
 /*
@@ -198,10 +198,10 @@ EDLError DL_DLL_EXPORT dl_context_load_type_library( HDLContext           _Conte
 	Note:
 		Packed instance to load is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-EDLError DL_DLL_EXPORT dl_instance_load( HDLContext           _Context,
-                                         void*                _pInstance,
-                                         const unsigned char* _pData,
-                                         unsigned int         _DataSize );
+dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             _Context,
+                                           void*                _pInstance,
+                                           const unsigned char* _pData,
+                                           unsigned int         _DataSize );
 
 /*
 	Group: Store
@@ -216,10 +216,10 @@ EDLError DL_DLL_EXPORT dl_instance_load( HDLContext           _Context,
 		_pInstance      - Ptr to instance to calculate size of.
 		_pDataSize      - Ptr where to store the amount of bytes needed to store the instances.
 */
-EDLError DL_DLL_EXPORT dl_instance_calc_size( HDLContext    _Context,
-                                             StrHash       _TypeHash,
-                                             void*         _pInstance,
-                                             unsigned int* _pDataSize);
+dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t      _Context,
+                                                dl_typeid_t   _TypeHash,
+                                                void*         _pInstance,
+                                                unsigned int* _pDataSize);
 
 /*
 	Function: dl_instace_store
@@ -235,11 +235,11 @@ EDLError DL_DLL_EXPORT dl_instance_calc_size( HDLContext    _Context,
 	Note:
 		The instance after pack will be in current platform endian.
 */
-EDLError DL_DLL_EXPORT dl_instance_store( HDLContext     _Context,
-                                         StrHash        _TypeHash,
-                                         void*          _pInstance,
-                                         unsigned char* _pOutBuffer,
-                                         unsigned int   _OutBufferSize );
+dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t      _Context,
+                                           dl_typeid_t    _TypeHash,
+                                           void*          _pInstance,
+                                           unsigned char* _pOutBuffer,
+                                           unsigned int   _OutBufferSize );
 
 
 /*
@@ -250,7 +250,7 @@ EDLError DL_DLL_EXPORT dl_instance_store( HDLContext     _Context,
 	Function: dl_error_to_string
 		Converts EDLError to string.
 */
-DL_DLL_EXPORT const char* dl_error_to_string( EDLError _Err );
+DL_DLL_EXPORT const char* dl_error_to_string( dl_error_t _Err );
 
 /*
 	Function: dl_instance_ptr_size
@@ -273,7 +273,7 @@ unsigned int dl_instance_ptr_size( const unsigned char* _pData, unsigned int _Da
 		_pData       - Ptr to memory-area where packed instance is to be found.
 		_DataSize    - Size of _pData.
 */
-EDLCpuEndian dl_instance_endian( const unsigned char* _pData, unsigned int _DataSize );
+dl_endian_t dl_instance_endian( const unsigned char* _pData, unsigned int _DataSize );
 
 /*
 	Function: dl_instance_root_type
@@ -286,7 +286,7 @@ EDLCpuEndian dl_instance_endian( const unsigned char* _pData, unsigned int _Data
 		_pData       - Ptr to memory-area where packed instance is to be found.
 		_DataSize    - Size of _pData.
 */
-StrHash dl_instance_root_type( const unsigned char* _pData, unsigned int _DataSize );
+dl_typeid_t dl_instance_root_type( const unsigned char* _pData, unsigned int _DataSize );
 
 #ifdef __cplusplus
 }

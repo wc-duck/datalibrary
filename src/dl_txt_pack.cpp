@@ -127,10 +127,10 @@ struct SDLPackContext
 	}
 
 	CDLBinaryWriter* m_Writer;
-	HDLContext m_DLContext;
+	dl_ctx_t m_DLContext;
 
 	const SDLType* m_pRootType;
-	EDLError m_ErrorCode;
+	dl_error_t m_ErrorCode;
 
 	void PushStructState(const SDLType* _pType)
 	{
@@ -286,7 +286,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 		if(Val > MaxVal)
 			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", Val, BFBits);
 
-		EDLType StorageType = EDLType(State & DL_TYPE_STORAGE_MASK);
+		dl_type_t StorageType = dl_type_t(State & DL_TYPE_STORAGE_MASK);
 
 		switch(StorageType)
 		{
@@ -476,8 +476,8 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			pCtx->m_Writer->SeekSet(MemberPos);
 			M_ASSERT(IsAlign((void*)MemberPos, pMember->m_Alignment[DL_PTR_SIZE_HOST]));
 
-			EDLType AtomType    = pMember->AtomType();
-			EDLType StorageType = pMember->StorageType();
+			dl_type_t AtomType    = pMember->AtomType();
+			dl_type_t StorageType = pMember->StorageType();
 
 			switch(AtomType)
 			{
@@ -569,8 +569,8 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			if(pMember == 0)
 				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "An item with id %u has not been encountered in the earlier part of the document, hence the type could not be deduced!", ID);
 
-			EDLType AtomType = pMember->AtomType();
-			EDLType StorageType = pMember->StorageType();
+			dl_type_t AtomType = pMember->AtomType();
+			dl_type_t StorageType = pMember->StorageType();
 
 			if(AtomType == DL_TYPE_ATOM_POD)
 			{
@@ -721,8 +721,8 @@ static int DLOnMapEnd(void* _pCtx)
 
 					pCtx->m_Writer->SeekSet(MemberPos);
 
-					EDLType AtomType    = pMember->AtomType();
-					EDLType StorageType = pMember->StorageType();
+					dl_type_t AtomType    = pMember->AtomType();
+					dl_type_t StorageType = pMember->StorageType();
 
 					switch(AtomType)
 					{
@@ -834,7 +834,7 @@ void* DLPackAlloc(void* _pCtx, unsigned int _Sz)                { DL_UNUSED(_pCt
 void* DLPackRealloc(void* _pCtx, void* _pPtr, unsigned int _Sz) { DL_UNUSED(_pCtx); return realloc(_pPtr, _Sz); }
 void  DLPackFree(void* _pCtx, void* _pPtr)                      { DL_UNUSED(_pCtx); free(_pPtr); }
 
-static EDLError DLInternalPack(SDLPackContext* PackContext, const char* _pTxtData)
+static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtData)
 {
 	// this could be incremental later on if needed!
 
@@ -898,7 +898,7 @@ static EDLError DLInternalPack(SDLPackContext* PackContext, const char* _pTxtDat
 	return PackContext->m_ErrorCode;
 }
 
-EDLError dl_txt_pack(HDLContext _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize)
+dl_error_t dl_txt_pack(dl_ctx_t _Context, const char* _pTxtData, unsigned char* _pPackedData, unsigned int _PackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = false;
 	CDLBinaryWriter Writer(_pPackedData + sizeof(SDLDataHeader), _PackedDataSize -  sizeof(SDLDataHeader), IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
@@ -907,7 +907,7 @@ EDLError dl_txt_pack(HDLContext _Context, const char* _pTxtData, unsigned char* 
 	PackContext.m_DLContext = _Context;
 	PackContext.m_Writer    = &Writer;
 
-	EDLError error = DLInternalPack(&PackContext, _pTxtData);
+	dl_error_t error = DLInternalPack(&PackContext, _pTxtData);
 
 	if(error != DL_ERROR_OK)
 		return error;
@@ -924,7 +924,7 @@ EDLError dl_txt_pack(HDLContext _Context, const char* _pTxtData, unsigned char* 
 	return DL_ERROR_OK;
 }
 
-EDLError dl_txt_pack_calc_size(HDLContext _Context, const char* _pTxtData, unsigned int* _pPackedDataSize)
+dl_error_t dl_txt_pack_calc_size(dl_ctx_t _Context, const char* _pTxtData, unsigned int* _pPackedDataSize)
 {
 	const bool IS_DUMMY_WRITER = true;
 	CDLBinaryWriter Writer(0x0, 0, IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
@@ -933,7 +933,7 @@ EDLError dl_txt_pack_calc_size(HDLContext _Context, const char* _pTxtData, unsig
 	PackContext.m_DLContext = _Context;
 	PackContext.m_Writer      = &Writer;
 
-	EDLError err = DLInternalPack(&PackContext, _pTxtData);
+	dl_error_t err = DLInternalPack(&PackContext, _pTxtData);
 
 	*_pPackedDataSize = Writer.NeededSize() + sizeof(SDLDataHeader);
 

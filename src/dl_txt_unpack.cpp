@@ -12,11 +12,11 @@
 struct SDLUnpackContext
 {
 public:
-	SDLUnpackContext(HDLContext _Ctx, yajl_gen _Gen) 
+	SDLUnpackContext(dl_ctx_t _Ctx, yajl_gen _Gen) 
 		: m_Ctx(_Ctx)
 		, m_JsonGen(_Gen) { }
 
-	HDLContext m_Ctx;
+	dl_ctx_t m_Ctx;
 	yajl_gen   m_JsonGen;
 
  	unsigned int AddSubDataMember(const SDLMember* _pMember, const uint8* _pData, uint32 _ArrayCount)
@@ -50,7 +50,7 @@ public:
 	CArrayStatic<SSubDataMember, 128> m_lSubdataMembers;
 };
 
-static void DLWritePodMember(yajl_gen _Gen, EDLType _PodType, const uint8* _pData)
+static void DLWritePodMember(yajl_gen _Gen, dl_type_t _PodType, const uint8* _pData)
 {
 	switch(_PodType & DL_TYPE_STORAGE_MASK)
 	{
@@ -94,8 +94,8 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 
 		const uint8* pMemberData = _pData + Member.m_Offset[DL_PTR_SIZE_HOST];
 
-		EDLType AtomType    = Member.AtomType();
-		EDLType StorageType = Member.StorageType();
+		dl_type_t AtomType    = Member.AtomType();
+		dl_type_t StorageType = Member.StorageType();
 
 		switch(AtomType)
 		{
@@ -283,8 +283,8 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 					const uint8* pMemberData = _Ctx->m_lSubdataMembers[iSubData].m_pData;
 					uint32 ArrayCount        = _Ctx->m_lSubdataMembers[iSubData].m_ArrayCount;
 
-					EDLType AtomType    = pMember->AtomType();
-					EDLType StorageType = pMember->StorageType();
+					dl_type_t AtomType    = pMember->AtomType();
+					dl_type_t StorageType = pMember->StorageType();
 
 					if (AtomType == DL_TYPE_ATOM_ARRAY) // remove if!
 					{
@@ -401,7 +401,7 @@ void* DLUnpackReallocFunc(void* _pCtx, void* _pPtr, unsigned int _Sz)
 }
 
 
-static EDLError DLUnpackInternal(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int* _pTxtDataSize)
+static dl_error_t DLUnpackInternal(dl_ctx_t _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int* _pTxtDataSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pPackedData;
 
@@ -443,12 +443,12 @@ static EDLError DLUnpackInternal(HDLContext _Context, const unsigned char* _pPac
 	return DL_ERROR_OK;
 };
 
-EDLError dl_txt_unpack(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize)
+dl_error_t dl_txt_unpack(dl_ctx_t _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize)
 {
 	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, _pTxtData, &_TxtDataSize);
 }
 
-EDLError dl_txt_unpack_calc_size(HDLContext _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize)
+dl_error_t dl_txt_unpack_calc_size(dl_ctx_t _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize)
 {
 	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, 0x0, _pTxtDataSize);
 }

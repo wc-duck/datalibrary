@@ -12,26 +12,26 @@
 #include <dl/dl.h>
 
 /*
-	Struct: SDLTypeInfo
+	Struct: dl_type_info_t
 		Struct used to retrieve information about a specific DL-type.
 */
-struct SDLTypeInfo
+typedef struct dl_type_info
 {
 	const char*  m_Name;
 	unsigned int m_nMembers;
-};
+} dl_type_info_t;
 
 /*
-	Struct: SDLMemberInfo
+	Struct: dl_member_info_t
 		Struct used to retrieve information about a specific DL-member.
 */
-struct SDLMemberInfo
+typedef struct dl_member_info
 {
 	const char*  m_Name;
-	EDLType      m_Type;
-	StrHash      m_TypeID;
+	dl_type_t    m_Type;
+	dl_typeid_t  m_TypeID;
 	unsigned int m_ArrayCount;
-};
+} dl_member_info_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,9 +49,9 @@ extern "C" {
 	Returns:
 		DL_ERROR_OK on success.
 */
-EDLError DL_DLL_EXPORT dl_reflect_get_type_id( HDLContext _Context,
-                                               const char* _TypeName,
-                                               StrHash*    _pTypeID );
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t     _Context,
+                                                 const char*  _TypeName,
+                                                 dl_typeid_t* _pTypeID );
 /*
 	Function: dl_reflect_get_type_info
 		Retrieve information about a certain type in a type-library.
@@ -66,11 +66,11 @@ EDLError DL_DLL_EXPORT dl_reflect_get_type_id( HDLContext _Context,
 	Returns:
 		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if _pMembers do not fit all members, or other error if apropriate!
 */
-EDLError DL_DLL_EXPORT dl_reflect_get_type_info( HDLContext     _Context,
-                                                 StrHash        _TypeID,
-                                                 SDLTypeInfo*   _pType,
-                                                 SDLMemberInfo* _pMembers,
-                                                 unsigned int   _nMembers );
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t          _Context,
+                                                   dl_typeid_t       _TypeID,
+                                                   dl_type_info_t*   _pType,
+                                                   dl_member_info_t* _pMembers,
+                                                   unsigned int      _nMembers );
 
 /*
 	Function: dl_size_of_type
@@ -83,7 +83,7 @@ EDLError DL_DLL_EXPORT dl_reflect_get_type_info( HDLContext     _Context,
 	Returns:
 		The size of the type or 0 if not found in context.
 */
-unsigned int dl_size_of_type( HDLContext _Context, StrHash _TypeHash );
+unsigned int dl_size_of_type( dl_ctx_t _Context, dl_typeid_t _TypeHash );
 
 /*
 	Function: dl_alignment_of_type
@@ -96,7 +96,7 @@ unsigned int dl_size_of_type( HDLContext _Context, StrHash _TypeHash );
 	Returns:
 		The alignment of the type or 0 if not found in context.
 */
-unsigned int dl_alignment_of_type( HDLContext _Context, StrHash _TypeHash );
+unsigned int dl_alignment_of_type( dl_ctx_t _Context, dl_typeid_t _TypeHash );
 
 #ifdef __cplusplus
 }

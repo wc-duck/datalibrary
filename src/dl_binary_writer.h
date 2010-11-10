@@ -16,7 +16,7 @@
 class CDLBinaryWriter
 {
 public:
-	CDLBinaryWriter(uint8* _pOutData, pint _OutDataSize, bool _Dummy, EDLCpuEndian _SourceEndian, EDLCpuEndian _TargetEndian, EDLPtrSize _TargetPtrSize) 
+	CDLBinaryWriter(uint8* _pOutData, pint _OutDataSize, bool _Dummy, dl_endian_t _SourceEndian, dl_endian_t _TargetEndian, EDLPtrSize _TargetPtrSize) 
 		: m_Dummy(_Dummy)
 		, m_SourceEndian(_SourceEndian)
 		, m_TargetEndian(_TargetEndian)
@@ -148,8 +148,8 @@ private:
 	void UpdateNeededSize() { m_NeededSize = Max(m_NeededSize, m_Pos); }
 
 	bool       m_Dummy;
-	EDLCpuEndian m_SourceEndian;
-	EDLCpuEndian m_TargetEndian;
+	dl_endian_t m_SourceEndian;
+	dl_endian_t m_TargetEndian;
 	EDLPtrSize m_PtrSize;
 	pint       m_Pos;
 	pint       m_NeededSize;

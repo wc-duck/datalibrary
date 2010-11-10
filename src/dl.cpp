@@ -11,14 +11,14 @@
 
 static void* DLMallocAlloc(unsigned int  _Size, unsigned int _Alignment) { DL_UNUSED(_Alignment); return malloc(_Size); }
 static void  DLMallocFree (void* _pPtr) { free(_pPtr); }
-static SDLAllocFunctions g_DLMallocFreeFuncs = { DLMallocAlloc, DLMallocFree };
+static dl_alloc_functions_t g_DLMallocFreeFuncs = { DLMallocAlloc, DLMallocFree };
 
-EDLError dl_context_create( HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs )
+dl_error_t dl_context_create( dl_ctx_t* _pContext, dl_alloc_functions_t* _pDLAllocFuncs )
 {
 	if(_pDLAllocFuncs == 0x0)
 		_pDLAllocFuncs = &g_DLMallocFreeFuncs;
 
-	SDLContext* pCtx = (SDLContext*)_pDLAllocFuncs->m_Alloc(sizeof(SDLContext), sizeof(void*));
+	dl_context* pCtx = (dl_context*)_pDLAllocFuncs->m_Alloc(sizeof(dl_context), sizeof(void*));
 
 	if(pCtx == 0x0)
 		return DL_ERROR_OUT_OF_LIBRARY_MEMORY;
@@ -33,7 +33,7 @@ EDLError dl_context_create( HDLContext* _pContext, SDLAllocFunctions* _pDLAllocF
 	return DL_ERROR_OK;
 }
 
-EDLError dl_context_destroy(HDLContext _Context)
+dl_error_t dl_context_destroy(dl_ctx_t _Context)
 {
 	_Context->m_DLAllocFuncs->m_Free(_Context->m_TypeInfoData);
 	_Context->m_DLAllocFuncs->m_Free(_Context->m_EnumInfoData);
@@ -42,14 +42,14 @@ EDLError dl_context_destroy(HDLContext _Context)
 	return DL_ERROR_OK;
 }
 
-EDLError DLInternalConvertNoHeader( HDLContext     _Context,
+dl_error_t DLInternalConvertNoHeader( dl_ctx_t     _Context,
                                     unsigned char* _pData,
                                     unsigned char* _pBaseData,
                                     unsigned char* _pOutData,
                                     unsigned int   _OutDataSize,
                                     unsigned int*  _pNeededSize,
-                                    EDLCpuEndian     _SourceEndian,
-                                    EDLCpuEndian     _TargetEndian,
+                                    dl_endian_t     _SourceEndian,
+                                    dl_endian_t     _TargetEndian,
                                     EDLPtrSize     _SourcePtrSize,
                                     EDLPtrSize     _TargetPtrSize,
                                     const SDLType* _pRootType,
@@ -83,7 +83,7 @@ static void DLPatchPtr(const uint8* _pPtr, const uint8* _pBaseData)
 		pReadMe->m_RealData = _pBaseData + pReadMe->m_Offset;
 };
 
-static EDLError DLPatchLoadedPtrs( HDLContext         _Context,
+static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 								  SPatchedInstances* _pPatchedInstances,
 								  const uint8*       _pInstance,
 								  const SDLType*     _pType,
@@ -100,8 +100,8 @@ static EDLError DLPatchLoadedPtrs( HDLContext         _Context,
 		const SDLMember& Member = _pType->m_lMembers[iMember];
 		const uint8* pMemberData = _pInstance + Member.m_Offset[DL_PTR_SIZE_HOST];
 
-		EDLType AtomType    = Member.AtomType();
-		EDLType StorageType = Member.StorageType();
+		dl_type_t AtomType    = Member.AtomType();
+		dl_type_t StorageType = Member.StorageType();
 
 		switch(AtomType)
 		{
@@ -187,7 +187,7 @@ static EDLError DLPatchLoadedPtrs( HDLContext         _Context,
 	return DL_ERROR_OK;
 }
 
-static void DLLoadTypeLibraryLoadDefaults(HDLContext _Context, const uint8* _pDefaultData, pint _DefaultDataSize)
+static void DLLoadTypeLibraryLoadDefaults(dl_ctx_t _Context, const uint8* _pDefaultData, pint _DefaultDataSize)
 {
 	_Context->m_pDefaultInstances = (uint8*)_Context->m_DLAllocFuncs->m_Alloc(_DefaultDataSize * 2, sizeof(void*)); // times 2 here need to be fixed!
 
@@ -252,7 +252,7 @@ static void DLReadTLHeader(SDLTypeLibraryHeader* _pHeader, const uint8* _pData)
 	}
 }
 
-EDLError dl_context_load_type_library(HDLContext _Context, const unsigned char* _pData, unsigned int _DataSize)
+dl_error_t dl_context_load_type_library(dl_ctx_t _Context, const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLTypeLibraryHeader))
 		return DL_ERROR_MALFORMED_DATA;
@@ -275,7 +275,7 @@ EDLError dl_context_load_type_library(HDLContext _Context, const unsigned char* 
 	SDLTypeLookup* _pFromData = (SDLTypeLookup*)(_pData + sizeof(SDLTypeLibraryHeader));
 	for(uint32 i = 0; i < Header.m_nTypes; ++i)
 	{
-		SDLContext::STypeLookUp& Look = _Context->m_TypeLookUp[i];
+		dl_context::STypeLookUp& Look = _Context->m_TypeLookUp[i];
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
@@ -321,7 +321,7 @@ EDLError dl_context_load_type_library(HDLContext _Context, const unsigned char* 
 	SDLTypeLookup* _pEnumFromData = (SDLTypeLookup*)(_pData + Header.m_TypesOffset + Header.m_TypesSize);
 	for(uint32 i = 0; i < Header.m_nEnums; ++i)
 	{
-		SDLContext::SEnumLookUp& Look = _Context->m_EnumLookUp[i];
+		dl_context::SEnumLookUp& Look = _Context->m_EnumLookUp[i];
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
@@ -350,7 +350,7 @@ EDLError dl_context_load_type_library(HDLContext _Context, const unsigned char* 
 	return DL_ERROR_OK;
 }
 
-EDLError dl_instance_load(HDLContext _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
+dl_error_t dl_instance_load(dl_ctx_t _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
@@ -461,14 +461,14 @@ static void DLInternalStoreString(const uint8* _pInstance, CDLBinStoreContext* _
 	_pStoreContext->Write(&Offset, sizeof(pint));	
 }
 
-static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pType, uint8* _pInstance, CDLBinStoreContext* _pStoreContext);
+static dl_error_t DLInternalStoreInstance(dl_ctx_t _Context, const SDLType* _pType, uint8* _pInstance, CDLBinStoreContext* _pStoreContext);
 
-static EDLError DLInternalStoreMember(HDLContext _Context, const SDLMember* _pMember, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
+static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMember, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
 {
 	_pStoreContext->Align(_pMember->m_Alignment[DL_PTR_SIZE_HOST]);
 
-	EDLType AtomType    = EDLType(_pMember->m_Type & DL_TYPE_ATOM_MASK);
-	EDLType StorageType = EDLType(_pMember->m_Type & DL_TYPE_STORAGE_MASK);
+	dl_type_t AtomType    = dl_type_t(_pMember->m_Type & DL_TYPE_ATOM_MASK);
+	dl_type_t StorageType = dl_type_t(_pMember->m_Type & DL_TYPE_STORAGE_MASK);
 
 	switch (AtomType)
 	{
@@ -630,7 +630,7 @@ static EDLError DLInternalStoreMember(HDLContext _Context, const SDLMember* _pMe
 	return DL_ERROR_OK;
 }
 
-static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pType, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
+static dl_error_t DLInternalStoreInstance(dl_ctx_t _Context, const SDLType* _pType, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
 {
 	bool bLastWasBF = false;
 
@@ -640,7 +640,7 @@ static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pTy
 
 		if(!bLastWasBF || Member.AtomType() != DL_TYPE_ATOM_BITFIELD)
 		{
-			EDLError Err = DLInternalStoreMember(_Context, &Member, _pInstance + Member.m_Offset[DL_PTR_SIZE_HOST], _pStoreContext);
+			dl_error_t Err = DLInternalStoreMember(_Context, &Member, _pInstance + Member.m_Offset[DL_PTR_SIZE_HOST], _pStoreContext);
 			if(Err != DL_ERROR_OK)
 				return Err;
 		}
@@ -651,7 +651,7 @@ static EDLError DLInternalStoreInstance(HDLContext _Context, const SDLType* _pTy
 	return DL_ERROR_OK;
 }
 
-EDLError dl_instance_store(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
+dl_error_t dl_instance_store(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -672,7 +672,7 @@ EDLError dl_instance_store(HDLContext _Context, StrHash _TypeHash, void* _pInsta
 	StoreContext.Reserve(pType->m_Size[DL_PTR_SIZE_HOST]);
 	StoreContext.AddWrittenPtr(_pInstance, 0); // if pointer refere to root-node, it can be found at offset 0
 
-	EDLError err = DLInternalStoreInstance(_Context, pType, (uint8*)_pInstance, &StoreContext);
+	dl_error_t err = DLInternalStoreInstance(_Context, pType, (uint8*)_pInstance, &StoreContext);
 
 	// write instance size!
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
@@ -682,7 +682,7 @@ EDLError dl_instance_store(HDLContext _Context, StrHash _TypeHash, void* _pInsta
 	return err;
 }
 
-EDLError dl_instance_calc_size(HDLContext _Context, StrHash _TypeHash, void* _pInstance, unsigned int* _pDataSize)
+dl_error_t dl_instance_calc_size(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pInstance, unsigned int* _pDataSize)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
@@ -693,7 +693,7 @@ EDLError dl_instance_calc_size(HDLContext _Context, StrHash _TypeHash, void* _pI
 	StoreContext.Reserve(pType->m_Size[DL_PTR_SIZE_HOST]);
 	StoreContext.AddWrittenPtr(_pInstance, 0); // if pointer refere to root-node, it can be found at offset 0
 
-	EDLError err = DLInternalStoreInstance(_Context, pType, (uint8*)_pInstance, &StoreContext);
+	dl_error_t err = DLInternalStoreInstance(_Context, pType, (uint8*)_pInstance, &StoreContext);
 
 	StoreContext.SeekEnd();
 	*_pDataSize = StoreContext.Tell() + sizeof(SDLDataHeader);
@@ -701,7 +701,7 @@ EDLError dl_instance_calc_size(HDLContext _Context, StrHash _TypeHash, void* _pI
 	return err;
 }
 
-const char* dl_error_to_string(EDLError _Err)
+const char* dl_error_to_string(dl_error_t _Err)
 {
 #define M_DL_ERR_TO_STR(ERR) case ERR: return #ERR
 	switch(_Err)
@@ -739,7 +739,7 @@ unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _Dat
 	return ((SDLDataHeader*)_pData)->m_64BitPtr ? 8 : 4;
 }
 
-EDLCpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
+dl_endian_t dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
 {
 	if(_DataSize < sizeof(SDLDataHeader)) return DL_ENDIAN_HOST;
 
@@ -749,7 +749,7 @@ EDLCpuEndian dl_instance_endian(const unsigned char* _pData, unsigned int _DataS
 	return DL_ENDIAN_HOST;
 }
 
-StrHash dl_instance_root_type(const unsigned char* _pData, unsigned int _DataSize)
+dl_typeid_t dl_instance_root_type(const unsigned char* _pData, unsigned int _DataSize)
 {
 	const SDLDataHeader* pHeader = (const SDLDataHeader*)_pData;
 

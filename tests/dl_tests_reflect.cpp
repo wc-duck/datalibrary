@@ -16,10 +16,10 @@ struct TAlignmentOf
 
 TEST_F(DL, ReflectPods)
 {
-	SDLTypeInfo   Info;
-	SDLMemberInfo Members[128];
+	dl_type_info_t   Info;
+	dl_member_info_t Members[128];
 
-	EDLError err = dl_reflect_get_type_info(Ctx, SPods::TYPE_ID, &Info, Members, DL_ARRAY_LENGTH(Members));
+	dl_error_t err = dl_reflect_get_type_info(Ctx, SPods::TYPE_ID, &Info, Members, DL_ARRAY_LENGTH(Members));
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	EXPECT_STREQ("Pods", Info.m_Name);
@@ -117,7 +117,7 @@ TEST_F(DL, SizeAndAlignment)
 
 TEST_F(DL, TypeLookup)
 {
-	StrHash type_id;
+	dl_typeid_t type_id;
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "Pods2", &type_id) );
 	EXPECT_TRUE(SPods2::TYPE_ID == type_id);
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "StructArray1", &type_id) );

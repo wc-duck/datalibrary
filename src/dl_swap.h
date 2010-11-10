@@ -72,7 +72,7 @@ DL_FORCEINLINE double DLSwapEndian(double _SwapMe)
 	return conv.m_fp64;
 }
 
-DL_STATIC_ASSERT(sizeof(EDLType) == 4, dl_type_need_to_be_4_bytes);
-DL_FORCEINLINE EDLType DLSwapEndian(EDLType _SwapMe) { return (EDLType)DLSwapEndian((uint32)_SwapMe); }
+DL_STATIC_ASSERT(sizeof(dl_type_t) == 4, dl_type_need_to_be_4_bytes);
+DL_FORCEINLINE dl_type_t DLSwapEndian(dl_type_t _SwapMe) { return (dl_type_t)DLSwapEndian((uint32)_SwapMe); }
 
 #endif // DL_DL_SWAP_H_INCLUDED

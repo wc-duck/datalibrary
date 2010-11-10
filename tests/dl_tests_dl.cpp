@@ -30,7 +30,7 @@ static const uint32 DL_UINT32_MIN = 0x00000000UL;
 static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
 
 
-void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _pUnpackMe)
+void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void* _pUnpackMe)
 {
 	unsigned char OutDataInstance[1024];
 	char  TxtOut[2048];
@@ -39,7 +39,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 	memset(TxtOut, 0x0,  sizeof(TxtOut));
 
 	// store instance to binary
-	EDLError err = dl_instance_store(_Ctx, _TypeHash, _pPackMe, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance));
+	dl_error_t err = dl_instance_store(_Ctx, _TypeHash, _pPackMe, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance));
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 	EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance)));
 	EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(OutDataInstance,   DL_ARRAY_LENGTH(OutDataInstance)));
@@ -65,7 +65,7 @@ void DoTheRoundAbout(HDLContext _Ctx, StrHash _TypeHash, void* _pPackMe, void* _
 	err = dl_instance_load(_Ctx, _pUnpackMe, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-	EDLCpuEndian   OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
+	dl_endian_t   OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
 	unsigned int OtherPtrSize = sizeof(void*) == 4 ? 8 : 4;
 
 	// check if we can convert only endianness!
@@ -819,7 +819,7 @@ TEST(DLMisc, EndianIsCorrect)
 
 TEST(DLUtil, ErrorToString)
 {
-	for(EDLError Err = DL_ERROR_OK; Err < DL_ERROR_INTERNAL_ERROR; Err = EDLError(uint(Err) + 1))
+	for(dl_error_t Err = DL_ERROR_OK; Err < DL_ERROR_INTERNAL_ERROR; Err = dl_error_t(uint(Err) + 1))
 		EXPECT_STRNE("Unknown error!", dl_error_to_string(Err));
 }
 

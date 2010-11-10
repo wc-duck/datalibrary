@@ -4,9 +4,9 @@
 
 #include "dl_types.h"
 
-EDLError DL_DLL_EXPORT dl_reflect_get_type_id( HDLContext _Context,
-                                               const char* _TypeName,
-                                               StrHash*    _pTypeID )
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t   _Context,
+                                                const char*  _TypeName,
+                                                dl_typeid_t* _pTypeID )
 {
 	*_pTypeID = DLHashString( _TypeName );
 	const SDLType* pType = DLFindType(_Context, *_pTypeID);
@@ -16,7 +16,7 @@ EDLError DL_DLL_EXPORT dl_reflect_get_type_id( HDLContext _Context,
 	return DL_ERROR_OK;
 }
 
-EDLError dl_reflect_get_type_info(HDLContext _Context, StrHash _TypeID, SDLTypeInfo* _pType, SDLMemberInfo* _pMembers, unsigned int _nMembers)
+dl_error_t dl_reflect_get_type_info(dl_ctx_t _Context, dl_typeid_t _TypeID, dl_type_info_t* _pType, dl_member_info_t* _pMembers, unsigned int _nMembers)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeID);
 	if(pType == 0x0)
@@ -61,13 +61,13 @@ EDLError dl_reflect_get_type_info(HDLContext _Context, StrHash _TypeID, SDLTypeI
 	return DL_ERROR_OK;
 }
 
-unsigned int dl_size_of_type(HDLContext _Context, StrHash _TypeHash)
+unsigned int dl_size_of_type(dl_ctx_t _Context, dl_typeid_t _TypeHash)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	return pType == 0x0 ? 0 : pType->m_Size[DL_PTR_SIZE_HOST];
 }
 
-unsigned int dl_alignment_of_type(HDLContext _Context, StrHash _TypeHash)
+unsigned int dl_alignment_of_type(dl_ctx_t _Context, dl_typeid_t _TypeHash)
 {
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	return pType == 0x0 ? 0 : pType->m_Alignment[DL_PTR_SIZE_HOST];

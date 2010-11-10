@@ -34,7 +34,7 @@ TEST_F(DL, TextMemberOrder)
  	uint8 OutDataText[1024];
 
 	// pack txt to binary
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	// load binary
@@ -79,7 +79,7 @@ TEST_F(DL, TextSetMemberTwice)
 	uint8 OutDataText[1024];
 
 	// pack txt to binary
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, err);
 }
 
@@ -97,7 +97,7 @@ TEST_F(DL, TextNonExistMember)
 	uint8 OutDataText[1024];
 
 	// pack txt to binary
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_MEMBER_NOT_FOUND, err);
 }
 
@@ -109,7 +109,7 @@ TEST_F(DL, TextErrorMissingMember)
 	const char* TextData = "{ \"root\" : { \"type\" : \"Pods2\", \"data\" : { \"Int1\" : 1337 } } }";
 
 	uint8 OutDataText[1024];
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, err);
 }
 
@@ -121,7 +121,7 @@ TEST_F(DL, TextPodDefaults)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SPodsDefaults P1;
@@ -150,7 +150,7 @@ TEST_F(DL, TextDefaultStr)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultStr P1[10]; // this is so ugly!
@@ -170,7 +170,7 @@ TEST_F(DL, TextDefaultPtr)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultPtr P1; // this is so ugly!
@@ -188,7 +188,7 @@ TEST_F(DL, TextDefaultStruct)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultStruct P1; // this is so ugly!
@@ -207,7 +207,7 @@ TEST_F(DL, TextDefaultEnum)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultEnum P1;
@@ -227,7 +227,7 @@ TEST_F(DL, TextDefaultInlineArrayPod)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultInlArrayPod P1;
@@ -250,7 +250,7 @@ TEST_F(DL, TextDefaultInlineArrayEnum)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultInlArrayEnum P1;
@@ -273,7 +273,7 @@ TEST_F(DL, TextDefaultInlineArrayString)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultInlArrayStr P1[10];
@@ -294,7 +294,7 @@ TEST_F(DL, TextDefaultArrayPod)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultArrayPod P1[10];
@@ -317,7 +317,7 @@ TEST_F(DL, TextDefaultArrayEnum)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultArrayEnum P1[10];
@@ -342,7 +342,7 @@ TEST_F(DL, TextDefaultArrayString)
 
 	uint8 OutDataText[1024];
 
-	EDLError err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
+	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
 	SDefaultArrayStr P1[10];

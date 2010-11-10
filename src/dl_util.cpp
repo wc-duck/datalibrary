@@ -11,10 +11,10 @@
 
 // TODO: DLType sent to these functions should be used for type-checks, make it possible to ignore in some way?
 
-EDLError dl_util_load_from_file( HDLContext _Ctx,
+dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
                                  const char* _pFileName,
-                                 StrHash _DLType,
-                                 EDLUtilFileType file_type,
+                                 dl_typeid_t _DLType,
+                                 dl_util_file_type_t file_type,
                                  void** _ppInstance )
 {
 	// TODO: this function need to handle alignment for _ppInstance
@@ -29,7 +29,7 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 	// read only first byte to determine if entire file should be read.
 	if( fread( &dl_header_data_id, sizeof(uint32), 1, in_file) != sizeof(uint32) ) { fclose(in_file); return DL_ERROR_MALFORMED_DATA; }
 
-	EDLUtilFileType in_file_type = DL_UTIL_FILE_TYPE_TEXT;
+	dl_util_file_type_t in_file_type = DL_UTIL_FILE_TYPE_TEXT;
 	if( dl_header_data_id != DL_TYPE_DATA_ID || dl_header_data_id != DL_TYPE_DATA_ID_SWAPED )
 		in_file_type = DL_UTIL_FILE_TYPE_BINARY;
 
@@ -44,7 +44,7 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 	file_content[file_size] = '\0';
 	fclose(in_file);
 
-	EDLError error = DL_ERROR_OK;
+	dl_error_t error = DL_ERROR_OK;
 	unsigned char* load_instance = 0x0;
 	unsigned int   load_size = 0;
 
@@ -103,10 +103,10 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
 	return error;
 }
 
-EDLError dl_util_load_from_file_inplace( HDLContext      _Ctx,
+dl_error_t dl_util_load_from_file_inplace( dl_ctx_t      _Ctx,
                                          const char*     _pFileName,
-                                         StrHash         _DLType,
-                                         EDLUtilFileType _FileType,
+                                         dl_typeid_t         _DLType,
+                                         dl_util_file_type_t _FileType,
                                          void*           _ppInstance,
                                          unsigned int    _InstanceSize )
 {
@@ -114,11 +114,11 @@ EDLError dl_util_load_from_file_inplace( HDLContext      _Ctx,
 	return DL_ERROR_INTERNAL_ERROR; // TODO: Build me
 }
 
-EDLError dl_util_store_to_file( HDLContext      _Ctx,
+dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
                                 const char*     _pFileName,
-                                StrHash         _DLType,
-                                EDLUtilFileType _FileType,
-                                EDLCpuEndian    _Endian,
+                                dl_typeid_t         _DLType,
+                                dl_util_file_type_t _FileType,
+                                dl_endian_t    _Endian,
                                 unsigned int    _PtrSize,
                                 void*           _pInstance )
 {
@@ -128,7 +128,7 @@ EDLError dl_util_store_to_file( HDLContext      _Ctx,
 	unsigned int packed_size = 0;
 
 	// calculate pack-size
-	EDLError error = dl_instance_calc_size( _Ctx, _DLType, _pInstance, &packed_size );
+	dl_error_t error = dl_instance_calc_size( _Ctx, _DLType, _pInstance, &packed_size );
 
 	if( error != DL_ERROR_OK)
 		return error;

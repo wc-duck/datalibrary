@@ -11,14 +11,14 @@
 #include <dl/dl.h>
 
 /*
-	Enum: EDLUtilFileType
+	Enum: dl_util_file_type_t
 		Enumeration of possible file types that can be read by util-functions.
 
 	DL_UTIL_FILE_TYPE_BINARY - File must be an binary instance.
 	DL_UTIL_FILE_TYPE_TEXT   - File must be an text instance.
 	DL_UTIL_FILE_TYPE_AUTO   - Let the function decide if binary or text.
 */
-enum EDLUtilFileType
+enum dl_util_file_type_t
 {
 	DL_UTIL_FILE_TYPE_BINARY = DL_BIT(0),
 	DL_UTIL_FILE_TYPE_TEXT   = DL_BIT(1),
@@ -44,10 +44,10 @@ enum EDLUtilFileType
 	Returns:
 		DL_ERROR_OK on success.
 */
-EDLError dl_util_load_from_file( HDLContext      _Ctx,
-                                 const char*     _pFileName,
-                                 EDLUtilFileType _FileType,
-                                 void**          _ppInstance );
+dl_error_t dl_util_load_from_file( dl_ctx_t            _Ctx,
+                                   const char*         _pFileName,
+                                   dl_util_file_type_t _FileType,
+                                   void**              _ppInstance );
 
 /*
 	Function: dl_util_load_from_file_inplace
@@ -67,11 +67,11 @@ EDLError dl_util_load_from_file( HDLContext      _Ctx,
 	Returns:
 		DL_ERROR_OK on success.
 */
-EDLError dl_util_load_from_file_inplace( HDLContext      _Ctx,
-                                         const char*     _pFileName,
-                                         EDLUtilFileType _FileType,
-                                         void*           _ppInstance,
-                                         unsigned int    _InstanceSize );
+dl_error_t dl_util_load_from_file_inplace( dl_ctx_t            _Ctx,
+                                           const char*         _pFileName,
+                                           dl_util_file_type_t _FileType,
+                                           void*               _ppInstance,
+                                           unsigned int        _InstanceSize );
 
 /*
 	Function: dl_util_store_to_file
@@ -92,11 +92,11 @@ EDLError dl_util_load_from_file_inplace( HDLContext      _Ctx,
 	Returns:
 		DL_ERROR_OK on success.
 */
-EDLError dl_util_store_to_file( HDLContext      _Ctx,
-                                const char*     _pFileName,
-                                EDLUtilFileType _FileType,
-                                EDLCpuEndian    _Endian,
-                                unsigned int    _PtrSize,
-                                void*           _ppInstance );
+dl_error_t dl_util_store_to_file( dl_ctx_t            _Ctx,
+                                  const char*         _pFileName,
+                                  dl_util_file_type_t _FileType,
+                                  dl_endian_t         _Endian,
+                                  unsigned int        _PtrSize,
+                                  void*               _ppInstance );
 
 #endif // DL_DL_UTIL_H_INCLUDED

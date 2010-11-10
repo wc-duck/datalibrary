@@ -15,7 +15,7 @@ static void  MyFree (void* _pPtr) { free(_pPtr); }
 class DL : public ::testing::Test
 {
 protected:
-	SDLAllocFunctions MyAllocs;
+	dl_alloc_functions_t MyAllocs;
 
 	virtual void SetUp()
 	{
@@ -38,7 +38,7 @@ protected:
 	}
 
 public:
-	HDLContext Ctx;
+	dl_ctx_t Ctx;
 };
 
 #endif // DL_DL_TEST_COMMON_H_INCLUDED

@@ -28,13 +28,13 @@ extern "C" {
 		_Endian      - Endian to convert the packed instance to.
 		_PtrSize     - Size in bytes of pointers after conversions, valid values 4 and 8.
 */
-EDLError DL_DLL_EXPORT dl_convert( HDLContext     _Context,
-                                   unsigned char* _pData,
-                                   unsigned int   _DataSize,
-                                   unsigned char* _pOutData,
-                                   unsigned int   _OutDataSize,
-                                   EDLCpuEndian   _Endian,
-                                   unsigned int   _PtrSize );
+dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       _Context,
+                                     unsigned char* _pData,
+                                     unsigned int   _DataSize,
+                                     unsigned char* _pOutData,
+                                     unsigned int   _OutDataSize,
+                                     dl_endian_t    _Endian,
+                                     unsigned int   _PtrSize );
 
 /*
 	Function: dl_convert_inplace
@@ -50,11 +50,11 @@ EDLError DL_DLL_EXPORT dl_convert( HDLContext     _Context,
 	Note:
 		Function is restricted to converting endianness and converting 8-byte ptr:s to 4-byte ptr:s
 */
-EDLError DL_DLL_EXPORT dl_convert_inplace( HDLContext     _Context,
-                                           unsigned char* _pData,
-                                           unsigned int   _DataSize,
-                                           EDLCpuEndian   _Endian,
-                                           unsigned int   _PtrSize );
+dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t     _Context,
+                                             unsigned char* _pData,
+                                             unsigned int   _DataSize,
+                                             dl_endian_t   _Endian,
+                                             unsigned int   _PtrSize );
 
 /*
 	Function: dl_convert_calc_size
@@ -67,11 +67,11 @@ EDLError DL_DLL_EXPORT dl_convert_inplace( HDLContext     _Context,
 		_PtrSize     - Size in bytes of pointers after conversions, valid values 4 and 8.
 		_pResultSize - Ptr where to store the calculated size.
 */
-EDLError DL_DLL_EXPORT dl_convert_calc_size( HDLContext     _Context,
-                                             unsigned char* _pData,
-                                             unsigned int   _DataSize,
-                                             unsigned int   _PtrSize,
-                                             unsigned int*  _pResultSize );
+dl_error_t DL_DLL_EXPORT dl_convert_calc_size( dl_ctx_t       _Context,
+                                               unsigned char* _pData,
+                                               unsigned int   _DataSize,
+                                               unsigned int   _PtrSize,
+                                               unsigned int*  _pResultSize );
 
 #ifdef __cplusplus
 }
