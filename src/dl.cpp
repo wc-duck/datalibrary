@@ -13,7 +13,7 @@ static void* DLMallocAlloc(unsigned int  _Size, unsigned int _Alignment) { DL_UN
 static void  DLMallocFree (void* _pPtr) { free(_pPtr); }
 static SDLAllocFunctions g_DLMallocFreeFuncs = { DLMallocAlloc, DLMallocFree };
 
-EDLError dl_context_create(HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs, SDLAllocFunctions* _pInstanceAllocFuncs)
+EDLError dl_context_create( HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs )
 {
 	if(_pDLAllocFuncs == 0x0)
 		_pDLAllocFuncs = &g_DLMallocFreeFuncs;
@@ -24,7 +24,6 @@ EDLError dl_context_create(HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFu
 		return DL_ERROR_OUT_OF_LIBRARY_MEMORY;
 
 	pCtx->m_DLAllocFuncs       = _pDLAllocFuncs;
-	pCtx->m_InstanceAllocFuncs = _pInstanceAllocFuncs;
 
 	pCtx->m_nTypes = 0;
 	pCtx->m_nEnums = 0;

@@ -234,7 +234,6 @@ DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), 
 struct SDLContext
 {
 	SDLAllocFunctions* m_DLAllocFuncs;
-	SDLAllocFunctions* m_InstanceAllocFuncs;
 
 	struct STypeLookUp { StrHash  m_TypeID; SDLType* m_pType; } m_TypeLookUp[128]; // dynamic alloc?
 	struct SEnumLookUp { StrHash  m_EnumID; SDLEnum* m_pEnum; } m_EnumLookUp[128]; // dynamic alloc?

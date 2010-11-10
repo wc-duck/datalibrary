@@ -156,12 +156,8 @@ struct SDLAllocFunctions
 		_pDLAllocFuncs       - Allocation functions that will be used when allocating context and loaded type-libraries when using this context. 
 		                       This memory will be freed by DL.
 							   If NULL, malloc/free will be used by default!
-		_pInstanceAllocFuncs - Allocation functions that will be used when allocating instance data when using this context. Could be NULL. 
-		                       This memory will NOT be freed by DL.
 */
-EDLError DL_DLL_EXPORT dl_context_create( HDLContext*        _pContext,
-                                          SDLAllocFunctions* _pDLAllocFuncs,
-                                          SDLAllocFunctions* _pInstanceAllocFuncs );
+EDLError DL_DLL_EXPORT dl_context_create( HDLContext* _pContext, SDLAllocFunctions* _pDLAllocFuncs );
 
 /*
 	Function: dl_context_destroy

@@ -28,11 +28,8 @@ protected:
 		MyAllocs.m_Alloc = MyAlloc;
 		MyAllocs.m_Free  = MyFree;
 
-		EDLError err = dl_context_create(&Ctx, &MyAllocs, &MyAllocs);
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-
-		err = dl_context_load_type_library(Ctx, TypeLib, sizeof(TypeLib));
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &MyAllocs ) );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib, sizeof(TypeLib)) );
 	}
 
 	virtual void TearDown()

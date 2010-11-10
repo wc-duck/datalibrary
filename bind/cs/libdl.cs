@@ -150,7 +150,7 @@ public class CDLContext
     private extern static int DLContextDestroy(IntPtr _Context);
 
     [DllImport("dldyn.dll", EntryPoint = "dl_context_create", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLContextCreate(IntPtr _pContext, IntPtr _pDLAllocFuncs, IntPtr _pInstanceAllocFuncs);
+    private extern static int DLContextCreate(IntPtr _pContext, IntPtr _pDLAllocFuncs);
 
     [DllImport("dldyn.dll", EntryPoint = "dl_instance_load", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLLoadInstanceInplace(IntPtr _Context, IntPtr _pInstance, byte[] _pData, int _DataSize);
