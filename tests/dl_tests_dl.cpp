@@ -197,203 +197,203 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 
 TEST_F(DL, TestPack)
 {
-	SPods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
-	SPods P1         = { 0 };
+	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
+	Pods P1         = { 0 };
 
-	DoTheRoundAbout(Ctx, SPods::TYPE_ID, &P1Original, &P1);
+	DoTheRoundAbout(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
-	EXPECT_EQ(P1Original.m_int8,   P1.m_int8);
-	EXPECT_EQ(P1Original.m_int16,  P1.m_int16);
-	EXPECT_EQ(P1Original.m_int32,  P1.m_int32);
-	EXPECT_EQ(P1Original.m_int64,  P1.m_int64);
-	EXPECT_EQ(P1Original.m_uint8,  P1.m_uint8);
-	EXPECT_EQ(P1Original.m_uint16, P1.m_uint16);
-	EXPECT_EQ(P1Original.m_uint32, P1.m_uint32);
-	EXPECT_EQ(P1Original.m_uint64, P1.m_uint64);
-	EXPECT_EQ(P1Original.m_fp32,   P1.m_fp32);
-	EXPECT_EQ(P1Original.m_fp64,   P1.m_fp64);
+	EXPECT_EQ(P1Original.i8,   P1.i8);
+	EXPECT_EQ(P1Original.i16,  P1.i16);
+	EXPECT_EQ(P1Original.i32,  P1.i32);
+	EXPECT_EQ(P1Original.i64,  P1.i64);
+	EXPECT_EQ(P1Original.u8,  P1.u8);
+	EXPECT_EQ(P1Original.u16, P1.u16);
+	EXPECT_EQ(P1Original.u32, P1.u32);
+	EXPECT_EQ(P1Original.u64, P1.u64);
+	EXPECT_EQ(P1Original.f32,   P1.f32);
+	EXPECT_EQ(P1Original.f64,   P1.f64);
 }
 
 TEST_F(DL, MaxPod)
 {
-	SPods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
-	SPods P1         = { 0 };
+	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
+	Pods P1         = { 0 };
 
-	DoTheRoundAbout(Ctx, SPods::TYPE_ID, &P1Original, &P1);
+	DoTheRoundAbout(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
-	EXPECT_EQ(P1Original.m_int8,   P1.m_int8);
-	EXPECT_EQ(P1Original.m_int16,  P1.m_int16);
-	EXPECT_EQ(P1Original.m_int32,  P1.m_int32);
-	EXPECT_EQ(P1Original.m_int64,  P1.m_int64);
-	EXPECT_EQ(P1Original.m_uint8,  P1.m_uint8);
-	EXPECT_EQ(P1Original.m_uint16, P1.m_uint16);
-	EXPECT_EQ(P1Original.m_uint32, P1.m_uint32);
-	EXPECT_EQ(P1Original.m_uint64, P1.m_uint64);
+	EXPECT_EQ(P1Original.i8,   P1.i8);
+	EXPECT_EQ(P1Original.i16,  P1.i16);
+	EXPECT_EQ(P1Original.i32,  P1.i32);
+	EXPECT_EQ(P1Original.i64,  P1.i64);
+	EXPECT_EQ(P1Original.u8,  P1.u8);
+	EXPECT_EQ(P1Original.u16, P1.u16);
+	EXPECT_EQ(P1Original.u32, P1.u32);
+	EXPECT_EQ(P1Original.u64, P1.u64);
 	// need to disable these tests for floating-point-errors =/
-	// EXPECT_FLOAT_EQ(P1Original.m_fp32,   P1.m_fp32);
-	// EXPECT_DOUBLE_EQ(P1Original.m_fp64,   P1.m_fp64);
+	// EXPECT_FLOAT_EQ(P1Original.f32,   P1.f32);
+	// EXPECT_DOUBLE_EQ(P1Original.f64,   P1.f64);
 }
 
 TEST_F(DL, MinPod)
 {
-	SPods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
-	SPods P1         = { 0 };
+	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
+	Pods P1         = { 0 };
 
-	DoTheRoundAbout(Ctx, SPods::TYPE_ID, &P1Original, &P1);
+	DoTheRoundAbout(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
-	EXPECT_EQ(P1Original.m_int8,   P1.m_int8);
-	EXPECT_EQ(P1Original.m_int16,  P1.m_int16);
-	EXPECT_EQ(P1Original.m_int32,  P1.m_int32);
-	EXPECT_EQ(P1Original.m_int64,  P1.m_int64);
-	EXPECT_EQ(P1Original.m_uint8,  P1.m_uint8);
-	EXPECT_EQ(P1Original.m_uint16, P1.m_uint16);
-	EXPECT_EQ(P1Original.m_uint32, P1.m_uint32);
-	EXPECT_EQ(P1Original.m_uint64, P1.m_uint64);
-	EXPECT_NEAR(P1Original.m_fp32, P1.m_fp32, 0.0000001f);
-	EXPECT_NEAR(P1Original.m_fp64, P1.m_fp64, 0.0000001f);
+	EXPECT_EQ(P1Original.i8,   P1.i8);
+	EXPECT_EQ(P1Original.i16,  P1.i16);
+	EXPECT_EQ(P1Original.i32,  P1.i32);
+	EXPECT_EQ(P1Original.i64,  P1.i64);
+	EXPECT_EQ(P1Original.u8,  P1.u8);
+	EXPECT_EQ(P1Original.u16, P1.u16);
+	EXPECT_EQ(P1Original.u32, P1.u32);
+	EXPECT_EQ(P1Original.u64, P1.u64);
+	EXPECT_NEAR(P1Original.f32, P1.f32, 0.0000001f);
+	EXPECT_NEAR(P1Original.f64, P1.f64, 0.0000001f);
 }
 
 TEST_F(DL, StructInStruct)
 {
-	SMorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
-	SMorePods P1         = { { 0 }, { 0 } };
+	MorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
+	MorePods P1         = { { 0 }, { 0 } };
 
-	DoTheRoundAbout(Ctx, SMorePods::TYPE_ID, &P1Original, &P1);
+	DoTheRoundAbout(Ctx, MorePods::TYPE_ID, &P1Original, &P1);
 
-	EXPECT_EQ(P1Original.m_Pods1.m_int8,   P1.m_Pods1.m_int8);
-	EXPECT_EQ(P1Original.m_Pods1.m_int16,  P1.m_Pods1.m_int16);
-	EXPECT_EQ(P1Original.m_Pods1.m_int32,  P1.m_Pods1.m_int32);
-	EXPECT_EQ(P1Original.m_Pods1.m_int64,  P1.m_Pods1.m_int64);
-	EXPECT_EQ(P1Original.m_Pods1.m_uint8,  P1.m_Pods1.m_uint8);
-	EXPECT_EQ(P1Original.m_Pods1.m_uint16, P1.m_Pods1.m_uint16);
-	EXPECT_EQ(P1Original.m_Pods1.m_uint32, P1.m_Pods1.m_uint32);
-	EXPECT_EQ(P1Original.m_Pods1.m_uint64, P1.m_Pods1.m_uint64);
-	EXPECT_NEAR(P1Original.m_Pods1.m_fp32, P1.m_Pods1.m_fp32, 0.0000001f);
-	EXPECT_NEAR(P1Original.m_Pods1.m_fp64, P1.m_Pods1.m_fp64, 0.0000001f);
+	EXPECT_EQ(P1Original.Pods1.i8,    P1.Pods1.i8);
+	EXPECT_EQ(P1Original.Pods1.i16,   P1.Pods1.i16);
+	EXPECT_EQ(P1Original.Pods1.i32,   P1.Pods1.i32);
+	EXPECT_EQ(P1Original.Pods1.i64,   P1.Pods1.i64);
+	EXPECT_EQ(P1Original.Pods1.u8,    P1.Pods1.u8);
+	EXPECT_EQ(P1Original.Pods1.u16,   P1.Pods1.u16);
+	EXPECT_EQ(P1Original.Pods1.u32,   P1.Pods1.u32);
+	EXPECT_EQ(P1Original.Pods1.u64,   P1.Pods1.u64);
+	EXPECT_NEAR(P1Original.Pods1.f32, P1.Pods1.f32, 0.0000001f);
+	EXPECT_NEAR(P1Original.Pods1.f64, P1.Pods1.f64, 0.0000001f);
 
-	EXPECT_EQ(P1Original.m_Pods2.m_int8,   P1.m_Pods2.m_int8);
-	EXPECT_EQ(P1Original.m_Pods2.m_int16,  P1.m_Pods2.m_int16);
-	EXPECT_EQ(P1Original.m_Pods2.m_int32,  P1.m_Pods2.m_int32);
-	EXPECT_EQ(P1Original.m_Pods2.m_int64,  P1.m_Pods2.m_int64);
-	EXPECT_EQ(P1Original.m_Pods2.m_uint8,  P1.m_Pods2.m_uint8);
-	EXPECT_EQ(P1Original.m_Pods2.m_uint16, P1.m_Pods2.m_uint16);
-	EXPECT_EQ(P1Original.m_Pods2.m_uint32, P1.m_Pods2.m_uint32);
-	EXPECT_EQ(P1Original.m_Pods2.m_uint64, P1.m_Pods2.m_uint64);
-	EXPECT_NEAR(P1Original.m_Pods2.m_fp32, P1.m_Pods2.m_fp32, 0.0000001f);
-	EXPECT_NEAR(P1Original.m_Pods2.m_fp64, P1.m_Pods2.m_fp64, 0.0000001f);
+	EXPECT_EQ(P1Original.Pods2.i8,    P1.Pods2.i8);
+	EXPECT_EQ(P1Original.Pods2.i16,   P1.Pods2.i16);
+	EXPECT_EQ(P1Original.Pods2.i32,   P1.Pods2.i32);
+	EXPECT_EQ(P1Original.Pods2.i64,   P1.Pods2.i64);
+	EXPECT_EQ(P1Original.Pods2.u8,    P1.Pods2.u8);
+	EXPECT_EQ(P1Original.Pods2.u16,   P1.Pods2.u16);
+	EXPECT_EQ(P1Original.Pods2.u32,   P1.Pods2.u32);
+	EXPECT_EQ(P1Original.Pods2.u64,   P1.Pods2.u64);
+	EXPECT_NEAR(P1Original.Pods2.f32, P1.Pods2.f32, 0.0000001f);
+	EXPECT_NEAR(P1Original.Pods2.f64, P1.Pods2.f64, 0.0000001f);
 }
 
 TEST_F(DL, StructInStructInStruct)
 {
-	SPod2InStructInStruct Orig;
-	SPod2InStructInStruct New;
+	Pod2InStructInStruct Orig;
+	Pod2InStructInStruct New;
 
-	Orig.m_Pod2InStruct.m_Pod1.m_Int1 = 1337;
-	Orig.m_Pod2InStruct.m_Pod1.m_Int2 = 7331;
-	Orig.m_Pod2InStruct.m_Pod2.m_Int1 = 1234;
-	Orig.m_Pod2InStruct.m_Pod2.m_Int2 = 4321;
+	Orig.p2struct.Pod1.Int1 = 1337;
+	Orig.p2struct.Pod1.Int2 = 7331;
+	Orig.p2struct.Pod2.Int1 = 1234;
+	Orig.p2struct.Pod2.Int2 = 4321;
 
-	DoTheRoundAbout(Ctx, SPod2InStructInStruct::TYPE_ID, &Orig, &New);
+	DoTheRoundAbout(Ctx, Pod2InStructInStruct::TYPE_ID, &Orig, &New);
 
-	EXPECT_EQ(Orig.m_Pod2InStruct.m_Pod1.m_Int1, New.m_Pod2InStruct.m_Pod1.m_Int1);
-	EXPECT_EQ(Orig.m_Pod2InStruct.m_Pod1.m_Int2, New.m_Pod2InStruct.m_Pod1.m_Int2);
-	EXPECT_EQ(Orig.m_Pod2InStruct.m_Pod2.m_Int1, New.m_Pod2InStruct.m_Pod2.m_Int1);
-	EXPECT_EQ(Orig.m_Pod2InStruct.m_Pod2.m_Int2, New.m_Pod2InStruct.m_Pod2.m_Int2);
+	EXPECT_EQ(Orig.p2struct.Pod1.Int1, New.p2struct.Pod1.Int1);
+	EXPECT_EQ(Orig.p2struct.Pod1.Int2, New.p2struct.Pod1.Int2);
+	EXPECT_EQ(Orig.p2struct.Pod2.Int1, New.p2struct.Pod2.Int1);
+	EXPECT_EQ(Orig.p2struct.Pod2.Int2, New.p2struct.Pod2.Int2);
 }
 
 TEST_F(DL, InlineArray)
 {
-	SWithInlineArray Orig;
-	SWithInlineArray New;
+	WithInlineArray Orig;
+	WithInlineArray New;
 
-	Orig.m_lArray[0] = 1337;
-	Orig.m_lArray[1] = 7331;
-	Orig.m_lArray[2] = 1234;
+	Orig.Array[0] = 1337;
+	Orig.Array[1] = 7331;
+	Orig.Array[2] = 1234;
 
-	DoTheRoundAbout(Ctx, SWithInlineArray::TYPE_ID, &Orig, &New);
+	DoTheRoundAbout(Ctx, WithInlineArray::TYPE_ID, &Orig, &New);
 
-	EXPECT_EQ(Orig.m_lArray[0], New.m_lArray[0]);
-	EXPECT_EQ(Orig.m_lArray[1], New.m_lArray[1]);
-	EXPECT_EQ(Orig.m_lArray[2], New.m_lArray[2]);
+	EXPECT_EQ(Orig.Array[0], New.Array[0]);
+	EXPECT_EQ(Orig.Array[1], New.Array[1]);
+	EXPECT_EQ(Orig.Array[2], New.Array[2]);
 }
 
 TEST_F(DL, WithInlineStructArray)
 {
-	SWithInlineStructArray Orig;
-	SWithInlineStructArray New;
+	WithInlineStructArray Orig;
+	WithInlineStructArray New;
 
-	Orig.m_lArray[0].m_Int1 = 1337;
-	Orig.m_lArray[0].m_Int2 = 7331;
-	Orig.m_lArray[1].m_Int1 = 1224;
-	Orig.m_lArray[1].m_Int2 = 5678;
-	Orig.m_lArray[2].m_Int1 = 9012;
-	Orig.m_lArray[2].m_Int2 = 3456;
+	Orig.Array[0].Int1 = 1337;
+	Orig.Array[0].Int2 = 7331;
+	Orig.Array[1].Int1 = 1224;
+	Orig.Array[1].Int2 = 5678;
+	Orig.Array[2].Int1 = 9012;
+	Orig.Array[2].Int2 = 3456;
 
-	DoTheRoundAbout(Ctx, SWithInlineStructArray::TYPE_ID, &Orig, &New);
+	DoTheRoundAbout(Ctx, WithInlineStructArray::TYPE_ID, &Orig, &New);
 
-	EXPECT_EQ(Orig.m_lArray[0].m_Int1, New.m_lArray[0].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[0].m_Int2, New.m_lArray[0].m_Int2);
-	EXPECT_EQ(Orig.m_lArray[1].m_Int1, New.m_lArray[1].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[1].m_Int2, New.m_lArray[1].m_Int2);
-	EXPECT_EQ(Orig.m_lArray[2].m_Int1, New.m_lArray[2].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[2].m_Int2, New.m_lArray[2].m_Int2);
+	EXPECT_EQ(Orig.Array[0].Int1, New.Array[0].Int1);
+	EXPECT_EQ(Orig.Array[0].Int2, New.Array[0].Int2);
+	EXPECT_EQ(Orig.Array[1].Int1, New.Array[1].Int1);
+	EXPECT_EQ(Orig.Array[1].Int2, New.Array[1].Int2);
+	EXPECT_EQ(Orig.Array[2].Int1, New.Array[2].Int1);
+	EXPECT_EQ(Orig.Array[2].Int2, New.Array[2].Int2);
 }
 
 TEST_F(DL, WithInlineStructStructArray)
 {
-	SWithInlineStructStructArray Orig;
-	SWithInlineStructStructArray New;
+	WithInlineStructStructArray Orig;
+	WithInlineStructStructArray New;
 
-	Orig.m_lArray[0].m_lArray[0].m_Int1 = 1;
-	Orig.m_lArray[0].m_lArray[0].m_Int2 = 3;
-	Orig.m_lArray[0].m_lArray[1].m_Int1 = 3;
-	Orig.m_lArray[0].m_lArray[1].m_Int2 = 7;
-	Orig.m_lArray[0].m_lArray[2].m_Int1 = 13;
-	Orig.m_lArray[0].m_lArray[2].m_Int2 = 37;
-	Orig.m_lArray[1].m_lArray[0].m_Int1 = 1337;
-	Orig.m_lArray[1].m_lArray[0].m_Int2 = 7331;
-	Orig.m_lArray[1].m_lArray[1].m_Int1 = 1;
-	Orig.m_lArray[1].m_lArray[1].m_Int2 = 337;
-	Orig.m_lArray[1].m_lArray[2].m_Int1 = 133;
-	Orig.m_lArray[1].m_lArray[2].m_Int2 = 7;
+	Orig.Array[0].Array[0].Int1 = 1;
+	Orig.Array[0].Array[0].Int2 = 3;
+	Orig.Array[0].Array[1].Int1 = 3;
+	Orig.Array[0].Array[1].Int2 = 7;
+	Orig.Array[0].Array[2].Int1 = 13;
+	Orig.Array[0].Array[2].Int2 = 37;
+	Orig.Array[1].Array[0].Int1 = 1337;
+	Orig.Array[1].Array[0].Int2 = 7331;
+	Orig.Array[1].Array[1].Int1 = 1;
+	Orig.Array[1].Array[1].Int2 = 337;
+	Orig.Array[1].Array[2].Int1 = 133;
+	Orig.Array[1].Array[2].Int2 = 7;
 
-	DoTheRoundAbout(Ctx, SWithInlineStructStructArray::TYPE_ID, &Orig, &New);
+	DoTheRoundAbout(Ctx, WithInlineStructStructArray::TYPE_ID, &Orig, &New);
 
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[0].m_Int1, New.m_lArray[0].m_lArray[0].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[0].m_Int2, New.m_lArray[0].m_lArray[0].m_Int2);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[1].m_Int1, New.m_lArray[0].m_lArray[1].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[1].m_Int2, New.m_lArray[0].m_lArray[1].m_Int2);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[2].m_Int1, New.m_lArray[0].m_lArray[2].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[2].m_Int2, New.m_lArray[0].m_lArray[2].m_Int2);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[0].m_Int1, New.m_lArray[1].m_lArray[0].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[0].m_Int2, New.m_lArray[1].m_lArray[0].m_Int2);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[1].m_Int1, New.m_lArray[1].m_lArray[1].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[1].m_Int2, New.m_lArray[1].m_lArray[1].m_Int2);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[2].m_Int1, New.m_lArray[1].m_lArray[2].m_Int1);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[2].m_Int2, New.m_lArray[1].m_lArray[2].m_Int2);
+	EXPECT_EQ(Orig.Array[0].Array[0].Int1, New.Array[0].Array[0].Int1);
+	EXPECT_EQ(Orig.Array[0].Array[0].Int2, New.Array[0].Array[0].Int2);
+	EXPECT_EQ(Orig.Array[0].Array[1].Int1, New.Array[0].Array[1].Int1);
+	EXPECT_EQ(Orig.Array[0].Array[1].Int2, New.Array[0].Array[1].Int2);
+	EXPECT_EQ(Orig.Array[0].Array[2].Int1, New.Array[0].Array[2].Int1);
+	EXPECT_EQ(Orig.Array[0].Array[2].Int2, New.Array[0].Array[2].Int2);
+	EXPECT_EQ(Orig.Array[1].Array[0].Int1, New.Array[1].Array[0].Int1);
+	EXPECT_EQ(Orig.Array[1].Array[0].Int2, New.Array[1].Array[0].Int2);
+	EXPECT_EQ(Orig.Array[1].Array[1].Int1, New.Array[1].Array[1].Int1);
+	EXPECT_EQ(Orig.Array[1].Array[1].Int2, New.Array[1].Array[1].Int2);
+	EXPECT_EQ(Orig.Array[1].Array[2].Int1, New.Array[1].Array[2].Int1);
+	EXPECT_EQ(Orig.Array[1].Array[2].Int2, New.Array[1].Array[2].Int2);
 }
 
 TEST_F(DL, PodArray1)
 {
 	uint32 Data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
-	SPodArray1 Orig = { { Data, 8 } };
-	SPodArray1* New;
+	PodArray1 Orig = { { Data, 8 } };
+	PodArray1* New;
 
 	uint32 Loaded[1024]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SPodArray1::TYPE_ID, &Orig, Loaded);
+	DoTheRoundAbout(Ctx, PodArray1::TYPE_ID, &Orig, Loaded);
 
-	New = (SPodArray1*)&Loaded[0];
+	New = (PodArray1*)&Loaded[0];
 
-	EXPECT_EQ(Orig.m_lArray.m_nCount, New->m_lArray.m_nCount);
-	EXPECT_EQ(Orig.m_lArray[0], New->m_lArray[0]);
-	EXPECT_EQ(Orig.m_lArray[1], New->m_lArray[1]);
-	EXPECT_EQ(Orig.m_lArray[2], New->m_lArray[2]);
-	EXPECT_EQ(Orig.m_lArray[3], New->m_lArray[3]);
-	EXPECT_EQ(Orig.m_lArray[4], New->m_lArray[4]);
-	EXPECT_EQ(Orig.m_lArray[5], New->m_lArray[5]);
-	EXPECT_EQ(Orig.m_lArray[6], New->m_lArray[6]);
-	EXPECT_EQ(Orig.m_lArray[7], New->m_lArray[7]);
+	EXPECT_EQ(Orig.Array.nCount, New->Array.nCount);
+	EXPECT_EQ(Orig.Array[0], New->Array[0]);
+	EXPECT_EQ(Orig.Array[1], New->Array[1]);
+	EXPECT_EQ(Orig.Array[2], New->Array[2]);
+	EXPECT_EQ(Orig.Array[3], New->Array[3]);
+	EXPECT_EQ(Orig.Array[4], New->Array[4]);
+	EXPECT_EQ(Orig.Array[5], New->Array[5]);
+	EXPECT_EQ(Orig.Array[6], New->Array[6]);
+	EXPECT_EQ(Orig.Array[7], New->Array[7]);
 }
 
 TEST_F(DL, PodArray2)
@@ -401,337 +401,337 @@ TEST_F(DL, PodArray2)
 	uint32 Data1[] = { 1337, 7331,  13, 37, 133 } ;
 	uint32 Data2[] = {    7,    1, 337 } ;
 
-	SPodArray1 OrigArray[] = { { { Data1, 5 } }, { { Data2, 3 } } } ;
+	PodArray1 OrigArray[] = { { { Data1, 5 } }, { { Data2, 3 } } } ;
 
-	SPodArray2 Orig = { { OrigArray, 2 } };
-	SPodArray2* New;
+	PodArray2 Orig = { { OrigArray, 2 } };
+	PodArray2* New;
 
 	uint32 Loaded[1024]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SPodArray2::TYPE_ID, &Orig, Loaded);
+	DoTheRoundAbout(Ctx, PodArray2::TYPE_ID, &Orig, Loaded);
 
-	New = (SPodArray2*)&Loaded[0];
+	New = (PodArray2*)&Loaded[0];
 
-	EXPECT_EQ(Orig.m_lArray.m_nCount, New->m_lArray.m_nCount);
+	EXPECT_EQ(Orig.Array.nCount, New->Array.nCount);
 
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray.m_nCount, New->m_lArray[0].m_lArray.m_nCount);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray.m_nCount, New->m_lArray[1].m_lArray.m_nCount);
+	EXPECT_EQ(Orig.Array[0].Array.nCount, New->Array[0].Array.nCount);
+	EXPECT_EQ(Orig.Array[1].Array.nCount, New->Array[1].Array.nCount);
 
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[0], New->m_lArray[0].m_lArray[0]);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[1], New->m_lArray[0].m_lArray[1]);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[2], New->m_lArray[0].m_lArray[2]);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[3], New->m_lArray[0].m_lArray[3]);
-	EXPECT_EQ(Orig.m_lArray[0].m_lArray[4], New->m_lArray[0].m_lArray[4]);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[0], New->m_lArray[1].m_lArray[0]);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[1], New->m_lArray[1].m_lArray[1]);
-	EXPECT_EQ(Orig.m_lArray[1].m_lArray[2], New->m_lArray[1].m_lArray[2]);
+	EXPECT_EQ(Orig.Array[0].Array[0], New->Array[0].Array[0]);
+	EXPECT_EQ(Orig.Array[0].Array[1], New->Array[0].Array[1]);
+	EXPECT_EQ(Orig.Array[0].Array[2], New->Array[0].Array[2]);
+	EXPECT_EQ(Orig.Array[0].Array[3], New->Array[0].Array[3]);
+	EXPECT_EQ(Orig.Array[0].Array[4], New->Array[0].Array[4]);
+	EXPECT_EQ(Orig.Array[1].Array[0], New->Array[1].Array[0]);
+	EXPECT_EQ(Orig.Array[1].Array[1], New->Array[1].Array[1]);
+	EXPECT_EQ(Orig.Array[1].Array[2], New->Array[1].Array[2]);
 }
 
 TEST_F(DL, SimpleString)
 {
-	SStrings Orig = { "cow", "bell" } ;
-	SStrings* New;
+	Strings Orig = { "cow", "bell" } ;
+	Strings* New;
 
-	SStrings Loaded[5]; // this is so ugly!
+	Strings Loaded[5]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SStrings::TYPE_ID, &Orig, Loaded);
+	DoTheRoundAbout(Ctx, Strings::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
 
-	EXPECT_STREQ(Orig.m_pStr1, New->m_pStr1);
-	EXPECT_STREQ(Orig.m_pStr2, New->m_pStr2);
+	EXPECT_STREQ(Orig.Str1, New->Str1);
+	EXPECT_STREQ(Orig.Str2, New->Str2);
 }
 
 TEST_F(DL, InlineArrayString)
 {
-	SStringInlineArray Orig = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
-	SStringInlineArray* New;
+	StringInlineArray Orig = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
+	StringInlineArray* New;
 
-	SStringInlineArray Loaded[5]; // this is so ugly!
+	StringInlineArray Loaded[5]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SStringInlineArray::TYPE_ID, &Orig, Loaded);
+	DoTheRoundAbout(Ctx, StringInlineArray::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
 
-	EXPECT_STREQ(Orig.m_lpStrings[0], New->m_lpStrings[0]);
-	EXPECT_STREQ(Orig.m_lpStrings[1], New->m_lpStrings[1]);
-	EXPECT_STREQ(Orig.m_lpStrings[2], New->m_lpStrings[2]);
+	EXPECT_STREQ(Orig.Strings[0], New->Strings[0]);
+	EXPECT_STREQ(Orig.Strings[1], New->Strings[1]);
+	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
 }
 
 TEST_F(DL, ArrayString)
 {
 	char* TheStringArray[] = { (char*)"I like", (char*)"the", (char*)"1337 ", (char*)"cowbells of doom!" };
-	SStringArray Orig = { { TheStringArray, 4 } };
-	SStringArray* New;
+	StringArray Orig = { { TheStringArray, 4 } };
+	StringArray* New;
 
-	SStringArray Loaded[10]; // this is so ugly!
+	StringArray Loaded[10]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SStringArray::TYPE_ID, &Orig, Loaded);
+	DoTheRoundAbout(Ctx, StringArray::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
 
-	EXPECT_STREQ(Orig.m_lpStrings[0], New->m_lpStrings[0]);
-	EXPECT_STREQ(Orig.m_lpStrings[1], New->m_lpStrings[1]);
-	EXPECT_STREQ(Orig.m_lpStrings[2], New->m_lpStrings[2]);
-	EXPECT_STREQ(Orig.m_lpStrings[3], New->m_lpStrings[3]);
+	EXPECT_STREQ(Orig.Strings[0], New->Strings[0]);
+	EXPECT_STREQ(Orig.Strings[1], New->Strings[1]);
+	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
+	EXPECT_STREQ(Orig.Strings[3], New->Strings[3]);
 }
 
 TEST_F(DL, BitField)
 {
-	STestBits Orig;
-	STestBits New;
+	TestBits Orig;
+	TestBits New;
 
-	Orig.m_Bit1 = 0;
-	Orig.m_Bit2 = 2;
-	Orig.m_Bit3 = 4;
-	Orig.m_make_it_uneven = 17;
-	Orig.m_Bit4 = 1;
-	Orig.m_Bit5 = 0;
-	Orig.m_Bit6 = 5;
+	Orig.Bit1 = 0;
+	Orig.Bit2 = 2;
+	Orig.Bit3 = 4;
+	Orig.make_it_uneven = 17;
+	Orig.Bit4 = 1;
+	Orig.Bit5 = 0;
+	Orig.Bit6 = 5;
 
-	DoTheRoundAbout(Ctx, STestBits::TYPE_ID, &Orig, &New);
+	DoTheRoundAbout(Ctx, TestBits::TYPE_ID, &Orig, &New);
 
-	EXPECT_EQ(Orig.m_Bit1, New.m_Bit1);
-	EXPECT_EQ(Orig.m_Bit2, New.m_Bit2);
-	EXPECT_EQ(Orig.m_Bit3, New.m_Bit3);
-	EXPECT_EQ(Orig.m_make_it_uneven, New.m_make_it_uneven);
-	EXPECT_EQ(Orig.m_Bit4, New.m_Bit4);
-	EXPECT_EQ(Orig.m_Bit5, New.m_Bit5);
-	EXPECT_EQ(Orig.m_Bit6, New.m_Bit6);
+	EXPECT_EQ(Orig.Bit1, New.Bit1);
+	EXPECT_EQ(Orig.Bit2, New.Bit2);
+	EXPECT_EQ(Orig.Bit3, New.Bit3);
+	EXPECT_EQ(Orig.make_it_uneven, New.make_it_uneven);
+	EXPECT_EQ(Orig.Bit4, New.Bit4);
+	EXPECT_EQ(Orig.Bit5, New.Bit5);
+	EXPECT_EQ(Orig.Bit6, New.Bit6);
 }
 
 TEST_F(DL, MoreBits)
 {
-	SMoreBits Orig;
-	SMoreBits New;
+	MoreBits Orig;
+	MoreBits New;
 
-	Orig.m_Bit1 = 512;
-	Orig.m_Bit2 = 1;
+	Orig.Bit1 = 512;
+	Orig.Bit2 = 1;
 
-	DoTheRoundAbout(Ctx, SMoreBits::TYPE_ID, &Orig, &New);
+	DoTheRoundAbout(Ctx, MoreBits::TYPE_ID, &Orig, &New);
 
-	EXPECT_EQ(Orig.m_Bit1, New.m_Bit1);
-	EXPECT_EQ(Orig.m_Bit2, New.m_Bit2);
+	EXPECT_EQ(Orig.Bit1, New.Bit1);
+	EXPECT_EQ(Orig.Bit2, New.Bit2);
 }
 
 TEST_F(DL, 64BitBitfield)
 {
-	S64BitBitfield Orig;
-	S64BitBitfield New;
+	BitBitfield64 Orig;
+	BitBitfield64 New;
 
-	Orig.m_Package  = 2;
-	Orig.m_FileType = 13;
-	Orig.m_PathHash = 1337;
-	Orig.m_FileHash = 0xDEADBEEF;
+	Orig.Package  = 2;
+	Orig.FileType = 13;
+	Orig.PathHash = 1337;
+	Orig.FileHash = 0xDEADBEEF;
 
-	DoTheRoundAbout(Ctx, S64BitBitfield::TYPE_ID, &Orig, &New);
+	DoTheRoundAbout(Ctx, BitBitfield64::TYPE_ID, &Orig, &New);
 
-	EXPECT_EQ(Orig.m_Package,  New.m_Package);
-	EXPECT_EQ(Orig.m_FileType, New.m_FileType);
-	EXPECT_EQ(Orig.m_PathHash, New.m_PathHash);
-	EXPECT_EQ(Orig.m_FileHash, New.m_FileHash);
+	EXPECT_EQ(Orig.Package,  New.Package);
+	EXPECT_EQ(Orig.FileType, New.FileType);
+	EXPECT_EQ(Orig.PathHash, New.PathHash);
+	EXPECT_EQ(Orig.FileHash, New.FileHash);
 }
 
 TEST_F(DL, SimplePtr)
 {
-	SPods Pods = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
-	SSimplePtr  Orig = { &Pods, &Pods };
-	SSimplePtr* New;
+	Pods Pods = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
+	SimplePtr  Orig = { &Pods, &Pods };
+	SimplePtr* New;
 
-	SSimplePtr Loaded[64]; // this is so ugly!
+	SimplePtr Loaded[64]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SSimplePtr::TYPE_ID, &Orig, Loaded);
+	DoTheRoundAbout(Ctx, SimplePtr::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
-	EXPECT_NE(Orig.m_pPtr1, New->m_pPtr1);
-	EXPECT_EQ(New->m_pPtr1, New->m_pPtr2);
+	EXPECT_NE(Orig.Ptr1, New->Ptr1);
+	EXPECT_EQ(New->Ptr1, New->Ptr2);
 
-	EXPECT_EQ(Orig.m_pPtr1->m_int8,   New->m_pPtr1->m_int8);
-	EXPECT_EQ(Orig.m_pPtr1->m_int16,  New->m_pPtr1->m_int16);
-	EXPECT_EQ(Orig.m_pPtr1->m_int32,  New->m_pPtr1->m_int32);
-	EXPECT_EQ(Orig.m_pPtr1->m_int64,  New->m_pPtr1->m_int64);
-	EXPECT_EQ(Orig.m_pPtr1->m_uint8,  New->m_pPtr1->m_uint8);
-	EXPECT_EQ(Orig.m_pPtr1->m_uint16, New->m_pPtr1->m_uint16);
-	EXPECT_EQ(Orig.m_pPtr1->m_uint32, New->m_pPtr1->m_uint32);
-	EXPECT_EQ(Orig.m_pPtr1->m_uint64, New->m_pPtr1->m_uint64);
-	EXPECT_EQ(Orig.m_pPtr1->m_fp32,   New->m_pPtr1->m_fp32);
-	EXPECT_EQ(Orig.m_pPtr1->m_fp64,   New->m_pPtr1->m_fp64);
+	EXPECT_EQ(Orig.Ptr1->i8,  New->Ptr1->i8);
+	EXPECT_EQ(Orig.Ptr1->i16, New->Ptr1->i16);
+	EXPECT_EQ(Orig.Ptr1->i32, New->Ptr1->i32);
+	EXPECT_EQ(Orig.Ptr1->i64, New->Ptr1->i64);
+	EXPECT_EQ(Orig.Ptr1->u8,  New->Ptr1->u8);
+	EXPECT_EQ(Orig.Ptr1->u16, New->Ptr1->u16);
+	EXPECT_EQ(Orig.Ptr1->u32, New->Ptr1->u32);
+	EXPECT_EQ(Orig.Ptr1->u64, New->Ptr1->u64);
+	EXPECT_EQ(Orig.Ptr1->f32, New->Ptr1->f32);
+	EXPECT_EQ(Orig.Ptr1->f64, New->Ptr1->f64);
 }
 
 TEST_F(DL, PtrChain)
 {
-	SPtrChain Ptr1 = { 1337,   0x0 };
-	SPtrChain Ptr2 = { 7331, &Ptr1 };
-	SPtrChain Ptr3 = { 13,   &Ptr2 };
-	SPtrChain Ptr4 = { 37,   &Ptr3 };
+	PtrChain Ptr1 = { 1337,   0x0 };
+	PtrChain Ptr2 = { 7331, &Ptr1 };
+	PtrChain Ptr3 = { 13,   &Ptr2 };
+	PtrChain Ptr4 = { 37,   &Ptr3 };
 
-	SPtrChain* New;
+	PtrChain* New;
 
-	SPtrChain Loaded[10]; // this is so ugly!
+	PtrChain Loaded[10]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SPtrChain::TYPE_ID, &Ptr4, Loaded);
+	DoTheRoundAbout(Ctx, PtrChain::TYPE_ID, &Ptr4, Loaded);
 	New = Loaded;
 
-	EXPECT_NE(Ptr4.m_pNext, New->m_pNext);
-	EXPECT_NE(Ptr3.m_pNext, New->m_pNext->m_pNext);
-	EXPECT_NE(Ptr2.m_pNext, New->m_pNext->m_pNext->m_pNext);
-	EXPECT_EQ(Ptr1.m_pNext, New->m_pNext->m_pNext->m_pNext->m_pNext); // should be equal, 0x0
+	EXPECT_NE(Ptr4.Next, New->Next);
+	EXPECT_NE(Ptr3.Next, New->Next->Next);
+	EXPECT_NE(Ptr2.Next, New->Next->Next->Next);
+	EXPECT_EQ(Ptr1.Next, New->Next->Next->Next->Next); // should be equal, 0x0
 
-	EXPECT_EQ(Ptr4.m_Int, New->m_Int);
-	EXPECT_EQ(Ptr3.m_Int, New->m_pNext->m_Int);
-	EXPECT_EQ(Ptr2.m_Int, New->m_pNext->m_pNext->m_Int);
-	EXPECT_EQ(Ptr1.m_Int, New->m_pNext->m_pNext->m_pNext->m_Int);
+	EXPECT_EQ(Ptr4.Int, New->Int);
+	EXPECT_EQ(Ptr3.Int, New->Next->Int);
+	EXPECT_EQ(Ptr2.Int, New->Next->Next->Int);
+	EXPECT_EQ(Ptr1.Int, New->Next->Next->Next->Int);
 }
 
 TEST_F(DL, DoublePtrChain)
 {
 	// tests both circualar ptrs and reference to root-node!
 
-	SDoublePtrChain Ptr1 = { 1337, 0x0,   0x0 };
-	SDoublePtrChain Ptr2 = { 7331, &Ptr1, 0x0 };
-	SDoublePtrChain Ptr3 = { 13,   &Ptr2, 0x0 };
-	SDoublePtrChain Ptr4 = { 37,   &Ptr3, 0x0 };
+	DoublePtrChain Ptr1 = { 1337, 0x0,   0x0 };
+	DoublePtrChain Ptr2 = { 7331, &Ptr1, 0x0 };
+	DoublePtrChain Ptr3 = { 13,   &Ptr2, 0x0 };
+	DoublePtrChain Ptr4 = { 37,   &Ptr3, 0x0 };
 
-	Ptr1.m_pPrev = &Ptr2;
-	Ptr2.m_pPrev = &Ptr3;
-	Ptr3.m_pPrev = &Ptr4;
+	Ptr1.Prev = &Ptr2;
+	Ptr2.Prev = &Ptr3;
+	Ptr3.Prev = &Ptr4;
 
-	SDoublePtrChain* New;
+	DoublePtrChain* New;
 
-	SDoublePtrChain Loaded[10]; // this is so ugly!
+	DoublePtrChain Loaded[10]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SDoublePtrChain::TYPE_ID, &Ptr4, Loaded);
+	DoTheRoundAbout(Ctx, DoublePtrChain::TYPE_ID, &Ptr4, Loaded);
 	New = Loaded;
 
 	// Ptr4
-	EXPECT_NE(Ptr4.m_pNext, New->m_pNext);
-	EXPECT_EQ(Ptr4.m_pPrev, New->m_pPrev); // is a null-ptr
-	EXPECT_EQ(Ptr4.m_Int,   New->m_Int);
+	EXPECT_NE(Ptr4.Next, New->Next);
+	EXPECT_EQ(Ptr4.Prev, New->Prev); // is a null-ptr
+	EXPECT_EQ(Ptr4.Int,  New->Int);
 
 	// Ptr3
-	EXPECT_NE(Ptr4.m_pNext->m_pNext, New->m_pNext->m_pNext);
-	EXPECT_NE(Ptr4.m_pNext->m_pPrev, New->m_pNext->m_pPrev);
-	EXPECT_EQ(Ptr4.m_pNext->m_Int,   New->m_pNext->m_Int);
-	EXPECT_EQ(New,                   New->m_pNext->m_pPrev);
+	EXPECT_NE(Ptr4.Next->Next, New->Next->Next);
+	EXPECT_NE(Ptr4.Next->Prev, New->Next->Prev);
+	EXPECT_EQ(Ptr4.Next->Int,  New->Next->Int);
+	EXPECT_EQ(New,             New->Next->Prev);
 
 	// Ptr2
-	EXPECT_NE(Ptr4.m_pNext->m_pNext->m_pNext, New->m_pNext->m_pNext->m_pNext);
-	EXPECT_NE(Ptr4.m_pNext->m_pNext->m_pPrev, New->m_pNext->m_pNext->m_pPrev);
-	EXPECT_EQ(Ptr4.m_pNext->m_pNext->m_Int,   New->m_pNext->m_pNext->m_Int);
-	EXPECT_EQ(New->m_pNext,                   New->m_pNext->m_pNext->m_pPrev);
+	EXPECT_NE(Ptr4.Next->Next->Next, New->Next->Next->Next);
+	EXPECT_NE(Ptr4.Next->Next->Prev, New->Next->Next->Prev);
+	EXPECT_EQ(Ptr4.Next->Next->Int,  New->Next->Next->Int);
+	EXPECT_EQ(New->Next,             New->Next->Next->Prev);
 
 	// Ptr1
-	EXPECT_EQ(Ptr4.m_pNext->m_pNext->m_pNext->m_pNext, New->m_pNext->m_pNext->m_pNext->m_pNext); // is null
-	EXPECT_NE(Ptr4.m_pNext->m_pNext->m_pNext->m_pPrev, New->m_pNext->m_pNext->m_pNext->m_pPrev);
-	EXPECT_EQ(Ptr4.m_pNext->m_pNext->m_pNext->m_Int,   New->m_pNext->m_pNext->m_pNext->m_Int);
-	EXPECT_EQ(New->m_pNext->m_pNext,                   New->m_pNext->m_pNext->m_pNext->m_pPrev);
+	EXPECT_EQ(Ptr4.Next->Next->Next->Next, New->Next->Next->Next->Next); // is null
+	EXPECT_NE(Ptr4.Next->Next->Next->Prev, New->Next->Next->Next->Prev);
+	EXPECT_EQ(Ptr4.Next->Next->Next->Int,  New->Next->Next->Next->Int);
+	EXPECT_EQ(New->Next->Next,             New->Next->Next->Next->Prev);
 }
 
 TEST_F(DL, Enum)
 {
 	EXPECT_EQ(TESTENUM2_VALUE2 + 1, TESTENUM2_VALUE3); // value3 is after value2 but has no value. It sohuld automticallay be one bigger!
 
-	STestingEnum Inst;
-	Inst.m_TheEnum = TESTENUM1_VALUE3;
+	TestingEnum Inst;
+	Inst.TheEnum = TESTENUM1_VALUE3;
 
-	STestingEnum Loaded;
+	TestingEnum Loaded;
 
-	DoTheRoundAbout(Ctx, STestingEnum::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, TestingEnum::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(Inst.m_TheEnum, Loaded.m_TheEnum);
+	EXPECT_EQ(Inst.TheEnum, Loaded.TheEnum);
 }
 
 TEST_F(DL, EnumInlineArray)
 {
-	SInlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };
-	SInlineArrayEnum Loaded;
+	InlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };
+	InlineArrayEnum Loaded;
 
-	DoTheRoundAbout(Ctx, SInlineArrayEnum::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, InlineArrayEnum::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(Inst.m_lEnumArr[0], Loaded.m_lEnumArr[0]);
-	EXPECT_EQ(Inst.m_lEnumArr[1], Loaded.m_lEnumArr[1]);
-	EXPECT_EQ(Inst.m_lEnumArr[2], Loaded.m_lEnumArr[2]);
-	EXPECT_EQ(Inst.m_lEnumArr[3], Loaded.m_lEnumArr[3]);
+	EXPECT_EQ(Inst.EnumArr[0], Loaded.EnumArr[0]);
+	EXPECT_EQ(Inst.EnumArr[1], Loaded.EnumArr[1]);
+	EXPECT_EQ(Inst.EnumArr[2], Loaded.EnumArr[2]);
+	EXPECT_EQ(Inst.EnumArr[3], Loaded.EnumArr[3]);
 }
 
 TEST_F(DL, EnumArray)
 {
-	ETestEnum2 Data[8] = { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4, TESTENUM2_VALUE4, TESTENUM2_VALUE3, TESTENUM2_VALUE2, TESTENUM2_VALUE1 } ;
-	SArrayEnum Inst = { { Data, 8 } };
-	SArrayEnum* New;
+	TestEnum2 Data[8] = { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4, TESTENUM2_VALUE4, TESTENUM2_VALUE3, TESTENUM2_VALUE2, TESTENUM2_VALUE1 } ;
+	ArrayEnum Inst = { { Data, 8 } };
+	ArrayEnum* New;
 
 	uint32 Loaded[1024]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SArrayEnum::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, ArrayEnum::TYPE_ID, &Inst, &Loaded);
 
-	New = (SArrayEnum*)&Loaded[0];
+	New = (ArrayEnum*)&Loaded[0];
 
-	EXPECT_EQ(Inst.m_lEnumArr.m_nCount, New->m_lEnumArr.m_nCount);
-	EXPECT_EQ(Inst.m_lEnumArr[0],       New->m_lEnumArr[0]);
-	EXPECT_EQ(Inst.m_lEnumArr[1],       New->m_lEnumArr[1]);
-	EXPECT_EQ(Inst.m_lEnumArr[2],       New->m_lEnumArr[2]);
-	EXPECT_EQ(Inst.m_lEnumArr[3],       New->m_lEnumArr[3]);
-	EXPECT_EQ(Inst.m_lEnumArr[4],       New->m_lEnumArr[4]);
-	EXPECT_EQ(Inst.m_lEnumArr[5],       New->m_lEnumArr[5]);
-	EXPECT_EQ(Inst.m_lEnumArr[6],       New->m_lEnumArr[6]);
-	EXPECT_EQ(Inst.m_lEnumArr[7],       New->m_lEnumArr[7]);
+	EXPECT_EQ(Inst.EnumArr.nCount, New->EnumArr.nCount);
+	EXPECT_EQ(Inst.EnumArr[0],       New->EnumArr[0]);
+	EXPECT_EQ(Inst.EnumArr[1],       New->EnumArr[1]);
+	EXPECT_EQ(Inst.EnumArr[2],       New->EnumArr[2]);
+	EXPECT_EQ(Inst.EnumArr[3],       New->EnumArr[3]);
+	EXPECT_EQ(Inst.EnumArr[4],       New->EnumArr[4]);
+	EXPECT_EQ(Inst.EnumArr[5],       New->EnumArr[5]);
+	EXPECT_EQ(Inst.EnumArr[6],       New->EnumArr[6]);
+	EXPECT_EQ(Inst.EnumArr[7],       New->EnumArr[7]);
 }
 
 TEST_F(DL, EmptyPodArray)
 {
-	SPodArray1 Inst = { { NULL, 0 } };
-	SPodArray1 Loaded;
+	PodArray1 Inst = { { NULL, 0 } };
+	PodArray1 Loaded;
 
-	DoTheRoundAbout(Ctx, SPodArray1::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, PodArray1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(0u,  Loaded.m_lArray.m_nCount);
-	EXPECT_EQ(0x0, Loaded.m_lArray.m_pData);
+	EXPECT_EQ(0u,  Loaded.Array.nCount);
+	EXPECT_EQ(0x0, Loaded.Array.pData);
 }
 
 TEST_F(DL, EmptyStructArray)
 {
-	SStructArray1 Inst = { { NULL, 0 } };
-	SStructArray1 Loaded;
+	StructArray1 Inst = { { NULL, 0 } };
+	StructArray1 Loaded;
 
-	DoTheRoundAbout(Ctx, SStructArray1::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(0u,  Loaded.m_lArray.m_nCount);
-	EXPECT_EQ(0x0, Loaded.m_lArray.m_pData);
+	EXPECT_EQ(0u,  Loaded.Array.nCount);
+	EXPECT_EQ(0x0, Loaded.Array.pData);
 }
 
 TEST_F(DL, EmptyStringArray)
 {
-	SStringArray Inst = { { NULL, 0 } };
-	SStringArray Loaded;
+	StringArray Inst = { { NULL, 0 } };
+	StringArray Loaded;
 
-	DoTheRoundAbout(Ctx, SStructArray1::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(0u,  Loaded.m_lpStrings.m_nCount);
-	EXPECT_EQ(0x0, Loaded.m_lpStrings.m_pData);
+	EXPECT_EQ(0u,  Loaded.Strings.nCount);
+	EXPECT_EQ(0x0, Loaded.Strings.pData);
 }
 
 TEST_F(DL, BugTest1)
 {
 	// There was some error packing arrays ;)
 
-	SBugTest1_InArray Arr[3] = { { 1337, 1338, 18 }, { 7331, 8331, 19 }, { 31337, 73313, 20 } } ;
-	SBugTest1 Inst;
-	Inst.m_lArr.m_pData  = Arr;
-	Inst.m_lArr.m_nCount = DL_ARRAY_LENGTH(Arr);
+	BugTest1_InArray Arr[3] = { { 1337, 1338, 18 }, { 7331, 8331, 19 }, { 31337, 73313, 20 } } ;
+	BugTest1 Inst;
+	Inst.Arr.pData  = Arr;
+	Inst.Arr.nCount = DL_ARRAY_LENGTH(Arr);
 
-	SBugTest1 Loaded[10];
+	BugTest1 Loaded[10];
 
-	DoTheRoundAbout(Ctx, SBugTest1::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, BugTest1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(Arr[0].m_u64_1, Loaded[0].m_lArr[0].m_u64_1);
-	EXPECT_EQ(Arr[0].m_u64_2, Loaded[0].m_lArr[0].m_u64_2);
-	EXPECT_EQ(Arr[0].m_u16,   Loaded[0].m_lArr[0].m_u16);
-	EXPECT_EQ(Arr[1].m_u64_1, Loaded[0].m_lArr[1].m_u64_1);
-	EXPECT_EQ(Arr[1].m_u64_2, Loaded[0].m_lArr[1].m_u64_2);
-	EXPECT_EQ(Arr[1].m_u16,   Loaded[0].m_lArr[1].m_u16);
-	EXPECT_EQ(Arr[2].m_u64_1, Loaded[0].m_lArr[2].m_u64_1);
-	EXPECT_EQ(Arr[2].m_u64_2, Loaded[0].m_lArr[2].m_u64_2);
-	EXPECT_EQ(Arr[2].m_u16,   Loaded[0].m_lArr[2].m_u16);
+	EXPECT_EQ(Arr[0].u64_1, Loaded[0].Arr[0].u64_1);
+	EXPECT_EQ(Arr[0].u64_2, Loaded[0].Arr[0].u64_2);
+	EXPECT_EQ(Arr[0].u16,   Loaded[0].Arr[0].u16);
+	EXPECT_EQ(Arr[1].u64_1, Loaded[0].Arr[1].u64_1);
+	EXPECT_EQ(Arr[1].u64_2, Loaded[0].Arr[1].u64_2);
+	EXPECT_EQ(Arr[1].u16,   Loaded[0].Arr[1].u16);
+	EXPECT_EQ(Arr[2].u64_1, Loaded[0].Arr[2].u64_1);
+	EXPECT_EQ(Arr[2].u64_2, Loaded[0].Arr[2].u64_2);
+	EXPECT_EQ(Arr[2].u16,   Loaded[0].Arr[2].u16);
 }
 
 template<typename T>
@@ -768,27 +768,27 @@ TEST_F(DL, BugTest2)
 {
 	// some error converting from 32-bit-data to 64-bit.
 
-	SBugTest2_WithMat Arr[2] = { { 1337, { 1.0f, 0.0f, 0.0f, 0.0f, 
-										   0.0f, 1.0f, 0.0f, 0.0f,
-										   0.0f, 0.0f, 1.0f, 0.0f, 
-										   0.0f, 0.0f, 1.0f, 0.0f } },
+	BugTest2_WithMat Arr[2] = { { 1337, { 1.0f, 0.0f, 0.0f, 0.0f,
+										  0.0f, 1.0f, 0.0f, 0.0f,
+										  0.0f, 0.0f, 1.0f, 0.0f,
+										  0.0f, 0.0f, 1.0f, 0.0f } },
 
-								 { 7331, { 0.0f, 0.0f, 0.0f, 1.0f, 
-										   0.0f, 0.0f, 1.0f, 0.0f,
-										   0.0f, 1.0f, 0.0f, 0.0f, 
-										   1.0f, 0.0f, 0.0f, 0.0f } } };
-	SBugTest2 Inst;
-	Inst.m_lInstances.m_pData  = Arr;
-	Inst.m_lInstances.m_nCount = 2;
+								{ 7331, { 0.0f, 0.0f, 0.0f, 1.0f,
+										  0.0f, 0.0f, 1.0f, 0.0f,
+										  0.0f, 1.0f, 0.0f, 0.0f,
+										  1.0f, 0.0f, 0.0f, 0.0f } } };
+	BugTest2 Inst;
+	Inst.Instances.pData  = Arr;
+	Inst.Instances.nCount = 2;
 
-	SBugTest2 Loaded[40];
+	BugTest2 Loaded[40];
 
-	DoTheRoundAbout(Ctx, SBugTest2::TYPE_ID, &Inst, &Loaded);
+	DoTheRoundAbout(Ctx, BugTest2::TYPE_ID, &Inst, &Loaded);
 
- 	EXPECT_EQ(Arr[0].m_iSubModel, Loaded[0].m_lInstances[0].m_iSubModel);
- 	EXPECT_EQ(Arr[1].m_iSubModel, Loaded[0].m_lInstances[1].m_iSubModel);
- 	EXPECT_ARRAY_EQ(16, Arr[0].m_lTransform, Loaded[0].m_lInstances[0].m_lTransform);
- 	EXPECT_ARRAY_EQ(16, Arr[1].m_lTransform, Loaded[0].m_lInstances[1].m_lTransform);
+ 	EXPECT_EQ(Arr[0].iSubModel, Loaded[0].Instances[0].iSubModel);
+ 	EXPECT_EQ(Arr[1].iSubModel, Loaded[0].Instances[1].iSubModel);
+ 	EXPECT_ARRAY_EQ(16, Arr[0].Transform, Loaded[0].Instances[0].Transform);
+ 	EXPECT_ARRAY_EQ(16, Arr[1].Transform, Loaded[0].Instances[1].Transform);
 }
 
 TEST(DLMisc, EndianIsCorrect)

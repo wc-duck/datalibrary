@@ -47,20 +47,20 @@ typedef double fp64;
 template<typename T>
 struct TDLArray
 {
-	T*     m_pData;
-	uint32 m_nCount;
+	T*     pData;
+	uint32 nCount;
 
 	// TODO: Fix asserts so that user might specify them as they se fit!
 	T& operator[](uint _Index)
 	{
-		// M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
-		return m_pData[_Index];
+		// M_ASSERT(_Index < nCount, "Index out of range! Array size %%u, requested index %%u", nCount, _Index);
+		return pData[_Index];
 	}
 
 	const T& operator[](uint _Index) const 
 	{
-		// M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
-		return m_pData[_Index];
+		// M_ASSERT(_Index < nCount, "Index out of range! Array size %%u, requested index %%u", nCount, _Index);
+		return pData[_Index];
 	}
 };
 
@@ -84,10 +84,10 @@ namespace dl_staticassert
 
 '''
 
-PODS_ARRAY_TEMPLATE = '\tTDLArray<%(subtype)s> m_l%(name)s;'
-ENUM_ARRAY_TEMPLATE = '\tTDLArray<E%(subtype)s> m_l%(name)s;'
-STR_ARRAY_TEMPLATE  = '\tTDLArray<char*> m_lp%(name)s;'	
-ARRAY_TEMPLATE      = '\tTDLArray<S%(subtype)s> m_l%(name)s;'
+PODS_ARRAY_TEMPLATE = '\tTDLArray<%(subtype)s> %(name)s;'
+ENUM_ARRAY_TEMPLATE = '\tTDLArray<%(subtype)s> %(name)s;'
+STR_ARRAY_TEMPLATE  = '\tTDLArray<char*> %(name)s;'	
+ARRAY_TEMPLATE      = '\tTDLArray<%(subtype)s> %(name)s;'
 
 PODS = [ 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64', 'fp32', 'fp64', 'string', 'bitfield' ]
 	
@@ -120,7 +120,7 @@ class HeaderWriterCPP:
 				enum_base = enum_name.upper()
 				enum_values = enum[1]
 				
-				self.stream.write('enum E' + enum_name + '\n{')
+				self.stream.write('enum ' + enum_name + '\n{')
 				for i in range(0, len(enum_values)):
 					value = enum_values[i]
 					self.stream.write('\n\t%s_%s = %d' % (enum_base, value[0].upper(), value[1]))
@@ -128,7 +128,7 @@ class HeaderWriterCPP:
 					if i != len(enum_values) - 1:
 						self.stream.write(',')
 				print >> self.stream, '\n};\n'
-				print >> self.stream, 'DL_STATIC_ASSERT(sizeof(E%s) == sizeof(uint32), dl_expects_size_of_enum_as_uint32);\n' % enum_name
+				print >> self.stream, 'DL_STATIC_ASSERT(sizeof(%s) == sizeof(uint32), dl_expects_size_of_enum_as_uint32);\n' % enum_name
 	
 	def create_header_order(self, outlist, type, data, enums):
 		if type in outlist or type in PODS or type in enums:
@@ -166,26 +166,24 @@ class HeaderWriterCPP:
 			if 'comment' in struct_attrib: print >> self.stream, '//', struct_attrib['comment']
 			
 			if struct_orig_align == 0 or struct_attrib['align'] > struct_orig_align:
-				print >> self.stream, 'struct S%s\n{' % struct_name
+				print >> self.stream, 'struct %s\n{' % struct_name
 			else:
-				print >> self.stream, 'struct DL_ALIGN( %u ) S%s\n{' % ( struct_attrib['align'], struct_name )
+				print >> self.stream, 'struct DL_ALIGN( %u ) %s\n{' % ( struct_attrib['align'], struct_name )
 			
 			print >> self.stream, '\tconst static uint32 TYPE_ID = 0x%08X;\n' % temp_hash_func(struct_name)
 			
 			for member in struct_attrib['members']:
 				type = member['type']
-				if 'cpp-alias' in member: self.__write_member('\t%(cpp-alias)s m_%(name)s;', member)
-				elif type == 'bitfield':  self.__write_member('\t%(subtype)s m_%(name)s : %(bits)u;', member)
-				elif type == 'string':    self.__write_member('\tconst char* m_p%(name)s;',             member)
-				elif type == 'pointer':   self.__write_member('\tconst S%(subtype)s* m_p%(name)s;',     member)
-				elif type in PODS:        self.__write_member('\t%(type)s m_%(name)s;',                 member)
-				elif type in enum_types:  self.__write_member('\tE%(type)s m_%(name)s;',                member)
+				if 'cpp-alias' in member: self.__write_member('\t%(cpp-alias)s %(name)s;', member)
+				elif type == 'bitfield':  self.__write_member('\t%(subtype)s %(name)s : %(bits)u;', member)
+				elif type == 'string':    self.__write_member('\tconst char* %(name)s;',            member)
+				elif type == 'pointer':   self.__write_member('\tconst %(subtype)s* %(name)s;',     member)
+				elif type in PODS:        self.__write_member('\t%(type)s %(name)s;',               member)
+				elif type in enum_types:  self.__write_member('\t%(type)s %(name)s;',               member)
 				elif type == 'inline-array':
 					subtype = member['subtype']
-					if   subtype == 'string':   self.__write_member('\tchar* m_lp%(name)s[%(count)u];',       member)
-					elif subtype in PODS:       self.__write_member('\t%(subtype)s m_l%(name)s[%(count)u];',  member)
-					elif subtype in enum_types: self.__write_member('\tE%(subtype)s m_l%(name)s[%(count)u];', member)
-					else:                       self.__write_member('\tS%(subtype)s m_l%(name)s[%(count)u];', member)
+					if   subtype == 'string':   self.__write_member('\tchar* %(name)s[%(count)u];',       member)
+					else:                       self.__write_member('\t%(subtype)s %(name)s[%(count)u];', member)
 				elif type == 'array':
 					subtype = member['subtype']
 					if   subtype == 'string':   self.__write_member(STR_ARRAY_TEMPLATE,  member)
@@ -193,9 +191,9 @@ class HeaderWriterCPP:
 					elif subtype in enum_types: self.__write_member(ENUM_ARRAY_TEMPLATE, member)
 					else:                       self.__write_member(ARRAY_TEMPLATE,      member)
 				elif 'cpp-alias' in mod_types[type]:
-					self.__write_member('\t%s m_%%(name)s;' % mod_types[type]['cpp-alias'], member)
+					self.__write_member('\t%s %%(name)s;' % mod_types[type]['cpp-alias'], member)
 				else:
-					self.__write_member('\tS%(type)s m_%(name)s;', member)
+					self.__write_member('\t%(type)s %(name)s;', member)
 			
 			print >> self.stream, '};\n'
 		
