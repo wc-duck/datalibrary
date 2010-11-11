@@ -1,6 +1,8 @@
 BUILD_PATH = "local"
+PYTHON = "python"
+-- PYTHON = "C:\\Python26\\python.exe"
 
-function DLTypeLibrary( tlc_file, dl_shared_lib  )
+function DLTypeLibrary( tlc_file, dl_shared_lib )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header    = out_file .. ".h"
@@ -8,7 +10,7 @@ function DLTypeLibrary( tlc_file, dl_shared_lib  )
 	local out_lib       = out_file .. ".bin"
 	local out_lib_h     = out_file .. ".bin.h"
 
-	local DL_TLC = "python2.6 tool/dl_tlc/dl_tlc.py --dldll=local/linux64/debug/dl.so "
+	local DL_TLC = PYTHON .. " tool/dl_tlc/dl_tlc.py --dldll=" .. dl_shared_lib
 
 	AddJob( out_header, 
 		"tlc " .. out_lib,
@@ -32,7 +34,7 @@ function DLTypeLibrary( tlc_file, dl_shared_lib  )
 	-- dump type-lib to header
 	AddJob( out_lib_h, 
 		out_lib .. " -> " .. out_lib_h, 
-		"python2.6 build/bin_to_hex.py " .. out_lib .. " > " .. out_lib_h, 
+		PYTHON .. " build/bin_to_hex.py " .. out_lib .. " > " .. out_lib_h, 
 		out_lib )
 end
 
@@ -66,7 +68,18 @@ end
 
 function DefaultMSVC( config )
 	local settings = DefaultSettings( "win32", config )
-	settings.cc.flags:Add("/W4", "-WX") -- settings.cc.flags:Add("/Wall", "-WX")
+	--[[
+		Settings here should be!
+		settings.cc.flags:Add("/Wall", "-WX")
+		/EHsc only on unittest
+		/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
+	--]]
+	settings.cc.flags:Add("/W4", "-WX", "/EHsc", "/wd4324")
+
+	settings.cc.includes:Add("extern/include")
+	settings.dll.libpath:Add("extern/libs/" .. platform .. "/" .. config)
+	settings.link.libpath:Add("extern/libs/" .. platform .. "/" .. config)
+
 	return settings
 end
 
@@ -128,7 +141,11 @@ dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("too
 DLTypeLibrary( "tests/unittest.tld", shared_library )
 
 build_settings.link.libs:Add( "gtest" )
-build_settings.link.libs:Add( "pthread" )
+
+if platform == "linux64" or platform == "linux32" then
+	build_settings.link.libs:Add( "pthread" )
+end
+
 dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
 RunUnitTest( "test", dl_tests )
