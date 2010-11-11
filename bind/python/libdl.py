@@ -124,11 +124,17 @@ def get_dl_dll():
 			if arg.startswith( "--dldll" ): 
 				return arg.split('=')[1]
 		return ""
+	
+	DLL_NAME = 'dl'
+	if sys.platform in [ 'win32', 'win64' ]:
+		DLL_NAME += '.dll'
+	else:
+		DLL_NAME += '.so'
 
 	dl_path_generators = [ 
 		find_dldll_in_argv, 
-		lambda: os.path.join( os.path.dirname(__file__), 'dl.so' ),
-		lambda: os.path.join( os.getcwd(), 'dl.so' ) ]
+		lambda: os.path.join( os.path.dirname(__file__), DLL_NAME ),
+		lambda: os.path.join( os.getcwd(), DLL_NAME ) ]
 	
 	for dl_path in dl_path_generators:
 		path = dl_path()
@@ -139,7 +145,7 @@ def get_dl_dll():
 			logging.debug( 'loading dl-shared library from: %s' % path )
 			return CDLL( path )
 	
-	raise DLError( 'could not find dl.so in any path!', None )
+	raise DLError( 'could not find ' + DLL_NAME + ' in any path!', None )
 
 g_DLDll = get_dl_dll()
 g_DLDll.dl_error_to_string.restype = c_char_p
