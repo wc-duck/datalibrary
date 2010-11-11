@@ -36,18 +36,15 @@ enum dl_util_file_type_t
 		more.
 
 	Parameters:
-		_Ctx        - Context to use for operations.
-		_pFileName  - Path to file to load from.
-		_FileType   - Type of file to read, see EDLUtilFileType.
-		_ppInstance - Pointer to fill with read instance.
+		dl_ctx       - Context to use for operations.
+		filename     - Path to file to load from.
+		filetype     - Type of file to read, see EDLUtilFileType.
+		out_instance - Pointer to fill with read instance.
 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file( dl_ctx_t            _Ctx,
-                                   const char*         _pFileName,
-                                   dl_util_file_type_t _FileType,
-                                   void**              _ppInstance );
+dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, const char* filename, dl_util_file_type_t filetype, void** out_instance );
 
 /*
 	Function: dl_util_load_from_file_inplace
@@ -58,20 +55,16 @@ dl_error_t dl_util_load_from_file( dl_ctx_t            _Ctx,
 		be used accordingly.
 
 	Parameters:
-		_Ctx          - Context to use for operations.
-		_pFileName    - Path to file to load from.
-		_FileType     - Type of file to read, see EDLUtilFileType.
-		_ppInstance   - Pointer to area to load instance to.
-		_InstanceSize - Size of buffer pointed to by _ppInstance
+		dl_ctx            - Context to use for operations.
+		filename          - Path to file to load from.
+		filetype          - Type of file to read, see EDLUtilFileType.
+		out_instance      - Pointer to area to load instance to.
+		out_instance_size - Size of buffer pointed to by _ppInstance
 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file_inplace( dl_ctx_t            _Ctx,
-                                           const char*         _pFileName,
-                                           dl_util_file_type_t _FileType,
-                                           void*               _ppInstance,
-                                           unsigned int        _InstanceSize );
+dl_error_t dl_util_load_from_file_inplace( dl_ctx_t dl_ctx, const char* filename, dl_util_file_type_t filetype, void* out_instance, unsigned int out_instance_size );
 
 /*
 	Function: dl_util_store_to_file
@@ -82,21 +75,16 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t            _Ctx,
 		be used accordingly.
 
 	Parameters:
-		_Ctx          - Context to use for operations.
-		_pFileName    - Path to file to store to.
-		_FileType     - Type of file to write, see EDLUtilFileType.
-		_Endian       - Endian of stored instance if binary.
-		_PtrSize      - Pointer size of stored instance if binary.
-		_ppInstance   - Pointer to instance to write
+		dl_ctx       - Context to use for operations.
+		filename     - Path to file to store to.
+		filetype     - Type of file to write, see EDLUtilFileType.
+		out_endian   - Endian of stored instance if binary.
+		out_ptr_size - Pointer size of stored instance if binary.
+		out_instance - Pointer to instance to write
 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_store_to_file( dl_ctx_t            _Ctx,
-                                  const char*         _pFileName,
-                                  dl_util_file_type_t _FileType,
-                                  dl_endian_t         _Endian,
-                                  unsigned int        _PtrSize,
-                                  void*               _ppInstance );
+dl_error_t dl_util_store_to_file( dl_ctx_t dl_ctx, const char* filename, dl_util_file_type_t filetype, dl_endian_t out_endian, unsigned int out_ptr_size, void* out_instance );
 
 #endif // DL_DL_UTIL_H_INCLUDED

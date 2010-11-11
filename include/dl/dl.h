@@ -139,8 +139,8 @@ DL_FORCEINLINE dl_endian_t dl_endian_host()
 */
 typedef struct dl_alloc_functions
 {
-	void* (*m_Alloc)(unsigned int _Size, unsigned int _Alignment);
-	void  (*m_Free) (void* _pPtr);
+	void* (*alloc)( unsigned int size, unsigned int alignment );
+	void  (*free) ( void* ptr );
 } dl_alloc_functions_t;
 
 /*
@@ -152,18 +152,18 @@ typedef struct dl_alloc_functions
 		Creates a context.
 
 	Parameters:
-		_pContext            - Ptr to instance to create.
-		_pDLAllocFuncs       - Allocation functions that will be used when allocating context and loaded type-libraries when using this context. 
-		                       This memory will be freed by DL.
-							   If NULL, malloc/free will be used by default!
+		dl_ctx            - Ptr to instance to create.
+		alloc_funcs       - Allocation functions that will be used when allocating context and loaded type-libraries when using this context.
+		                    This memory will be freed by DL.
+							If NULL, malloc/free will be used by default!
 */
-dl_error_t DL_DLL_EXPORT dl_context_create( dl_ctx_t* _pContext, dl_alloc_functions_t* _pDLAllocFuncs );
+dl_error_t DL_DLL_EXPORT dl_context_create( dl_ctx_t* dl_ctx, dl_alloc_functions_t* alloc_funcs );
 
 /*
 	Function: dl_context_destroy
 		Destroys a context and free all memory allocated with the DLAllocFuncs-functions.
 */
-dl_error_t DL_DLL_EXPORT dl_context_destroy( dl_ctx_t _Context );
+dl_error_t DL_DLL_EXPORT dl_context_destroy( dl_ctx_t dl_ctx );
 
 /*
 	Function: dl_context_load_type_library
@@ -171,13 +171,11 @@ dl_error_t DL_DLL_EXPORT dl_context_destroy( dl_ctx_t _Context );
 		One context can have multiple type libraries loaded and reference types within the different ones.
 
 	Parameters:
-		_Context  - Context to load type-library into.
-		_pData    - Pointer to binary-data with type-library.
-		_DataSize - Size of _pData.
+		dl_ctx        - Context to load type-library into.
+		lib_data      - Pointer to binary-data with type-library.
+		lib_data_size - Size of _pData.
 */
-dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t             _Context,
-                                                       const unsigned char* _pData,
-                                                       unsigned int         _DataSize );
+dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size );
 
 
 /*
@@ -190,18 +188,15 @@ dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t             _Con
 		Loads the instance to the memory area pointed to by _pInstance. Will return error if type is not constant size!
 
 	Parameters:
-		_Context        - Context to load type-library into.
-		_pInstance      - Ptr where to load the instance to.
-		_pData          - Ptr to binary data to load from.
-		_DataSize       - Size of _pData.
+		dl_ctx               - Context to load type-library into.
+		instance             - Ptr where to load the instance to.
+		packed_instance      - Ptr to binary data to load from.
+		packed_instance_size - Size of _pData.
 
 	Note:
 		Packed instance to load is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             _Context,
-                                           void*                _pInstance,
-                                           const unsigned char* _pData,
-                                           unsigned int         _DataSize );
+dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t dl_ctx, void* instance, const unsigned char* packed_instance, unsigned int packed_instance_size );
 
 /*
 	Group: Store
@@ -211,35 +206,28 @@ dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             _Context,
 		Calculate size needed to store instance.
 
 	Parameters:
-		_Context        - Context to load type-library into.
-		_TypeHash       - Type hash for type to store.
-		_pInstance      - Ptr to instance to calculate size of.
-		_pDataSize      - Ptr where to store the amount of bytes needed to store the instances.
+		dl_ctx   - Context to load type-library into.
+		type     - Type id for type to store.
+		instance - Ptr to instance to calculate size of.
+		out_size - Ptr where to store the amount of bytes needed to store the instances.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t      _Context,
-                                                dl_typeid_t   _TypeHash,
-                                                void*         _pInstance,
-                                                unsigned int* _pDataSize);
+dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, unsigned int* out_size);
 
 /*
 	Function: dl_instace_store
 		Store the instances.
 
 	Parameters:
-		_Context        - Context to load type-library into.
-		_TypeHash       - Type hash for type to store.
-		_pInstance      - Ptr to instance to store.
-		_pOutBuffer     - Ptr to memory-area where to store the instances.
-		_OutBufferSize  - Size of _pData.
+		dl_ctx            - Context to load type-library into.
+		type              - Type id for type to store.
+		instance          - Ptr to instance to store.
+		out_instance      - Ptr to memory-area where to store the instances.
+		out_instance_size - Size of _pData.
 
 	Note:
 		The instance after pack will be in current platform endian.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t      _Context,
-                                           dl_typeid_t    _TypeHash,
-                                           void*          _pInstance,
-                                           unsigned char* _pOutBuffer,
-                                           unsigned int   _OutBufferSize );
+dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, unsigned char* out_instance, unsigned int out_instance_size );
 
 
 /*
@@ -250,30 +238,30 @@ dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t      _Context,
 	Function: dl_error_to_string
 		Converts EDLError to string.
 */
-DL_DLL_EXPORT const char* dl_error_to_string( dl_error_t _Err );
+DL_DLL_EXPORT const char* dl_error_to_string( dl_error_t error );
 
 /*
 	Function: dl_instance_ptr_size
 		Return the ptr-size of the instance stored in _pData.
 
 	Parameters:
-		_pData       - Ptr to memory-area where packed instance is to be found.
-		_DataSize    - Size of _pData.
+		packed_instance      - Ptr to memory-area where packed instance is to be found.
+		packed_instance_size - Size of _pData.
 
 	Returns:
 		The ptr size of stored instance (4 or 8) or 0 on error.
 */
-unsigned int dl_instance_ptr_size( const unsigned char* _pData, unsigned int _DataSize );
+unsigned int dl_instance_ptr_size( const unsigned char* packed_instance, unsigned int packed_instance_size );
 
 /*
 	Function: dl_instance_endian
 		Return the endianness of the instance stored in _pData.
 
 	Parameters:
-		_pData       - Ptr to memory-area where packed instance is to be found.
-		_DataSize    - Size of _pData.
+		packed_instance      - Ptr to memory-area where packed instance is to be found.
+		packed_instance_size - Size of _pData.
 */
-dl_endian_t dl_instance_endian( const unsigned char* _pData, unsigned int _DataSize );
+dl_endian_t dl_instance_endian( const unsigned char* packed_instance, unsigned int packed_instance_size );
 
 /*
 	Function: dl_instance_root_type
@@ -283,10 +271,10 @@ dl_endian_t dl_instance_endian( const unsigned char* _pData, unsigned int _DataS
 		0 is returned if the data is malformed.
 
 	Parameters:
-		_pData       - Ptr to memory-area where packed instance is to be found.
-		_DataSize    - Size of _pData.
+		packed_instance      - Ptr to memory-area where packed instance is to be found.
+		packed_instance_size - Size of _pData.
 */
-dl_typeid_t dl_instance_root_type( const unsigned char* _pData, unsigned int _DataSize );
+dl_typeid_t dl_instance_root_type( const unsigned char* packed_instance, unsigned int packed_instance_size );
 
 #ifdef __cplusplus
 }

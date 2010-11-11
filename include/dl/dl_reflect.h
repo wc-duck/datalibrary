@@ -17,8 +17,8 @@
 */
 typedef struct dl_type_info
 {
-	const char*  m_Name;
-	unsigned int m_nMembers;
+	const char*  name;
+	unsigned int member_count;
 } dl_type_info_t;
 
 /*
@@ -27,10 +27,10 @@ typedef struct dl_type_info
 */
 typedef struct dl_member_info
 {
-	const char*  m_Name;
-	dl_type_t    m_Type;
-	dl_typeid_t  m_TypeID;
-	unsigned int m_ArrayCount;
+	const char*  name;
+	dl_type_t    type;
+	dl_typeid_t  type_id;
+	unsigned int array_count;
 } dl_member_info_t;
 
 #ifdef __cplusplus
@@ -42,61 +42,55 @@ extern "C" {
 		Find typeid of a specified type by name.
 
 	Parameters:
-		_Context  - A valid handle to a DLContext to do the type-lookup in.
-		_TypeName - Name of type to lookup.
-		_pTypeID  - TypeID returned here.
+		dl_ctx      - A valid handle to a DLContext to do the type-lookup in.
+		type_ame    - Name of type to lookup.
+		out_type_id - TypeID returned here.
 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t     _Context,
-                                                 const char*  _TypeName,
-                                                 dl_typeid_t* _pTypeID );
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_typeid_t* out_type );
 /*
 	Function: dl_reflect_get_type_info
 		Retrieve information about a certain type in a type-library.
 
 	Parameters:
-		_Context  - A valid handle to a DLContext
-		_TypeID   - TypeID of the type to get information about.
-		_pType    - Ptr to struct to fill with type-information.
-		_pMembers - Ptr to array to fill with information about the members of the type.
-		_nMembers - Size of _pMembers.
+		dl_ctx        - A valid handle to a DLContext
+		type          - TypeID of the type to get information about.
+		out_type_info - Ptr to struct to fill with type-information.
+		out_members   - Ptr to array to fill with information about the members of the type.
+		members_size  - Size of _pMembers.
 
 	Returns:
 		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if _pMembers do not fit all members, or other error if apropriate!
 */
-dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t          _Context,
-                                                   dl_typeid_t       _TypeID,
-                                                   dl_type_info_t*   _pType,
-                                                   dl_member_info_t* _pMembers,
-                                                   unsigned int      _nMembers );
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_info_t* out_type_info, dl_member_info_t* out_members, unsigned int members_size );
 
 /*
 	Function: dl_size_of_type
 		Returns the size of a loaded type.
 
 	Parameters:
-		_Context  - Handle to a valid DL-context.
-		_TypeHash - Hash of type to check size of.
+		dl_ctx - Handle to a valid DL-context.
+		type   - Hash of type to check size of.
 
 	Returns:
 		The size of the type or 0 if not found in context.
 */
-unsigned int dl_size_of_type( dl_ctx_t _Context, dl_typeid_t _TypeHash );
+unsigned int dl_size_of_type( dl_ctx_t dl_ctx, dl_typeid_t type );
 
 /*
 	Function: dl_alignment_of_type
 		Returns the alignment of a loaded type.
 
 	Parameters:
-		_Context  - Handle to a valid DL-context.
-		_TypeHash - Hash of type to check alignment of.
+		dl_ctx - Handle to a valid DL-context.
+		type   - Hash of type to check alignment of.
 
 	Returns:
 		The alignment of the type or 0 if not found in context.
 */
-unsigned int dl_alignment_of_type( dl_ctx_t _Context, dl_typeid_t _TypeHash );
+unsigned int dl_alignment_of_type( dl_ctx_t dl_ctx, dl_typeid_t type );
 
 #ifdef __cplusplus
 }

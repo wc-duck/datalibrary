@@ -1,8 +1,13 @@
 DONE
+* remove all unnessesary stuff from public interface. No unneded symbols should be exposed from dl.
+* fix how dl_tlc loads dl.so/.dll
+    - read from system paths ( 1. same path as dl_tlc 2. system installed )
+    - add flag to dl_tlc to specify shared lib to use in unittests
+* add dl_reflect_get_type_id( const char* type_name  ), to be able to build binds without exposing hash-function.
+* unittest for python should work and be incorprated into build-scripts
 
 BEFORE 1.0
 * get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 ))
-* remove all unnessesary stuff from public interface. No unneded symbols should be exposed from dl.
 * rename StrHash, user need not know that it is a string-hash ( it might not even be later on! ). dl_type_id?
 * add check for versions in data so errors are thrown if typelib and packed data of older version can not be loaded.
 * base-types in generated headers need to be configurable and default to uint32_t and friends.
@@ -10,14 +15,10 @@ BEFORE 1.0
 * make interface more consistent
     - consistent order of parameters between functions
     - consistent nameing of functions, dl_instance_*, dl_convert_*, dl_txt_*, dl_util_*
-    - rework functions to retrieve instance-info from dl_instance_endian, dl_instance_ptr_size, dl_instance_root_type to dl_instance_get_properties(dl_instance_properties* )
-
+    - consistent nameing of parameters to functions.
+* rework functions to retrieve instance-info from dl_instance_endian, dl_instance_ptr_size, dl_instance_root_type to dl_instance_get_properties(dl_instance_properties* )
 * rework text-format for arrays from #1 to the same syntax as inline arrays.
-* fix how dl_tlc loads dl.so/.dll
-    - read from system paths ( 1. same path as dl_tlc 2. system installed )
-    - add flag to dl_tlc to specify shared lib to use in unittests
-* unittest for python should work and be incorprated into build-scripts
-* add dl_reflect_get_type_id( const char* type_name  ), to be able to build binds without exposing hash-function.
+* remove all adding of m_, p, S when generating headers from dl_tlc. Let users define their struct-names in type-lib!
 
 * write readme and tutorials.
 * Question: sholud dl_load_instance and friends take dl_type_id even though the do not need it? Use it for error reporting.
@@ -33,6 +34,7 @@ LATER
     - pack on little endian -> unpack on big endian is harder. Do via network?
 * add functionallity to stream txt_pack and unpack
 * cleanup in libdl.py and dl_tlc.py
+* EDLType should not need to be exposed by the lib in the way it is now!
 * Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
   able to determine that they do not match.
   

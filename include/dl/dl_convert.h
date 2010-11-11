@@ -20,58 +20,51 @@ extern "C" {
 		Converts a packed instance to an other format.
 
 	Parameters:
-		_Context     - Handle to valid DL-context.
-		_pData       - Ptr to memory-area where packed instance is to be found.
-		_DataSize    - Size of _pData.
-		_pOutData    - Ptr to memory-area where to place the converted instance.
-		_OutDataSize - Size of _pOutData.
-		_Endian      - Endian to convert the packed instance to.
-		_PtrSize     - Size in bytes of pointers after conversions, valid values 4 and 8.
+		dl_ctx               - Handle to valid DL-context.
+		packed_instance      - Ptr to memory-area where packed instance is to be found.
+		packed_instance_size - Size of _pData.
+		out_instance         - Ptr to memory-area where to place the converted instance.
+		out_instance_size    - Size of _pOutData.
+		out_endian           - Endian to convert the packed instance to.
+		out_ptr_size         - Size in bytes of pointers after conversions, valid values 4 and 8.
 */
-dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       _Context,
-                                     unsigned char* _pData,
-                                     unsigned int   _DataSize,
-                                     unsigned char* _pOutData,
-                                     unsigned int   _OutDataSize,
-                                     dl_endian_t    _Endian,
-                                     unsigned int   _PtrSize );
+dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,
+                                     unsigned char* packed_instance, unsigned int packed_instance_size,
+                                     unsigned char* out_instance,    unsigned int out_instance_size,
+                                     dl_endian_t    out_endian,      unsigned int out_ptr_size );
 
 /*
 	Function: dl_convert_inplace
 		Converts a packed instance to an other format inplace.
 
 	Parameters:
-		_Context     - Handle to valid DL-context.
-		_pData       - Ptr to memory-area where packed instance is to be found.
-		_DataSize    - Size of _pData.
-		_Endian      - Endian to convert the packed instance to.
-		_PtrSize     - Size in bytes of pointers after conversions, valid values 4 and 8.
+		dl_ctx               - Handle to valid DL-context.
+		packed_instance      - Ptr to memory-area where packed instance is to be found.
+		packed_instance_size - Size of _pData.
+		out_endian           - Endian to convert the packed instance to.
+		out_ptr_size         - Size in bytes of pointers after conversions, valid values 4 and 8.
 
 	Note:
 		Function is restricted to converting endianness and converting 8-byte ptr:s to 4-byte ptr:s
 */
-dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t     _Context,
-                                             unsigned char* _pData,
-                                             unsigned int   _DataSize,
-                                             dl_endian_t   _Endian,
-                                             unsigned int   _PtrSize );
+dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t dl_ctx,
+                                             unsigned char* packed_instance, unsigned int packed_instance_size,
+                                             dl_endian_t    out_endian,      unsigned int out_ptr_size );
 
 /*
 	Function: dl_convert_calc_size
 		Calculates size of an instance after _PtrSize-conversion.
 
 	Parameters:
-		_Context     - Handle to valid DL-context.
-		_pData       - Ptr to memory-area where packed instance is to be found.
-		_DataSize    - Size of _pData.
-		_PtrSize     - Size in bytes of pointers after conversions, valid values 4 and 8.
-		_pResultSize - Ptr where to store the calculated size.
+		dl_ctx               - Handle to valid DL-context.
+		packed_instance      - Ptr to memory-area where packed instance is to be found.
+		packed_instance_size - Size of _pData.
+		out_ptr_size         - Size in bytes of pointers after conversions, valid values 4 and 8.
+		out_size             - Ptr where to store the calculated size.
 */
-dl_error_t DL_DLL_EXPORT dl_convert_calc_size( dl_ctx_t       _Context,
-                                               unsigned char* _pData,
-                                               unsigned int   _DataSize,
-                                               unsigned int   _PtrSize,
-                                               unsigned int*  _pResultSize );
+dl_error_t DL_DLL_EXPORT dl_convert_calc_size( dl_ctx_t       dl_ctx,
+                                               unsigned char* packed_instance, unsigned int  packed_instance_size,
+                                               unsigned int   out_ptr_size,    unsigned int* out_size );
 
 #ifdef __cplusplus
 }

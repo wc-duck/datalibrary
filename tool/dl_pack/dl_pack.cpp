@@ -38,11 +38,6 @@ unsigned char* ReadFile(FILE* _pFile, unsigned int* Size)
 	return pData;
 }
 
-void* MyAlloc(unsigned int  _Size, unsigned int _Alignment) { (void)_Alignment; return malloc(_Size); }
-void  MyFree (void* _pPtr) { free(_pPtr); }
-
-SDLAllocFunctions g_MyAllocs = { MyAlloc, MyFree };
-
 #define M_VERBOSE_OUTPUT(fmt, ...) if(g_Verbose) { fprintf(stderr, fmt "\n", ##__VA_ARGS__); }
 
 #define M_ERROR_AND_FAIL(fmt, ...) { fprintf(stderr, "Error: " fmt "\n", ##__VA_ARGS__); return 0x0; }
@@ -50,7 +45,7 @@ SDLAllocFunctions g_MyAllocs = { MyAlloc, MyFree };
 dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<const char*, 128>& _lLibs)
 {
 	dl_ctx_t Ctx;
-	dl_error_t err = dl_context_create(&Ctx, &g_MyAllocs, &g_MyAllocs);
+	dl_error_t err = dl_context_create( &Ctx, 0x0 );
 	if(err != DL_ERROR_OK)
 		M_ERROR_AND_FAIL( "SBDL error while creating context: %s", dl_error_to_string(err));
 

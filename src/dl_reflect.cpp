@@ -25,16 +25,16 @@ dl_error_t dl_reflect_get_type_info(dl_ctx_t _Context, dl_typeid_t _TypeID, dl_t
 	if(_nMembers < pType->m_nMembers)
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	_pType->m_Name     = pType->m_Name;
-	_pType->m_nMembers = pType->m_nMembers;
+	_pType->name     = pType->m_Name;
+	_pType->member_count = pType->m_nMembers;
 
 	for(uint32 nMember = 0; nMember < pType->m_nMembers; ++nMember)
 	{
 		const SDLMember& Member = pType->m_lMembers[nMember];
 
-		_pMembers[nMember].m_Name   = Member.m_Name;
-		_pMembers[nMember].m_Type   = Member.m_Type;
-		_pMembers[nMember].m_TypeID = Member.m_TypeID;
+		_pMembers[nMember].name   = Member.m_Name;
+		_pMembers[nMember].type   = Member.m_Type;
+		_pMembers[nMember].type_id = Member.m_TypeID;
 
 		if(Member.AtomType() == DL_TYPE_ATOM_INLINE_ARRAY)
 		{
@@ -47,13 +47,13 @@ dl_error_t dl_reflect_get_type_info(dl_ctx_t _Context, dl_typeid_t _TypeID, dl_t
 					if(pSubType == 0x0)
 						return DL_ERROR_TYPE_NOT_FOUND;
 
-					_pMembers[nMember].m_ArrayCount = Member.m_Size[DL_PTR_SIZE_HOST] / pSubType->m_Size[DL_PTR_SIZE_HOST];
+					_pMembers[nMember].array_count = Member.m_Size[DL_PTR_SIZE_HOST] / pSubType->m_Size[DL_PTR_SIZE_HOST];
 				}
 				break;
-				case DL_TYPE_STORAGE_STR: _pMembers[nMember].m_ArrayCount = Member.m_Size[DL_PTR_SIZE_HOST] / sizeof(char*); break;
+				case DL_TYPE_STORAGE_STR: _pMembers[nMember].array_count = Member.m_Size[DL_PTR_SIZE_HOST] / sizeof(char*); break;
 				default:
 					M_ASSERT(Member.IsSimplePod());
-					_pMembers[nMember].m_ArrayCount = Member.m_Size[DL_PTR_SIZE_HOST] / (uint32)DLPodSize(Member.m_Type); break;
+					_pMembers[nMember].array_count = Member.m_Size[DL_PTR_SIZE_HOST] / (uint32)DLPodSize(Member.m_Type); break;
 			}
 		}
 	}

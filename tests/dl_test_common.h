@@ -25,8 +25,8 @@ protected:
 			#include "generated/unittest.bin.h"
 		};
 
-		MyAllocs.m_Alloc = MyAlloc;
-		MyAllocs.m_Free  = MyFree;
+		MyAllocs.alloc = MyAlloc;
+		MyAllocs.free  = MyFree;
 
 		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &MyAllocs ) );
 		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib, sizeof(TypeLib)) );

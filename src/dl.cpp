@@ -18,7 +18,7 @@ dl_error_t dl_context_create( dl_ctx_t* _pContext, dl_alloc_functions_t* _pDLAll
 	if(_pDLAllocFuncs == 0x0)
 		_pDLAllocFuncs = &g_DLMallocFreeFuncs;
 
-	dl_context* pCtx = (dl_context*)_pDLAllocFuncs->m_Alloc(sizeof(dl_context), sizeof(void*));
+	dl_context* pCtx = (dl_context*)_pDLAllocFuncs->alloc(sizeof(dl_context), sizeof(void*));
 
 	if(pCtx == 0x0)
 		return DL_ERROR_OUT_OF_LIBRARY_MEMORY;
@@ -35,10 +35,10 @@ dl_error_t dl_context_create( dl_ctx_t* _pContext, dl_alloc_functions_t* _pDLAll
 
 dl_error_t dl_context_destroy(dl_ctx_t _Context)
 {
-	_Context->m_DLAllocFuncs->m_Free(_Context->m_TypeInfoData);
-	_Context->m_DLAllocFuncs->m_Free(_Context->m_EnumInfoData);
-	_Context->m_DLAllocFuncs->m_Free(_Context->m_pDefaultInstances);
-	_Context->m_DLAllocFuncs->m_Free(_Context);
+	_Context->m_DLAllocFuncs->free(_Context->m_TypeInfoData);
+	_Context->m_DLAllocFuncs->free(_Context->m_EnumInfoData);
+	_Context->m_DLAllocFuncs->free(_Context->m_pDefaultInstances);
+	_Context->m_DLAllocFuncs->free(_Context);
 	return DL_ERROR_OK;
 }
 
@@ -189,7 +189,7 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 
 static void DLLoadTypeLibraryLoadDefaults(dl_ctx_t _Context, const uint8* _pDefaultData, pint _DefaultDataSize)
 {
-	_Context->m_pDefaultInstances = (uint8*)_Context->m_DLAllocFuncs->m_Alloc(_DefaultDataSize * 2, sizeof(void*)); // times 2 here need to be fixed!
+	_Context->m_pDefaultInstances = (uint8*)_Context->m_DLAllocFuncs->alloc(_DefaultDataSize * 2, sizeof(void*)); // times 2 here need to be fixed!
 
 	uint8* pDst = _Context->m_pDefaultInstances;
 	// ptr-patch and convert to native
@@ -264,11 +264,11 @@ dl_error_t dl_context_load_type_library(dl_ctx_t _Context, const unsigned char* 
 	if(Header.m_Version != DL_VERSION) return DL_ERROR_VERSION_MISMATCH;
 
 	// store type-info data.
-	_Context->m_TypeInfoData = (uint8*)_Context->m_DLAllocFuncs->m_Alloc(Header.m_TypesSize, sizeof(void*));
+	_Context->m_TypeInfoData = (uint8*)_Context->m_DLAllocFuncs->alloc(Header.m_TypesSize, sizeof(void*));
 	memcpy(_Context->m_TypeInfoData, _pData + Header.m_TypesOffset, Header.m_TypesSize);
 
 	// store enum-info data.
-	_Context->m_EnumInfoData = (uint8*)_Context->m_DLAllocFuncs->m_Alloc(Header.m_EnumsSize, sizeof(void*));
+	_Context->m_EnumInfoData = (uint8*)_Context->m_DLAllocFuncs->alloc(Header.m_EnumsSize, sizeof(void*));
 	memcpy(_Context->m_EnumInfoData, _pData + Header.m_EnumsOffset, Header.m_EnumsSize);
 
 	// read type-lookup table
