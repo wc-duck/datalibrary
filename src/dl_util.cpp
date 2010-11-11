@@ -17,6 +17,8 @@ EDLError dl_util_load_from_file( HDLContext _Ctx,
                                  EDLUtilFileType file_type,
                                  void** _ppInstance )
 {
+	(void)_DLType;
+	
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
 

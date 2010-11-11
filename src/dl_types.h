@@ -34,6 +34,8 @@
 
 #endif
 
+typedef unsigned int uint;
+
 #define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 #define M_ASSERT(_Expr, ...) // implement me plox!
@@ -337,7 +339,7 @@ static inline const char* DLFindEnumName(HDLContext _Context, StrHash _EnumHash,
 	return "UnknownEnum!";
 }
 
-static StrHash DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, StrHash _BaseHash)
+DL_FORCEINLINE static StrHash DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, StrHash _BaseHash)
 {
 	M_ASSERT(_pBuffer != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;
@@ -346,7 +348,7 @@ static StrHash DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, StrHash 
 	return Hash - 5381;
 }
 
-static StrHash DLHashString(const char* _pStr, StrHash _BaseHash = 0)
+DL_FORCEINLINE static StrHash DLHashString(const char* _pStr, StrHash _BaseHash = 0)
 {
 	M_ASSERT(_pStr != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;
