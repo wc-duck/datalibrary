@@ -51,13 +51,13 @@ struct TDLArray
 	uint32 m_nCount;
 
 	// TODO: Fix asserts so that user might specify them as they se fit!
-	T& operator[](uint _Index)
+	T& operator[](unsigned int _Index)
 	{
 		// M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
 		return m_pData[_Index];
 	}
 
-	const T& operator[](uint _Index) const 
+	const T& operator[](unsigned int _Index) const 
 	{
 		// M_ASSERT(_Index < m_nCount, "Index out of range! Array size %%u, requested index %%u", m_nCount, _Index);
 		return m_pData[_Index];
