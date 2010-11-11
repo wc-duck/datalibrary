@@ -1,7 +1,7 @@
 import os, sys, array
 
 data = array.array( 'B' )
-data.fromfile( open( sys.argv[1], 'r' ), os.path.getsize(sys.argv[1]) )
+data.fromfile( open( sys.argv[1], 'rb' ), os.path.getsize(sys.argv[1]) )
 
 count = 1
 
