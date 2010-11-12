@@ -34,6 +34,8 @@
 
 #endif
 
+typedef unsigned int uint;
+
 #define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 #define M_ASSERT(_Expr, ...) // implement me plox!
@@ -177,10 +179,10 @@ struct SDLEnumValue
 	uint32 m_Value;
 };
 
-#ifdef M_COMPILER_MSVC
+#if defined( _MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4200) // disable warning for 0-size array
-#endif //M_COMPILER_MSVC
+#endif // defined( _MSC_VER )
 
 struct SDLType
 {
@@ -201,9 +203,9 @@ struct SDLEnum
 	SDLEnumValue m_lValues[0];
 };
 
-#ifdef M_COMPILER_MSVC
+#if defined( _MSC_VER )
 #pragma warning(pop)
-#endif //M_COMPILER_MSVC
+#endif // defined( _MSC_VER )
 
 struct SOneMemberType
 {
@@ -336,7 +338,7 @@ static inline const char* DLFindEnumName(dl_ctx_t _Context, dl_typeid_t _EnumHas
 	return "UnknownEnum!";
 }
 
-static dl_typeid_t DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, dl_typeid_t _BaseHash)
+DL_FORCEINLINE static uint32_t DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, uint32_t _BaseHash)
 {
 	M_ASSERT(_pBuffer != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;
@@ -345,7 +347,7 @@ static dl_typeid_t DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, dl_t
 	return Hash - 5381;
 }
 
-static dl_typeid_t DLHashString(const char* _pStr, dl_typeid_t _BaseHash = 0)
+DL_FORCEINLINE static uint32_t DLHashString(const char* _pStr, uint32_t _BaseHash = 0)
 {
 	M_ASSERT(_pStr != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;

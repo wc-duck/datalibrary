@@ -318,7 +318,7 @@ static T DLConvertBitFieldFormat(T _OldValue, const SDLMember* _plBFMember, uint
 		uint32 BFTargetOffset = DLBitFieldOffset(_ConvertContext.m_TargetEndian, sizeof(T), BFOffset, BFBits);
 
  		T Extracted = DL_EXTRACT_BITS(_OldValue, T(BFSourceOffset), T(BFBits));
- 		NewValue    = DL_INSERT_BITS(NewValue, Extracted, T(BFTargetOffset), T(BFBits));
+ 		NewValue    = (T)DL_INSERT_BITS(NewValue, Extracted, T(BFTargetOffset), T(BFBits));
 	}
 
 	if(_ConvertContext.m_SourceEndian != DL_ENDIAN_HOST)

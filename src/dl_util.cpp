@@ -17,6 +17,8 @@ dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
                                  dl_util_file_type_t file_type,
                                  void** _ppInstance )
 {
+	(void)_DLType;
+	
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
 

@@ -69,7 +69,7 @@ template<typename T> DL_FORCEINLINE T Max(T _ValA, T _ValB) { return _ValA < _Va
 */
 DL_FORCEINLINE int StrCaseCompareLen(const char* _pStr1, const char* _pStr2, unsigned int _Len)
 {
-#if defined (DL_TAG_WINAPI)
+#if defined (_MSC_VER)
 	for(unsigned int i = 0; i < _Len; i++)
 	{
 		int C1 = tolower(_pStr1[i]);
@@ -79,9 +79,9 @@ DL_FORCEINLINE int StrCaseCompareLen(const char* _pStr1, const char* _pStr2, uns
 		if(C1 == '\0' && C1 == C2) return 0;
 	}
 	return 0;
-#else // defined (M_TAG_WINAPI)
+#else // defined (_MSC_VER)
 	return strncasecmp(_pStr1, _pStr2, _Len);
-#endif // defined (M_TAG_WINAPI)
+#endif // defined (_MSC_VER)
 }
 
 /*

@@ -383,6 +383,7 @@ struct SDLUnpackStorage { uint8 m_Storage[1024]; };
 
 void* DLUnpackMallocFunc(void* _pCtx, unsigned int _Sz)
 {
+	(void)_Sz;
 	SDLUnpackStorage* Storage = (SDLUnpackStorage*)_pCtx;
 	M_ASSERT(_Sz <= sizeof(SDLUnpackStorage));
 	return (void*)Storage->m_Storage;

@@ -6,8 +6,42 @@
 // header file generated from unittest-type lib
 #include "generated/unittest.h"
 
-#define EXPECT_DL_ERR_EQ(_Expect, _Res) do { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; } while (0);
+#include <stdio.h>
+
+#if defined(_MSC_VER)
+	#define snprintf _snprintf // ugly fugly.
+#endif // defined(_MSC_VER)
+
+#define EXPECT_DL_ERR_EQ(_Expect, _Res) { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; }
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
+
+template<typename T>
+const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned int nBuffer)
+{
+	unsigned int Pos = snprintf(pBuffer, nBuffer, "{ %f", _pArr[0]);
+
+	for(unsigned int i = 1; i < _Count && Pos < nBuffer; ++i)
+	{
+		Pos += snprintf(pBuffer + Pos, nBuffer - Pos, ", %f", _pArr[i]);
+	}
+
+	snprintf(pBuffer + Pos, nBuffer - Pos, " }");
+	return pBuffer;
+}
+
+#define EXPECT_ARRAY_EQ(_Count, _Expect, _Actual) \
+	{ \
+		bool WasEq = true; \
+		for(unsigned int i = 0; i < _Count && WasEq; ++i) \
+			WasEq = _Expect[i] == _Actual[i]; \
+		char ExpectBuf[1024]; \
+		char ActualBuf[1024]; \
+		char Err[2048]; \
+		snprintf(Err, DL_ARRAY_LENGTH(Err), "Arrays diffed!\nExpected:\n%s\nActual:\n%s", \
+											ArrayToString(_Expect, _Count, ExpectBuf, DL_ARRAY_LENGTH(ExpectBuf)), \
+											ArrayToString(_Actual, _Count, ActualBuf, DL_ARRAY_LENGTH(ActualBuf))); \
+		EXPECT_TRUE(WasEq) << Err; \
+	}
 
 static void* MyAlloc(unsigned int  _Size, unsigned int _Alignment) { (void)_Alignment; return malloc(_Size); }
 static void  MyFree (void* _pPtr) { free(_pPtr); }

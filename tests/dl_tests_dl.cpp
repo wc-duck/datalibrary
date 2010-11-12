@@ -734,36 +734,6 @@ TEST_F(DL, BugTest1)
 	EXPECT_EQ(Arr[2].u16,   Loaded[0].Arr[2].u16);
 }
 
-template<typename T>
-const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned int nBuffer)
-{
-	unsigned int Pos = snprintf(pBuffer, nBuffer, "{ %f", _pArr[0]);
-
-	for(unsigned int i = 1; i < _Count && Pos < nBuffer; ++i)
-	{
-		Pos += snprintf(pBuffer + Pos, nBuffer - Pos, ", %f", _pArr[i]);
-	}
-
-	snprintf(pBuffer + Pos, nBuffer - Pos, " }");
-	return pBuffer;
-}
-
-// TODO: Move this to other file!
-#define EXPECT_ARRAY_EQ(_Count, _Expect, _Actual) \
-	do \
-	{ \
-		bool WasEq = true; \
-		for(uint i = 0; i < _Count && WasEq; ++i) \
-			WasEq = _Expect[i] == _Actual[i]; \
-		char ExpectBuf[1024]; \
-		char ActualBuf[1024]; \
-		char Err[2048]; \
-		snprintf(Err, DL_ARRAY_LENGTH(Err), "Arrays diffed!\nExpected:\n%s\nActual:\n%s", \
-											ArrayToString(_Expect, _Count, ExpectBuf, DL_ARRAY_LENGTH(ExpectBuf)), \
-											ArrayToString(_Actual, _Count, ActualBuf, DL_ARRAY_LENGTH(ActualBuf))); \
-		EXPECT_TRUE(WasEq) << Err; \
-	} while (false);
-
 TEST_F(DL, BugTest2)
 {
 	// some error converting from 32-bit-data to 64-bit.
@@ -819,7 +789,7 @@ TEST(DLMisc, EndianIsCorrect)
 
 TEST(DLUtil, ErrorToString)
 {
-	for(dl_error_t Err = DL_ERROR_OK; Err < DL_ERROR_INTERNAL_ERROR; Err = dl_error_t(uint(Err) + 1))
+	for(dl_error_t Err = DL_ERROR_OK; Err < DL_ERROR_INTERNAL_ERROR; Err = (dl_error_t)((unsigned int)Err + 1))
 		EXPECT_STRNE("Unknown error!", dl_error_to_string(Err));
 }
 

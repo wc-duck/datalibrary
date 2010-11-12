@@ -129,11 +129,17 @@ def try_default_dl_dll():
 			if arg.startswith( "--dldll" ): 
 				return arg.split('=')[1]
 		return ""
+	
+	DLL_NAME = 'dl'
+	if sys.platform in [ 'win32', 'win64' ]:
+		DLL_NAME += '.dll'
+	else:
+		DLL_NAME += '.so'
 
 	dl_path_generators = [ 
 		find_dldll_in_argv, 
-		lambda: os.path.join( os.path.dirname(__file__), 'dl.so' ),
-		lambda: os.path.join( os.getcwd(), 'dl.so' ) ]
+		lambda: os.path.join( os.path.dirname(__file__), DLL_NAME ),
+		lambda: os.path.join( os.getcwd(), DLL_NAME ) ]
 	
 	for dl_path in dl_path_generators:
 		path = dl_path()
@@ -143,6 +149,7 @@ def try_default_dl_dll():
 		if( os.path.exists( path ) ):
 			logging.debug( 'loading dl-shared library from: %s' % path )
 			libdl_init( path )
+
 
 try_default_dl_dll()
 
