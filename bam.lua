@@ -17,7 +17,7 @@ function DLTypeLibrary( tlc_file, dl_shared_lib  )
 
 	AddJob( out_cs_header, 
 		"tlc " .. out_cs_header,
-		DL_TLC .. " -cs " .. out_cs_header .. " " .. tlc_file, 
+		DL_TLC .. " -s " .. out_cs_header .. " " .. tlc_file, 
 		tlc_file )
 
 	AddJob( out_lib, 

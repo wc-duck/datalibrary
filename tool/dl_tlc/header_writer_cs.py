@@ -9,19 +9,19 @@ using System.Runtime.InteropServices;
 
 '''
 
-PODS_ARRAY_TEMPLATE = '''	public %(cspod)s[] m_l%(name)s%(csdefault)s;
-	private uint m_n%(name)sArraySize;'''
+PODS_ARRAY_TEMPLATE = '''	public %(cspod)s[] %(name)s%(csdefault)s;
+	private uint %(name)sArraySize;'''
 
-STR_ARRAY_TEMPLATE = '''	public %(subtype)s[] m_l%(name)s%(csdefault)s;
-	private uint m_n%(name)sArraySize;'''
+STR_ARRAY_TEMPLATE = '''	public %(subtype)s[] %(name)s%(csdefault)s;
+	private uint %(name)sArraySize;'''
 
-ENUM_ARRAY_TEMPLATE = '''	public E%(subtype)s[] m_l%(name)s%(csdefault)s;
-	private uint m_n%(name)sArraySize;'''
+ENUM_ARRAY_TEMPLATE = '''	public %(subtype)s[] %(name)s%(csdefault)s;
+	private uint %(name)sArraySize;'''
 	
-ARRAY_TEMPLATE = '''	public C%(subtype)s[] m_l%(name)s%(csdefault)s;
-	private uint m_n%(name)sArraySize;'''
+ARRAY_TEMPLATE = '''	public %(subtype)s[] %(name)s%(csdefault)s;
+	private uint %(name)sArraySize;'''
 
-BITFIELD_TEMPLATE = '''	public %(cspod)s m_%(name)s
+BITFIELD_TEMPLATE = '''	public %(cspod)s %(name)s
 	{
 		get { %(cspod)s MASK = (1 << %(bits)u) - 1; return (%(cspod)s)((__BFStorage%(bf_storage_nr)d >> %(bfoffset)u) & MASK); }
 		set { %(cspod)s MASK = (1 << %(bits)u) - 1; __BFStorage%(bf_storage_nr)d &= (%(cspod)s)~(MASK << %(bfoffset)u); __BFStorage%(bf_storage_nr)d |= (%(cspod)s)((MASK & value) << %(bfoffset)u); }
@@ -67,7 +67,7 @@ class HeaderWriterCS:
 				enum_base = enum_name.upper()
 				enum_values = enum[1]
 				
-				self.stream.write('public enum E' + enum_name + ' : uint\n{')
+				self.stream.write('public enum ' + enum_name + ' : uint\n{')
 				for i in range(0, len(enum_values)):
 					value = enum_values[i]
 					self.stream.write('\n\t%s_%s = %d' % (enum_base, value[0].upper(), value[1]))
@@ -108,7 +108,7 @@ class HeaderWriterCS:
 			
 			print >> self.stream, '// size ', struct_attrib['size32']
 			if 'comment' in struct_attrib: print >> self.stream, '//', struct_attrib['comment']
-			print >> self.stream, '[StructLayout(LayoutKind.Sequential, Size=%s, CharSet=CharSet.Ansi)]\npublic class C%s\n{' % (struct_attrib['size32'], struct_name)
+			print >> self.stream, '[StructLayout(LayoutKind.Sequential, Size=%s, CharSet=CharSet.Ansi)]\npublic class %s\n{' % (struct_attrib['size32'], struct_name)
 			print >> self.stream, '\tpublic const UInt32 TYPE_ID = 0x%08X;\n' % temp_hash_func(struct_name)
 			
 			# need to generate constructor here to be able to do default-sturcts
@@ -149,27 +149,27 @@ class HeaderWriterCS:
 					member['csdefault'] = ''
 				
 				if type == 'inline-array':
-					if   member['subtype'] == 'string':   self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValTStr,  SizeConst=%(count)u)]\n\tpublic string[] m_lp%(name)s%(csdefault)s;',      member)
-					elif member['subtype'] in PODS:       self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst=%(count)u)]\n\tpublic %(cspod)s[] m_l%(name)s%(csdefault)s;',    member)
-					elif member['subtype'] in enum_types: self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst=%(count)u)]\n\tpublic E%(subtype)s[] m_l%(name)s;', member)
-					else:                                 self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst=%(count)u)]\n\tpublic C%(subtype)s[] m_l%(name)s;', member)
+					if   member['subtype'] == 'string':   self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValTStr,  SizeConst=%(count)u)]\n\tpublic string[] %(name)s%(csdefault)s;',      member)
+					elif member['subtype'] in PODS:       self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst=%(count)u)]\n\tpublic %(cspod)s[] %(name)s%(csdefault)s;',    member)
+					elif member['subtype'] in enum_types: self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst=%(count)u)]\n\tpublic E%(subtype)s[] %(name)s;', member)
+					else:                                 self.__write_member('\t[MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst=%(count)u)]\n\tpublic C%(subtype)s[] %(name)s;', member)
 				elif type == 'array':
 					if   member['subtype'] == 'string':   self.__write_member(STR_ARRAY_TEMPLATE,  member)
 					elif member['subtype'] in PODS:       self.__write_member(PODS_ARRAY_TEMPLATE, member)
 					elif member['subtype'] in enum_types: self.__write_member(ENUM_ARRAY_TEMPLATE, member)
 					else:                                 self.__write_member(ARRAY_TEMPLATE,      member)
-				elif type == 'string':  self.__write_member('\tpublic string m_p%(name)s%(csdefault)s;', member)
-				elif type == 'pointer': self.__write_member('\tpublic C%(subtype)s m_p%(name)s = null;', member)
+				elif type == 'string':  self.__write_member('\tpublic string %(name)s%(csdefault)s;', member)
+				elif type == 'pointer': self.__write_member('\tpublic C%(subtype)s %(name)s = null;', member)
 				elif type == 'bitfield': 
 					member['bf_storage_nr'] = bf_storage_nr
 					self.__write_member(BITFIELD_TEMPLATE, member)
 					if member['last_in_bf']:
 						self.__write_member('\tprivate %(cspod)s __BFStorage%(bf_storage_nr)d;', member)
 						bf_storage_nr += 1
-				elif type in PODS:                  self.__write_member('\tpublic %(cspod)s m_%(name)s%(csdefault)s;', member)
-				elif type in enum_types:            self.__write_member('\tpublic E%(type)s m_%(name)s%(csdefault)s;', member)
-				elif 'cs-alias' in mod_types[type]: self.__write_member('\t%s m_%%(name)s;' % mod_types[type]['cs-alias'], member)
-				else:                               self.__write_member('\tpublic C%(type)s m_%(name)s;', member)
+				elif type in PODS:                  self.__write_member('\tpublic %(cspod)s %(name)s%(csdefault)s;', member)
+				elif type in enum_types:            self.__write_member('\tpublic %(type)s %(name)s%(csdefault)s;', member)
+				elif 'cs-alias' in mod_types[type]: self.__write_member('\t%s %%(name)s;' % mod_types[type]['cs-alias'], member)
+				else:                               self.__write_member('\tpublic %(type)s %(name)s;', member)
 			
 			print >> self.stream, '};\n'
 		
