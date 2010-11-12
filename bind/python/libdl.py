@@ -208,7 +208,7 @@ class DLContext:
 		if self.TypeCache.has_key(_TypeID):
 			return self.TypeCache[_TypeID]
 		
-		class DLTypeInfo(Structure):   _fields_ = [ ('m_Name', c_char_p), ('m_nMembers', c_ulong) ]
+		class DLTypeInfo(Structure):   _fields_ = [ ('name', c_char_p), ('size', c_uint), ('alignment', c_uint), ('member_count', c_uint) ]
 		class DLMemberInfo(Structure): 
 			_fields_ = [ ('m_Name', c_char_p), ('m_Type', c_uint32), ('m_TypeID', c_uint32), ('m_ArrayCount', c_uint32) ]
 			
@@ -330,7 +330,7 @@ class DLContext:
 		
 		self_typed_ptrs = []
 		
-		for i in range(0, type_info.m_nMembers):
+		for i in range(0, type_info.member_count):
 			MemberName = 'm_' + member_info[i].m_Name
 			if member_info[i].m_TypeID == _TypeID:
 				self_typed_ptrs.append(i)
@@ -345,7 +345,7 @@ class DLContext:
 				
 			py_members[MemberName] = PYType
 		
-		c_type = type( 'DLCType_' + type_info.m_Name, (Structure, ), { '_DL_PY_TYPE' : None, 'AsPYType' : AsPYType, 'AsPYTypeInternal' : AsPYTypeInternal } )
+		c_type = type( 'DLCType_' + type_info.name, (Structure, ), { '_DL_PY_TYPE' : None, 'AsPYType' : AsPYType, 'AsPYTypeInternal' : AsPYTypeInternal } )
 		
 		for index in self_typed_ptrs:
 			c_members.insert(index, ('m_' + member_info[index].m_Name, POINTER(c_type)))
@@ -358,7 +358,7 @@ class DLContext:
 		py_members['_DL_C_TYPE' ]     = c_type
 		py_members['__setattr__']     = DLNoMemberAdd
 		
-		py_type = type( type_info.m_Name, (object, ), py_members )
+		py_type = type( type_info.name, (object, ), py_members )
 		
 		c_type._DL_PY_TYPE = py_type
 		

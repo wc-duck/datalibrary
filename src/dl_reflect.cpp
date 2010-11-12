@@ -25,7 +25,9 @@ dl_error_t dl_reflect_get_type_info(dl_ctx_t _Context, dl_typeid_t _TypeID, dl_t
 	if(_nMembers < pType->m_nMembers)
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	_pType->name     = pType->m_Name;
+	_pType->name         = pType->m_Name;
+	_pType->size         = pType->m_Size[DL_PTR_SIZE_HOST];
+	_pType->alignment    = pType->m_Alignment[DL_PTR_SIZE_HOST];
 	_pType->member_count = pType->m_nMembers;
 
 	for(uint32 nMember = 0; nMember < pType->m_nMembers; ++nMember)
@@ -59,16 +61,4 @@ dl_error_t dl_reflect_get_type_info(dl_ctx_t _Context, dl_typeid_t _TypeID, dl_t
 	}
 
 	return DL_ERROR_OK;
-}
-
-unsigned int dl_size_of_type(dl_ctx_t _Context, dl_typeid_t _TypeHash)
-{
-	const SDLType* pType = DLFindType(_Context, _TypeHash);
-	return pType == 0x0 ? 0 : pType->m_Size[DL_PTR_SIZE_HOST];
-}
-
-unsigned int dl_alignment_of_type(dl_ctx_t _Context, dl_typeid_t _TypeHash)
-{
-	const SDLType* pType = DLFindType(_Context, _TypeHash);
-	return pType == 0x0 ? 0 : pType->m_Alignment[DL_PTR_SIZE_HOST];
 }

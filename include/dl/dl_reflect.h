@@ -18,6 +18,8 @@
 typedef struct dl_type_info
 {
 	const char*  name;
+	unsigned int size;
+	unsigned int alignment;
 	unsigned int member_count;
 } dl_type_info_t;
 
@@ -65,32 +67,6 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* ty
 		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if _pMembers do not fit all members, or other error if apropriate!
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_info_t* out_type_info, dl_member_info_t* out_members, unsigned int members_size );
-
-/*
-	Function: dl_size_of_type
-		Returns the size of a loaded type.
-
-	Parameters:
-		dl_ctx - Handle to a valid DL-context.
-		type   - Hash of type to check size of.
-
-	Returns:
-		The size of the type or 0 if not found in context.
-*/
-unsigned int dl_size_of_type( dl_ctx_t dl_ctx, dl_typeid_t type );
-
-/*
-	Function: dl_alignment_of_type
-		Returns the alignment of a loaded type.
-
-	Parameters:
-		dl_ctx - Handle to a valid DL-context.
-		type   - Hash of type to check alignment of.
-
-	Returns:
-		The alignment of the type or 0 if not found in context.
-*/
-unsigned int dl_alignment_of_type( dl_ctx_t dl_ctx, dl_typeid_t type );
 
 #ifdef __cplusplus
 }
