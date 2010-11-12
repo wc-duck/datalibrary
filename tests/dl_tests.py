@@ -56,16 +56,16 @@ class TestLibDL(unittest.TestCase):
 	def AssertDefaultPods(self, Pods):
 		self.AssertNumMembers(10, Pods)
 		
-		self.assertEqual(0, Pods.m_int8)
-		self.assertEqual(0, Pods.m_int16)
-		self.assertEqual(0, Pods.m_int32)
-		self.assertEqual(0, Pods.m_int64)
-		self.assertEqual(0, Pods.m_uint8)
-		self.assertEqual(0, Pods.m_uint16)
-		self.assertEqual(0, Pods.m_uint32)
-		self.assertEqual(0, Pods.m_uint64)
-		self.assertEqual(0, Pods.m_fp32)
-		self.assertEqual(0, Pods.m_fp64)
+		self.assertEqual(0, Pods.m_i8)
+		self.assertEqual(0, Pods.m_i16)
+		self.assertEqual(0, Pods.m_i32)
+		self.assertEqual(0, Pods.m_i64)
+		self.assertEqual(0, Pods.m_u8)
+		self.assertEqual(0, Pods.m_u16)
+		self.assertEqual(0, Pods.m_u32)
+		self.assertEqual(0, Pods.m_u64)
+		self.assertEqual(0, Pods.m_f32)
+		self.assertEqual(0, Pods.m_f64)
 	
 	
 	# functionality tests
@@ -89,8 +89,8 @@ class TestLibDL(unittest.TestCase):
 		self.assertRaises(AttributeError, ShouldRaiseException)
 		
 		# test that a real set will not raise an exception!
-		Pods.m_int32 = 1337
-		self.assertEqual(1337, Pods.m_int32)
+		Pods.m_i32 = 1337
+		self.assertEqual(1337, Pods.m_i32)
 	
 	
 	# structure tests
@@ -112,14 +112,14 @@ class TestLibDL(unittest.TestCase):
 		Instance = Type()
 		
 		self.AssertNumMembers(1, Instance)
-		self.AssertNumMembers(2, Instance.m_Pod2InStruct)
-		self.AssertNumMembers(2, Instance.m_Pod2InStruct)
-		self.AssertNumMembers(2, Instance.m_Pod2InStruct)
-		self.assertEqual(Instance.m_Pod2InStruct.m_Pod1.__class__, Instance.m_Pod2InStruct.m_Pod2.__class__)
-		self.assertEqual(0, Instance.m_Pod2InStruct.m_Pod1.m_Int1)
-		self.assertEqual(0, Instance.m_Pod2InStruct.m_Pod1.m_Int2)
-		self.assertEqual(0, Instance.m_Pod2InStruct.m_Pod2.m_Int1)
-		self.assertEqual(0, Instance.m_Pod2InStruct.m_Pod2.m_Int2)
+		self.AssertNumMembers(2, Instance.m_p2struct)
+		self.AssertNumMembers(2, Instance.m_p2struct)
+		self.AssertNumMembers(2, Instance.m_p2struct)
+		self.assertEqual(Instance.m_p2struct.m_Pod1.__class__, Instance.m_p2struct.m_Pod2.__class__)
+		self.assertEqual(0, Instance.m_p2struct.m_Pod1.m_Int1)
+		self.assertEqual(0, Instance.m_p2struct.m_Pod1.m_Int2)
+		self.assertEqual(0, Instance.m_p2struct.m_Pod2.m_Int1)
+		self.assertEqual(0, Instance.m_p2struct.m_Pod2.m_Int2)
 		
 	def testHasCorrectMembersPodArray1(self):
 		Type     = self.DLContext.CreateType('PodArray1')
@@ -213,16 +213,16 @@ class TestLibDL(unittest.TestCase):
 		Type     = self.DLContext.CreateType('Pods')
 		Instance = Type()
 		
-		Instance.m_int8   = 1
-		Instance.m_int16  = 2
-		Instance.m_int32  = 3
-		Instance.m_int64  = 4
-		Instance.m_uint8  = 5
-		Instance.m_uint16 = 6
-		Instance.m_uint32 = 7
-		Instance.m_uint64 = 8
-		Instance.m_fp32   = 9
-		Instance.m_fp64   = 10
+		Instance.m_i8  = 1
+		Instance.m_i16 = 2
+		Instance.m_i32 = 3
+		Instance.m_i64 = 4
+		Instance.m_u8  = 5
+		Instance.m_u16 = 6
+		Instance.m_u32 = 7
+		Instance.m_u64 = 8
+		Instance.m_f32 = 9
+		Instance.m_f64 = 10
 		
 		res_buffer = self.DLContext.StoreInstance(Instance)
 		LoadInstance = self.DLContext.LoadInstance('Pods', res_buffer)
@@ -233,27 +233,27 @@ class TestLibDL(unittest.TestCase):
 		Type     = self.DLContext.CreateType('MorePods')
 		Instance = Type()
 		
-		Instance.m_Pods1.m_int8   = 1
-		Instance.m_Pods1.m_int16  = 2
-		Instance.m_Pods1.m_int32  = 3
-		Instance.m_Pods1.m_int64  = 4
-		Instance.m_Pods1.m_uint8  = 5
-		Instance.m_Pods1.m_uint16 = 6
-		Instance.m_Pods1.m_uint32 = 7
-		Instance.m_Pods1.m_uint64 = 8
-		Instance.m_Pods1.m_fp32   = 9
-		Instance.m_Pods1.m_fp64   = 10
+		Instance.m_Pods1.m_i8  = 1
+		Instance.m_Pods1.m_i16 = 2
+		Instance.m_Pods1.m_i32 = 3
+		Instance.m_Pods1.m_i64 = 4
+		Instance.m_Pods1.m_u8  = 5
+		Instance.m_Pods1.m_u16 = 6
+		Instance.m_Pods1.m_u32 = 7
+		Instance.m_Pods1.m_u64 = 8
+		Instance.m_Pods1.m_f32 = 9
+		Instance.m_Pods1.m_f64 = 10
 		
-		Instance.m_Pods2.m_int8   = 11
-		Instance.m_Pods2.m_int16  = 12
-		Instance.m_Pods2.m_int32  = 13
-		Instance.m_Pods2.m_int64  = 14
-		Instance.m_Pods2.m_uint8  = 15
-		Instance.m_Pods2.m_uint16 = 16
-		Instance.m_Pods2.m_uint32 = 17
-		Instance.m_Pods2.m_uint64 = 18
-		Instance.m_Pods2.m_fp32   = 19
-		Instance.m_Pods2.m_fp64   = 20
+		Instance.m_Pods2.m_i8  = 11
+		Instance.m_Pods2.m_i16 = 12
+		Instance.m_Pods2.m_i32 = 13
+		Instance.m_Pods2.m_i64 = 14
+		Instance.m_Pods2.m_u8  = 15
+		Instance.m_Pods2.m_u16 = 16
+		Instance.m_Pods2.m_u32 = 17
+		Instance.m_Pods2.m_u64 = 18
+		Instance.m_Pods2.m_f32 = 19
+		Instance.m_Pods2.m_f64 = 20
 		
 		res_buffer = self.DLContext.StoreInstance(Instance)
 		LoadInstance = self.DLContext.LoadInstance('MorePods', res_buffer)
@@ -409,7 +409,7 @@ class TestLibDL(unittest.TestCase):
 		Instance = Type()
 		
 		Pointee = self.DLContext.CreateType('Pods')()
-		Pointee.m_int32 = 1337
+		Pointee.m_i32 = 1337
 		
 		Instance.m_Ptr1 = Pointee
 		Instance.m_Ptr2 = Pointee
@@ -419,8 +419,8 @@ class TestLibDL(unittest.TestCase):
 		res_buffer = self.DLContext.StoreInstance(Instance)
 		LoadInstance = self.DLContext.LoadInstance('SimplePtr', res_buffer)
 		
-		self.assertEqual(1337, LoadInstance.m_Ptr1.m_int32)
-		self.assertEqual(1337, LoadInstance.m_Ptr2.m_int32)
+		self.assertEqual(1337, LoadInstance.m_Ptr1.m_i32)
+		self.assertEqual(1337, LoadInstance.m_Ptr2.m_i32)
 		self.assertEqual(id(LoadInstance.m_Ptr1), id(LoadInstance.m_Ptr2))
 		
 	def testWritePtrChain(self):

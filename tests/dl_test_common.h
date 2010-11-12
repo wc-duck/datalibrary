@@ -20,7 +20,7 @@ protected:
 	virtual void SetUp()
 	{
 		// bake the unittest-type library into the exe!
-		static const uint8 TypeLib[] =
+		static const unsigned char TypeLib[] =
 		{
 			#include "generated/unittest.bin.h"
 		};

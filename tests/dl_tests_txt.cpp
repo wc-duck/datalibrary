@@ -31,7 +31,7 @@ TEST_F(DL, TextMemberOrder)
 
 	Pods P1;
 
- 	uint8 OutDataText[1024];
+ 	unsigned char OutDataText[1024];
 
 	// pack txt to binary
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
@@ -76,7 +76,7 @@ TEST_F(DL, TextSetMemberTwice)
 			"}"
 		"}";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	// pack txt to binary
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
@@ -94,7 +94,7 @@ TEST_F(DL, TextNonExistMember)
 			"}"
 		"}";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	// pack txt to binary
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
@@ -108,7 +108,7 @@ TEST_F(DL, TextErrorMissingMember)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"Pods2\", \"data\" : { \"Int1\" : 1337 } } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, err);
 }
@@ -119,7 +119,7 @@ TEST_F(DL, TextPodDefaults)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"PodsDefaults\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -148,7 +148,7 @@ TEST_F(DL, TextDefaultStr)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultStr\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -168,7 +168,7 @@ TEST_F(DL, TextDefaultPtr)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultPtr\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -186,7 +186,7 @@ TEST_F(DL, TextDefaultStruct)
 {
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultStruct\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -205,7 +205,7 @@ TEST_F(DL, TextDefaultEnum)
 {
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultEnum\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -225,7 +225,7 @@ TEST_F(DL, TextDefaultInlineArrayPod)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultInlArrayPod\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -248,7 +248,7 @@ TEST_F(DL, TextDefaultInlineArrayEnum)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultInlArrayEnum\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -271,7 +271,7 @@ TEST_F(DL, TextDefaultInlineArrayString)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultInlArrayStr\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -292,7 +292,7 @@ TEST_F(DL, TextDefaultArrayPod)
 {
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultArrayPod\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -303,7 +303,7 @@ TEST_F(DL, TextDefaultArrayPod)
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-	EXPECT_EQ(4u, P1[0].Arr.nCount);
+	EXPECT_EQ(4u, P1[0].Arr.count);
 	
 	EXPECT_EQ(1u, P1[0].Arr[0]);
 	EXPECT_EQ(3u, P1[0].Arr[1]);
@@ -315,7 +315,7 @@ TEST_F(DL, TextDefaultArrayEnum)
 {
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultArrayEnum\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -326,7 +326,7 @@ TEST_F(DL, TextDefaultArrayEnum)
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-	EXPECT_EQ(4u, P1[0].Arr.nCount);
+	EXPECT_EQ(4u, P1[0].Arr.count);
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1[0].Arr[0]);
 	EXPECT_EQ(TESTENUM1_VALUE1, P1[0].Arr[1]);
@@ -340,7 +340,7 @@ TEST_F(DL, TextDefaultArrayString)
 
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultArrayStr\", \"data\" : {} } }";
 
-	uint8 OutDataText[1024];
+	unsigned char OutDataText[1024];
 
 	dl_error_t err = dl_txt_pack(Ctx, TextData, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
@@ -351,7 +351,7 @@ TEST_F(DL, TextDefaultArrayString)
 	err = dl_instance_load(Ctx, P1, OutDataText, 1024);
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-	EXPECT_EQ(4u, P1[0].Arr.nCount);
+	EXPECT_EQ(4u, P1[0].Arr.count);
 
 	EXPECT_STREQ("cow",   P1[0].Arr[0]);
 	EXPECT_STREQ("bells", P1[0].Arr[1]);

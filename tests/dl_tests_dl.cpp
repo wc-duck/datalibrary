@@ -11,23 +11,23 @@
 #include <float.h>
 
 // TODO: Check these versus standard defines!
-static const int8  DL_INT8_MAX  = 0x7F;
-static const int16 DL_INT16_MAX = 0x7FFF;
-static const int32 DL_INT32_MAX = 0x7FFFFFFFL;
-static const int64 DL_INT64_MAX = 0x7FFFFFFFFFFFFFFFLL;
-static const int8  DL_INT8_MIN  = (-DL_INT8_MAX  - 1);
-static const int16 DL_INT16_MIN = (-DL_INT16_MAX - 1);
-static const int32 DL_INT32_MIN = (-DL_INT32_MAX - 1);
-static const int64 DL_INT64_MIN = (-DL_INT64_MAX - 1);
+static const int8_t  DL_INT8_MAX  = 0x7F;
+static const int16_t DL_INT16_MAX = 0x7FFF;
+static const int32_t DL_INT32_MAX = 0x7FFFFFFFL;
+static const int64_t DL_INT64_MAX = 0x7FFFFFFFFFFFFFFFLL;
+static const int8_t  DL_INT8_MIN  = (-DL_INT8_MAX  - 1);
+static const int16_t DL_INT16_MIN = (-DL_INT16_MAX - 1);
+static const int32_t DL_INT32_MIN = (-DL_INT32_MAX - 1);
+static const int64_t DL_INT64_MIN = (-DL_INT64_MAX - 1);
 
-static const uint8  DL_UINT8_MAX  = 0xFFU;
-static const uint16 DL_UINT16_MAX = 0xFFFFU;
-static const uint32 DL_UINT32_MAX = 0xFFFFFFFFUL;
-static const uint64 DL_UINT64_MAX = 0xFFFFFFFFFFFFFFFFULL;
-static const uint8  DL_UINT8_MIN  = 0x00U;
-static const uint16 DL_UINT16_MIN = 0x0000U;
-static const uint32 DL_UINT32_MIN = 0x00000000UL;
-static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
+static const uint8_t  DL_UINT8_MAX  = 0xFFU;
+static const uint16_t DL_UINT16_MAX = 0xFFFFU;
+static const uint32_t DL_UINT32_MAX = 0xFFFFFFFFUL;
+static const uint64_t DL_UINT64_MAX = 0xFFFFFFFFFFFFFFFFULL;
+static const uint8_t  DL_UINT8_MIN  = 0x00U;
+static const uint16_t DL_UINT16_MIN = 0x0000U;
+static const uint32_t DL_UINT32_MIN = 0x00000000UL;
+static const uint64_t DL_UINT64_MIN = 0x0000000000000000ULL;
 
 
 void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void* _pUnpackMe)
@@ -70,7 +70,7 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 
 	// check if we can convert only endianness!
 	{
-		uint8 SwitchedEndian[DL_ARRAY_LENGTH(OutDataText)];
+		unsigned char SwitchedEndian[DL_ARRAY_LENGTH(OutDataText)];
 		memcpy(SwitchedEndian, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 
 		err = dl_convert_inplace(_Ctx, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), OtherEndian, sizeof(void*));
@@ -109,7 +109,7 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 		if(OtherPtrSize < sizeof(void*))
 		{
 			// if this is true, the conversion is doable with inplace-version.
-			uint8 ConvertedData[DL_ARRAY_LENGTH(OutDataText)];
+			unsigned char ConvertedData[DL_ARRAY_LENGTH(OutDataText)];
 			memcpy(ConvertedData, OriginalData, DL_ARRAY_LENGTH(OriginalData));
 
 			err = dl_convert_inplace(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), DL_ENDIAN_HOST, OtherPtrSize);
@@ -173,7 +173,7 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
 
-			uint8 ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 2];
+			unsigned char ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 2];
 			ReConvertedData[ReConvertedSize + 1] = 'L';
 			ReConvertedData[ReConvertedSize + 2] = 'O';
 			ReConvertedData[ReConvertedSize + 3] = 'L';
@@ -375,47 +375,47 @@ TEST_F(DL, WithInlineStructStructArray)
 
 TEST_F(DL, PodArray1)
 {
-	uint32 Data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
+	uint32_t Data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
 	PodArray1 Orig = { { Data, 8 } };
 	PodArray1* New;
 
-	uint32 Loaded[1024]; // this is so ugly!
+	uint32_t Loaded[1024]; // this is so ugly!
 
 	DoTheRoundAbout(Ctx, PodArray1::TYPE_ID, &Orig, Loaded);
 
 	New = (PodArray1*)&Loaded[0];
 
-	EXPECT_EQ(Orig.Array.nCount, New->Array.nCount);
-	EXPECT_EQ(Orig.Array[0], New->Array[0]);
-	EXPECT_EQ(Orig.Array[1], New->Array[1]);
-	EXPECT_EQ(Orig.Array[2], New->Array[2]);
-	EXPECT_EQ(Orig.Array[3], New->Array[3]);
-	EXPECT_EQ(Orig.Array[4], New->Array[4]);
-	EXPECT_EQ(Orig.Array[5], New->Array[5]);
-	EXPECT_EQ(Orig.Array[6], New->Array[6]);
-	EXPECT_EQ(Orig.Array[7], New->Array[7]);
+	EXPECT_EQ(Orig.Array.count, New->Array.count);
+	EXPECT_EQ(Orig.Array[0],    New->Array[0]);
+	EXPECT_EQ(Orig.Array[1],    New->Array[1]);
+	EXPECT_EQ(Orig.Array[2],    New->Array[2]);
+	EXPECT_EQ(Orig.Array[3],    New->Array[3]);
+	EXPECT_EQ(Orig.Array[4],    New->Array[4]);
+	EXPECT_EQ(Orig.Array[5],    New->Array[5]);
+	EXPECT_EQ(Orig.Array[6],    New->Array[6]);
+	EXPECT_EQ(Orig.Array[7],    New->Array[7]);
 }
 
 TEST_F(DL, PodArray2)
 {
-	uint32 Data1[] = { 1337, 7331,  13, 37, 133 } ;
-	uint32 Data2[] = {    7,    1, 337 } ;
+	uint32_t Data1[] = { 1337, 7331,  13, 37, 133 } ;
+	uint32_t Data2[] = {    7,    1, 337 } ;
 
 	PodArray1 OrigArray[] = { { { Data1, 5 } }, { { Data2, 3 } } } ;
 
 	PodArray2 Orig = { { OrigArray, 2 } };
 	PodArray2* New;
 
-	uint32 Loaded[1024]; // this is so ugly!
+	uint32_t Loaded[1024]; // this is so ugly!
 
 	DoTheRoundAbout(Ctx, PodArray2::TYPE_ID, &Orig, Loaded);
 
 	New = (PodArray2*)&Loaded[0];
 
-	EXPECT_EQ(Orig.Array.nCount, New->Array.nCount);
+	EXPECT_EQ(Orig.Array.count, New->Array.count);
 
-	EXPECT_EQ(Orig.Array[0].Array.nCount, New->Array[0].Array.nCount);
-	EXPECT_EQ(Orig.Array[1].Array.nCount, New->Array[1].Array.nCount);
+	EXPECT_EQ(Orig.Array[0].Array.count, New->Array[0].Array.count);
+	EXPECT_EQ(Orig.Array[1].Array.count, New->Array[1].Array.count);
 
 	EXPECT_EQ(Orig.Array[0].Array[0], New->Array[0].Array[0]);
 	EXPECT_EQ(Orig.Array[0].Array[1], New->Array[0].Array[1]);
@@ -660,21 +660,21 @@ TEST_F(DL, EnumArray)
 	ArrayEnum Inst = { { Data, 8 } };
 	ArrayEnum* New;
 
-	uint32 Loaded[1024]; // this is so ugly!
+	uint32_t Loaded[1024]; // this is so ugly!
 
 	DoTheRoundAbout(Ctx, ArrayEnum::TYPE_ID, &Inst, &Loaded);
 
 	New = (ArrayEnum*)&Loaded[0];
 
-	EXPECT_EQ(Inst.EnumArr.nCount, New->EnumArr.nCount);
-	EXPECT_EQ(Inst.EnumArr[0],       New->EnumArr[0]);
-	EXPECT_EQ(Inst.EnumArr[1],       New->EnumArr[1]);
-	EXPECT_EQ(Inst.EnumArr[2],       New->EnumArr[2]);
-	EXPECT_EQ(Inst.EnumArr[3],       New->EnumArr[3]);
-	EXPECT_EQ(Inst.EnumArr[4],       New->EnumArr[4]);
-	EXPECT_EQ(Inst.EnumArr[5],       New->EnumArr[5]);
-	EXPECT_EQ(Inst.EnumArr[6],       New->EnumArr[6]);
-	EXPECT_EQ(Inst.EnumArr[7],       New->EnumArr[7]);
+	EXPECT_EQ(Inst.EnumArr.count, New->EnumArr.count);
+	EXPECT_EQ(Inst.EnumArr[0],    New->EnumArr[0]);
+	EXPECT_EQ(Inst.EnumArr[1],    New->EnumArr[1]);
+	EXPECT_EQ(Inst.EnumArr[2],    New->EnumArr[2]);
+	EXPECT_EQ(Inst.EnumArr[3],    New->EnumArr[3]);
+	EXPECT_EQ(Inst.EnumArr[4],    New->EnumArr[4]);
+	EXPECT_EQ(Inst.EnumArr[5],    New->EnumArr[5]);
+	EXPECT_EQ(Inst.EnumArr[6],    New->EnumArr[6]);
+	EXPECT_EQ(Inst.EnumArr[7],    New->EnumArr[7]);
 }
 
 TEST_F(DL, EmptyPodArray)
@@ -684,8 +684,8 @@ TEST_F(DL, EmptyPodArray)
 
 	DoTheRoundAbout(Ctx, PodArray1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(0u,  Loaded.Array.nCount);
-	EXPECT_EQ(0x0, Loaded.Array.pData);
+	EXPECT_EQ(0u,  Loaded.Array.count);
+	EXPECT_EQ(0x0, Loaded.Array.data);
 }
 
 TEST_F(DL, EmptyStructArray)
@@ -695,8 +695,8 @@ TEST_F(DL, EmptyStructArray)
 
 	DoTheRoundAbout(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(0u,  Loaded.Array.nCount);
-	EXPECT_EQ(0x0, Loaded.Array.pData);
+	EXPECT_EQ(0u,  Loaded.Array.count);
+	EXPECT_EQ(0x0, Loaded.Array.data);
 }
 
 TEST_F(DL, EmptyStringArray)
@@ -706,8 +706,8 @@ TEST_F(DL, EmptyStringArray)
 
 	DoTheRoundAbout(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(0u,  Loaded.Strings.nCount);
-	EXPECT_EQ(0x0, Loaded.Strings.pData);
+	EXPECT_EQ(0u,  Loaded.Strings.count);
+	EXPECT_EQ(0x0, Loaded.Strings.data);
 }
 
 TEST_F(DL, BugTest1)
@@ -716,8 +716,8 @@ TEST_F(DL, BugTest1)
 
 	BugTest1_InArray Arr[3] = { { 1337, 1338, 18 }, { 7331, 8331, 19 }, { 31337, 73313, 20 } } ;
 	BugTest1 Inst;
-	Inst.Arr.pData  = Arr;
-	Inst.Arr.nCount = DL_ARRAY_LENGTH(Arr);
+	Inst.Arr.data  = Arr;
+	Inst.Arr.count = DL_ARRAY_LENGTH(Arr);
 
 	BugTest1 Loaded[10];
 
@@ -778,8 +778,8 @@ TEST_F(DL, BugTest2)
 										  0.0f, 1.0f, 0.0f, 0.0f,
 										  1.0f, 0.0f, 0.0f, 0.0f } } };
 	BugTest2 Inst;
-	Inst.Instances.pData  = Arr;
-	Inst.Instances.nCount = 2;
+	Inst.Instances.data  = Arr;
+	Inst.Instances.count = 2;
 
 	BugTest2 Loaded[40];
 
@@ -796,7 +796,7 @@ TEST(DLMisc, EndianIsCorrect)
 	// Test that DL_ENDIAN_HOST is set correctly
 	union
 	{
-		uint32 i;
+		uint32_t i;
 		unsigned char c[4];
 	} test;
 	test.i = 0x01020304;
