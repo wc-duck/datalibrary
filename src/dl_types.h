@@ -35,8 +35,6 @@
 
 #endif
 
-typedef unsigned int uint;
-
 #define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 #define M_ASSERT(_Expr, ...) // implement me plox!

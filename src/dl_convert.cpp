@@ -34,7 +34,7 @@ public:
 
 	bool IsSwapped(const uint8* _Ptr)
 	{
-		for(uint iInstance = 0; iInstance < m_lInstances.Len(); ++iInstance)
+		for(unsigned int iInstance = 0; iInstance < m_lInstances.Len(); ++iInstance)
 			if(_Ptr == m_lInstances[iInstance].m_pAddress)
 				return true;
 		return false;
@@ -593,7 +593,7 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t     _Context,
 
 	// TODO: we need to sort the instances here after their offset!
 
-	for(uint i = 0; i < ConvCtx.m_lInstances.Len(); ++i)
+	for(unsigned int i = 0; i < ConvCtx.m_lInstances.Len(); ++i)
 	{
 		err = DLInternalConvertWriteInstance( _Context, ConvCtx.m_lInstances[i], &ConvCtx.m_lInstances[i].m_OffsetAfterPatch, ConvCtx, Writer);
 		if(err != DL_ERROR_OK) 
@@ -602,14 +602,14 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t     _Context,
 
 	if(_pOutData != 0x0) // no need to patch data if we are only calculating size
 	{
-		for(uint i = 0; i < ConvCtx.m_lPatchOffset.Len(); ++i)
+		for(unsigned int i = 0; i < ConvCtx.m_lPatchOffset.Len(); ++i)
 		{
 			SConvertContext::PatchPos& PP = ConvCtx.m_lPatchOffset[i];
 
 			// find new offset
 			pint NewOffset = pint(-1);
 
-			for(uint j = 0; j < ConvCtx.m_lInstances.Len(); ++j )
+			for(unsigned int j = 0; j < ConvCtx.m_lInstances.Len(); ++j )
 			{
 				pint OldOffset = ConvCtx.m_lInstances[j].m_pAddress - _pBaseData;
 
