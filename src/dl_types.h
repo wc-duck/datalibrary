@@ -18,6 +18,7 @@
         typedef unsigned __int8  uint8;
         typedef unsigned __int16 uint16;
         typedef unsigned __int32 uint32;
+        typedef unsigned __int32 uint32_t;
         typedef unsigned __int64 uint64;
 
 #elif defined(__GNUC__)

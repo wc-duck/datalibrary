@@ -162,7 +162,7 @@ TEST_F(DL, SizeAndAlignment)
 
 TEST_F(DL, TypeLookup)
 {
-	dl_typeid_t type_id;
+	dl_typeid_t type_id = 0;
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "Pods2", &type_id) );
 	EXPECT_TRUE(Pods2::TYPE_ID == type_id);
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_reflect_get_type_id(Ctx, "StructArray1", &type_id) );
