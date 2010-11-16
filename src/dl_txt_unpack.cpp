@@ -126,8 +126,8 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 							yajl_gen_null(_Ctx->m_JsonGen);
 						else
 						{
-							uint ID = _Ctx->FindSubDataMember(_pDataBase + Offset);
-							if(ID == uint(-1))
+							unsigned int ID = _Ctx->FindSubDataMember(_pDataBase + Offset);
+							if(ID == (unsigned int)(-1))
 								ID = _Ctx->AddSubDataMember(&Member, _pDataBase + Offset, 0);
 							yajl_gen_integer(_Ctx->m_JsonGen, long(ID));
 						}
@@ -216,7 +216,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 			{
 				pint   Offset = *(pint*)  pMemberData;
 				uint32 Count  = *(uint32*)(pMemberData + sizeof(void*));
-				uint ID = _Ctx->AddSubDataMember(&Member, _pDataBase + Offset, Count);
+				unsigned int ID = _Ctx->AddSubDataMember(&Member, _pDataBase + Offset, Count);
 				yajl_gen_integer(_Ctx->m_JsonGen, long(ID));
 			}
 			break;
@@ -273,7 +273,7 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 				yajl_gen_map_open(_Ctx->m_JsonGen);
 
 				// start at 1 to skip root-node!
-				for (uint iSubData = 1; iSubData < _Ctx->m_lSubdataMembers.Len(); ++iSubData)
+				for (unsigned int iSubData = 1; iSubData < _Ctx->m_lSubdataMembers.Len(); ++iSubData)
 				{
 					unsigned char Num[16];
 					int Len = StrFormat((char*)Num, 16, "%u", iSubData);

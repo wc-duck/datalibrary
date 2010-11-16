@@ -61,7 +61,7 @@ struct SPatchedInstances
 
 	bool IsPatched(const uint8* _pInstance)
 	{
-		for (uint iPatch = 0; iPatch < m_lpPatched.Len(); ++iPatch)
+		for (unsigned int iPatch = 0; iPatch < m_lpPatched.Len(); ++iPatch)
 			if(m_lpPatched[iPatch] == _pInstance)
 				return true;
 		return false;
@@ -423,7 +423,7 @@ public:
 
 	pint FindWrittenPtr(void* _Ptr)
 	{
-		for (uint iPtr = 0; iPtr < m_WrittenPtrs.Len(); ++iPtr)
+		for (unsigned int iPtr = 0; iPtr < m_WrittenPtrs.Len(); ++iPtr)
 			if(m_WrittenPtrs[iPtr].m_pPtr == _Ptr)
 				return m_WrittenPtrs[iPtr].m_Pos;
 
@@ -596,15 +596,15 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				switch(StorageType)
 				{
 					case DL_TYPE_STORAGE_STRUCT:
-						for (uint iElem = 0; iElem < Count; ++iElem)
+						for (unsigned int iElem = 0; iElem < Count; ++iElem)
 							DLInternalStoreInstance(_Context, pSubType, pData + (iElem * Size), _pStoreContext);
 						break;
 					case DL_TYPE_STORAGE_STR:
-						for (uint iElem = 0; iElem < Count; ++iElem)
+						for (unsigned int iElem = 0; iElem < Count; ++iElem)
 							DLInternalStoreString(pData + (iElem * Size), _pStoreContext);
 						break;
 					default:
-						for (uint iElem = 0; iElem < Count; ++iElem)
+						for (unsigned int iElem = 0; iElem < Count; ++iElem)
 							_pStoreContext->Write(pData + (iElem * Size), Size); break;
 				}
 

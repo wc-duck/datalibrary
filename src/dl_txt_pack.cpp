@@ -37,7 +37,7 @@ enum EDLPackState
 
 #define DL_PACK_ERROR_AND_FAIL(err, fmt, ...) { DL_LOG_DL_ERROR(fmt, ##__VA_ARGS__); pCtx->m_ErrorCode = err; return 0x0; }
 
-template<uint TBits>
+template<unsigned int TBits>
 class CFlagField
 {
 	DL_STATIC_ASSERT(TBits % 32 == 0, only_even_32_bits);
@@ -49,8 +49,8 @@ class CFlagField
 		BITS_FOR_FIELD   = 5
 	};
 
-	uint Field(uint _Bit) { return (_Bit & ~(BITS_PER_STORAGE - 1)) >> BITS_FOR_FIELD; }
-	uint Bit  (uint _Bit) { return (_Bit &  (BITS_PER_STORAGE - 1)); }
+	unsigned int Field(unsigned int _Bit) { return (_Bit & ~(BITS_PER_STORAGE - 1)) >> BITS_FOR_FIELD; }
+	unsigned int Bit  (unsigned int _Bit) { return (_Bit &  (BITS_PER_STORAGE - 1)); }
 
 public:
 	CFlagField()            { ClearAll(); }
@@ -58,14 +58,14 @@ public:
 
 	~CFlagField() {}
 
-	void SetBit  (uint _Bit) { m_Storage[Field(_Bit)] |=  DL_BIT(Bit(_Bit)); }
-	void ClearBit(uint _Bit) { m_Storage[Field(_Bit)] &= ~DL_BIT(Bit(_Bit)); }
-	void FlipBit (uint _Bit) { m_Storage[Field(_Bit)] ^=  DL_BIT(Bit(_Bit)); }
+	void SetBit  (unsigned int _Bit) { m_Storage[Field(_Bit)] |=  DL_BIT(Bit(_Bit)); }
+	void ClearBit(unsigned int _Bit) { m_Storage[Field(_Bit)] &= ~DL_BIT(Bit(_Bit)); }
+	void FlipBit (unsigned int _Bit) { m_Storage[Field(_Bit)] ^=  DL_BIT(Bit(_Bit)); }
 
 	void SetAll()   { memset(m_Storage, 0xFF, sizeof(m_Storage)); }
 	void ClearAll() { memset(m_Storage, 0x00, sizeof(m_Storage)); }
 
-	bool IsSet(uint _Bit) { return (m_Storage[Field(_Bit)] & DL_BIT(Bit(_Bit))) != 0; }
+	bool IsSet(unsigned int _Bit) { return (m_Storage[Field(_Bit)] & DL_BIT(Bit(_Bit))) != 0; }
 };
 
 struct SDLPackState
@@ -188,23 +188,23 @@ struct SDLPackContext
 	struct SPatchPosition
 	{
 		SPatchPosition() {}
-		SPatchPosition(uint _ID, pint _WritePos, const SDLMember* _pMember)
+		SPatchPosition(unsigned int _ID, pint _WritePos, const SDLMember* _pMember)
 			: m_ID(_ID)
 			, m_WritePos(_WritePos)
 			, m_pMember(_pMember) {}
-		uint m_ID;
+		unsigned int m_ID;
 		pint m_WritePos;
 		const SDLMember* m_pMember;
 	};
 
 	CArrayStatic<SPatchPosition, 128> m_PatchPosition;
 
-	void AddPatchPosition(uint _ID)
+	void AddPatchPosition(unsigned int _ID)
 	{
 		m_PatchPosition.Add(SPatchPosition(_ID, m_Writer->Tell(), m_StateStack.Top().m_pMember));
 	}
 
-	void RegisterSubdataElement(uint _Element, pint _Pos)
+	void RegisterSubdataElement(unsigned int _Element, pint _Pos)
 	{
 		M_ASSERT(m_SubdataElements[_Element].m_Pos == pint(-1) && "Subdata element already registered!");
 		m_SubdataElements[_Element].m_Pos = _Pos;
@@ -217,8 +217,8 @@ struct SDLPackContext
 		m_SubdataElements[m_CurrentSubdataElement].m_Count = _Count;
 	}
 
-	pint   SubdataElementPos(uint _Element)   { return m_SubdataElements[_Element].m_Pos; }
-	uint32 SubdataElementCount(uint _Element) { return m_SubdataElements[_Element].m_Count; }
+	pint   SubdataElementPos(unsigned int _Element)   { return m_SubdataElements[_Element].m_Pos; }
+	uint32 SubdataElementCount(unsigned int _Element) { return m_SubdataElements[_Element].m_Count; }
 
 	struct SStringItem
 	{
@@ -236,7 +236,7 @@ struct SDLPackContext
 	CStackStatic<SDLPackState, 128> m_StateStack;
 
 private:
-	uint m_CurrentSubdataElement;
+	unsigned int m_CurrentSubdataElement;
 	// positions for different subdata-elements;
 	struct
 	{
@@ -279,8 +279,8 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 		if(sscanf(_pStringVal, DL_UINT64_FMT_STR, &Val) != 1)
 			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as bitfield member!", _StringLen, _pStringVal);
 
-		uint BFBits   = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED);
-		uint BFOffset = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED);
+		unsigned int BFBits   = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED);
+		unsigned int BFOffset = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED);
 
 		uint64 MaxVal = (uint64(1) << BFBits) - uint64(1);
 		if(Val > MaxVal)
@@ -325,7 +325,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 			if(sscanf(_pStringVal, "%u", &ID) != 1)
 				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
 
-			pCtx->AddPatchPosition(uint(ID));
+			pCtx->AddPatchPosition( (unsigned int)ID );
 
 			// this is the pos that will be patched, but we need to make room for the array now!
 			pCtx->m_Writer->WriteZero(pCtx->m_PatchPosition[pCtx->m_PatchPosition.Len() - 1].m_pMember->m_Size[DL_PTR_SIZE_HOST]);
@@ -459,7 +459,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 		{
 			SDLPackState& State = pCtx->m_StateStack.Top();
 
-			uint MemberID = DLFindMember( State.m_pType, DLHashBuffer(_pStringVal, _StringLen, 0) );
+			unsigned int MemberID = DLFindMember( State.m_pType, DLHashBuffer(_pStringVal, _StringLen, 0) );
 
 			if(MemberID > State.m_pType->m_nMembers) 
 				DL_PACK_ERROR_AND_FAIL( DL_ERROR_MEMBER_NOT_FOUND, "Member \"%.*s\" not in type!", _StringLen, _pStringVal);
@@ -559,7 +559,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			const SDLMember* pMember = 0x0;
 
 			// check that we have referenced this before so we know its type!
-			for (uint iPatchPos = 0; iPatchPos < pCtx->m_PatchPosition.Len(); ++iPatchPos)
+			for (unsigned int iPatchPos = 0; iPatchPos < pCtx->m_PatchPosition.Len(); ++iPatchPos)
 				if(pCtx->m_PatchPosition[iPatchPos].m_ID == ID)
 				{
 					pMember = pCtx->m_PatchPosition[iPatchPos].m_pMember;
@@ -662,10 +662,10 @@ static int DLOnMapEnd(void* _pCtx)
 		case DL_PACK_STATE_ROOT:
 		{
 			// patch subdata
-			for(uint iPatchPosition = 0; iPatchPosition < pCtx->m_PatchPosition.Len(); ++iPatchPosition)
+			for(unsigned int iPatchPosition = 0; iPatchPosition < pCtx->m_PatchPosition.Len(); ++iPatchPosition)
 			{
 				const SDLMember* pMember = pCtx->m_PatchPosition[iPatchPosition].m_pMember;
-				uint ID = pCtx->m_PatchPosition[iPatchPosition].m_ID;
+				unsigned int ID = pCtx->m_PatchPosition[iPatchPosition].m_ID;
 				pint MemberPos = pCtx->m_PatchPosition[iPatchPosition].m_WritePos;
 
 				pCtx->m_Writer->SeekSet(MemberPos);
@@ -685,7 +685,7 @@ static int DLOnMapEnd(void* _pCtx)
 
 
 			// write strings!
-			for(uint iStr = 0; iStr < pCtx->m_lStrings.Len(); ++iStr)
+			for(unsigned int iStr = 0; iStr < pCtx->m_lStrings.Len(); ++iStr)
 			{
 				pCtx->m_Writer->SeekEnd();
 
@@ -851,7 +851,7 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 
 	YAJLStat = yajl_parse(YAJLHandle, TxtData, (unsigned int)TxtLen); // read file data, pass to parser
 
-	uint BytesConsumed = yajl_get_bytes_consumed(YAJLHandle);
+	unsigned int BytesConsumed = yajl_get_bytes_consumed(YAJLHandle);
 
 	YAJLStat = yajl_parse_complete(YAJLHandle); // parse any remaining buffered data
 
@@ -859,8 +859,8 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 	{
 		if(BytesConsumed != 0) // error occured!
 		{
-			uint Line = 1;
-			uint Column = 0;
+			unsigned int Line = 1;
+			unsigned int Column = 0;
 
 			const char* Ch = _pTxtData;
 			const char* End = _pTxtData + BytesConsumed;
