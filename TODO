@@ -19,12 +19,15 @@ BEFORE 1.0
 * rework functions to retrieve instance-info from dl_instance_endian, dl_instance_ptr_size, dl_instance_root_type to dl_instance_get_properties(dl_instance_properties* )
 * rework text-format for arrays from #1 to the same syntax as inline arrays.
 * remove all adding of m_, p, S when generating headers from dl_tlc. Let users define their struct-names in type-lib!
+* rename targets linux32 -> linux_x86 and linux64 -> linux_x86_64
 
 * write readme and tutorials.
 * Question: sholud dl_load_instance and friends take dl_type_id even though the do not need it? Use it for error reporting.
 
 LATER
 * unittests should pass valgrind. ( might be done in 1.0 if there is not much to do )
+* unittests for C#-bindings.
+* break out C#-bindings and python-bindings to their own library?
 * more platforms
 * multi-dimensional arrays.
 * pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
