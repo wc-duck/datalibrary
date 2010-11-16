@@ -32,12 +32,17 @@ LATER
 * multi-dimensional arrays.
 * pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
 * benchmarks need to be written
+* create some benchmarks that measure pack/unpack speed.
 * unittest that are cross platform 
     - pack on 32 bit -> unpack on 64 bit should be possible localy
     - pack on little endian -> unpack on big endian is harder. Do via network?
 * add functionallity to stream txt_pack and unpack
 * cleanup in libdl.py and dl_tlc.py
 * EDLType should not need to be exposed by the lib in the way it is now!
+* dl_tlc should be built around a python-lib so one can embed type-library building.
+* dimensions to array and inline_array.
+* export pure c-headers?
+* buffered parsing?
 * Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
   able to determine that they do not match.
   
