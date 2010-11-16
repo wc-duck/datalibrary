@@ -40,6 +40,33 @@ extern "C" {
 #endif // __cplusplus
 
 /*
+	Function: dl_reflect_num_types_loaded
+		Get the number of loaded types in the context.
+
+	Parameters:
+		dl_ctx              - The dl-context to check number of loaded types in.
+		out_num_loaded_type - Number of loaded types returned here.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_num_types_loaded( dl_ctx_t dl_ctx, unsigned int* out_num_loaded_types );
+
+/*
+	Function: dl_reflect_loaded_types
+		Get the typeid:s of all loaded types in the context.
+
+	Parameters:
+		dl_ctx        - The dl-context to fetch loaded types from.
+		out_types     - Buffer to return loaded types in.
+		out_types_out - Size of out_types.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_typeid_t* out_types, unsigned int out_types_size );
+
+/*
 	Function: dl_reflect_get_type_id
 		Find typeid of a specified type by name.
 
@@ -52,6 +79,7 @@ extern "C" {
 		DL_ERROR_OK on success.
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_typeid_t* out_type );
+
 /*
 	Function: dl_reflect_get_type_info
 		Retrieve information about a certain type in a type-library.
@@ -60,13 +88,26 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* ty
 		dl_ctx        - A valid handle to a DLContext
 		type          - TypeID of the type to get information about.
 		out_type_info - Ptr to struct to fill with type-information.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_info_t* out_type_info );
+
+/*
+	Function: dl_reflect_get_type_members
+		Retrieve information about members of a type in a type-library.
+
+	Parameters:
+		dl_ctx        - A valid handle to a DLContext
+		type          - TypeID of the type to get information about.
 		out_members   - Ptr to array to fill with information about the members of the type.
 		members_size  - Size of _pMembers.
 
 	Returns:
-		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if _pMembers do not fit all members, or other error if apropriate!
+		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if out_members do not fit all members, or other error if appropriate!
 */
-dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_info_t* out_type_info, dl_member_info_t* out_members, unsigned int members_size );
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid_t type, dl_member_info_t* out_members, unsigned int out_members_size );
 
 #ifdef __cplusplus
 }
