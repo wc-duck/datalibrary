@@ -81,7 +81,7 @@ function DefaultMSVC( config )
 	return settings
 end
 
-function DefaultGCCLinux32( config )
+function DefaultGCCLinux_x86( config )
 	local settings = DefaultGCC( "linux32", config )
 	settings.cc.flags:Add( "-m32" )
 	settings.cc.flags:Add( "-malign-double" ) -- TODO: temporary workaround, dl should support natural alignment for double
@@ -90,7 +90,7 @@ function DefaultGCCLinux32( config )
 	return settings
 end
 
-function DefaultGCCLinux64( config )
+function DefaultGCCLinux_x86_64( config )
 	local settings = DefaultGCC( "linux64", config )
 	settings.cc.flags:Add( "-m64" )
 	settings.dll.flags:Add( "-m64" )
@@ -100,9 +100,9 @@ end
 
 settings = 
 {
-	linux32 = { debug = DefaultGCCLinux32( "debug" ), release = DefaultGCCLinux32( "release" ) },
-	linux64 = { debug = DefaultGCCLinux64( "debug" ), release = DefaultGCCLinux64( "release" ) },
-	win32 =   { debug = DefaultMSVC( "debug" ),       release = DefaultMSVC( "release" ) }
+	linux_x86    = { debug = DefaultGCCLinux_x86( "debug" ),    release = DefaultGCCLinux_x86( "release" ) },
+	linux_x86_64 = { debug = DefaultGCCLinux_x86_64( "debug" ), release = DefaultGCCLinux_x86_64( "release" ) },
+	win32        = { debug = DefaultMSVC( "debug" ),            release = DefaultMSVC( "release" ) }
 }
 
 platform = ScriptArgs["platform"]
@@ -123,7 +123,7 @@ obj_files = Compile( build_settings, lib_files )
 
 -- ugly fugly, need -fPIC on .so-files!
 local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
-if platform == "linux64" then
+if platform == "linux_x86_64" then
 	build_settings.cc.Output = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
 	build_settings.cc.flags:Add( "-fPIC" )
 	dll_files = Compile( build_settings, lib_files )
@@ -137,15 +137,15 @@ shared_library = SharedLibrary( build_settings, "dl", dll_files )
 dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
 
 -- HACK BONANZA!
-if platform == "linux32" then
-	DLTypeLibrary( "tests/unittest.tld", "local/linux64/" .. config .. "/dl.so" )
+if platform == "linux_x86" then
+	DLTypeLibrary( "tests/unittest.tld", "local/linux_x86_64/" .. config .. "/dl.so" )
 else
 	DLTypeLibrary( "tests/unittest.tld", shared_library )
 end
 
 build_settings.link.libs:Add( "gtest" )
 
-if platform == "linux64" or platform == "linux32" then
+if platform == "linux_x86_64" or platform == "linux_x86" then
 	build_settings.link.libs:Add( "pthread" )
 end
 
