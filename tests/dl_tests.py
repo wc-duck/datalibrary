@@ -6,41 +6,37 @@ import sys, os
 sys.path.append(os.path.dirname(__file__) + '/../bind/python/')
 from libdl import DLContext, libdl_init
 
-NUMBER_OF_EXTRA_MEMBERS = 9
-
-class TestLibDL(unittest.TestCase):
-	# unittest specific
+class DL(unittest.TestCase):
 	def setUp(self):
 		self.DLContext = DLContext()
-		import os
 		self.DLContext.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../local/generated/unittest.bin')
 		
 	def tearDown(self):
 		self.DLContext = None
-	
-	
-	# helper asserts
-	def AssertNumMembers(self, Members, Instance):
-		self.assertEqual(Members, len(Instance.__class__.__dict__) - NUMBER_OF_EXTRA_MEMBERS)
+
+class TestLibDL( DL ):
+	# helper asserts	
+	def AssertTypeEqual(self, name, val1, val2):
+		t1 = type(val1)
+		t2 = type(val2)
+		self.assertTrue( ( t1 in [ int, long ] and t2 in [ int, long ] ) # would like to check this but it should be possible to write the_int = 1 even if unit64 
+						 or 
+						 t1 == t2, 
+						 'type of member %s differs, %s != %s' % ( name, t1, t2 ) )
+		
+		if isinstance( val1, (list, tuple) ):
+			for i in range(len(val1)):
+				self.AssertTypeEqual( name + '[%u]' % i, val1[i], val2[i] )
 	
 	def AssertInstanceEqual(self, I1, I2):
-		self.assertEqual(I1._DL_TYPE_ID, I2._DL_TYPE_ID)
+		self.assertEqual(type(I1),      type(I2))
+		self.assertEqual(dir(I1),       dir(I2))
+		self.assertEqual(I1._dl_type,   I2._dl_type)
+		self.assertEqual(I1.__class__,  I2.__class__)
+		self.assertEqual(I1.__dict__,   I2.__dict__)
 		
-		for m in dir(I1):
-			if m.startswith('m_'):
-				attr1 = getattr(I1, m)
-				attr2 = getattr(I2, m)
-				
-				# make this work!
-				#self.assertEqual(type(attr1), type(attr2))
-				
-				if type(attr1) == list:
-					self.assertEqual(type(attr1), type(attr2))
-					self.assertEqual(attr1[0], attr2[0])
-					for i in range(0, len(attr1)):
-						self.assertEqual(attr1[i], attr2[i])
-				else:
-					self.assertEqual(attr1, attr2)
+		for key in I1.__dict__.keys():
+			self.AssertTypeEqual(key, I1.__dict__[key], I2.__dict__[key])
 				
 	def AssertArrayHasSameType(self, Array):
 		FirstType = type(Array[0])
@@ -53,137 +49,98 @@ class TestLibDL(unittest.TestCase):
 		for i in range(0, len(A1)):
 			self.assertEqual(A1[i], A2[i])
 	
-	def AssertDefaultPods(self, Pods):
-		self.AssertNumMembers(10, Pods)
-		
-		self.assertEqual(0, Pods.m_i8)
-		self.assertEqual(0, Pods.m_i16)
-		self.assertEqual(0, Pods.m_i32)
-		self.assertEqual(0, Pods.m_i64)
-		self.assertEqual(0, Pods.m_u8)
-		self.assertEqual(0, Pods.m_u16)
-		self.assertEqual(0, Pods.m_u32)
-		self.assertEqual(0, Pods.m_u64)
-		self.assertEqual(0, Pods.m_f32)
-		self.assertEqual(0, Pods.m_f64)
+	def AssertDefaultPods(self, Pods):		
+		self.assertEqual(0, Pods.i8)
+		self.assertEqual(0, Pods.i16)
+		self.assertEqual(0, Pods.i32)
+		self.assertEqual(0, Pods.i64)
+		self.assertEqual(0, Pods.u8)
+		self.assertEqual(0, Pods.u16)
+		self.assertEqual(0, Pods.u32)
+		self.assertEqual(0, Pods.u64)
+		self.assertEqual(0, Pods.f32)
+		self.assertEqual(0, Pods.f64)
 	
 	
 	# functionality tests
-	def testHasSameTypeID(self):
-		PodsType = self.DLContext.CreateType('Pods')
-		Pods1    = PodsType()
-		Pods2    = PodsType()
-		
-		self.assert_(hasattr(Pods1, '_DL_TYPE_ID'))
-		self.assert_(hasattr(Pods2, '_DL_TYPE_ID'))
-		
-		self.assertEqual(Pods1._DL_TYPE_ID, Pods2._DL_TYPE_ID)
-	
 	def testCantAddExtraMember(self):
 		PodsType = self.DLContext.CreateType('Pods')
 		Pods     = PodsType()
 		
-		def ShouldRaiseException():
+		'''def ShouldRaiseException():
 			Pods.m_Whooo = 1
 		
 		self.assertRaises(AttributeError, ShouldRaiseException)
 		
 		# test that a real set will not raise an exception!
 		Pods.m_i32 = 1337
-		self.assertEqual(1337, Pods.m_i32)
+		self.assertEqual(1337, Pods.m_i32)'''
 	
 	
 	# structure tests
 	def testHasCorrectMembersPod1(self):
-		PodsType = self.DLContext.CreateType('Pods')
-		Pods     = PodsType()
+		Pods = self.DLContext.CreateInstance('Pods')
 		self.AssertDefaultPods(Pods)
 		
 	def testHasCorrectMembersMorePods(self):
-		Type     = self.DLContext.CreateType('MorePods')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('MorePods')
 		
-		self.AssertNumMembers(2, Instance)
-		self.AssertDefaultPods(Instance.m_Pods1)
-		self.AssertDefaultPods(Instance.m_Pods2)
+		self.AssertDefaultPods(Instance.Pods1)
+		self.AssertDefaultPods(Instance.Pods2)
 		
 	def testHasCorrectMembersPod2InStructInStruct(self):
-		Type     = self.DLContext.CreateType('Pod2InStructInStruct')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('Pod2InStructInStruct')
 		
-		self.AssertNumMembers(1, Instance)
-		self.AssertNumMembers(2, Instance.m_p2struct)
-		self.AssertNumMembers(2, Instance.m_p2struct)
-		self.AssertNumMembers(2, Instance.m_p2struct)
-		self.assertEqual(Instance.m_p2struct.m_Pod1.__class__, Instance.m_p2struct.m_Pod2.__class__)
-		self.assertEqual(0, Instance.m_p2struct.m_Pod1.m_Int1)
-		self.assertEqual(0, Instance.m_p2struct.m_Pod1.m_Int2)
-		self.assertEqual(0, Instance.m_p2struct.m_Pod2.m_Int1)
-		self.assertEqual(0, Instance.m_p2struct.m_Pod2.m_Int2)
+		self.assertEqual(Instance.p2struct.Pod1.__class__, Instance.p2struct.Pod2.__class__)
+		self.assertEqual(0, Instance.p2struct.Pod1.Int1)
+		self.assertEqual(0, Instance.p2struct.Pod1.Int2)
+		self.assertEqual(0, Instance.p2struct.Pod2.Int1)
+		self.assertEqual(0, Instance.p2struct.Pod2.Int2)
 		
 	def testHasCorrectMembersPodArray1(self):
-		Type     = self.DLContext.CreateType('PodArray1')
-		Instance = Type()
-		
-		self.AssertNumMembers(1, Instance)
-		self.assertEqual(0, len(Instance.m_Array))
+		Instance = self.DLContext.CreateInstance('PodArray1')
+		self.assertEqual(0, len(Instance.Array))
 	
 	def testHasCorrectMembersWithInlineArray(self):
-		Type     = self.DLContext.CreateType('WithInlineArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('WithInlineArray')
 		
-		self.AssertNumMembers(1, Instance)
-		self.assertEqual(3, len(Instance.m_Array))
-		self.AssertArrayHasSameType(Instance.m_Array)
+		self.assertEqual(3, len(Instance.Array))
+		self.AssertArrayHasSameType(Instance.Array)
 
 	def testHasCorrectMembersWithInlineStructArray(self):
-		Type     = self.DLContext.CreateType('WithInlineStructArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('WithInlineStructArray')
 		
-		self.AssertNumMembers(1, Instance)
-		self.assertEqual(3, len(Instance.m_Array))
-		self.AssertArrayHasSameType(Instance.m_Array)
+		self.assertEqual(3, len(Instance.Array))
+		self.AssertArrayHasSameType(Instance.Array)
 	
 	def testHasCorrectMembersWithInlineStructStructArray(self):
-		Type     = self.DLContext.CreateType('WithInlineStructStructArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('WithInlineStructStructArray')
 		
-		self.AssertNumMembers(1, Instance)
-		self.assertEqual(2, len(Instance.m_Array))
-		self.AssertArrayHasSameType(Instance.m_Array)
+		self.assertEqual(2, len(Instance.Array))
+		self.AssertArrayHasSameType(Instance.Array)
 		
 	def testHasCorrectMembersStrings(self):
-		Type     = self.DLContext.CreateType('Strings')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('Strings')
 		
-		self.AssertNumMembers(2, Instance)
-		self.assertEqual(str, type(Instance.m_Str1))
-		self.assertEqual(str, type(Instance.m_Str2))
-		self.assertEqual('', Instance.m_Str1)
-		self.assertEqual('', Instance.m_Str2)
+		self.assertEqual(str, type(Instance.Str1))
+		self.assertEqual(str, type(Instance.Str2))
+		self.assertEqual('', Instance.Str1)
+		self.assertEqual('', Instance.Str2)
 		
 	def testHasCorrectMembersStringInlineArray(self):
-		Type     = self.DLContext.CreateType('StringInlineArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('StringInlineArray')
 		
-		self.AssertNumMembers(1, Instance)
-		self.assertEqual(3, len(Instance.m_Strings))
-		self.assertEqual(str, type(Instance.m_Strings[0]))
-		self.AssertArrayHasSameType(Instance.m_Strings)
+		self.assertEqual(3, len(Instance.Strings))
+		self.assertEqual(str, type(Instance.Strings[0]))
+		self.AssertArrayHasSameType(Instance.Strings)
 	
 	def testHasCorrectMembersTestBits(self):
-		Type     = self.DLContext.CreateType('TestBits')
-		Instance = Type()
-		
-		self.AssertNumMembers(7, Instance)
+		Instance = self.DLContext.CreateInstance('TestBits')
 		
 	def testHasCorrectMembersTestBits(self):
-		Type     = self.DLContext.CreateType('MoreBits')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('MoreBits')
 		
-		self.AssertNumMembers(2, Instance)
-		
-	def testHasCorrectMembersSimplePtr(self):
+	'''def testHasCorrectMembersSimplePtr(self):
 		Type     = self.DLContext.CreateType('SimplePtr')
 		Instance = Type()
 		
@@ -206,205 +163,144 @@ class TestLibDL(unittest.TestCase):
 		self.AssertNumMembers(3, Instance)
 		self.assertEqual(0, Instance.m_Int)
 		self.assertEqual(None, Instance.m_Next)
-		self.assertEqual(None, Instance.m_Prev)
+		self.assertEqual(None, Instance.m_Prev)'''
 
 	# store/load tests
+	def do_the_round_about(self, typename, instance):
+		loaded = self.DLContext.LoadInstance( typename, self.DLContext.StoreInstance(instance) )
+		self.AssertInstanceEqual(instance, loaded)
+	
 	def testWritePods(self):
-		Type     = self.DLContext.CreateType('Pods')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('Pods')
 		
-		Instance.m_i8  = 1
-		Instance.m_i16 = 2
-		Instance.m_i32 = 3
-		Instance.m_i64 = 4
-		Instance.m_u8  = 5
-		Instance.m_u16 = 6
-		Instance.m_u32 = 7
-		Instance.m_u64 = 8
-		Instance.m_f32 = 9
-		Instance.m_f64 = 10
+		Instance.i8  = 1
+		Instance.i16 = 2
+		Instance.i32 = 3
+		Instance.i64 = 4
+		Instance.u8  = 5
+		Instance.u16 = 6
+		Instance.u32 = 7
+		Instance.u64 = 8
+		Instance.f32 = 9.0
+		Instance.f64 = 10.0
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('Pods', res_buffer)
-		
-		self.AssertInstanceEqual(Instance, LoadInstance)
+		self.do_the_round_about('Pods', Instance)
 		
 	def testWriteMorePods(self):
-		Type     = self.DLContext.CreateType('MorePods')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('MorePods')
 		
-		Instance.m_Pods1.m_i8  = 1
-		Instance.m_Pods1.m_i16 = 2
-		Instance.m_Pods1.m_i32 = 3
-		Instance.m_Pods1.m_i64 = 4
-		Instance.m_Pods1.m_u8  = 5
-		Instance.m_Pods1.m_u16 = 6
-		Instance.m_Pods1.m_u32 = 7
-		Instance.m_Pods1.m_u64 = 8
-		Instance.m_Pods1.m_f32 = 9
-		Instance.m_Pods1.m_f64 = 10
+		Instance.Pods1.i8  = 1
+		Instance.Pods1.i16 = 2
+		Instance.Pods1.i32 = 3
+		Instance.Pods1.i64 = 4
+		Instance.Pods1.u8  = 5
+		Instance.Pods1.u16 = 6
+		Instance.Pods1.u32 = 7
+		Instance.Pods1.u64 = 8
+		Instance.Pods1.f32 = 9.0
+		Instance.Pods1.f64 = 10.0
 		
-		Instance.m_Pods2.m_i8  = 11
-		Instance.m_Pods2.m_i16 = 12
-		Instance.m_Pods2.m_i32 = 13
-		Instance.m_Pods2.m_i64 = 14
-		Instance.m_Pods2.m_u8  = 15
-		Instance.m_Pods2.m_u16 = 16
-		Instance.m_Pods2.m_u32 = 17
-		Instance.m_Pods2.m_u64 = 18
-		Instance.m_Pods2.m_f32 = 19
-		Instance.m_Pods2.m_f64 = 20
+		Instance.Pods2.i8  = 11
+		Instance.Pods2.i16 = 12
+		Instance.Pods2.i32 = 13
+		Instance.Pods2.i64 = 14
+		Instance.Pods2.u8  = 15
+		Instance.Pods2.u16 = 16
+		Instance.Pods2.u32 = 17
+		Instance.Pods2.u64 = 18
+		Instance.Pods2.f32 = 19.0
+		Instance.Pods2.f64 = 20.0
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('MorePods', res_buffer)
-		
-		self.AssertInstanceEqual(Instance.m_Pods1, LoadInstance.m_Pods1)
-		self.AssertInstanceEqual(Instance.m_Pods2, LoadInstance.m_Pods2)
-	
-	def testWritePod2InStruct(self):
-		Type     = self.DLContext.CreateType('Pod2InStruct')
-		Instance = Type()
+		self.do_the_round_about('MorePods', Instance)
 
-		Instance.m_Pod1.m_Int1 = 133
-		Instance.m_Pod1.m_Int2 = 7		
-		Instance.m_Pod2.m_Int1 = 13
-		Instance.m_Pod2.m_Int2 = 37
+	def testWritePod2InStruct(self):
+		Instance = self.DLContext.CreateInstance('Pod2InStruct')
+
+		Instance.Pod1.Int1 = 133
+		Instance.Pod1.Int2 = 7		
+		Instance.Pod2.Int1 = 13
+		Instance.Pod2.Int2 = 37
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('Pod2InStruct', res_buffer)
-		
-		self.AssertInstanceEqual(Instance.m_Pod1, LoadInstance.m_Pod1)
-		self.AssertInstanceEqual(Instance.m_Pod2, LoadInstance.m_Pod2)
+		self.do_the_round_about('Pod2InStruct', Instance)
 	
 	def testWritePodArray1(self):
-		Type     = self.DLContext.CreateType('PodArray1')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('PodArray1')
 		
-		Instance.m_Array = [ 1337, 7331, 13, 37 ]
+		Instance.Array = [ 1337, 7331, 13, 37 ]
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('PodArray1', res_buffer)
-		
-		self.assertEqual(len(LoadInstance.m_Array), len(Instance.m_Array))
-		self.AssertArrayEqual(Instance.m_Array, LoadInstance.m_Array)
+		self.do_the_round_about('PodArray1', Instance)
 		
 	def testWritePodArray2(self):
-		Type     = self.DLContext.CreateType('PodArray2')
-		Instance = Type()
-		
+		Instance = self.DLContext.CreateInstance('PodArray2')
 		SubType  = self.DLContext.CreateType('PodArray1')
 		
-		Instance.m_Array = [ SubType() ] * 3
-		Instance.m_Array[0].m_Array = [ 1, 2, 3 ]
-		Instance.m_Array[1].m_Array = [ 3, 4, 5 ]
-		Instance.m_Array[2].m_Array = [ 6, 7, 8 ]
+		Instance.Array = [ SubType() ] * 3
+		Instance.Array[0].Array = [ 1, 2, 3 ]
+		Instance.Array[1].Array = [ 3, 4, 5 ]
+		Instance.Array[2].Array = [ 6, 7, 8 ]
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('PodArray2', res_buffer)
-		
-		self.assertEqual(len(LoadInstance.m_Array), len(Instance.m_Array))
-		self.AssertArrayEqual(Instance.m_Array[0].m_Array, LoadInstance.m_Array[0].m_Array)
-		self.AssertArrayEqual(Instance.m_Array[1].m_Array, LoadInstance.m_Array[1].m_Array)
-		self.AssertArrayEqual(Instance.m_Array[2].m_Array, LoadInstance.m_Array[2].m_Array)
+		self.do_the_round_about('PodArray2', Instance)
 		
 	def testWriteWithInlineArray(self):
-		Type     = self.DLContext.CreateType('WithInlineArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('WithInlineArray')
 		
-		for i in range(0,len(Instance.m_Array)):
-			Instance.m_Array[i] = i + 1
+		Instance.Array = [ i for i in range(1,len(Instance.Array) + 1) ]
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('WithInlineArray', res_buffer)
-		
-		self.assertEqual(len(LoadInstance.m_Array), len(Instance.m_Array))
-		
-		for i in range(0,len(Instance.m_Array)):
-			self.assertEqual(LoadInstance.m_Array[i], Instance.m_Array[i])
+		self.do_the_round_about('WithInlineArray', Instance)
 	
 	def testWriteWithInlineStructArray(self):
-		Type     = self.DLContext.CreateType('WithInlineStructArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('WithInlineStructArray')
 		
-		for i in range(0,len(Instance.m_Array)):
-			Instance.m_Array[i].m_Int1 = i + 1
-			Instance.m_Array[i].m_Int1 = i + 2
+		for i in range(0,len(Instance.Array)):
+			Instance.Array[i].Int1 = i + 1
+			Instance.Array[i].Int2 = i + 2
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('WithInlineStructArray', res_buffer)
-		
-		self.assertEqual(len(LoadInstance.m_Array), len(Instance.m_Array))
-		
-		for i in range(0,len(Instance.m_Array)):
-			self.AssertInstanceEqual(LoadInstance.m_Array[i], Instance.m_Array[i])
+		self.do_the_round_about('WithInlineStructArray', Instance)
 
 	def testWriteStrings(self):
-		Type     = self.DLContext.CreateType('Strings')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('Strings')
 		
-		Instance.m_Str1 = 'Cow'
-		Instance.m_Str2 = 'Bell'
+		Instance.Str1 = 'Cow'
+		Instance.Str2 = 'Bell'
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('Strings', res_buffer)
-		
-		self.AssertInstanceEqual(Instance, LoadInstance)
+		self.do_the_round_about('Strings', Instance)
 
 	def testWriteStringInlineArray(self):
-		Type     = self.DLContext.CreateType('StringInlineArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('StringInlineArray')
 		
-		Instance.m_Strings[0] = 'Cow'
-		Instance.m_Strings[1] = 'bells'
-		Instance.m_Strings[2] = 'RULE!'
+		Instance.Strings = [ 'Cow', 'bells', 'RULE!' ]
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('StringInlineArray', res_buffer)
-		
-		self.AssertInstanceEqual(Instance, LoadInstance)
+		self.do_the_round_about('StringInlineArray', Instance)
 		
 	def testWriteStringArray(self):
-		Type     = self.DLContext.CreateType('StringArray')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('StringArray')
 		
-		Instance.m_Strings = [ 'Cow', 'bells', 'RULE!', 'and', 'win the game!' ]
+		Instance.Strings = [ 'Cow', 'bells', 'RULE!', 'and', 'win the game!' ]
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('StringArray', res_buffer)
-		
-		self.AssertInstanceEqual(Instance, LoadInstance)
-		self.AssertArrayEqual(Instance.m_Strings, LoadInstance.m_Strings)
+		self.do_the_round_about('StringArray', Instance)
 
 	def testWriteTestBits(self):
-		Type     = self.DLContext.CreateType('TestBits')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('TestBits')
 		
-		Instance.m_Bit1 = 1
-		Instance.m_Bit2 = 2
-		Instance.m_Bit3 = 3
-		Instance.m_make_it_uneven = 17
-		Instance.m_Bit4 = 1
-		Instance.m_Bit5 = 2
-		Instance.m_Bit6 = 2
+		Instance.Bit1 = 1
+		Instance.Bit2 = 2
+		Instance.Bit3 = 3
+		Instance.make_it_uneven = 17
+		Instance.Bit4 = 1
+		Instance.Bit5 = 2
+		Instance.Bit6 = 2
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('TestBits', res_buffer)
-		
-		self.AssertInstanceEqual(Instance, LoadInstance)
+		self.do_the_round_about('TestBits', Instance)
 		
 	def testWriteMoreBits(self):
-		Type     = self.DLContext.CreateType('MoreBits')
-		Instance = Type()
+		Instance = self.DLContext.CreateInstance('MoreBits')
 		
-		Instance.m_Bit1 = 512
-		Instance.m_Bit2 = 17
+		Instance.Bit1 = 512
+		Instance.Bit2 = 17
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('MoreBits', res_buffer)
+		self.do_the_round_about('MoreBits', Instance)
 		
-		self.AssertInstanceEqual(Instance, LoadInstance)
-		
-	def testWriteSimplePtr(self):
+	'''def testWriteSimplePtr(self):
 		Type     = self.DLContext.CreateType('SimplePtr')
 		Instance = Type()
 		
@@ -471,7 +367,7 @@ class TestLibDL(unittest.TestCase):
 		
 		self.assertEqual(Instance.m_Int,               LoadInstance.m_Int)
 		self.assertEqual(Instance.m_Next.m_Int,        LoadInstance.m_Next.m_Int)
-		self.assertEqual(Instance.m_Next.m_Next.m_Int, LoadInstance.m_Next.m_Next.m_Int)
+		self.assertEqual(Instance.m_Next.m_Next.m_Int, LoadInstance.m_Next.m_Next.m_Int)'''
 		
 		
 if __name__ == '__main__':
