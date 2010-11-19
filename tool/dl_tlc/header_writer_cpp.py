@@ -1,41 +1,5 @@
 ''' copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info '''
 
-config = {
-		'header' : 
-'''#if defined(_MSC_VER)
-
-        typedef signed   __int8  int8_t;
-        typedef signed   __int16 int16_t;
-        typedef signed   __int32 int32_t;
-        typedef signed   __int64 int64_t;
-        typedef unsigned __int8  uint8_t;
-        typedef unsigned __int16 uint16_t;
-        typedef unsigned __int32 uint32_t;
-        typedef unsigned __int64 uint64_t;
-
-#elif defined(__GNUC__)
-        #include <stdint.h>
-#endif''',
-
-		'array_names' : {
-			'count' : 'count',
-			'data'  : 'data'
-		},
-		
-		'pod_names' : {
-			'int8'   : 'int8_t',
-			'int16'  : 'int16_t',
-			'int32'  : 'int32_t',
-			'int64'  : 'int64_t',
-			'uint8'  : 'uint8_t',
-			'uint16' : 'uint16_t',
-			'uint32' : 'uint32_t',
-			'uint64' : 'uint64_t',
-			'fp32'   : 'float',
-			'fp64'   : 'double'
-		}
-}
-
 HEADER_TEMPLATE = '''#ifndef %(module)s_H_INCLUDED
 #define %(module)s_H_INCLUDED
 
@@ -95,20 +59,16 @@ class HeaderWriterCPP:
 	def write_header(self, data):
 		print >> self.stream, HEADER_TEMPLATE % { 'module'    : data['module_name'].upper(), 
 												  'user_code' : data.get('module_cpp_header', ''),
-												  'header'    : config['header'],
-												  'array_member_data'  : config['array_names']['data'],
-												  'array_member_count' : config['array_names']['count'], }
+												  'header'    : self.config['header'],
+												  'array_member_data'  : self.config['array_names']['data'],
+												  'array_member_count' : self.config['array_names']['count'], }
 		
 	def finalize(self, data):
 		print >> self.stream, '#endif // %s_H_INCLUDED' % data['module_name'].upper()
 		
 		# Replace stuff here!
-		
 		out_text = self.stream.getvalue()
-		
-		# print out_text
-		
-		self.out.write( out_text % config['pod_names'] )
+		self.out.write( out_text % self.config['pod_names'] )
 		
 	def write_enums(self, data):
 		if data.has_key('module_enums'):
@@ -193,8 +153,9 @@ class HeaderWriterCPP:
 			
 			print >> self.stream, '};\n'
 		
-	def __init__(self, out):
+	def __init__(self, out, config):
 		from StringIO import StringIO
 		self.stream  = StringIO()
 		self.out     = out
 		self.verbose = False
+		self.config  = config

@@ -189,15 +189,54 @@ import logging
 
 # 'main'-function!
 
+config = {
+	'cpp' : {
+		'header' : 
+'''#if defined(_MSC_VER)
+
+        typedef signed   __int8  int8_t;
+        typedef signed   __int16 int16_t;
+        typedef signed   __int32 int32_t;
+        typedef signed   __int64 int64_t;
+        typedef unsigned __int8  uint8_t;
+        typedef unsigned __int16 uint16_t;
+        typedef unsigned __int32 uint32_t;
+        typedef unsigned __int64 uint64_t;
+
+#elif defined(__GNUC__)
+        #include <stdint.h>
+#endif''',
+
+		'array_names' : {
+			'count' : 'count',
+			'data'  : 'data'
+		},
+		
+		'pod_names' : {
+			'int8'   : 'int8_t',
+			'int16'  : 'int16_t',
+			'int32'  : 'int32_t',
+			'int64'  : 'int64_t',
+			'uint8'  : 'uint8_t',
+			'uint16' : 'uint16_t',
+			'uint32' : 'uint32_t',
+			'uint64' : 'uint64_t',
+			'fp32'   : 'float',
+			'fp64'   : 'double'
+		}
+	}
+}
+
 def parse_options():
 	from optparse import OptionParser
 
 	parser = OptionParser(description = "dl_tlc is the type library compiler for DL and converts a text-typelibrary to binary type-libraray.")
 	parser.add_option("", "--dldll")
-	parser.add_option("-o", "--output",                       dest="output",                 help="write type library to file")
-	parser.add_option("-c", "--cpp-header",                   dest="cppheader",              help="write C++-header to file")
-	parser.add_option("-s", "--cs-header",                    dest="csheader",               help="write C#-header to file")
-	parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="enable verbose output")
+	parser.add_option("-o", "--output",     dest="output",    help="write type library to file")
+	parser.add_option("-c", "--cpp-header", dest="cppheader", help="write C++-header to file")
+	parser.add_option("-s", "--cs-header",  dest="csheader",  help="write C#-header to file")	
+	parser.add_option("",   "--config",     dest="config",    help="configuration file to configure generated headers.")	
+	parser.add_option("-v", "--verbose",    dest="verbose",   help="enable verbose output", action="store_true", default=False)
 
 	(options, args) = parser.parse_args()
 
@@ -211,6 +250,22 @@ def parse_options():
 		logging.basicConfig(level=logging.DEBUG)
 	else:
 		logging.basicConfig(level=logging.ERROR)
+		
+	if options.config:
+		user_cfg = eval(open(options.config).read())
+		
+		def merge_dict(update_me, update_with):
+			for key in update_me.keys():
+				if update_with.has_key(key):
+					val_me   = update_me[key]
+					val_with = update_with[key]
+					
+					if isinstance( val_me, dict ) and isinstance( val_with, dict ):
+						merge_dict( val_me, val_with )
+					else:
+						update_me[key] = val_with
+		
+		merge_dict( config, user_cfg )
 	
 	return options
 
@@ -227,7 +282,7 @@ if __name__ == "__main__":
 	# write headers
 	if options.cppheader:
 		options.cppheader = open(options.cppheader, 'w')
-		hw = HeaderWriterCPP(options.cppheader)
+		hw = HeaderWriterCPP(options.cppheader, config['cpp'])
 		hw.write_header(data)
 		hw.write_enums(data)
 		hw.write_structs(data)
