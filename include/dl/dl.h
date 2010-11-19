@@ -240,41 +240,26 @@ dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t dl_ctx, dl_typeid_t type, v
 */
 DL_DLL_EXPORT const char* dl_error_to_string( dl_error_t error );
 
+typedef struct dl_instance_info
+{
+	unsigned int ptrsize;
+	dl_endian_t  endian;
+	dl_typeid_t  root_type;
+} dl_instance_info_t;
+
 /*
-	Function: dl_instance_ptr_size
-		Return the ptr-size of the instance stored in _pData.
+	Function: dl_instance_get_info
+		Fetch information about a packed dl-instance.
 
 	Parameters:
 		packed_instance      - Ptr to memory-area where packed instance is to be found.
-		packed_instance_size - Size of _pData.
+		packed_instance_size - Size of packed_instance.
+		out_info             - Ptr to dl_instance_info where to return info.
 
-	Returns:
-		The ptr size of stored instance (4 or 8) or 0 on error.
+	Return:
+		DL_ERROR_OK on success.
 */
-unsigned int dl_instance_ptr_size( const unsigned char* packed_instance, unsigned int packed_instance_size );
-
-/*
-	Function: dl_instance_endian
-		Return the endianness of the instance stored in _pData.
-
-	Parameters:
-		packed_instance      - Ptr to memory-area where packed instance is to be found.
-		packed_instance_size - Size of _pData.
-*/
-dl_endian_t dl_instance_endian( const unsigned char* packed_instance, unsigned int packed_instance_size );
-
-/*
-	Function: dl_instance_root_type
-		Return the type of the instance stored in _pData.
-
-	Note:
-		0 is returned if the data is malformed.
-
-	Parameters:
-		packed_instance      - Ptr to memory-area where packed instance is to be found.
-		packed_instance_size - Size of _pData.
-*/
-dl_typeid_t dl_instance_root_type( const unsigned char* packed_instance, unsigned int packed_instance_size );
+dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned int packed_instance_size, dl_instance_info_t* out_info );
 
 #ifdef __cplusplus
 }

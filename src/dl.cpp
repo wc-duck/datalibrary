@@ -732,31 +732,18 @@ const char* dl_error_to_string(dl_error_t _Err)
 #undef M_DL_ERR_TO_STR
 }
 
-unsigned int dl_instance_ptr_size(const unsigned char* _pData, unsigned int _DataSize)
+dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned int packed_instance_size, dl_instance_info_t* out_info )
 {
-	if(_DataSize < sizeof(SDLDataHeader)) return 0;
+	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	return ((SDLDataHeader*)_pData)->m_64BitPtr ? 8 : 4;
-}
+	if( packed_instance_size < sizeof(SDLDataHeader) && header->m_Id != DL_TYPE_DATA_ID_SWAPED && header->m_Id != DL_TYPE_DATA_ID )
+		return DL_ERROR_MALFORMED_DATA;
+	if(header->m_Version != DL_VERSION && header->m_Version != DLSwapEndian(DL_VERSION))
+		return DL_ERROR_VERSION_MISMATCH;
 
-dl_endian_t dl_instance_endian(const unsigned char* _pData, unsigned int _DataSize)
-{
-	if(_DataSize < sizeof(SDLDataHeader)) return DL_ENDIAN_HOST;
+	out_info->ptrsize   = header->m_64BitPtr ? 8 : 4;
+	out_info->endian    = header->m_Id == DL_TYPE_DATA_ID_SWAPED ? DLOtherEndian(DL_ENDIAN_HOST) : DL_ENDIAN_HOST;
+	out_info->root_type = header->m_RootInstanceType;
 
-	if(((SDLDataHeader*)_pData)->m_Id == DL_TYPE_DATA_ID_SWAPED)
-		return DLOtherEndian(DL_ENDIAN_HOST);
-
-	return DL_ENDIAN_HOST;
-}
-
-dl_typeid_t dl_instance_root_type(const unsigned char* _pData, unsigned int _DataSize)
-{
-	const SDLDataHeader* pHeader = (const SDLDataHeader*)_pData;
-
-	if(_DataSize < sizeof(SDLDataHeader))       return 0;
-	if(pHeader->m_Id == DL_TYPE_DATA_ID_SWAPED) return 0;
-	if(pHeader->m_Id != DL_TYPE_DATA_ID )       return 0;
-	if(pHeader->m_Version != DL_VERSION)        return 0;
-
-	return pHeader->m_RootInstanceType;
+	return DL_ERROR_OK;
 }

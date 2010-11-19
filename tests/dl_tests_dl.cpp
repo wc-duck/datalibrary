@@ -38,12 +38,15 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 	memset(OutDataInstance, 0x0, sizeof(OutDataInstance));
 	memset(TxtOut, 0x0,  sizeof(TxtOut));
 
+	dl_instance_info_t inst_info;
+
 	// store instance to binary
 	dl_error_t err = dl_instance_store(_Ctx, _TypeHash, _pPackMe, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance));
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-	EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance)));
-	EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(OutDataInstance,   DL_ARRAY_LENGTH(OutDataInstance)));
-	EXPECT_EQ(_TypeHash,      dl_instance_root_type(OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance)));
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance), &inst_info));
+	EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
+	EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
+	EXPECT_EQ(_TypeHash,      inst_info.root_type);
 
 	// unpack binary to txt
 	err = dl_txt_unpack(_Ctx, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut));
@@ -57,15 +60,16 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 	// pack txt to binary
 	err = dl_txt_pack(_Ctx, TxtOut, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-	EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(OutDataText,  DL_ARRAY_LENGTH(OutDataText)));
-	EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(OutDataText,   DL_ARRAY_LENGTH(OutDataText)));
-	EXPECT_EQ(_TypeHash,      dl_instance_root_type(OutDataText, DL_ARRAY_LENGTH(OutDataText)));
+	EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(OutDataText,  DL_ARRAY_LENGTH(OutDataText), &inst_info));
+	EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
+	EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
+	EXPECT_EQ(_TypeHash,      inst_info.root_type);
 
 	// load binary
 	err = dl_instance_load(_Ctx, _pUnpackMe, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
 
-	dl_endian_t   OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
+	dl_endian_t  OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
 	unsigned int OtherPtrSize = sizeof(void*) == 4 ? 8 : 4;
 
 	// check if we can convert only endianness!
@@ -75,16 +79,18 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 
 		err = dl_convert_inplace(_Ctx, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), OtherEndian, sizeof(void*));
 		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-		EXPECT_EQ(sizeof(void*), dl_instance_ptr_size(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian)));
-		EXPECT_EQ(OtherEndian,   dl_instance_endian(SwitchedEndian,  DL_ARRAY_LENGTH(SwitchedEndian)));
+		EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
+		EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
+		EXPECT_EQ(OtherEndian, inst_info.endian);
 
 		EXPECT_NE(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
 		err = dl_convert_inplace(_Ctx, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), DL_ENDIAN_HOST, sizeof(void*));
 		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-		EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(SwitchedEndian,  DL_ARRAY_LENGTH(SwitchedEndian)));
-		EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(SwitchedEndian,    DL_ARRAY_LENGTH(SwitchedEndian)));
-		EXPECT_EQ(_TypeHash,      dl_instance_root_type(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian)));
+		EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
+		EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
+		EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
+		EXPECT_EQ(_TypeHash,      inst_info.root_type);
 
 		EXPECT_EQ(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should be equal !
 	}
@@ -114,9 +120,10 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 
 			err = dl_convert_inplace(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), DL_ENDIAN_HOST, OtherPtrSize);
 			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(OtherPtrSize,   dl_instance_ptr_size(ConvertedData,  DL_ARRAY_LENGTH(ConvertedData)));
-			EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(ConvertedData,    DL_ARRAY_LENGTH(ConvertedData)));
-			EXPECT_EQ(_TypeHash,      dl_instance_root_type(ConvertedData, DL_ARRAY_LENGTH(ConvertedData)));
+			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
+			EXPECT_EQ(OtherPtrSize,   inst_info.ptrsize);
+			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
+			EXPECT_EQ(_TypeHash,      inst_info.root_type);
 
 			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
@@ -136,9 +143,10 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 
 			err = dl_convert(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*));
 			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(ReConvertedData,  DL_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(ReConvertedData,    DL_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(_TypeHash,      dl_instance_root_type(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
+			EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
+			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
+			EXPECT_EQ(_TypeHash,      inst_info.root_type);
 
 			EXPECT_EQ(0, memcmp(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalConverted))); // original data should be equal !
 
@@ -158,8 +166,10 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 
 			err = dl_convert(_Ctx, OriginalData, DL_ARRAY_LENGTH(OriginalData), ConvertedData, DL_ARRAY_LENGTH(ConvertedData), OtherEndian, OtherPtrSize);
 			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(OtherPtrSize, dl_instance_ptr_size(ConvertedData, DL_ARRAY_LENGTH(ConvertedData)));
-			EXPECT_EQ(OtherEndian,  dl_instance_endian(ConvertedData,  DL_ARRAY_LENGTH(ConvertedData)));
+
+			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
+			EXPECT_EQ(OtherPtrSize, inst_info.ptrsize);
+			EXPECT_EQ(OtherEndian,  inst_info.endian);
 
 			EXPECT_EQ('L', ConvertedData[ConvertedSize + 1]);
 			EXPECT_EQ('O', ConvertedData[ConvertedSize + 2]);
@@ -181,9 +191,10 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 
 			err = dl_convert(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*));
 			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_EQ(sizeof(void*),  dl_instance_ptr_size(ReConvertedData,  DL_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(DL_ENDIAN_HOST, dl_instance_endian(ReConvertedData,    DL_ARRAY_LENGTH(ReConvertedData)));
-			EXPECT_EQ(_TypeHash,      dl_instance_root_type(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData)));
+			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
+			EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
+			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
+			EXPECT_EQ(_TypeHash,      inst_info.root_type);
 
 			EXPECT_EQ(0, memcmp(OutDataText, ReConvertedData, PackedSize)); // original data should be equal !
 

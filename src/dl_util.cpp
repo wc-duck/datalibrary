@@ -42,7 +42,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
 	fseek(in_file, 0, SEEK_SET);
 
 	unsigned char* file_content = (unsigned char*)malloc((unsigned int)(file_size) + 1);
-	fread(file_content, sizeof(unsigned char), file_size, in_file);
+	if( fread(file_content, sizeof(unsigned char), file_size, in_file) != file_size ) return DL_ERROR_INTERNAL_ERROR;
 	file_content[file_size] = '\0';
 	fclose(in_file);
 
