@@ -233,6 +233,7 @@ def parse_options():
 	parser = OptionParser(description = "dl_tlc is the type library compiler for DL and converts a text-typelibrary to binary type-libraray.")
 	parser.add_option("", "--dldll")
 	parser.add_option("-o", "--output",     dest="output",    help="write type library to file")
+	parser.add_option("-x", "--hexarray",   dest="hexarray",  help="write type library as hex-array that can be included in c/cpp-code")
 	parser.add_option("-c", "--cpp-header", dest="cppheader", help="write C++-header to file")
 	parser.add_option("-s", "--cs-header",  dest="csheader",  help="write C#-header to file")	
 	parser.add_option("",   "--config",     dest="config",    help="configuration file to configure generated headers.")	
@@ -252,8 +253,6 @@ def parse_options():
 		logging.basicConfig(level=logging.ERROR)
 		
 	if options.config:
-		user_cfg = eval(open(options.config).read())
-		
 		def merge_dict(update_me, update_with):
 			for key in update_me.keys():
 				if update_with.has_key(key):
@@ -265,6 +264,7 @@ def parse_options():
 					else:
 						update_me[key] = val_with
 		
+		user_cfg = eval(open(options.config).read())
 		merge_dict( config, user_cfg )
 	
 	return options
@@ -297,8 +297,32 @@ if __name__ == "__main__":
 		options.csheader.close()
 
 	# write binary type library
-	if options.output:
-		options.output = open(options.output, 'wb')
-		tlw = TypeLibraryWriter(options.output)
+	if options.output or options.hexarray:
+		from StringIO import StringIO
+		import array
+		output = StringIO()
+		tlw = TypeLibraryWriter(output)
 		tlw.write(data)
-		options.output.close()
+		
+		if options.output:
+			open(options.output, 'wb').write(output.getvalue())
+			
+		if options.hexarray:
+			hex_file = open(options.hexarray, 'wb')
+			data = array.array( 'B' )
+			data.fromstring( output.getvalue() )
+			
+			count = 1
+			
+			hex_file.write( '0x%02X' % data[0] )
+			
+			for c in data[1:]:
+				if count > 15:
+					hex_file.write( ',\n0x%02X' % c )
+					count = 0
+				else:
+					hex_file.write( ', 0x%02X ' % c )
+			
+				count += 1
+				
+			hex_file.close()

@@ -12,9 +12,14 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 
 	local DL_TLC = PYTHON .. " tool/dl_tlc/dl_tlc.py --dldll=" .. dl_shared_lib
 
-	AddJob( out_header, 
+	AddJob( out_lib, 
 		"tlc " .. out_lib,
 		DL_TLC .. " -o " .. out_lib .. " " .. tlc_file, 
+		tlc_file )
+
+	AddJob( out_lib_h, 
+		"tlc " .. out_lib_h,
+		DL_TLC .. " -x " .. out_lib_h .. " " .. tlc_file, 
 		tlc_file )
 
 	AddJob( out_cs_header, 
@@ -22,7 +27,7 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 		DL_TLC .. " -s " .. out_cs_header .. " " .. tlc_file, 
 		tlc_file )
 
-	AddJob( out_lib, 
+	AddJob( out_header, 
 		"tlc " .. out_header,
 		DL_TLC .. " -c " .. out_header .. " " .. tlc_file, 
 		tlc_file )
@@ -30,12 +35,6 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 	AddDependency( tlc_file, Collect( "tool/dl_tlc/*.py" ) )
 	AddDependency( tlc_file, Collect( "bind/python/*.py" ) )
 	AddDependency( tlc_file, dl_shared_lib )
-
-	-- dump type-lib to header
-	AddJob( out_lib_h, 
-		out_lib .. " -> " .. out_lib_h, 
-		PYTHON .. " build/bin_to_hex.py " .. out_lib .. " > " .. out_lib_h, 
-		out_lib )
 end
 
 
@@ -61,6 +60,11 @@ end
 function DefaultGCC( platform, config )
 	local settings = DefaultSettings( platform, config )
 	settings.cc.flags:Add("-Werror", "-ansi")
+	if config == "debug" then
+		settings.cc.flags:Add("-O0", "-g")
+	else
+		settings.cc.flags:Add("-O2")
+	end
 	return settings
 end
 
@@ -82,7 +86,7 @@ function DefaultMSVC( config )
 end
 
 function DefaultGCCLinux_x86( config )
-	local settings = DefaultGCC( "linux32", config )
+	local settings = DefaultGCC( "linux_x86", config )
 	settings.cc.flags:Add( "-m32" )
 	settings.cc.flags:Add( "-malign-double" ) -- TODO: temporary workaround, dl should support natural alignment for double
 	settings.dll.flags:Add( "-m32" )
@@ -91,7 +95,7 @@ function DefaultGCCLinux_x86( config )
 end
 
 function DefaultGCCLinux_x86_64( config )
-	local settings = DefaultGCC( "linux64", config )
+	local settings = DefaultGCC( "linux_x86_64", config )
 	settings.cc.flags:Add( "-m64" )
 	settings.dll.flags:Add( "-m64" )
 	settings.link.flags:Add( "-m64" )
@@ -153,9 +157,9 @@ dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("t
 
 dl_tests_py = "tests/dl_tests.py"
 
-AddJob( "test",          "unittest c",               dl_tests,                   dl_tests ) -- c unit tests
-AddJob( "test_valgrind", "unittest valgrind",        "valgrind -v " .. dl_tests, dl_tests ) -- valgrind c unittests
-AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py,   dl_tests_py, shared_library ) -- python bindings unittests
+AddJob( "test",          "unittest c",               dl_tests,                          dl_tests ) -- c unit tests
+AddJob( "test_valgrind", "unittest valgrind",        "valgrind -v " .. dl_tests,        dl_tests ) -- valgrind c unittests
+AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py .. " -v", dl_tests_py, shared_library ) -- python bindings unittests
 
 -- do not run unittest as default, only run
 PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
