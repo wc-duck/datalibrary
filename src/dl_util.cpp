@@ -11,18 +11,16 @@
 
 // TODO: DLType sent to these functions should be used for type-checks, make it possible to ignore in some way?
 
-dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
-                                 const char* _pFileName,
-                                 dl_typeid_t _DLType,
-                                 dl_util_file_type_t file_type,
-                                 void** _ppInstance )
+dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx,
+                                   dl_typeid_t type,
+                                   const char* filename,
+                                   dl_util_file_type_t file_type,
+                                   void** out_instance )
 {
-	(void)_DLType;
-	
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
 
-	FILE* in_file = fopen(_pFileName, "rb");
+	FILE* in_file = fopen(filename, "rb");
 
 	if(in_file == 0x0) { fclose(in_file); return DL_ERROR_UTIL_FILE_NOT_FOUND; }
 
@@ -54,7 +52,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
 	{
 		case DL_UTIL_FILE_TYPE_BINARY:
 		{
-			error = dl_convert_calc_size( _Ctx, file_content, file_size, sizeof(void*), &load_size);
+			error = dl_convert_calc_size( dl_ctx, type, file_content, file_size, sizeof(void*), &load_size);
 
 			if( error != DL_ERROR_OK ) { free( file_content ); return error; }
 
@@ -63,7 +61,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
 			{
 				load_instance = (unsigned char*)malloc(load_size);
 
-				error = dl_convert( _Ctx, file_content, file_size, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
+				error = dl_convert( dl_ctx, type, file_content, file_size, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
 
 				free( file_content );
 			}
@@ -71,7 +69,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
 			{
 				load_instance = file_content;
 				load_size     = file_size;
-				error = dl_convert_inplace( _Ctx, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
+				error = dl_convert_inplace( dl_ctx, type, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
 			}
 
 			if( error != DL_ERROR_OK ) { free( load_instance ); return error; }
@@ -81,13 +79,13 @@ dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
 		{
 			// calc needed space
 			unsigned int packed_size = 0;
-			error = dl_txt_pack_calc_size(_Ctx, (char*)file_content, &packed_size);
+			error = dl_txt_pack_calc_size(dl_ctx, (char*)file_content, &packed_size);
 
 			if(error != DL_ERROR_OK) { free(file_content); return error; }
 
 			load_instance = (unsigned char*)malloc(packed_size);
 
-			error = dl_txt_pack(_Ctx, (char*)file_content, load_instance, packed_size);
+			error = dl_txt_pack(dl_ctx, (char*)file_content, load_instance, packed_size);
 
 			free(file_content);
 
@@ -98,39 +96,39 @@ dl_error_t dl_util_load_from_file( dl_ctx_t _Ctx,
 			M_ASSERT( false );
 	}
 
-	error = dl_instance_load(_Ctx, load_instance, load_instance, load_size);
+	error = dl_instance_load(dl_ctx, type, load_instance, load_instance, load_size);
 
-	*_ppInstance = load_instance;
+	*out_instance = load_instance;
 
 	return error;
 }
 
 dl_error_t dl_util_load_from_file_inplace( dl_ctx_t      _Ctx,
-                                         const char*     _pFileName,
-                                         dl_typeid_t         _DLType,
-                                         dl_util_file_type_t _FileType,
-                                         void*           _ppInstance,
-                                         unsigned int    _InstanceSize )
+                                           dl_typeid_t         _DLType,
+                                           const char*     _pFileName,
+                                           dl_util_file_type_t _FileType,
+                                           void*           _ppInstance,
+                                           unsigned int    _InstanceSize )
 {
 	(void)_Ctx; (void)_pFileName; (void)_DLType; (void)_FileType; (void)_ppInstance; (void)_InstanceSize;
 	return DL_ERROR_INTERNAL_ERROR; // TODO: Build me
 }
 
-dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
-                                const char*     _pFileName,
-                                dl_typeid_t         _DLType,
-                                dl_util_file_type_t _FileType,
-                                dl_endian_t    _Endian,
-                                unsigned int    _PtrSize,
-                                void*           _pInstance )
+dl_error_t dl_util_store_to_file( dl_ctx_t        dl_ctx,
+                                  dl_typeid_t     type,
+                                  const char*     filename,
+                                  dl_util_file_type_t filetype,
+                                  dl_endian_t     out_endian,
+                                  unsigned int    out_ptr_size,
+                                  void*           instance )
 {
-	if( _FileType == DL_UTIL_FILE_TYPE_AUTO )
+	if( filetype == DL_UTIL_FILE_TYPE_AUTO )
 		return DL_ERROR_INVALID_PARAMETER;
 
 	unsigned int packed_size = 0;
 
 	// calculate pack-size
-	dl_error_t error = dl_instance_calc_size( _Ctx, _DLType, _pInstance, &packed_size );
+	dl_error_t error = dl_instance_calc_size( dl_ctx, type, instance, &packed_size );
 
 	if( error != DL_ERROR_OK)
 		return error;
@@ -139,19 +137,19 @@ dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
 	unsigned char* packed_instance = (unsigned char*)malloc(packed_size);
 
 	// pack data
-	error =  dl_instance_store( _Ctx, _DLType, _pInstance, packed_instance, packed_size );
+	error =  dl_instance_store( dl_ctx, type, instance, packed_instance, packed_size );
 
 	if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
 	unsigned int out_size = 0;
 	unsigned char* out_data = 0x0;
 
-	switch( _FileType )
+	switch( filetype )
 	{
 		case DL_UTIL_FILE_TYPE_BINARY:
 		{
 			// calc convert size
-			error = dl_convert_calc_size( _Ctx, packed_instance, packed_size, _PtrSize, &out_size);
+			error = dl_convert_calc_size( dl_ctx, type, packed_instance, packed_size, out_ptr_size, &out_size);
 
 			if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
@@ -162,7 +160,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
 				out_data = (unsigned char*)malloc(out_size);
 
 				// convert
-				error = dl_convert( _Ctx, packed_instance, packed_size, out_data, out_size, _Endian, _PtrSize );
+				error = dl_convert( dl_ctx, type, packed_instance, packed_size, out_data, out_size, out_endian, out_ptr_size );
 
 				free(packed_instance);
 
@@ -172,7 +170,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
 			{
 				out_data = packed_instance;
 
-				error = dl_convert_inplace( _Ctx, packed_instance, packed_size, _Endian, _PtrSize );
+				error = dl_convert_inplace( dl_ctx, type, packed_instance, packed_size, out_endian, out_ptr_size );
 
 				if( error != DL_ERROR_OK ) { free(out_data); return error; }
 			}
@@ -181,7 +179,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
 		case DL_UTIL_FILE_TYPE_TEXT:
 		{
 			// calculate pack-size
-			error = dl_txt_unpack_calc_size( _Ctx, packed_instance, packed_size, &out_size);
+			error = dl_txt_unpack_calc_size( dl_ctx, type, packed_instance, packed_size, &out_size);
 
 			if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
@@ -189,7 +187,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
 			out_data = (unsigned char*)malloc(out_size);
 
 			// pack data
-			error = dl_txt_unpack( _Ctx, packed_instance, packed_size, (char*)out_data, out_size);
+			error = dl_txt_unpack( dl_ctx, type, packed_instance, packed_size, (char*)out_data, out_size);
 
 			free(packed_instance);
 
@@ -200,7 +198,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t      _Ctx,
 			M_ASSERT( false );
 	}
 
-	FILE* out_file = fopen(_pFileName, "");
+	FILE* out_file = fopen(filename, "");
 	if( out_file != 0x0 )
 		fwrite( out_data, out_size, 1, out_file );
 	else

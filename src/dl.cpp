@@ -350,23 +350,24 @@ dl_error_t dl_context_load_type_library(dl_ctx_t _Context, const unsigned char* 
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_instance_load(dl_ctx_t _Context, void* _pInstance, const unsigned char* _pData, unsigned int _DataSize)
+dl_error_t dl_instance_load(dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, const unsigned char* packed_instance, unsigned int packed_instance_size)
 {
-	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
+	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if(_DataSize < sizeof(SDLDataHeader))       return DL_ERROR_MALFORMED_DATA;
-	if(pHeader->m_Id == DL_TYPE_DATA_ID_SWAPED) return DL_ERROR_ENDIAN_ERROR;
-	if(pHeader->m_Id != DL_TYPE_DATA_ID )       return DL_ERROR_MALFORMED_DATA;
-	if(pHeader->m_Version != DL_VERSION)        return DL_ERROR_VERSION_MISMATCH;
+	if(packed_instance_size < sizeof(SDLDataHeader))       return DL_ERROR_MALFORMED_DATA;
+	if(header->m_Id == DL_TYPE_DATA_ID_SWAPED) return DL_ERROR_ENDIAN_MISMATCH;
+	if(header->m_Id != DL_TYPE_DATA_ID )       return DL_ERROR_MALFORMED_DATA;
+	if(header->m_Version != DL_VERSION)        return DL_ERROR_VERSION_MISMATCH;
+	if(header->m_RootInstanceType != type)     return DL_ERROR_TYPE_MISMATCH;
 
-	const SDLType* pType = DLFindType(_Context, pHeader->m_RootInstanceType);
+	const SDLType* pType = DLFindType(dl_ctx, header->m_RootInstanceType);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	memcpy(_pInstance, _pData + sizeof(SDLDataHeader), pHeader->m_InstanceSize);
+	memcpy(instance, packed_instance + sizeof(SDLDataHeader), header->m_InstanceSize);
 
 	SPatchedInstances PI;
-	DLPatchLoadedPtrs(_Context, &PI, (uint8*)_pInstance, pType, (uint8*)_pInstance);
+	DLPatchLoadedPtrs(dl_ctx, &PI, (uint8*)instance, pType, (uint8*)instance);
 
 	return DL_ERROR_OK;
 }
@@ -712,10 +713,11 @@ const char* dl_error_to_string(dl_error_t _Err)
 		M_DL_ERR_TO_STR(DL_ERROR_OUT_OF_LIBRARY_MEMORY);
 		M_DL_ERR_TO_STR(DL_ERROR_OUT_OF_INSTANCE_MEMORY);
 		M_DL_ERR_TO_STR(DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR);
+		M_DL_ERR_TO_STR(DL_ERROR_TYPE_MISMATCH);
 		M_DL_ERR_TO_STR(DL_ERROR_TYPE_NOT_FOUND);
 		M_DL_ERR_TO_STR(DL_ERROR_MEMBER_NOT_FOUND);
 		M_DL_ERR_TO_STR(DL_ERROR_BUFFER_TO_SMALL);
-		M_DL_ERR_TO_STR(DL_ERROR_ENDIAN_ERROR);
+		M_DL_ERR_TO_STR(DL_ERROR_ENDIAN_MISMATCH);
 		M_DL_ERR_TO_STR(DL_ERROR_INVALID_PARAMETER);
 		M_DL_ERR_TO_STR(DL_ERROR_UNSUPORTED_OPERATION);
 

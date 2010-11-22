@@ -720,7 +720,7 @@ static inline bool DLInternalDataNeedSwap(SDLDataHeader* _pHeader, dl_endian_t _
 extern "C" {
 #endif  // __cplusplus
 
-dl_error_t dl_convert_inplace(dl_ctx_t _Context, unsigned char* _pData, unsigned int _DataSize, dl_endian_t _Endian, unsigned int _PtrSize)
+dl_error_t dl_convert_inplace(dl_ctx_t _Context, dl_typeid_t type, unsigned char* _pData, unsigned int _DataSize, dl_endian_t _Endian, unsigned int _PtrSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
@@ -742,32 +742,35 @@ dl_error_t dl_convert_inplace(dl_ctx_t _Context, unsigned char* _pData, unsigned
 	return DLInternalConvertInstance( _Context, _pData, _pData, _DataSize, _Endian, _PtrSize, &NeededSize);
 }
 
-dl_error_t dl_convert(dl_ctx_t _Context, unsigned char* _pData, unsigned int _DataSize, unsigned char* _pOutData, unsigned int _OutDataSize, dl_endian_t _Endian, unsigned int _PtrSize)
+dl_error_t dl_convert( dl_ctx_t dl_ctx,             dl_typeid_t  type,
+                       unsigned char* packed_data,  unsigned int packed_data_size,
+                       unsigned char* out_instance, unsigned int out_instance_size,
+                       dl_endian_t    out_endian,   unsigned int out_ptr_size )
 {
-	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
+	SDLDataHeader* pHeader = (SDLDataHeader*)packed_data;
 
-	if(_DataSize < sizeof(SDLDataHeader))        return DL_ERROR_MALFORMED_DATA;
+	if(packed_data_size < sizeof(SDLDataHeader))        return DL_ERROR_MALFORMED_DATA;
 	if( pHeader->m_Id != DL_TYPE_DATA_ID &&
 		pHeader->m_Id != DL_TYPE_DATA_ID_SWAPED) return DL_ERROR_MALFORMED_DATA;
-	if(_PtrSize != 4 && _PtrSize != 8)           return DL_ERROR_INVALID_PARAMETER;
+	if(out_ptr_size != 4 && out_ptr_size != 8)           return DL_ERROR_INVALID_PARAMETER;
 
 	unsigned int SourcePtrSize = pHeader->m_64BitPtr != 0 ? 8 : 4;
 
-	bool NeedSwap     = DLInternalDataNeedSwap(pHeader, _Endian);
-	bool NeedPtrPatch = SourcePtrSize != _PtrSize;
+	bool NeedSwap     = DLInternalDataNeedSwap(pHeader, out_endian);
+	bool NeedPtrPatch = SourcePtrSize != out_ptr_size;
 
 	if(!NeedSwap && !NeedPtrPatch)
 	{
-		M_ASSERT(_pOutData != _pData && "Src and destination can not be the same!");
-		memcpy(_pOutData, _pData, _DataSize);
+		M_ASSERT(out_instance != packed_data && "Src and destination can not be the same!");
+		memcpy(out_instance, packed_data, packed_data_size);
 		return DL_ERROR_OK;
 	}
 
 	unsigned int NeededSize;
-	return DLInternalConvertInstance( _Context, _pData, _pOutData, _OutDataSize, _Endian, _PtrSize, &NeededSize);
+	return DLInternalConvertInstance( dl_ctx, packed_data, out_instance, out_instance_size, out_endian, out_ptr_size, &NeededSize);
 }
 
-dl_error_t dl_convert_calc_size(dl_ctx_t _Context, unsigned char* _pData, unsigned int _DataSize, unsigned int _PtrSize, unsigned int* _pResultSize)
+dl_error_t dl_convert_calc_size(dl_ctx_t _Context, dl_typeid_t type, unsigned char* _pData, unsigned int _DataSize, unsigned int _PtrSize, unsigned int* _pResultSize)
 {
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
