@@ -1,4 +1,3 @@
-/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
 #include <dl/dl.h>
 #include <dl/dl_txt.h>
@@ -35,6 +34,7 @@ unsigned char* ReadFile(FILE* _pFile, unsigned int* Size)
 	unsigned char* pData = (unsigned char*)malloc(*Size + 1);
 	pData[*Size] = '\0';
 	size_t read = fread(pData, 1, *Size, _pFile);
+	(void)read;
 	return pData;
 }
 

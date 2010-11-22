@@ -16,7 +16,7 @@ struct TAlignmentOf
 
 TEST_F(DL, ReflectPods)
 {
-	dl_type_info_t   Info;
+	dl_type_info_t   Info = { 0 };
 	dl_member_info_t Members[128];
 
 	EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_reflect_get_type_info( Ctx, Pods::TYPE_ID, &Info ));
