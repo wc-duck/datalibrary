@@ -47,6 +47,7 @@ LATER
 * export pure c-headers?
 * buffered parsing?
 * unicode-strings!
+* SIMD-byteswap of arrays?
 * Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
   able to determine that they do not match.
   
