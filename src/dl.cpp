@@ -13,32 +13,32 @@ static void* DLMallocAlloc(unsigned int  _Size, unsigned int _Alignment) { DL_UN
 static void  DLMallocFree (void* _pPtr) { free(_pPtr); }
 static dl_alloc_functions_t g_DLMallocFreeFuncs = { DLMallocAlloc, DLMallocFree };
 
-dl_error_t dl_context_create( dl_ctx_t* _pContext, dl_alloc_functions_t* _pDLAllocFuncs )
+dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_alloc_functions_t* dl_alloc_funcs )
 {
-	if(_pDLAllocFuncs == 0x0)
-		_pDLAllocFuncs = &g_DLMallocFreeFuncs;
+	if(dl_alloc_funcs == 0x0)
+		dl_alloc_funcs = &g_DLMallocFreeFuncs;
 
-	dl_context* pCtx = (dl_context*)_pDLAllocFuncs->alloc(sizeof(dl_context), sizeof(void*));
+	dl_context* ctx = (dl_context*)dl_alloc_funcs->alloc(sizeof(dl_context), sizeof(void*));
 
-	if(pCtx == 0x0)
+	if(ctx == 0x0)
 		return DL_ERROR_OUT_OF_LIBRARY_MEMORY;
 
-	pCtx->m_DLAllocFuncs       = _pDLAllocFuncs;
+	ctx->m_DLAllocFuncs = dl_alloc_funcs;
 
-	pCtx->m_nTypes = 0;
-	pCtx->m_nEnums = 0;
+	ctx->m_nTypes = 0;
+	ctx->m_nEnums = 0;
 
-	*_pContext = pCtx;
+	*dl_ctx = ctx;
 
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_context_destroy(dl_ctx_t _Context)
+dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 {
-	_Context->m_DLAllocFuncs->free(_Context->m_TypeInfoData);
-	_Context->m_DLAllocFuncs->free(_Context->m_EnumInfoData);
-	_Context->m_DLAllocFuncs->free(_Context->m_pDefaultInstances);
-	_Context->m_DLAllocFuncs->free(_Context);
+	dl_ctx->m_DLAllocFuncs->free(dl_ctx->m_TypeInfoData);
+	dl_ctx->m_DLAllocFuncs->free(dl_ctx->m_EnumInfoData);
+	dl_ctx->m_DLAllocFuncs->free(dl_ctx->m_pDefaultInstances);
+	dl_ctx->m_DLAllocFuncs->free(dl_ctx);
 	return DL_ERROR_OK;
 }
 

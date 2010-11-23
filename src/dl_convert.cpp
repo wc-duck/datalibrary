@@ -722,17 +722,19 @@ extern "C" {
 
 dl_error_t dl_convert_inplace(dl_ctx_t _Context, dl_typeid_t type, unsigned char* _pData, unsigned int _DataSize, dl_endian_t _Endian, unsigned int _PtrSize)
 {
-	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
+	SDLDataHeader* header = (SDLDataHeader*)_pData;
 
-	if(_DataSize < sizeof(SDLDataHeader))        return DL_ERROR_MALFORMED_DATA;
-	if( pHeader->m_Id != DL_TYPE_DATA_ID &&
-		pHeader->m_Id != DL_TYPE_DATA_ID_SWAPED) return DL_ERROR_MALFORMED_DATA;
-	if(_PtrSize != 4 && _PtrSize != 8)           return DL_ERROR_INVALID_PARAMETER;
-	if(pHeader->m_64BitPtr == 0 && _PtrSize > 4) return DL_ERROR_UNSUPORTED_OPERATION;
+	if(_DataSize < sizeof(SDLDataHeader))                  return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Id != DL_TYPE_DATA_ID &&
+		header->m_Id != DL_TYPE_DATA_ID_SWAPED)            return DL_ERROR_MALFORMED_DATA;
+	if( header->m_RootInstanceType != type &&
+		header->m_RootInstanceType != DLSwapEndian(type) ) return DL_ERROR_TYPE_MISMATCH;
+	if(_PtrSize != 4 && _PtrSize != 8)                     return DL_ERROR_INVALID_PARAMETER;
+	if(header->m_64BitPtr == 0 && _PtrSize > 4)            return DL_ERROR_UNSUPORTED_OPERATION;
 
-	unsigned int SourcePtrSize = pHeader->m_64BitPtr != 0 ? 8 : 4;
+	unsigned int SourcePtrSize = header->m_64BitPtr != 0 ? 8 : 4;
 
-	bool NeedSwap     = DLInternalDataNeedSwap(pHeader, _Endian);
+	bool NeedSwap     = DLInternalDataNeedSwap(header, _Endian);
 	bool NeedPtrPatch = SourcePtrSize != _PtrSize;
 
 	if(!NeedSwap && !NeedPtrPatch)
@@ -747,20 +749,23 @@ dl_error_t dl_convert( dl_ctx_t dl_ctx,             dl_typeid_t  type,
                        unsigned char* out_instance, unsigned int out_instance_size,
                        dl_endian_t    out_endian,   unsigned int out_ptr_size )
 {
-	SDLDataHeader* pHeader = (SDLDataHeader*)packed_data;
+	SDLDataHeader* header = (SDLDataHeader*)packed_data;
 
-	if(packed_data_size < sizeof(SDLDataHeader))        return DL_ERROR_MALFORMED_DATA;
-	if( pHeader->m_Id != DL_TYPE_DATA_ID &&
-		pHeader->m_Id != DL_TYPE_DATA_ID_SWAPED) return DL_ERROR_MALFORMED_DATA;
-	if(out_ptr_size != 4 && out_ptr_size != 8)           return DL_ERROR_INVALID_PARAMETER;
+	if( packed_data_size < sizeof(SDLDataHeader) )         return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Id != DL_TYPE_DATA_ID &&
+		header->m_Id != DL_TYPE_DATA_ID_SWAPED )           return DL_ERROR_MALFORMED_DATA;
+	if( header->m_RootInstanceType != type &&
+		header->m_RootInstanceType != DLSwapEndian(type) ) return DL_ERROR_TYPE_MISMATCH;
+	if( out_ptr_size != 4 && out_ptr_size != 8 )           return DL_ERROR_INVALID_PARAMETER;
 
-	unsigned int SourcePtrSize = pHeader->m_64BitPtr != 0 ? 8 : 4;
+	unsigned int SourcePtrSize = header->m_64BitPtr != 0 ? 8 : 4;
 
-	bool NeedSwap     = DLInternalDataNeedSwap(pHeader, out_endian);
+	bool NeedSwap     = DLInternalDataNeedSwap(header, out_endian);
 	bool NeedPtrPatch = SourcePtrSize != out_ptr_size;
 
 	if(!NeedSwap && !NeedPtrPatch)
 	{
+		// TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
 		M_ASSERT(out_instance != packed_data && "Src and destination can not be the same!");
 		memcpy(out_instance, packed_data, packed_data_size);
 		return DL_ERROR_OK;
@@ -770,22 +775,30 @@ dl_error_t dl_convert( dl_ctx_t dl_ctx,             dl_typeid_t  type,
 	return DLInternalConvertInstance( dl_ctx, packed_data, out_instance, out_instance_size, out_endian, out_ptr_size, &NeededSize);
 }
 
-dl_error_t dl_convert_calc_size(dl_ctx_t _Context, dl_typeid_t type, unsigned char* _pData, unsigned int _DataSize, unsigned int _PtrSize, unsigned int* _pResultSize)
+dl_error_t dl_convert_calc_size( dl_ctx_t dl_ctx,                dl_typeid_t   type,
+                                 unsigned char* packed_instance, unsigned int  packed_instance_size,
+                                 unsigned int   out_ptr_size,    unsigned int* out_size )
 {
-	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
+	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if(_DataSize < sizeof(SDLDataHeader))                                             return DL_ERROR_MALFORMED_DATA;
-	if( pHeader->m_Id != DL_TYPE_DATA_ID && pHeader->m_Id != DL_TYPE_DATA_ID_SWAPED ) return DL_ERROR_MALFORMED_DATA;
+	// TODO: This code is duplicated in dl_convert_calc_size, dl_convert and dl_convert_inplace
+	if(packed_instance_size < sizeof(SDLDataHeader))       return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Id != DL_TYPE_DATA_ID &&
+		header->m_Id != DL_TYPE_DATA_ID_SWAPED )           return DL_ERROR_MALFORMED_DATA;
+	if( header->m_RootInstanceType != type &&
+		header->m_RootInstanceType != DLSwapEndian(type) ) return DL_ERROR_TYPE_MISMATCH;
+	if( out_ptr_size != 4 && out_ptr_size != 8 )           return DL_ERROR_INVALID_PARAMETER;
 
-	pint SourcePtrSize = pHeader->m_64BitPtr != 0 ? 8 : 4;
+	pint SourcePtrSize = header->m_64BitPtr != 0 ? 8 : 4;
 
-	if(SourcePtrSize == _PtrSize)
+	if(SourcePtrSize == out_ptr_size)
 	{
-		*_pResultSize = _DataSize;
+		// TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
+		*out_size = packed_instance_size;
 		return DL_ERROR_OK;
 	}
 
-	return DLInternalConvertInstance( _Context, _pData, 0x0, 0, DL_ENDIAN_HOST, _PtrSize, _pResultSize);
+	return DLInternalConvertInstance( dl_ctx, packed_instance, 0x0, 0, DL_ENDIAN_HOST, out_ptr_size, out_size );
 }
 
 #ifdef __cplusplus
