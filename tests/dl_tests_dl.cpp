@@ -42,15 +42,15 @@ void do_the_round_about(dl_ctx_t dl_ctx, dl_typeid_t type, void* pack_me, void* 
 
 	// store instance to binary
 	EXPECT_DL_ERR_OK(dl_instance_store(dl_ctx, type, pack_me, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance)));
-	EXPECT_DL_ERR_OK(dl_instance_get_info(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance), &inst_info));
+	EXPECT_DL_ERR_OK(dl_instance_get_info(OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), &inst_info));
 	EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
 	EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-	EXPECT_EQ(type,      inst_info.root_type);
+	EXPECT_EQ(type,           inst_info.root_type);
 
 	// unpack binary to txt
 	EXPECT_DL_ERR_OK(dl_txt_unpack(dl_ctx, type, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut)));
 
-	// M_LOG_INFO("%s", TxtOut);
+	// printf("%s\n", TxtOut);
 
 	unsigned char OutDataText[1024];
 	memset(OutDataText, 0x0, DL_ARRAY_LENGTH(OutDataText));
@@ -781,12 +781,6 @@ TEST(DLMisc, EndianIsCorrect)
 		EXPECT_EQ(3, test.c[2]);
 		EXPECT_EQ(4, test.c[3]);
 	}
-}
-
-TEST(DLUtil, ErrorToString)
-{
-	for(dl_error_t Err = DL_ERROR_OK; Err < DL_ERROR_INTERNAL_ERROR; Err = (dl_error_t)((unsigned int)Err + 1))
-		EXPECT_STRNE("Unknown error!", dl_error_to_string(Err));
 }
 
 int main(int argc, char **argv)
