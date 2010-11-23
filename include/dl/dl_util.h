@@ -37,6 +37,7 @@ enum dl_util_file_type_t
 
 	Parameters:
 		dl_ctx       - Context to use for operations.
+		type         - Type expected to be found in file.
 		filename     - Path to file to load from.
 		filetype     - Type of file to read, see EDLUtilFileType.
 		out_instance - Pointer to fill with read instance.
@@ -44,7 +45,7 @@ enum dl_util_file_type_t
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, const char* filename, dl_util_file_type_t filetype, void** out_instance );
+dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, void** out_instance );
 
 /*
 	Function: dl_util_load_from_file_inplace
@@ -56,6 +57,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, const char* filename, dl_uti
 
 	Parameters:
 		dl_ctx            - Context to use for operations.
+		type              - Type expected to be found in file.
 		filename          - Path to file to load from.
 		filetype          - Type of file to read, see EDLUtilFileType.
 		out_instance      - Pointer to area to load instance to.
@@ -64,7 +66,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, const char* filename, dl_uti
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file_inplace( dl_ctx_t dl_ctx, const char* filename, dl_util_file_type_t filetype, void* out_instance, unsigned int out_instance_size );
+dl_error_t dl_util_load_from_file_inplace( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, void* out_instance, unsigned int out_instance_size );
 
 /*
 	Function: dl_util_store_to_file
@@ -76,6 +78,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t dl_ctx, const char* filename
 
 	Parameters:
 		dl_ctx       - Context to use for operations.
+		type         - Type expected to be found in instance.
 		filename     - Path to file to store to.
 		filetype     - Type of file to write, see EDLUtilFileType.
 		out_endian   - Endian of stored instance if binary.
@@ -85,6 +88,6 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t dl_ctx, const char* filename
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_store_to_file( dl_ctx_t dl_ctx, const char* filename, dl_util_file_type_t filetype, dl_endian_t out_endian, unsigned int out_ptr_size, void* out_instance );
+dl_error_t dl_util_store_to_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, dl_endian_t out_endian, unsigned int out_ptr_size, void* out_instance );
 
 #endif // DL_DL_UTIL_H_INCLUDED

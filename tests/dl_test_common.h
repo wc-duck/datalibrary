@@ -13,6 +13,7 @@
 #endif // defined(_MSC_VER)
 
 #define EXPECT_DL_ERR_EQ(_Expect, _Res) { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; }
+#define EXPECT_DL_ERR_OK(_Res) EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 
 template<typename T>

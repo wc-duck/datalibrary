@@ -15,13 +15,14 @@ DONE
 * remove all adding of m_, p, S when generating headers from dl_tlc. Let users define their struct-names in type-lib!
 * base-types in generated headers need to be configurable and default to uint32_t and friends.
 * rework functions to retrieve instance-info from dl_instance_endian, dl_instance_ptr_size, dl_instance_root_type to dl_instance_get_properties(dl_instance_properties* )
+* dl_load_instance and friends should take dl_type_id even though the do not need it. Use it for error reporting.
 
 BEFORE 1.0
 * get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 ))
+* linux x86 has alignment 4 on double, dl do not support it. FIX!
 * rework text-format for arrays from #1 to the same syntax as inline arrays.
 
 * write readme and tutorials.
-* Question: sholud dl_load_instance and friends take dl_type_id even though the do not need it? Use it for error reporting.
 
 LATER
 * add check for versions in data so errors are thrown if typelib and packed data of older version can not be loaded.
@@ -41,16 +42,21 @@ LATER
 * cleanup in libdl.py and dl_tlc.py
 * EDLType should not need to be exposed by the lib in the way it is now!
 * dl_tlc should be built around a python-lib so one can embed type-library building.
+* unittests to check that DL_ERROR_TYPE_MISMATCH is returned from all functions when it should be.
 * dimensions to array and inline_array.
 * export pure c-headers?
 * buffered parsing?
 * unicode-strings!
+* SIMD-byteswap of arrays?
 * Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
   able to determine that they do not match.
   
   example:
-  MyStructVer1 { uint32 m_Int32; }
-  MyStructVer1 { uint32 m_Int32; uint32 m_Int32_2; }
+	  MyStructVer1 { uint32 m_Int32; }
+	  MyStructVer1 { uint32 m_Int32; uint32 m_Int32_2; }
+	  
+  or typeid:s could be generated as 16-24 bits typelib:id, 8-16 bits enumeration of type in typelib. Would give faster type-lookups.
+  ( find typelib, direct indexing )
   
   // these are not the same type any more, or are they?
 * Question: is it viable to get it to compile with -pedantic for gcc?

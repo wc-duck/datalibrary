@@ -29,10 +29,11 @@ typedef struct dl_context* dl_ctx_t;
 	DL_ERROR_OUT_OF_LIBRARY_MEMORY                         - Out of memory.
 	DL_ERROR_OUT_OF_INSTANCE_MEMORY                        - Out of instance memory.
 	DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR  - DL would need to do a dynamic allocation but has now allocator set for that.
+	DL_ERROR_TYPE_MISMATCH                                 - Expected type A but found type B.
 	DL_ERROR_TYPE_NOT_FOUND                                - Could not find a requested type. Is the correct type library loaded?
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
 	DL_ERROR_BUFFER_TO_SMALL                               - Provided buffer is to small.
-	DL_ERROR_ENDIAN_ERROR                                  - Endianness of provided data is not the same as the platforms.
+	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platforms.
 
 	DL_ERROR_TXT_PARSE_ERROR                               - Syntax error while parsing txt-file. Check log for details.
 	DL_ERROR_TXT_MEMBER_MISSING                            - A member is missing in a struct and in do not have a default value.
@@ -51,10 +52,11 @@ enum dl_error_t
 	DL_ERROR_OUT_OF_LIBRARY_MEMORY,
 	DL_ERROR_OUT_OF_INSTANCE_MEMORY,
 	DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR,
+	DL_ERROR_TYPE_MISMATCH,
 	DL_ERROR_TYPE_NOT_FOUND,
 	DL_ERROR_MEMBER_NOT_FOUND,
 	DL_ERROR_BUFFER_TO_SMALL,
-	DL_ERROR_ENDIAN_ERROR,
+	DL_ERROR_ENDIAN_MISMATCH,
 	DL_ERROR_INVALID_PARAMETER,
 	DL_ERROR_UNSUPORTED_OPERATION,
 
@@ -189,6 +191,7 @@ dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const un
 
 	Parameters:
 		dl_ctx               - Context to load type-library into.
+		dl_typeid            - Type of instance in the packed data.
 		instance             - Ptr where to load the instance to.
 		packed_instance      - Ptr to binary data to load from.
 		packed_instance_size - Size of _pData.
@@ -196,7 +199,7 @@ dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const un
 	Note:
 		Packed instance to load is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t dl_ctx, void* instance, const unsigned char* packed_instance, unsigned int packed_instance_size );
+dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, const unsigned char* packed_instance, unsigned int packed_instance_size );
 
 /*
 	Group: Store

@@ -30,7 +30,7 @@ static const uint32_t DL_UINT32_MIN = 0x00000000UL;
 static const uint64_t DL_UINT64_MIN = 0x0000000000000000ULL;
 
 
-void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void* _pUnpackMe)
+void do_the_round_about(dl_ctx_t dl_ctx, dl_typeid_t type, void* pack_me, void* unpack_me)
 {
 	unsigned char OutDataInstance[1024];
 	char  TxtOut[2048];
@@ -41,16 +41,14 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 	dl_instance_info_t inst_info;
 
 	// store instance to binary
-	dl_error_t err = dl_instance_store(_Ctx, _TypeHash, _pPackMe, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance));
-	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-	EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance), &inst_info));
+	EXPECT_DL_ERR_OK(dl_instance_store(dl_ctx, type, pack_me, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance)));
+	EXPECT_DL_ERR_OK(dl_instance_get_info(OutDataInstance,  DL_ARRAY_LENGTH(OutDataInstance), &inst_info));
 	EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
 	EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-	EXPECT_EQ(_TypeHash,      inst_info.root_type);
+	EXPECT_EQ(type,      inst_info.root_type);
 
 	// unpack binary to txt
-	err = dl_txt_unpack(_Ctx, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut));
-	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_OK(dl_txt_unpack(dl_ctx, type, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut)));
 
 	// M_LOG_INFO("%s", TxtOut);
 
@@ -58,16 +56,14 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 	memset(OutDataText, 0x0, DL_ARRAY_LENGTH(OutDataText));
 
 	// pack txt to binary
-	err = dl_txt_pack(_Ctx, TxtOut, OutDataText, DL_ARRAY_LENGTH(OutDataText));
-	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-	EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(OutDataText,  DL_ARRAY_LENGTH(OutDataText), &inst_info));
+	EXPECT_DL_ERR_OK(dl_txt_pack(dl_ctx, TxtOut, OutDataText, DL_ARRAY_LENGTH(OutDataText)));
+	EXPECT_DL_ERR_OK(dl_instance_get_info(OutDataText,  DL_ARRAY_LENGTH(OutDataText), &inst_info));
 	EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
 	EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-	EXPECT_EQ(_TypeHash,      inst_info.root_type);
+	EXPECT_EQ(type,      inst_info.root_type);
 
 	// load binary
-	err = dl_instance_load(_Ctx, _pUnpackMe, OutDataText, DL_ARRAY_LENGTH(OutDataText));
-	EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+	EXPECT_DL_ERR_OK(dl_instance_load(dl_ctx, type, unpack_me, OutDataText, DL_ARRAY_LENGTH(OutDataText)));
 
 	dl_endian_t  OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
 	unsigned int OtherPtrSize = sizeof(void*) == 4 ? 8 : 4;
@@ -77,20 +73,18 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 		unsigned char SwitchedEndian[DL_ARRAY_LENGTH(OutDataText)];
 		memcpy(SwitchedEndian, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 
-		err = dl_convert_inplace(_Ctx, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), OtherEndian, sizeof(void*));
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
+		EXPECT_DL_ERR_OK(dl_convert_inplace(dl_ctx, type, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), OtherEndian, sizeof(void*)));
+		EXPECT_DL_ERR_OK(dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
 		EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
 		EXPECT_EQ(OtherEndian, inst_info.endian);
 
 		EXPECT_NE(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
-		err = dl_convert_inplace(_Ctx, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), DL_ENDIAN_HOST, sizeof(void*));
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
+		EXPECT_DL_ERR_OK(dl_convert_inplace(dl_ctx, type, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), DL_ENDIAN_HOST, sizeof(void*)));
+		EXPECT_DL_ERR_OK(dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
 		EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
 		EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-		EXPECT_EQ(_TypeHash,      inst_info.root_type);
+		EXPECT_EQ(type,      inst_info.root_type);
 
 		EXPECT_EQ(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should be equal !
 	}
@@ -101,12 +95,10 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 		memcpy(OriginalData, OutDataText, DL_ARRAY_LENGTH(OutDataText));
 
 		unsigned int PackedSize = 0;
-		err = dl_instance_calc_size(_Ctx, _TypeHash, _pPackMe, &PackedSize);
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+		EXPECT_DL_ERR_OK(dl_instance_calc_size(dl_ctx, type, pack_me, &PackedSize));
 
 		unsigned int ConvertedSize = 0;
-		err = dl_convert_calc_size(_Ctx, OriginalData, DL_ARRAY_LENGTH(OriginalData), OtherPtrSize, &ConvertedSize);
-		EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+		EXPECT_DL_ERR_OK(dl_convert_calc_size(dl_ctx, type, OriginalData, DL_ARRAY_LENGTH(OriginalData), OtherPtrSize, &ConvertedSize));
 
 		if(OtherPtrSize <= sizeof(void*)) EXPECT_LE(ConvertedSize, PackedSize);
 		else                              EXPECT_GE(ConvertedSize, PackedSize);
@@ -118,12 +110,11 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 			unsigned char ConvertedData[DL_ARRAY_LENGTH(OutDataText)];
 			memcpy(ConvertedData, OriginalData, DL_ARRAY_LENGTH(OriginalData));
 
-			err = dl_convert_inplace(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), DL_ENDIAN_HOST, OtherPtrSize);
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
+			EXPECT_DL_ERR_OK(dl_convert_inplace(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), DL_ENDIAN_HOST, OtherPtrSize));
+			EXPECT_DL_ERR_OK(dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
 			EXPECT_EQ(OtherPtrSize,   inst_info.ptrsize);
 			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-			EXPECT_EQ(_TypeHash,      inst_info.root_type);
+			EXPECT_EQ(type,      inst_info.root_type);
 
 			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
@@ -131,8 +122,7 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 			memcpy(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalData));
 
 			unsigned int ReConvertedSize = 0;
-			err = dl_convert_calc_size(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+			EXPECT_DL_ERR_OK(dl_convert_calc_size(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize));
 			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
 
 			unsigned char ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
@@ -141,12 +131,11 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 			ReConvertedData[ReConvertedSize + 3] = 'L';
 			ReConvertedData[ReConvertedSize + 4] = '!';
 
-			err = dl_convert(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*));
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
+			EXPECT_DL_ERR_OK(dl_convert(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*)));
+			EXPECT_DL_ERR_OK(dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
 			EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
 			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-			EXPECT_EQ(_TypeHash,      inst_info.root_type);
+			EXPECT_EQ(type,      inst_info.root_type);
 
 			EXPECT_EQ(0, memcmp(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalConverted))); // original data should be equal !
 
@@ -164,10 +153,8 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 			ConvertedData[ConvertedSize + 3] = 'L';
 			ConvertedData[ConvertedSize + 4] = '!';
 
-			err = dl_convert(_Ctx, OriginalData, DL_ARRAY_LENGTH(OriginalData), ConvertedData, DL_ARRAY_LENGTH(ConvertedData), OtherEndian, OtherPtrSize);
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
+			EXPECT_DL_ERR_OK(dl_convert(dl_ctx,type , OriginalData, DL_ARRAY_LENGTH(OriginalData), ConvertedData, DL_ARRAY_LENGTH(ConvertedData), OtherEndian, OtherPtrSize));
+			EXPECT_DL_ERR_OK(dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
 			EXPECT_EQ(OtherPtrSize, inst_info.ptrsize);
 			EXPECT_EQ(OtherEndian,  inst_info.endian);
 
@@ -179,8 +166,7 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
 
 			unsigned int ReConvertedSize = 0;
-			err = dl_convert_calc_size(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize);
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
+			EXPECT_DL_ERR_OK(dl_convert_calc_size(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize));
 			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
 
 			unsigned char ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 2];
@@ -189,12 +175,11 @@ void DoTheRoundAbout(dl_ctx_t _Ctx, dl_typeid_t _TypeHash, void* _pPackMe, void*
 			ReConvertedData[ReConvertedSize + 3] = 'L';
 			ReConvertedData[ReConvertedSize + 4] = '!';
 
-			err = dl_convert(_Ctx, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*));
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, err);
-			EXPECT_DL_ERR_EQ(DL_ERROR_OK, dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
+			EXPECT_DL_ERR_OK(dl_convert(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*)));
+			EXPECT_DL_ERR_OK(dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
 			EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
 			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-			EXPECT_EQ(_TypeHash,      inst_info.root_type);
+			EXPECT_EQ(type,      inst_info.root_type);
 
 			EXPECT_EQ(0, memcmp(OutDataText, ReConvertedData, PackedSize)); // original data should be equal !
 
@@ -211,7 +196,7 @@ TEST_F(DL, TestPack)
 	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
 	Pods P1         = { 0 };
 
-	DoTheRoundAbout(Ctx, Pods::TYPE_ID, &P1Original, &P1);
+	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
 	EXPECT_EQ(P1Original.i8,   P1.i8);
 	EXPECT_EQ(P1Original.i16,  P1.i16);
@@ -230,7 +215,7 @@ TEST_F(DL, MaxPod)
 	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
 	Pods P1         = { 0 };
 
-	DoTheRoundAbout(Ctx, Pods::TYPE_ID, &P1Original, &P1);
+	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
 	EXPECT_EQ(P1Original.i8,   P1.i8);
 	EXPECT_EQ(P1Original.i16,  P1.i16);
@@ -250,7 +235,7 @@ TEST_F(DL, MinPod)
 	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
 	Pods P1         = { 0 };
 
-	DoTheRoundAbout(Ctx, Pods::TYPE_ID, &P1Original, &P1);
+	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
 	EXPECT_EQ(P1Original.i8,   P1.i8);
 	EXPECT_EQ(P1Original.i16,  P1.i16);
@@ -269,7 +254,7 @@ TEST_F(DL, StructInStruct)
 	MorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
 	MorePods P1         = { { 0 }, { 0 } };
 
-	DoTheRoundAbout(Ctx, MorePods::TYPE_ID, &P1Original, &P1);
+	do_the_round_about(Ctx, MorePods::TYPE_ID, &P1Original, &P1);
 
 	EXPECT_EQ(P1Original.Pods1.i8,    P1.Pods1.i8);
 	EXPECT_EQ(P1Original.Pods1.i16,   P1.Pods1.i16);
@@ -304,7 +289,7 @@ TEST_F(DL, StructInStructInStruct)
 	Orig.p2struct.Pod2.Int1 = 1234;
 	Orig.p2struct.Pod2.Int2 = 4321;
 
-	DoTheRoundAbout(Ctx, Pod2InStructInStruct::TYPE_ID, &Orig, &New);
+	do_the_round_about(Ctx, Pod2InStructInStruct::TYPE_ID, &Orig, &New);
 
 	EXPECT_EQ(Orig.p2struct.Pod1.Int1, New.p2struct.Pod1.Int1);
 	EXPECT_EQ(Orig.p2struct.Pod1.Int2, New.p2struct.Pod1.Int2);
@@ -321,7 +306,7 @@ TEST_F(DL, InlineArray)
 	Orig.Array[1] = 7331;
 	Orig.Array[2] = 1234;
 
-	DoTheRoundAbout(Ctx, WithInlineArray::TYPE_ID, &Orig, &New);
+	do_the_round_about(Ctx, WithInlineArray::TYPE_ID, &Orig, &New);
 
 	EXPECT_EQ(Orig.Array[0], New.Array[0]);
 	EXPECT_EQ(Orig.Array[1], New.Array[1]);
@@ -340,7 +325,7 @@ TEST_F(DL, WithInlineStructArray)
 	Orig.Array[2].Int1 = 9012;
 	Orig.Array[2].Int2 = 3456;
 
-	DoTheRoundAbout(Ctx, WithInlineStructArray::TYPE_ID, &Orig, &New);
+	do_the_round_about(Ctx, WithInlineStructArray::TYPE_ID, &Orig, &New);
 
 	EXPECT_EQ(Orig.Array[0].Int1, New.Array[0].Int1);
 	EXPECT_EQ(Orig.Array[0].Int2, New.Array[0].Int2);
@@ -368,7 +353,7 @@ TEST_F(DL, WithInlineStructStructArray)
 	Orig.Array[1].Array[2].Int1 = 133;
 	Orig.Array[1].Array[2].Int2 = 7;
 
-	DoTheRoundAbout(Ctx, WithInlineStructStructArray::TYPE_ID, &Orig, &New);
+	do_the_round_about(Ctx, WithInlineStructStructArray::TYPE_ID, &Orig, &New);
 
 	EXPECT_EQ(Orig.Array[0].Array[0].Int1, New.Array[0].Array[0].Int1);
 	EXPECT_EQ(Orig.Array[0].Array[0].Int2, New.Array[0].Array[0].Int2);
@@ -392,7 +377,7 @@ TEST_F(DL, PodArray1)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, PodArray1::TYPE_ID, &Orig, Loaded);
+	do_the_round_about(Ctx, PodArray1::TYPE_ID, &Orig, Loaded);
 
 	New = (PodArray1*)&Loaded[0];
 
@@ -419,7 +404,7 @@ TEST_F(DL, PodArray2)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, PodArray2::TYPE_ID, &Orig, Loaded);
+	do_the_round_about(Ctx, PodArray2::TYPE_ID, &Orig, Loaded);
 
 	New = (PodArray2*)&Loaded[0];
 
@@ -445,7 +430,7 @@ TEST_F(DL, SimpleString)
 
 	Strings Loaded[5]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, Strings::TYPE_ID, &Orig, Loaded);
+	do_the_round_about(Ctx, Strings::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
 
@@ -460,7 +445,7 @@ TEST_F(DL, InlineArrayString)
 
 	StringInlineArray Loaded[5]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, StringInlineArray::TYPE_ID, &Orig, Loaded);
+	do_the_round_about(Ctx, StringInlineArray::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
 
@@ -477,7 +462,7 @@ TEST_F(DL, ArrayString)
 
 	StringArray Loaded[10]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, StringArray::TYPE_ID, &Orig, Loaded);
+	do_the_round_about(Ctx, StringArray::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
 
@@ -500,7 +485,7 @@ TEST_F(DL, BitField)
 	Orig.Bit5 = 0;
 	Orig.Bit6 = 5;
 
-	DoTheRoundAbout(Ctx, TestBits::TYPE_ID, &Orig, &New);
+	do_the_round_about(Ctx, TestBits::TYPE_ID, &Orig, &New);
 
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
@@ -519,7 +504,7 @@ TEST_F(DL, MoreBits)
 	Orig.Bit1 = 512;
 	Orig.Bit2 = 1;
 
-	DoTheRoundAbout(Ctx, MoreBits::TYPE_ID, &Orig, &New);
+	do_the_round_about(Ctx, MoreBits::TYPE_ID, &Orig, &New);
 
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
@@ -535,7 +520,7 @@ TEST_F(DL, 64BitBitfield)
 	Orig.PathHash = 1337;
 	Orig.FileHash = 0xDEADBEEF;
 
-	DoTheRoundAbout(Ctx, BitBitfield64::TYPE_ID, &Orig, &New);
+	do_the_round_about(Ctx, BitBitfield64::TYPE_ID, &Orig, &New);
 
 	EXPECT_EQ(Orig.Package,  New.Package);
 	EXPECT_EQ(Orig.FileType, New.FileType);
@@ -551,7 +536,7 @@ TEST_F(DL, SimplePtr)
 
 	SimplePtr Loaded[64]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, SimplePtr::TYPE_ID, &Orig, Loaded);
+	do_the_round_about(Ctx, SimplePtr::TYPE_ID, &Orig, Loaded);
 
 	New = Loaded;
 	EXPECT_NE(Orig.Ptr1, New->Ptr1);
@@ -580,7 +565,7 @@ TEST_F(DL, PtrChain)
 
 	PtrChain Loaded[10]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, PtrChain::TYPE_ID, &Ptr4, Loaded);
+	do_the_round_about(Ctx, PtrChain::TYPE_ID, &Ptr4, Loaded);
 	New = Loaded;
 
 	EXPECT_NE(Ptr4.Next, New->Next);
@@ -611,7 +596,7 @@ TEST_F(DL, DoublePtrChain)
 
 	DoublePtrChain Loaded[10]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, DoublePtrChain::TYPE_ID, &Ptr4, Loaded);
+	do_the_round_about(Ctx, DoublePtrChain::TYPE_ID, &Ptr4, Loaded);
 	New = Loaded;
 
 	// Ptr4
@@ -647,7 +632,7 @@ TEST_F(DL, Enum)
 
 	TestingEnum Loaded;
 
-	DoTheRoundAbout(Ctx, TestingEnum::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, TestingEnum::TYPE_ID, &Inst, &Loaded);
 
 	EXPECT_EQ(Inst.TheEnum, Loaded.TheEnum);
 }
@@ -657,7 +642,7 @@ TEST_F(DL, EnumInlineArray)
 	InlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };
 	InlineArrayEnum Loaded;
 
-	DoTheRoundAbout(Ctx, InlineArrayEnum::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, InlineArrayEnum::TYPE_ID, &Inst, &Loaded);
 
 	EXPECT_EQ(Inst.EnumArr[0], Loaded.EnumArr[0]);
 	EXPECT_EQ(Inst.EnumArr[1], Loaded.EnumArr[1]);
@@ -673,7 +658,7 @@ TEST_F(DL, EnumArray)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	DoTheRoundAbout(Ctx, ArrayEnum::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, ArrayEnum::TYPE_ID, &Inst, &Loaded);
 
 	New = (ArrayEnum*)&Loaded[0];
 
@@ -693,7 +678,7 @@ TEST_F(DL, EmptyPodArray)
 	PodArray1 Inst = { { NULL, 0 } };
 	PodArray1 Loaded;
 
-	DoTheRoundAbout(Ctx, PodArray1::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, PodArray1::TYPE_ID, &Inst, &Loaded);
 
 	EXPECT_EQ(0u,  Loaded.Array.count);
 	EXPECT_EQ(0x0, Loaded.Array.data);
@@ -704,7 +689,7 @@ TEST_F(DL, EmptyStructArray)
 	StructArray1 Inst = { { NULL, 0 } };
 	StructArray1 Loaded;
 
-	DoTheRoundAbout(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
 
 	EXPECT_EQ(0u,  Loaded.Array.count);
 	EXPECT_EQ(0x0, Loaded.Array.data);
@@ -715,7 +700,7 @@ TEST_F(DL, EmptyStringArray)
 	StringArray Inst = { { NULL, 0 } };
 	StringArray Loaded;
 
-	DoTheRoundAbout(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
 
 	EXPECT_EQ(0u,  Loaded.Strings.count);
 	EXPECT_EQ(0x0, Loaded.Strings.data);
@@ -732,7 +717,7 @@ TEST_F(DL, BugTest1)
 
 	BugTest1 Loaded[10];
 
-	DoTheRoundAbout(Ctx, BugTest1::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, BugTest1::TYPE_ID, &Inst, &Loaded);
 
 	EXPECT_EQ(Arr[0].u64_1, Loaded[0].Arr[0].u64_1);
 	EXPECT_EQ(Arr[0].u64_2, Loaded[0].Arr[0].u64_2);
@@ -764,7 +749,7 @@ TEST_F(DL, BugTest2)
 
 	BugTest2 Loaded[40];
 
-	DoTheRoundAbout(Ctx, BugTest2::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, BugTest2::TYPE_ID, &Inst, &Loaded);
 
  	EXPECT_EQ(Arr[0].iSubModel, Loaded[0].Instances[0].iSubModel);
  	EXPECT_EQ(Arr[1].iSubModel, Loaded[0].Instances[1].iSubModel);

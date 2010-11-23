@@ -402,54 +402,61 @@ void* DLUnpackReallocFunc(void* _pCtx, void* _pPtr, unsigned int _Sz)
 }
 
 
-static dl_error_t DLUnpackInternal(dl_ctx_t _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int* _pTxtDataSize)
+static dl_error_t DLUnpackInternal( dl_ctx_t dl_ctx,                      dl_typeid_t   type,
+                                    const unsigned char* packed_instance, unsigned int  packed_instance_size,
+                                    char* out_txt_instance,               unsigned int* out_txt_instance_size )
 {
-	SDLDataHeader* pHeader = (SDLDataHeader*)_pPackedData;
+	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if(_PackedDataSize < sizeof(SDLDataHeader))   return DL_ERROR_MALFORMED_DATA;
-	if( pHeader->m_Id != DL_TYPE_DATA_ID && 
-		pHeader->m_Id != DL_TYPE_DATA_ID_SWAPED ) return DL_ERROR_MALFORMED_DATA;
-	if( pHeader->m_Version != DL_VERSION)         return DL_ERROR_VERSION_MISMATCH;
+	if(packed_instance_size < sizeof(SDLDataHeader)) return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Id == DL_TYPE_DATA_ID_SWAPED )     return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->m_Id != DL_TYPE_DATA_ID )            return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Version != DL_VERSION)         return DL_ERROR_VERSION_MISMATCH;
+	if( header->m_RootInstanceType != type )     return DL_ERROR_TYPE_MISMATCH;
 
-	const SDLType* pType = DLFindType(_Context, pHeader->m_RootInstanceType);
+	const SDLType* pType = DLFindType(dl_ctx, header->m_RootInstanceType);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND; // could not find root-type!
 
 	static const int BEAUTIFY_OUTPUT = 1;
 	yajl_gen_config Conf = { BEAUTIFY_OUTPUT, "  " };
 
-	SWriteTextContext WriteCtx = { _pTxtData, *_pTxtDataSize, 0 };
+	SWriteTextContext WriteCtx = { out_txt_instance, *out_txt_instance_size, 0 };
 	SDLUnpackStorage Storage;
 	yajl_alloc_funcs AllocCatch = { DLUnpackMallocFunc, DLUnpackReallocFunc, DLUnpackFreeFunc, &Storage };
 
 	yajl_gen Generator;
 
-	if(_pTxtData == 0x0)
+	if(out_txt_instance == 0x0)
 	{
-		*_pTxtDataSize = 0;
-		Generator = yajl_gen_alloc2(DLCountSizeCallback, &Conf, &AllocCatch, _pTxtDataSize);
+		*out_txt_instance_size = 0;
+		Generator = yajl_gen_alloc2(DLCountSizeCallback, &Conf, &AllocCatch, out_txt_instance_size);
 	}
 	else
 		Generator = yajl_gen_alloc2(DLWriteTextCallback, &Conf, &AllocCatch, &WriteCtx);
 
-	SDLUnpackContext PackCtx(_Context, Generator );
+	SDLUnpackContext PackCtx(dl_ctx, Generator );
 
-	DLWriteRoot(&PackCtx, pType, _pPackedData + sizeof(SDLDataHeader));
+	DLWriteRoot(&PackCtx, pType, packed_instance + sizeof(SDLDataHeader));
 
 	yajl_gen_free(Generator);
 
-	if(_pTxtData != 0x0 && WriteCtx.m_WritePos > WriteCtx.m_BufferSize)
+	if(out_txt_instance != 0x0 && WriteCtx.m_WritePos > WriteCtx.m_BufferSize)
 		return DL_ERROR_BUFFER_TO_SMALL;
 
 	return DL_ERROR_OK;
 };
 
-dl_error_t dl_txt_unpack(dl_ctx_t _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, char* _pTxtData, unsigned int _TxtDataSize)
+dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                      dl_typeid_t  type,
+                          const unsigned char* packed_instance, unsigned int packed_instance_size,
+                          char* out_txt_instance,               unsigned int out_txt_instance_size )
 {
-	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, _pTxtData, &_TxtDataSize);
+	return DLUnpackInternal( dl_ctx, type, packed_instance, packed_instance_size, out_txt_instance, &out_txt_instance_size );
 }
 
-dl_error_t dl_txt_unpack_calc_size(dl_ctx_t _Context, const unsigned char* _pPackedData, unsigned int _PackedDataSize, unsigned int* _pTxtDataSize)
+dl_error_t dl_txt_unpack_calc_size( dl_ctx_t dl_ctx,                      dl_typeid_t  type,
+                                    const unsigned char* packed_instance, unsigned int packed_instance_size,
+                                    unsigned int* out_txt_instance_size )
 {
-	return DLUnpackInternal(_Context, _pPackedData, _PackedDataSize, 0x0, _pTxtDataSize);
+	return DLUnpackInternal( dl_ctx, type, packed_instance, packed_instance_size, 0x0, out_txt_instance_size );
 }

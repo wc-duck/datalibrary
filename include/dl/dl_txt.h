@@ -46,6 +46,7 @@ dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt
 
 	Parameters:
 		dl_ctx                - Context to use.
+		type                  - Type stored in packed_instace.
 		packed_instance       - Buffer with packed data.
 		packed_instance_size  - Size of _pPackedData.
 		out_txt_instance      - Ptr to buffer where to write txt-data.
@@ -54,7 +55,7 @@ dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t dl_ctx,
+dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  type,
                                         const unsigned char* packed_instance,  unsigned int packed_instance_size,
                                         char*                out_txt_instance, unsigned int out_txt_instance_size );
 
@@ -63,15 +64,18 @@ dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t dl_ctx,
 		Calculate the amount of memory needed to unpack binary data to intermediate data.
 
 	Parameters:
-		_Context        - Context to use.
-		_pPackedData    - Buffer with packed data.
-		_PackedDataSize - Size of _pPackedData.
-		_pTxtDataSize   - Size required to unpack _pPackedData.
+		dl_ctx                - Context to use.
+		type                  - Type stored in packed_instace.
+		packed_instance       - Buffer with packed data.
+		packed_instance_size  - Size of _pPackedData.
+		out_txt_instance_size - Size required to unpack _pPackedData.
 
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_unpack_calc_size( dl_ctx_t dl_ctx, const unsigned char* packed_instance, unsigned int packed_instance_size, unsigned int* out_txt_instance_size );
+dl_error_t DL_DLL_EXPORT dl_txt_unpack_calc_size( dl_ctx_t dl_ctx,                      dl_typeid_t  type,
+                                                  const unsigned char* packed_instance, unsigned int packed_instance_size,
+                                                  unsigned int* out_txt_instance_size );
 
 #ifdef __cplusplus
 }
