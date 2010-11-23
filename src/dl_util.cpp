@@ -7,15 +7,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "dl_types.h" // TODO: Remove this include! dl_util should be built only with the external interface
-
 // TODO: DLType sent to these functions should be used for type-checks, make it possible to ignore in some way?
 
-dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx,
-                                   dl_typeid_t type,
-                                   const char* filename,
-                                   dl_util_file_type_t file_type,
-                                   void** out_instance )
+dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         type,
+                                   const char* filename, dl_util_file_type_t filetype,
+                                   void**      out_instance )
 {
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
@@ -24,27 +20,26 @@ dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx,
 
 	if(in_file == 0x0) { fclose(in_file); return DL_ERROR_UTIL_FILE_NOT_FOUND; }
 
-	uint32 dl_header_data_id; // TODO: build dl_util with only external interface. Could use dl_instance_info()
-
-	// read only first byte to determine if entire file should be read.
-	if( fread( &dl_header_data_id, sizeof(uint32), 1, in_file) != sizeof(uint32) ) { fclose(in_file); return DL_ERROR_MALFORMED_DATA; }
-
-	dl_util_file_type_t in_file_type = DL_UTIL_FILE_TYPE_TEXT;
-	if( dl_header_data_id != DL_TYPE_DATA_ID || dl_header_data_id != DL_TYPE_DATA_ID_SWAPED )
-		in_file_type = DL_UTIL_FILE_TYPE_BINARY;
-
-	if( in_file_type & file_type ) { fclose(in_file); return DL_ERROR_UTIL_FILE_TYPE_MISMATCH; }
-
 	fseek(in_file, 0, SEEK_END);
 	unsigned int file_size = ftell(in_file);
 	fseek(in_file, 0, SEEK_SET);
 
 	unsigned char* file_content = (unsigned char*)malloc((unsigned int)(file_size) + 1);
-	if( fread(file_content, sizeof(unsigned char), file_size, in_file) != file_size ) return DL_ERROR_INTERNAL_ERROR;
-	file_content[file_size] = '\0';
+	size_t read_bytes = fread(file_content, sizeof(unsigned char), file_size, in_file);
 	fclose(in_file);
+	if( read_bytes != file_size )
+		return DL_ERROR_INTERNAL_ERROR;
+	file_content[file_size] = '\0';
 
 	dl_error_t error = DL_ERROR_OK;
+	dl_instance_info_t info;
+
+	error = dl_instance_get_info( file_content, file_size, &info);
+
+	dl_util_file_type_t in_file_type = DL_UTIL_FILE_TYPE_TEXT;
+	if( error == DL_ERROR_OK) // could read it as binary!
+		in_file_type = DL_UTIL_FILE_TYPE_BINARY;
+
 	unsigned char* load_instance = 0x0;
 	unsigned int   load_size = 0;
 
@@ -93,7 +88,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx,
 		}
 		break;
 		default:
-			M_ASSERT( false );
+			return DL_ERROR_INTERNAL_ERROR;
 	}
 
 	error = dl_instance_load(dl_ctx, type, load_instance, load_instance, load_size);
@@ -103,24 +98,18 @@ dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx,
 	return error;
 }
 
-dl_error_t dl_util_load_from_file_inplace( dl_ctx_t      _Ctx,
-                                           dl_typeid_t         _DLType,
-                                           const char*     _pFileName,
-                                           dl_util_file_type_t _FileType,
-                                           void*           _ppInstance,
-                                           unsigned int    _InstanceSize )
+dl_error_t dl_util_load_from_file_inplace( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
+                                           const char* filename,     dl_util_file_type_t filetype,
+                                           void*       out_instance, unsigned int        out_instance_size )
 {
-	(void)_Ctx; (void)_pFileName; (void)_DLType; (void)_FileType; (void)_ppInstance; (void)_InstanceSize;
+	(void)dl_ctx; (void)filename; (void)type; (void)filetype; (void)out_instance; (void)out_instance_size;
 	return DL_ERROR_INTERNAL_ERROR; // TODO: Build me
 }
 
-dl_error_t dl_util_store_to_file( dl_ctx_t        dl_ctx,
-                                  dl_typeid_t     type,
-                                  const char*     filename,
-                                  dl_util_file_type_t filetype,
-                                  dl_endian_t     out_endian,
-                                  unsigned int    out_ptr_size,
-                                  void*           instance )
+dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
+                                  const char* filename,   dl_util_file_type_t filetype,
+                                  dl_endian_t out_endian, unsigned int        out_ptr_size,
+                                  void*       instance )
 {
 	if( filetype == DL_UTIL_FILE_TYPE_AUTO )
 		return DL_ERROR_INVALID_PARAMETER;
@@ -195,7 +184,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t        dl_ctx,
 		}
 		break;
 		default:
-			M_ASSERT( false );
+			return DL_ERROR_INTERNAL_ERROR;
 	}
 
 	FILE* out_file = fopen(filename, "");
