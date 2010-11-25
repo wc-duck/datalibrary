@@ -198,16 +198,16 @@ TEST_F(DL, TestPack)
 
 	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
-	EXPECT_EQ(P1Original.i8,   P1.i8);
-	EXPECT_EQ(P1Original.i16,  P1.i16);
-	EXPECT_EQ(P1Original.i32,  P1.i32);
-	EXPECT_EQ(P1Original.i64,  P1.i64);
+	EXPECT_EQ(P1Original.i8,  P1.i8);
+	EXPECT_EQ(P1Original.i16, P1.i16);
+	EXPECT_EQ(P1Original.i32, P1.i32);
+	EXPECT_EQ(P1Original.i64, P1.i64);
 	EXPECT_EQ(P1Original.u8,  P1.u8);
 	EXPECT_EQ(P1Original.u16, P1.u16);
 	EXPECT_EQ(P1Original.u32, P1.u32);
 	EXPECT_EQ(P1Original.u64, P1.u64);
-	EXPECT_EQ(P1Original.f32,   P1.f32);
-	EXPECT_EQ(P1Original.f64,   P1.f64);
+	EXPECT_EQ(P1Original.f32, P1.f32);
+	EXPECT_EQ(P1Original.f64, P1.f64);
 }
 
 TEST_F(DL, MaxPod)
@@ -217,10 +217,10 @@ TEST_F(DL, MaxPod)
 
 	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
-	EXPECT_EQ(P1Original.i8,   P1.i8);
-	EXPECT_EQ(P1Original.i16,  P1.i16);
-	EXPECT_EQ(P1Original.i32,  P1.i32);
-	EXPECT_EQ(P1Original.i64,  P1.i64);
+	EXPECT_EQ(P1Original.i8,  P1.i8);
+	EXPECT_EQ(P1Original.i16, P1.i16);
+	EXPECT_EQ(P1Original.i32, P1.i32);
+	EXPECT_EQ(P1Original.i64, P1.i64);
 	EXPECT_EQ(P1Original.u8,  P1.u8);
 	EXPECT_EQ(P1Original.u16, P1.u16);
 	EXPECT_EQ(P1Original.u32, P1.u32);
@@ -237,14 +237,14 @@ TEST_F(DL, MinPod)
 
 	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
 
-	EXPECT_EQ(P1Original.i8,   P1.i8);
-	EXPECT_EQ(P1Original.i16,  P1.i16);
-	EXPECT_EQ(P1Original.i32,  P1.i32);
-	EXPECT_EQ(P1Original.i64,  P1.i64);
-	EXPECT_EQ(P1Original.u8,  P1.u8);
-	EXPECT_EQ(P1Original.u16, P1.u16);
-	EXPECT_EQ(P1Original.u32, P1.u32);
-	EXPECT_EQ(P1Original.u64, P1.u64);
+	EXPECT_EQ(P1Original.i8,    P1.i8);
+	EXPECT_EQ(P1Original.i16,   P1.i16);
+	EXPECT_EQ(P1Original.i32,   P1.i32);
+	EXPECT_EQ(P1Original.i64,   P1.i64);
+	EXPECT_EQ(P1Original.u8,    P1.u8);
+	EXPECT_EQ(P1Original.u16,   P1.u16);
+	EXPECT_EQ(P1Original.u32,   P1.u32);
+	EXPECT_EQ(P1Original.u64,   P1.u64);
 	EXPECT_NEAR(P1Original.f32, P1.f32, 0.0000001f);
 	EXPECT_NEAR(P1Original.f64, P1.f64, 0.0000001f);
 }
@@ -650,7 +650,31 @@ TEST_F(DL, EnumInlineArray)
 	EXPECT_EQ(Inst.EnumArr[3], Loaded.EnumArr[3]);
 }
 
-TEST_F(DL, EnumArray)
+TEST_F(DL, array_struct)
+{
+	Pods2 Data[4] = { { 1, 2}, { 3, 4 }, { 5, 6 }, { 7, 8 } } ;
+	StructArray1 Inst = { { Data, 4 } };
+	StructArray1* New;
+
+	uint32_t Loaded[1024]; // this is so ugly!
+
+	do_the_round_about(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
+
+	New = (StructArray1*)&Loaded[0];
+
+	EXPECT_EQ(Inst.Array.count, New->Array.count);
+	EXPECT_EQ(Inst.Array[0].Int1, New->Array[0].Int1);
+	EXPECT_EQ(Inst.Array[0].Int2, New->Array[0].Int2);
+	EXPECT_EQ(Inst.Array[1].Int1, New->Array[1].Int1);
+	EXPECT_EQ(Inst.Array[1].Int2, New->Array[1].Int2);
+	EXPECT_EQ(Inst.Array[2].Int1, New->Array[2].Int1);
+	EXPECT_EQ(Inst.Array[2].Int2, New->Array[2].Int2);
+	EXPECT_EQ(Inst.Array[3].Int1, New->Array[3].Int1);
+	EXPECT_EQ(Inst.Array[3].Int2, New->Array[3].Int2);
+
+}
+
+TEST_F(DL, array_enum)
 {
 	TestEnum2 Data[8] = { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4, TESTENUM2_VALUE4, TESTENUM2_VALUE3, TESTENUM2_VALUE2, TESTENUM2_VALUE1 } ;
 	ArrayEnum Inst = { { Data, 8 } };
@@ -673,7 +697,7 @@ TEST_F(DL, EnumArray)
 	EXPECT_EQ(Inst.EnumArr[7],    New->EnumArr[7]);
 }
 
-TEST_F(DL, EmptyPodArray)
+TEST_F(DL, array_pod_empty)
 {
 	PodArray1 Inst = { { NULL, 0 } };
 	PodArray1 Loaded;
@@ -684,7 +708,7 @@ TEST_F(DL, EmptyPodArray)
 	EXPECT_EQ(0x0, Loaded.Array.data);
 }
 
-TEST_F(DL, EmptyStructArray)
+TEST_F(DL, array_struct_empty)
 {
 	StructArray1 Inst = { { NULL, 0 } };
 	StructArray1 Loaded;
@@ -695,12 +719,12 @@ TEST_F(DL, EmptyStructArray)
 	EXPECT_EQ(0x0, Loaded.Array.data);
 }
 
-TEST_F(DL, EmptyStringArray)
+TEST_F(DL, array_string_empty)
 {
 	StringArray Inst = { { NULL, 0 } };
 	StringArray Loaded;
 
-	do_the_round_about(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
+	do_the_round_about(Ctx, StringArray::TYPE_ID, &Inst, &Loaded);
 
 	EXPECT_EQ(0u,  Loaded.Strings.count);
 	EXPECT_EQ(0x0, Loaded.Strings.data);
