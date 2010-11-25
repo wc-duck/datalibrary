@@ -68,45 +68,72 @@ function DefaultGCC( platform, config )
 	return settings
 end
 
-function DefaultMSVC( config )
-	local settings = DefaultSettings( "win32", config )
+function SetupMSVCBinaries( settings, build_platform )
+	path = os.getenv("PATH")
+	vs8_path = os.getenv("VS80COMNTOOLS")
+	
+	if vs8_path == nil then error("Visual Studio 8 is not installed on this machine!") end
+	
+	local vs_install_dir = Path( vs8_path .. "/../../../" )
+	local vc_inc_path = Path( vs_install_dir .. "/VC/include" )
+	local vs_ide_path = Path( vs_install_dir .. "/Common7/IDE" )
+	local vs_bin_path = ""
+	local vs_lib_path = ""
+	local vs_define_name = ""
+	
+	if build_platform == "win32" then
+		vc_lib_path = Path( vs_install_dir .. "/VC/lib" )
+		vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/\"" )
+		vs_define_name = "DL_VS32_PATH"
+	elseif build_platform == "winx64" then
+		vc_lib_path = Path( vs_install_dir .. "/VC/lib/amd64" )
+		vs_define_name = "DL_VS64_PATH"
+		if platform == "win32" then
+			vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/x86_amd64/\"" )
+		else
+			vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/amd64/\"" )
+		end
+	end
+	
+	EnvironmentSet("PATH", vs_ide_path)
+	EnvironmentSet(vs_define_name, vs_bin_path)
+	
+	settings.cc.exe_c = "%" .. vs_define_name .. "%cl"
+	settings.lib.exe  = "%" .. vs_define_name .. "%lib"
+	settings.dll.exe  = "%" .. vs_define_name .. "%link"
+	settings.link.exe = "%" .. vs_define_name .. "%link"
+	
+	settings.cc.includes:Add(vc_inc_path)
+	settings.dll.libpath:Add(vc_lib_path)
+	settings.link.libpath:Add(vc_lib_path)
+end
+
+function DefaultMSVC( build_platform, config )
+	local settings = DefaultSettings( build_platform, config )
 	--[[
 		Settings here should be!
 		settings.cc.flags:Add("/Wall", "-WX")
 		/EHsc only on unittest
 		/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
 	--]]
-	
-	path = os.getenv("PATH")
-	vs8_path = os.getenv("VS80COMNTOOLS")
-	
-	if vs8_path == nil then error("Visual Studio 8 is not installed on this machine!") end
-	
-	vs_install_dir = Path( vs8_path .. "/../../../" )
-	
-	vs_ide_path = Path( vs_install_dir .. "/Common7/IDE" )
-	vc_lib_path = Path( vs_install_dir .. "/VC/lib" )
-	vc_inc_path = Path( vs_install_dir .. "/VC/include" )
-	vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/\"" )
-	
-	EnvironmentSet("PATH", vs_ide_path)
-	EnvironmentSet("DL_VS_PATH", vs_bin_path)
-	
-	settings.cc.exe_c = "%DL_VS_PATH%cl"
-	settings.lib.exe  = "%DL_VS_PATH%lib"
-	settings.dll.exe  = "%DL_VS_PATH%link"
-	settings.link.exe = "%DL_VS_PATH%link"
-	
 	settings.cc.flags:Add("/W4", "-WX", "/EHsc", "/wd4324")
-	
-	settings.cc.includes:Add(vc_inc_path)
-	settings.dll.libpath:Add(vc_lib_path)
-	settings.link.libpath:Add(vc_lib_path)
 	
 	settings.cc.includes:Add("extern/include")
 	settings.dll.libpath:Add("extern/libs/" .. platform .. "/" .. config)
 	settings.link.libpath:Add("extern/libs/" .. platform .. "/" .. config)
 
+	return settings
+end
+
+function DefaultMSVS_Win32( config )
+	local settings = DefaultMSVC( "win32", config )
+	SetupMSVCBinaries( settings, "win32" )
+	return settings
+end
+
+function DefaultMSVS_Winx64( config )
+	local settings = DefaultMSVC( "winx64", config )
+	SetupMSVCBinaries( settings, "winx64" )
 	return settings
 end
 
@@ -131,28 +158,29 @@ settings =
 {
 	linux_x86    = { debug = DefaultGCCLinux_x86( "debug" ),    release = DefaultGCCLinux_x86( "release" ) },
 	linux_x86_64 = { debug = DefaultGCCLinux_x86_64( "debug" ), release = DefaultGCCLinux_x86_64( "release" ) },
-	win32        = { debug = DefaultMSVC( "debug" ),            release = DefaultMSVC( "release" ) }
+	win32        = { debug = DefaultMSVS_Win32( "debug" ),      release = DefaultMSVS_Win32( "release" ) },
+	winx64       = { debug = DefaultMSVS_Winx64( "debug" ),     release = DefaultMSVS_Winx64( "release" ) }
 }
 
-platform = ScriptArgs["platform"]
+build_platform = ScriptArgs["platform"]
 config   = ScriptArgs["config"]
 
-if not platform then error( "platform need to be set. example \"platform=linux32\"" ) end
-if not config then   error( "config need to be set. example \"config=debug\"" )       end
+if not build_platform then error( "platform need to be set. example \"platform=linux32\"" ) end
+if not config then         error( "config need to be set. example \"config=debug\"" )       end
 
-platform_settings = settings[platform]
-if not platform_settings then              error( platform .. " is not a supported platform" )    end
+platform_settings = settings[build_platform]
+if not platform_settings then              error( build_platform .. " is not a supported platform" )    end
 build_settings = platform_settings[config]
 if not build_settings then                 error( config .. " is not a supported configuration" ) end
 
-build_settings = settings[ platform ][ config ]
+build_settings = settings[ build_platform ][ config ]
 
 lib_files = Collect( "src/*.cpp" )
 obj_files = Compile( build_settings, lib_files )
 
 -- ugly fugly, need -fPIC on .so-files!
-local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
-if platform == "linux_x86_64" then
+local output_path = PathJoin( BUILD_PATH, PathJoin( build_platform, config ) )
+if build_platform == "linux_x86_64" then
 	build_settings.cc.Output = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
 	build_settings.cc.flags:Add( "-fPIC" )
 	dll_files = Compile( build_settings, lib_files )
@@ -166,7 +194,7 @@ shared_library = SharedLibrary( build_settings, "dl", dll_files )
 dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
 
 -- HACK BONANZA!
-if platform == "linux_x86" then
+if build_platform == "linux_x86" then
 	DLTypeLibrary( "tests/unittest.tld", "local/linux_x86_64/" .. config .. "/dl.so" )
 else
 	DLTypeLibrary( "tests/unittest.tld", shared_library )
@@ -174,7 +202,7 @@ end
 
 build_settings.link.libs:Add( "gtest" )
 
-if platform == "linux_x86_64" or platform == "linux_x86" then
+if build_platform == "linux_x86_64" or build_platform == "linux_x86" then
 	build_settings.link.libs:Add( "pthread" )
 end
 
