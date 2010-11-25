@@ -182,8 +182,13 @@ dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("t
 
 dl_tests_py = "tests/dl_tests.py"
 
-AddJob( "test",          "unittest c",               dl_tests,                          dl_tests ) -- c unit tests
-AddJob( "test_valgrind", "unittest valgrind",        "valgrind -v " .. dl_tests,        dl_tests ) -- valgrind c unittests
+if family == "windows" then
+	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ), dl_tests )
+else
+	AddJob( "test",          "unittest c",        dl_tests,                   dl_tests )
+	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v " .. dl_tests, dl_tests ) -- valgrind c unittests
+end
+
 AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py .. " -v", dl_tests_py, shared_library ) -- python bindings unittests
 
 -- do not run unittest as default, only run
