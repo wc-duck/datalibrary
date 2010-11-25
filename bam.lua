@@ -1,6 +1,6 @@
 BUILD_PATH = "local"
-PYTHON = "python"
--- PYTHON = "C:\\Python26\\python.exe"
+-- PYTHON = "python"
+PYTHON = "C:\\Python26\\python.exe"
 
 function DLTypeLibrary( tlc_file, dl_shared_lib )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
@@ -76,8 +76,33 @@ function DefaultMSVC( config )
 		/EHsc only on unittest
 		/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
 	--]]
+	
+	path = os.getenv("PATH")
+	vs8_path = os.getenv("VS80COMNTOOLS")
+	
+	if vs8_path == nil then error("Visual Studio 8 is not installed on this machine!") end
+	
+	vs_install_dir = Path( vs8_path .. "/../../../" )
+	
+	vs_ide_path = Path( vs_install_dir .. "/Common7/IDE" )
+	vc_lib_path = Path( vs_install_dir .. "/VC/lib" )
+	vc_inc_path = Path( vs_install_dir .. "/VC/include" )
+	vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/\"" )
+	
+	EnvironmentSet("PATH", vs_ide_path)
+	EnvironmentSet("DL_VS_PATH", vs_bin_path)
+	
+	settings.cc.exe_c = "%DL_VS_PATH%cl"
+	settings.lib.exe  = "%DL_VS_PATH%lib"
+	settings.dll.exe  = "%DL_VS_PATH%link"
+	settings.link.exe = "%DL_VS_PATH%link"
+	
 	settings.cc.flags:Add("/W4", "-WX", "/EHsc", "/wd4324")
-
+	
+	settings.cc.includes:Add(vc_inc_path)
+	settings.dll.libpath:Add(vc_lib_path)
+	settings.link.libpath:Add(vc_lib_path)
+	
 	settings.cc.includes:Add("extern/include")
 	settings.dll.libpath:Add("extern/libs/" .. platform .. "/" .. config)
 	settings.link.libpath:Add("extern/libs/" .. platform .. "/" .. config)
