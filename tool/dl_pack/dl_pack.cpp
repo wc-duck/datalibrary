@@ -222,13 +222,13 @@ int main(int argc, char** argv)
 			Size   = SizeAfterConvert;
 		}
 
-		dl_error_t err = dl_txt_unpack_calc_size(Ctx, InData, Size, &OutDataSize);
+		dl_error_t err = dl_txt_unpack_calc_size(Ctx, info.root_type, InData, Size, &OutDataSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT( "SBDL error while calculating unpack size: %s", dl_error_to_string(err));
 
 		pOutData = (unsigned char*)malloc(OutDataSize);
 
-		err = dl_txt_unpack(Ctx, InData, Size, (char*)pOutData, OutDataSize);
+		err = dl_txt_unpack(Ctx, info.root_type, InData, Size, (char*)pOutData, OutDataSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT( "SBDL error while unpacking: %s", dl_error_to_string(err));
 	}

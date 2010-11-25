@@ -1,5 +1,3 @@
-/* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
-
 #include <dl/dl.h>
 #include "dl_types.h"
 #include "dl_binary_writer.h"
@@ -722,6 +720,7 @@ extern "C" {
 
 dl_error_t dl_convert_inplace(dl_ctx_t _Context, dl_typeid_t type, unsigned char* _pData, unsigned int _DataSize, dl_endian_t _Endian, unsigned int _PtrSize)
 {
+	DL_UNUSED(type);
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
 	if(_DataSize < sizeof(SDLDataHeader))        return DL_ERROR_MALFORMED_DATA;
@@ -747,6 +746,7 @@ dl_error_t dl_convert( dl_ctx_t dl_ctx,             dl_typeid_t  type,
                        unsigned char* out_instance, unsigned int out_instance_size,
                        dl_endian_t    out_endian,   unsigned int out_ptr_size )
 {
+	DL_UNUSED(type);
 	SDLDataHeader* pHeader = (SDLDataHeader*)packed_data;
 
 	if(packed_data_size < sizeof(SDLDataHeader))        return DL_ERROR_MALFORMED_DATA;
@@ -772,6 +772,7 @@ dl_error_t dl_convert( dl_ctx_t dl_ctx,             dl_typeid_t  type,
 
 dl_error_t dl_convert_calc_size(dl_ctx_t _Context, dl_typeid_t type, unsigned char* _pData, unsigned int _DataSize, unsigned int _PtrSize, unsigned int* _pResultSize)
 {
+	DL_UNUSED(type);
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 
 	if(_DataSize < sizeof(SDLDataHeader))                                             return DL_ERROR_MALFORMED_DATA;
