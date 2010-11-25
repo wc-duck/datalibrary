@@ -50,7 +50,7 @@ void do_the_round_about(dl_ctx_t dl_ctx, dl_typeid_t type, void* pack_me, void* 
 	// unpack binary to txt
 	EXPECT_DL_ERR_OK(dl_txt_unpack(dl_ctx, type, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut)));
 
-	// printf("%s\n", TxtOut);
+	printf("%s\n", TxtOut);
 
 	unsigned char OutDataText[1024];
 	memset(OutDataText, 0x0, DL_ARRAY_LENGTH(OutDataText));

@@ -151,7 +151,7 @@ TEST_F(DLText, TextDefaultPtr)
 	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultPtr\", \"data\" : {} } }";
 
 	unsigned char OutDataText[1024];
-	DefaultPtr P1; // this is so ugly!
+	DefaultPtr P1 = { 0 }; // this is so ugly!
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultPtr::TYPE_ID, &P1, OutDataText, 1024));
