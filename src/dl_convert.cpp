@@ -626,7 +626,7 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t     _Context,
 	}
 
 	Writer.SeekEnd();
-	*_pNeededSize = Writer.Tell();
+	*_pNeededSize = (unsigned int)Writer.Tell();
 
 	return err;
 }

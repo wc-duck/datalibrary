@@ -57,7 +57,7 @@ dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<
 		{
 			// build testpath.
 			char Path[2048];
-			unsigned int PathLen = strlen(_lLibPaths[iPath]);
+			size_t PathLen = strlen(_lLibPaths[iPath]);
 			strcpy(Path, _lLibPaths[iPath]);
 			if(PathLen != 0 && Path[PathLen - 1] != '/')
 				Path[PathLen++] = '/';

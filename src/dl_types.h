@@ -68,7 +68,7 @@ static const uint16 DL_UINT16_MIN = 0x0000U;
 static const uint32 DL_UINT32_MIN = 0x00000000UL;
 static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
 
-#if defined( __LP64__ )
+#if defined( __LP64__ ) || defined( _WIN64 )
         #define DL_INT64_FMT_STR  "%ld"
         #define DL_UINT64_FMT_STR "%lu"
         typedef uint64 pint;
