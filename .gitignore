@@ -1,0 +1,7 @@
+local
+*.pyc
+.bam/
+.cproject
+.gitignore
+.project
+.pydevproject
