@@ -297,7 +297,7 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 	yajl_gen_map_open(_Ctx->m_JsonGen);
 
 		yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)"type", 4);
-		yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)_pType->m_Name, strlen(_pType->m_Name));
+		yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)_pType->m_Name, (unsigned int)strlen(_pType->m_Name));
 
 		yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)"data", 4);
 		DLWriteInstance(_Ctx, _pType, _pData, _pData);
@@ -306,13 +306,6 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 		{
 			yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)"subdata", 7);
 			yajl_gen_map_open(_Ctx->m_JsonGen);
-
-			yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)"type", 4);
-			yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)_pType->m_Name, (unsigned int)strlen(_pType->m_Name));
-
-			yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)"data", 4);
-			DLWriteInstance(_Ctx, _pType, _pData, _pData);
-
 
 			// start at 1 to skip root-node!
 			for (unsigned int iSubData = 1; iSubData < _Ctx->m_lSubdataMembers.Len(); ++iSubData)
