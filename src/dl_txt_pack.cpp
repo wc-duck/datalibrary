@@ -967,7 +967,7 @@ dl_error_t dl_txt_pack_calc_size(dl_ctx_t _Context, const char* _pTxtData, unsig
 
 	dl_error_t err = DLInternalPack(&PackContext, _pTxtData);
 
-	*_pPackedDataSize = Writer.NeededSize() + sizeof(SDLDataHeader);
+	*_pPackedDataSize = (unsigned int)Writer.NeededSize() + sizeof(SDLDataHeader);
 
 	return err;
 }

@@ -187,7 +187,7 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 	return DL_ERROR_OK;
 }
 
-static void DLLoadTypeLibraryLoadDefaults(dl_ctx_t _Context, const uint8* _pDefaultData, pint _DefaultDataSize)
+static void DLLoadTypeLibraryLoadDefaults(dl_ctx_t _Context, const uint8* _pDefaultData, unsigned int _DefaultDataSize)
 {
 	_Context->m_pDefaultInstances = (uint8*)_Context->m_DLAllocFuncs->alloc(_DefaultDataSize * 2, sizeof(void*)); // times 2 here need to be fixed!
 
@@ -697,7 +697,7 @@ dl_error_t dl_instance_calc_size(dl_ctx_t _Context, dl_typeid_t _TypeHash, void*
 	dl_error_t err = DLInternalStoreInstance(_Context, pType, (uint8*)_pInstance, &StoreContext);
 
 	StoreContext.SeekEnd();
-	*_pDataSize = StoreContext.Tell() + sizeof(SDLDataHeader);
+	*_pDataSize = (unsigned int)StoreContext.Tell() + sizeof(SDLDataHeader);
 
 	return err;
 }

@@ -1,11 +1,5 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
-// #include <common_util/getopt.h>
-// 
-// #include <platform/assert.h>
-// #include <platform/string.h>
-// #include <platform/memory.h>
-
 #include "getopt.h"
 
 #include "../dl_types.h"
@@ -91,7 +85,7 @@ int GetOpt(SGetOptContext* _Ctx)
 		{
 			const SOption* opt = _Ctx->m_Opts + i;
 
-			unsigned int name_len = strlen(opt->m_Name);
+			unsigned int name_len = (unsigned int)strlen(opt->m_Name);
 
 			if(StrCaseCompareLen(opt->m_Name, check_option, name_len) == 0)
 			{
