@@ -454,10 +454,7 @@ TEST_F(DL, array_pod1)
 }
 
 /*
-
-Array with array in is currently BORKEN!!!
-
-TEST_F(DL, array_pod2)
+TEST_F(DL, array_with_sub_array)
 {
 	uint32_t Data1[] = { 1337, 7331,  13, 37, 133 } ;
 	uint32_t Data2[] = {    7,    1, 337 } ;

@@ -9,7 +9,7 @@
 
 class DLText : public DL {};
 
-TEST_F(DLText, TextMemberOrder)
+TEST_F(DLText, member_order)
 {
 	// test to pack a txt-instance that is not in order!
 	const char* TextData =
@@ -48,7 +48,7 @@ TEST_F(DLText, TextMemberOrder)
 	EXPECT_EQ(4.1234, P1.f64);
 }
 
-TEST_F(DLText, TextSetMemberTwice)
+TEST_F(DLText, set_member_twice)
 {
 	// test to pack a txt-instance that is not in order!
 	const char* TextData = 
@@ -74,7 +74,7 @@ TEST_F(DLText, TextSetMemberTwice)
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
 }
 
-TEST_F(DLText, TextNonExistMember)
+TEST_F(DLText, member_not_exist)
 {
 	// test to pack a txt-instance that is not in order!
 	const char* TextData = "{ \"type\" : \"Pods2\", \"data\" : { \"Int1\" : 1337, \"Int2\" : 1337, \"IDoNotExist\" : 1337 } }";
@@ -84,7 +84,7 @@ TEST_F(DLText, TextNonExistMember)
 	EXPECT_DL_ERR_EQ(DL_ERROR_MEMBER_NOT_FOUND, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
 }
 
-TEST_F(DLText, TextErrorMissingMember)
+TEST_F(DLText, member_missing)
 {
 	// error should be cast if member is not set and has no default value!
 	// in this case Int2 is not set!
@@ -95,7 +95,7 @@ TEST_F(DLText, TextErrorMissingMember)
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
 }
 
-TEST_F(DLText, TextPodDefaults)
+TEST_F(DLText, defalut_value_pod)
 {
 	// default-values should be set correctly!
 
@@ -119,7 +119,7 @@ TEST_F(DLText, TextPodDefaults)
 	EXPECT_EQ(11.0,  P1.f64);
 }
 
-TEST_F(DLText, TextDefaultStr)
+TEST_F(DLText, defalut_value_string)
 {
 	// default-values should be set correctly!
 
@@ -134,7 +134,7 @@ TEST_F(DLText, TextDefaultStr)
 	EXPECT_STREQ("cowbells ftw!", P1[0].Str);
 }
 
-TEST_F(DLText, TextDefaultPtr)
+TEST_F(DLText, defalut_value_ptr)
 {
 	// default-values should be set correctly!
 
@@ -149,7 +149,7 @@ TEST_F(DLText, TextDefaultPtr)
 	EXPECT_EQ(0x0, P1.Ptr);
 }
 
-TEST_F(DLText, TextDefaultStruct)
+TEST_F(DLText, defalut_value_struct)
 {
 	const char* TextData = "{ \"type\" : \"DefaultStruct\", \"data\" : {} }";
 
@@ -163,7 +163,7 @@ TEST_F(DLText, TextDefaultStruct)
 	EXPECT_EQ(37u, P1.Struct.Int2);
 }
 
-TEST_F(DLText, TextDefaultEnum)
+TEST_F(DLText, defalut_value_enum)
 {
 	const char* TextData = "{ \"type\" : \"DefaultEnum\", \"data\" : {} }";
 
@@ -176,7 +176,7 @@ TEST_F(DLText, TextDefaultEnum)
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.Enum);
 }
 
-TEST_F(DLText, TextDefaultInlineArrayPod)
+TEST_F(DLText, defalut_value_inline_array_pod)
 {
 	// default-values should be set correctly!
 
@@ -194,7 +194,7 @@ TEST_F(DLText, TextDefaultInlineArrayPod)
 	EXPECT_EQ(7u, P1.Arr[3]);
 }
 
-TEST_F(DLText, TextDefaultInlineArrayEnum)
+TEST_F(DLText, defalut_value_inline_array_enum)
 {
 	// default-values should be set correctly!
 
@@ -212,7 +212,7 @@ TEST_F(DLText, TextDefaultInlineArrayEnum)
 	EXPECT_EQ(TESTENUM1_VALUE4, P1.Arr[3]);
 }
 
-TEST_F(DLText, TextDefaultInlineArrayString)
+TEST_F(DLText, defalut_value_inline_array_string)
 {
 	// default-values should be set correctly!
 
@@ -233,7 +233,7 @@ TEST_F(DLText, TextDefaultInlineArrayString)
 	EXPECT_STREQ("cool",  P1[0].Arr[3]);
 }
 
-TEST_F(DLText, TextDefaultArrayPod)
+TEST_F(DLText, defalut_value_array_pod)
 {
 	const char* TextData = "{ \"type\" : \"DefaultArrayPod\", \"data\" : {} }";
 
@@ -251,7 +251,7 @@ TEST_F(DLText, TextDefaultArrayPod)
 	EXPECT_EQ(7u, P1[0].Arr[3]);
 }
 
-TEST_F(DLText, TextDefaultArrayEnum)
+TEST_F(DLText, defalut_value_array_enum)
 {
 	const char* TextData = "{ \"type\" : \"DefaultArrayEnum\", \"data\" : {} }";
 
@@ -269,7 +269,7 @@ TEST_F(DLText, TextDefaultArrayEnum)
 	EXPECT_EQ(TESTENUM1_VALUE4, P1[0].Arr[3]);
 }
 
-TEST_F(DLText, TextDefaultArrayString)
+TEST_F(DLText, defalut_value_array_string)
 {
 	// default-values should be set correctly!
 
