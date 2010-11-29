@@ -1,6 +1,6 @@
 BUILD_PATH = "local"
--- PYTHON = "python"
-PYTHON = "C:\\Python26\\python.exe"
+PYTHON = "python"
+-- PYTHON = "C:\\Python26\\python.exe"
 
 function DLTypeLibrary( tlc_file, dl_shared_lib )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
@@ -69,6 +69,10 @@ function DefaultGCC( platform, config )
 end
 
 function SetupMSVCBinaries( settings, build_platform )
+	if family ~= "windows" then
+		return
+	end
+
 	path = os.getenv("PATH")
 	vs8_path = os.getenv("VS80COMNTOOLS")
 	
