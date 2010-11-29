@@ -14,20 +14,18 @@ TEST_F(DLText, TextMemberOrder)
 	// test to pack a txt-instance that is not in order!
 	const char* TextData =
 	"{"
-		"\"root\" : {"
-			"\"type\" : \"Pods\","
-			"\"data\" : {"
-				"\"i16\" : 2,"
-				"\"u32\" : 7,"
-				"\"u8\"  : 5,"
-				"\"i32\" : 3,"
-				"\"f64\" : 4.1234,"
-				"\"i64\" : 4,"
-				"\"u16\" : 6,"
-				"\"u64\" : 8,"
-				"\"i8\"  : 1,"
-				"\"f32\" : 3.14"
-			"}"
+		"\"type\" : \"Pods\","
+		"\"data\" : {"
+			"\"i16\" : 2,"
+			"\"u32\" : 7,"
+			"\"u8\"  : 5,"
+			"\"i32\" : 3,"
+			"\"f64\" : 4.1234,"
+			"\"i64\" : 4,"
+			"\"u16\" : 6,"
+			"\"u64\" : 8,"
+			"\"i8\"  : 1,"
+			"\"f32\" : 3.14"
 		"}"
 	"}";
 
@@ -55,21 +53,19 @@ TEST_F(DLText, TextSetMemberTwice)
 	// test to pack a txt-instance that is not in order!
 	const char* TextData = 
 		"{"
-			"\"root\" : {"
-				"\"type\" : \"Pods\","
-				"\"data\" : {"
-					"\"i16\" : 2,"
-					"\"u32\" : 7,"
-					"\"u8\"  : 5,"
-					"\"i32\" : 3,"
-					"\"i32\" : 7,"
-					"\"f64\" : 4.1234,"
-					"\"i64\" : 4,"
-					"\"u16\" : 6,"
-					"\"u64\" : 8,"
-					"\"i8\"  : 1,"
-					"\"f32\" : 3.14"
-				"}"
+			"\"type\" : \"Pods\","
+			"\"data\" : {"
+				"\"i16\" : 2,"
+				"\"u32\" : 7,"
+				"\"u8\"  : 5,"
+				"\"i32\" : 3,"
+				"\"i32\" : 7,"
+				"\"f64\" : 4.1234,"
+				"\"i64\" : 4,"
+				"\"u16\" : 6,"
+				"\"u64\" : 8,"
+				"\"i8\"  : 1,"
+				"\"f32\" : 3.14"
 			"}"
 		"}";
 
@@ -81,13 +77,7 @@ TEST_F(DLText, TextSetMemberTwice)
 TEST_F(DLText, TextNonExistMember)
 {
 	// test to pack a txt-instance that is not in order!
-	const char* TextData = 
-		"{"
-			"\"root\" : {"
-				"\"type\" : \"Pods2\","
-				"\"data\" : { \"Int1\" : 1337, \"Int2\" : 1337, \"IDoNotExist\" : 1337 }"
-			"}"
-		"}";
+	const char* TextData = "{ \"type\" : \"Pods2\", \"data\" : { \"Int1\" : 1337, \"Int2\" : 1337, \"IDoNotExist\" : 1337 } }";
 
 	unsigned char OutDataText[1024];
 
@@ -99,7 +89,7 @@ TEST_F(DLText, TextErrorMissingMember)
 	// error should be cast if member is not set and has no default value!
 	// in this case Int2 is not set!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"Pods2\", \"data\" : { \"Int1\" : 1337 } } }";
+	const char* TextData = "{ \"type\" : \"Pods2\", \"data\" : { \"Int1\" : 1337 } }";
 
 	unsigned char OutDataText[1024];
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
@@ -109,7 +99,7 @@ TEST_F(DLText, TextPodDefaults)
 {
 	// default-values should be set correctly!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"PodsDefaults\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"PodsDefaults\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	PodsDefaults P1;
@@ -133,7 +123,7 @@ TEST_F(DLText, TextDefaultStr)
 {
 	// default-values should be set correctly!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultStr\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultStr\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultStr P1[10]; // this is so ugly!
@@ -148,7 +138,7 @@ TEST_F(DLText, TextDefaultPtr)
 {
 	// default-values should be set correctly!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultPtr\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultPtr\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultPtr P1 = { 0 }; // this is so ugly!
@@ -161,7 +151,7 @@ TEST_F(DLText, TextDefaultPtr)
 
 TEST_F(DLText, TextDefaultStruct)
 {
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultStruct\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultStruct\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultStruct P1; // this is so ugly!
@@ -175,7 +165,7 @@ TEST_F(DLText, TextDefaultStruct)
 
 TEST_F(DLText, TextDefaultEnum)
 {
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultEnum\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultEnum\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultEnum P1;
@@ -190,7 +180,7 @@ TEST_F(DLText, TextDefaultInlineArrayPod)
 {
 	// default-values should be set correctly!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultInlArrayPod\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultInlArrayPod\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultInlArrayPod P1;
@@ -208,7 +198,7 @@ TEST_F(DLText, TextDefaultInlineArrayEnum)
 {
 	// default-values should be set correctly!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultInlArrayEnum\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultInlArrayEnum\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultInlArrayEnum P1;
@@ -226,7 +216,7 @@ TEST_F(DLText, TextDefaultInlineArrayString)
 {
 	// default-values should be set correctly!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultInlArrayStr\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultInlArrayStr\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 
@@ -245,7 +235,7 @@ TEST_F(DLText, TextDefaultInlineArrayString)
 
 TEST_F(DLText, TextDefaultArrayPod)
 {
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultArrayPod\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultArrayPod\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultArrayPod P1[10];
@@ -263,7 +253,7 @@ TEST_F(DLText, TextDefaultArrayPod)
 
 TEST_F(DLText, TextDefaultArrayEnum)
 {
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultArrayEnum\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultArrayEnum\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultArrayEnum P1[10];
@@ -283,7 +273,7 @@ TEST_F(DLText, TextDefaultArrayString)
 {
 	// default-values should be set correctly!
 
-	const char* TextData = "{ \"root\" : { \"type\" : \"DefaultArrayStr\", \"data\" : {} } }";
+	const char* TextData = "{ \"type\" : \"DefaultArrayStr\", \"data\" : {} }";
 
 	unsigned char OutDataText[1024];
 	DefaultArrayStr P1[10];

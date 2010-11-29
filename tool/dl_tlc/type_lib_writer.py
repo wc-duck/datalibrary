@@ -124,7 +124,7 @@ class TypeLibraryWriter:
 						else:
 							assert False
 					else:
-						instance_str =  '{ "root" : { "type" : "%s", "data" : %s } }' % ( member_type, str(json.dumps(defval)) )
+						instance_str =  '{ "type" : "%s", "data" : %s }' % ( member_type, str(json.dumps(defval)) )
 						default_data_str += _Ctx.PackText(instance_str)[DL_INSTANCE_HEADER_SIZE:]
 						
 						
