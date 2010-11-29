@@ -14,7 +14,9 @@ struct TAlignmentOf
 };
 #define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
 
-TEST_F(DL, ReflectPods)
+class DLReflect : public DL {};
+
+TEST_F(DLReflect, pods)
 {
 	dl_type_info_t   Info = { 0 };
 	dl_member_info_t Members[128];
@@ -66,7 +68,7 @@ TEST_F(DL, ReflectPods)
 	EXPECT_EQ   (DL_TYPE_STORAGE_FP64,   Members[9].type & DL_TYPE_STORAGE_MASK);
 }
 
-TEST_F(DL, SizeAndAlignment)
+TEST_F(DLReflect, size_and_alignment)
 {
 	dl_type_info_t   ti;
 
@@ -159,7 +161,7 @@ TEST_F(DL, SizeAndAlignment)
 	EXPECT_EQ(DL_ALIGNMENTOF(BugTest1_InArray),            ti.alignment);
 }
 
-TEST_F(DL, TypeLookup)
+TEST_F(DLReflect, type_lookup)
 {
 	dl_typeid_t type_id = 0;
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_id(Ctx, "Pods2", &type_id) );

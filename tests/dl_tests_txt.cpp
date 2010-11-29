@@ -298,4 +298,3 @@ TEST_F(DLText, TextDefaultArrayString)
 	EXPECT_STREQ("are",   P1[0].Arr[2]);
 	EXPECT_STREQ("cool",  P1[0].Arr[3]);
 }
-

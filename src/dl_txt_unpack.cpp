@@ -19,9 +19,9 @@ public:
 	dl_ctx_t m_Ctx;
 	yajl_gen   m_JsonGen;
 
- 	unsigned int AddSubDataMember(const SDLMember* _pMember, const uint8* _pData, uint32 _ArrayCount)
+ 	unsigned int AddSubDataMember(const SDLMember* _pMember, const uint8* _pData)
 	{
-		m_lSubdataMembers.Add(SSubDataMember(_pMember, _pData, _ArrayCount));
+		m_lSubdataMembers.Add(SSubDataMember(_pMember, _pData));
 		return (unsigned int)(m_lSubdataMembers.Len() - 1);
 	}
 
@@ -38,13 +38,11 @@ public:
 	struct SSubDataMember
 	{
 		SSubDataMember() {}
-		SSubDataMember(const SDLMember* _pMember, const uint8* _pData, uint32 _ArrayCount)
+		SSubDataMember(const SDLMember* _pMember, const uint8* _pData)
 			: m_pMember(_pMember)
-			, m_pData(_pData)
-			, m_ArrayCount(_ArrayCount) {}
+			, m_pData(_pData) {}
 		const SDLMember* m_pMember;
 		const uint8*     m_pData;
-		uint32           m_ArrayCount;
 	};
 
 	CArrayStatic<SSubDataMember, 128> m_lSubdataMembers;
@@ -128,7 +126,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						{
 							unsigned int ID = _Ctx->FindSubDataMember(_pDataBase + Offset);
 							if(ID == (unsigned int)(-1))
-								ID = _Ctx->AddSubDataMember(&Member, _pDataBase + Offset, 0);
+								ID = _Ctx->AddSubDataMember(&Member, _pDataBase + Offset);
 							yajl_gen_integer(_Ctx->m_JsonGen, long(ID));
 						}
 					}
@@ -147,10 +145,12 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 			}
 			break;
 
+			case DL_TYPE_ATOM_ARRAY:
 			case DL_TYPE_ATOM_INLINE_ARRAY:
-			{
-				yajl_gen_array_open(_Ctx->m_JsonGen);
+			yajl_gen_array_open(_Ctx->m_JsonGen);
 
+			if(AtomType == DL_TYPE_ATOM_INLINE_ARRAY)
+			{
 				switch(StorageType)
 				{
 					case DL_TYPE_STORAGE_STRUCT:
@@ -207,24 +207,9 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					}
 					break;
 				}
-
-				yajl_gen_array_close(_Ctx->m_JsonGen);
 			}
-			break;
-
-// #define OLD_ARRAY_FORMAT
-
-			case DL_TYPE_ATOM_ARRAY:
+			else
 			{
-#ifdef OLD_ARRAY_FORMAT
-				pint   Offset = *(pint*)  pMemberData;
-				uint32 Count  = *(uint32*)(pMemberData + sizeof(void*));
-				unsigned int ID = _Ctx->AddSubDataMember(&Member, _pDataBase + Offset, Count);
-				yajl_gen_integer(_Ctx->m_JsonGen, long(ID));
-#else // OLD_ARRAY_FORMAT
-
-				yajl_gen_array_open(_Ctx->m_JsonGen);
-
 				pint   Offset = *(pint*)  pMemberData;
 				uint32 Count  = *(uint32*)(pMemberData + sizeof(void*));
 
@@ -269,12 +254,10 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						for(pint iElem = 0; iElem < Count; ++iElem)
 							DLWritePodMember(_Ctx->m_JsonGen, Member.m_Type, pArrayData + (iElem * Size));
 					}
-
 				}
-
-				yajl_gen_array_close(_Ctx->m_JsonGen);
-#endif // OLD_ARRAY_FORMAT
 			}
+
+			yajl_gen_array_close(_Ctx->m_JsonGen);
 			break;
 
 			case DL_TYPE_ATOM_BITFIELD:
@@ -309,7 +292,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 
 static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const unsigned char* _pData)
 {
-	_Ctx->AddSubDataMember(0x0, _pData, 0); // add root-node as a subdata to be able to look it up as id 0!
+	_Ctx->AddSubDataMember(0x0, _pData); // add root-node as a subdata to be able to look it up as id 0!
 
 	yajl_gen_map_open(_Ctx->m_JsonGen);
 
@@ -337,74 +320,21 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 
 					const SDLMember* pMember = _Ctx->m_lSubdataMembers[iSubData].m_pMember;
 					const uint8* pMemberData = _Ctx->m_lSubdataMembers[iSubData].m_pData;
-					uint32 ArrayCount        = _Ctx->m_lSubdataMembers[iSubData].m_ArrayCount;
 
 					dl_type_t AtomType    = pMember->AtomType();
 					dl_type_t StorageType = pMember->StorageType();
 
-#ifdef OLD_ARRAY_FORMAT
-					if (AtomType == DL_TYPE_ATOM_ARRAY) // remove if!
+					M_ASSERT(AtomType == DL_TYPE_ATOM_POD);
+					M_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
+
+					const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, pMember->m_TypeID);
+					if(pSubType == 0x0)
 					{
-						yajl_gen_array_open(_Ctx->m_JsonGen);
-
-						switch(StorageType)
-						{
-							case DL_TYPE_STORAGE_STRUCT:
-							{
-								const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, pMember->m_TypeID);
-								if(pSubType == 0x0) { DL_LOG_DL_ERROR("Type for inline-array member %s not found!", pMember->m_Name); return; }
-
-								pint Size = AlignUp(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
-								for(pint iElem = 0; iElem < ArrayCount; ++iElem)
-									DLWriteInstance(_Ctx, pSubType, pMemberData + (iElem * Size), _pData);
-							}
-							break;
-							case DL_TYPE_STORAGE_STR:
-							{
-								for(pint iElem = 0; iElem < ArrayCount; ++iElem)
-								{
-									pint  Offset     = *(pint*)(pMemberData + (iElem * sizeof(char*)));
-									char* pTheString =  (char*)(_pData + Offset);
-									yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pTheString, strlen(pTheString));
-								}
-							}
-							break;
-							case DL_TYPE_STORAGE_ENUM:
-							{
-								uint32* pEnumData = (uint32*)pMemberData;
-
-								for(pint iElem = 0; iElem < ArrayCount; ++iElem)
-								{
-									const char* pEnumName = DLFindEnumName(_Ctx->m_Ctx, pMember->m_TypeID, pEnumData[iElem]);
-									yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, strlen(pEnumName));
-								}
-							}
-							break;
-							default:
-							{
-								pint Size = DLPodSize(pMember->m_Type);
-								for(pint iElem = 0; iElem < ArrayCount; ++iElem)
-									DLWritePodMember(_Ctx->m_JsonGen, pMember->m_Type, pMemberData + (iElem * Size));
-							}
-						}
-
-						yajl_gen_array_close(_Ctx->m_JsonGen);
+						DL_LOG_DL_ERROR("Type for inline-array member %s not found!", pMember->m_Name);
+						return; // TODO: need to report error some how!
 					}
-					else
-#endif // OLD_ARRAY_FORMAT
-					{
-						M_ASSERT(AtomType == DL_TYPE_ATOM_POD);
-						M_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
 
-						const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, pMember->m_TypeID);
-						if(pSubType == 0x0)
-						{
-							DL_LOG_DL_ERROR("Type for inline-array member %s not found!", pMember->m_Name);
-							return; // TODO: need to report error some how!
-						}
-
-						DLWriteInstance(_Ctx, pSubType, pMemberData, _pData);
-					}
+					DLWriteInstance(_Ctx, pSubType, pMemberData, _pData);
 				}
 
 				yajl_gen_map_close(_Ctx->m_JsonGen);

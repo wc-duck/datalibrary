@@ -9,6 +9,25 @@
 
 #include <yajl/yajl_parse.h>
 
+/*
+	PACKING OF ARRAYS, How its done!
+
+	if the elements of the array is not containing subarrays ( or other variable size data-types if they ever is added )
+	each array element is packed after the last other data section as usual.
+	example:
+
+	[ struct a (arr1) (arr2) ] [ arr1_elem1, arr1_elem1, arr1_elem1 ] [ arr2_elem1 ...
+
+	if, on the other hand the elements of the array-type has sub-arrays each element of the array will be written at the end of
+	the packbuffer and when the end of the array is reached it will be reversed into place as an ordinary array.
+	example:
+	[ struct a (arr1) ] [ arr2_elem1, arr2_elem1, arr2_elem1 ] [ arr3_elem1 ...        (empty)        ... arr1_elem2 (offset to arr2), arr1_elem1 (offset to arr2) ]
+
+	this sholud work since an array with no subdata can be completely packed before the next instance so we might write that directly. The same
+	concept should hold in the case of subarrays for the subarrays since then we will start building a new array from the back and it will be completed
+	before we need to write another element to the parent array.
+*/
+
 enum EDLPackState
 {
 	DL_PACK_STATE_POD_INT8   = DL_TYPE_STORAGE_INT8,
@@ -110,6 +129,7 @@ struct SDLPackState
 	};
 
 	pint            m_StructStartPos;
+	pint            m_ArrayCountPatchPos;
 	uint32          m_ArrayCount;
 	CFlagField<128> m_MembersSet;
 };
@@ -209,12 +229,6 @@ struct SDLPackContext
 		M_ASSERT(m_SubdataElements[_Element].m_Pos == pint(-1) && "Subdata element already registered!");
 		m_SubdataElements[_Element].m_Pos = _Pos;
 		m_CurrentSubdataElement = _Element;
-	}
-
-	void RegisterSubdataElementEnd(uint32 _Count)
-	{
-		M_ASSERT(m_SubdataElements[m_CurrentSubdataElement].m_Pos != pint(-1) && "Subdata element not registered!");
-		m_SubdataElements[m_CurrentSubdataElement].m_Count = _Count;
 	}
 
 	pint   SubdataElementPos(unsigned int _Element)   { return m_SubdataElements[_Element].m_Pos; }
@@ -476,6 +490,8 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			pCtx->m_Writer->SeekSet(MemberPos);
 			M_ASSERT(IsAlign((void*)MemberPos, pMember->m_Alignment[DL_PTR_SIZE_HOST]));
 
+			pint array_count_patch_pos = 0; // for inline array, keep as 0.
+
 			dl_type_t AtomType    = pMember->AtomType();
 			dl_type_t StorageType = pMember->StorageType();
 
@@ -507,9 +523,16 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					}
 				}
 				break;
-				case DL_TYPE_ATOM_INLINE_ARRAY:
+				case DL_TYPE_ATOM_ARRAY:
+					// save position for array to be able to write ptr and count on array-end.
+					pCtx->m_Writer->Write(pCtx->m_Writer->NeededSize());
+					array_count_patch_pos = pCtx->m_Writer->Tell();
+					pCtx->m_Writer->Write(uint32(0)); // count need to be patched later!
+					pCtx->m_Writer->SeekEnd();
+				case DL_TYPE_ATOM_INLINE_ARRAY: // FALLTHROUGH
 				{
 					pCtx->PushState(DL_PACK_STATE_ARRAY);
+					pCtx->m_StateStack.Top().m_ArrayCountPatchPos = array_count_patch_pos;
 
 					switch(StorageType)
 					{
@@ -536,9 +559,6 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					}
 				}
 				break;
-				case DL_TYPE_ATOM_ARRAY:
-					pCtx->PushMemberState(DL_PACK_STATE_SUBDATA_ID, pMember);
-					break;
 				case DL_TYPE_ATOM_BITFIELD:
 					pCtx->PushMemberState(EDLPackState(pMember->m_Type), 0x0);
 				break;
@@ -809,10 +829,23 @@ static int DLOnArrayEnd(void* _pCtx)
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 
 	pCtx->PopState(); // pop of pack state for sub-type
-	uint32 ArrayCount = pCtx->m_StateStack.Top().m_ArrayCount;
+	uint32 array_count = pCtx->m_StateStack.Top().m_ArrayCount;
+	pint   patch_pos   = pCtx->m_StateStack.Top().m_ArrayCountPatchPos;
 	pCtx->PopState(); // pop of pack state for array
-	if (pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA)
-		pCtx->RegisterSubdataElementEnd(ArrayCount);
+	if( patch_pos != 0 ) // not inline array
+	{
+		if( array_count == 0 )
+		{
+			// empty array should be null!
+			pCtx->m_Writer->SeekSet(patch_pos - sizeof(pint));
+			pCtx->m_Writer->Write(pint(-1));
+		}
+		else
+			pCtx->m_Writer->SeekSet(patch_pos);
+
+		pCtx->m_Writer->Write(array_count);
+	}
+
 	return 1;
 }
 
