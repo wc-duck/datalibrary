@@ -45,7 +45,9 @@ unsigned char* ReadFile(FILE* _pFile, unsigned int* Size)
 dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<const char*, 128>& _lLibs)
 {
 	dl_ctx_t Ctx;
-	dl_error_t err = dl_context_create( &Ctx, 0x0 );
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	dl_error_t err = dl_context_create( &Ctx, &p );
 	if(err != DL_ERROR_OK)
 		M_ERROR_AND_FAIL( "SBDL error while creating context: %s", dl_error_to_string(err));
 
