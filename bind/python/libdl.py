@@ -308,7 +308,17 @@ class DLContext:
         
     def __init__(self, _TLBuffer = None, _TLFile = None):
         self.DLContext = c_void_p(0)
-        err = g_DLDll.dl_context_create( byref(self.DLContext), c_void_p(0) )
+        
+        class dl_create_params(Structure):
+            _fields_ = [ ('alloc_func', c_void_p), 
+                         ('free_func',  c_void_p), 
+                         ('alloc_ctx',  c_void_p) ]
+            
+        params = dl_create_params()
+        params.alloc_func = 0
+        params.free_func  = 0
+        params.alloc_ctx  = 0
+        err = g_DLDll.dl_context_create( byref(self.DLContext), byref(params) )
         
         if err != 0:
             raise DLError('Could not create DLContext', err)

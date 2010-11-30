@@ -862,6 +862,7 @@ static yajl_callbacks g_YAJLParseCallbacks = {
 	DLOnArrayEnd
 };
 
+// TODO: These allocs need to be controllable!!!
 void* DLPackAlloc(void* _pCtx, unsigned int _Sz)                { DL_UNUSED(_pCtx); return malloc(_Sz); }
 void* DLPackRealloc(void* _pCtx, void* _pPtr, unsigned int _Sz) { DL_UNUSED(_pCtx); return realloc(_pPtr, _Sz); }
 void  DLPackFree(void* _pCtx, void* _pPtr)                      { DL_UNUSED(_pCtx); free(_pPtr); }
@@ -877,7 +878,7 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 	yajl_status YAJLStat;
 
 	yajl_parser_config YAJLCfg = { 1, 1 };
-	yajl_alloc_funcs YAJLAlloc = { DLPackAlloc, DLPackRealloc, DLPackFree, PackContext->m_DLContext->m_DLAllocFuncs };
+	yajl_alloc_funcs YAJLAlloc = { DLPackAlloc, DLPackRealloc, DLPackFree, 0x0 };
 
 	YAJLHandle = yajl_alloc(&g_YAJLParseCallbacks, &YAJLCfg, &YAJLAlloc, (void*)PackContext);
 

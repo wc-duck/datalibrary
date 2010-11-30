@@ -137,13 +137,39 @@ DL_FORCEINLINE dl_endian_t dl_endian_host()
 #define DL_ENDIAN_HOST dl_endian_host()
 
 /*
-	Struct: dl_alloc_functions
+	Struct: dl_create_params_t
+		Passed with initialization parameters to dl_context_create.
+		This struct is open to change in later versions of dl.
+
+	Members:
+		alloc_func - function called by dl to allocate memory, set to 0x0 to use malloc
+		free_func  - function called by dl to free memory, set to 0x0 to use free
+		alloc_ctx  - parameter passed to alloc_func/free_func for userdata.
 */
-typedef struct dl_alloc_functions
+typedef struct dl_create_params
 {
-	void* (*alloc)( unsigned int size, unsigned int alignment );
-	void  (*free) ( void* ptr );
-} dl_alloc_functions_t;
+	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
+	void  (*free_func) ( void* ptr, void* alloc_ctx );
+	void* alloc_ctx;
+} dl_create_params_t;
+
+/*
+	Macro: DL_CREATE_PARAMS_SET_DEFAULT
+		The preferred way to initialize dl_create_params_t is with this
+		This macro will set default values that might not be optimal but
+		is supposed to support all usecases of dl.
+		This should be used to not get uninitialized members if create_params_t
+		is extended.
+
+	Example:
+		dl_create_params_t p;
+		DL_CREATE_PARAMS_SET_DEFAULT(p);
+		p.alloc_func = my_func
+*/
+#define DL_CREATE_PARAMS_SET_DEFAULT( params ) \
+		params.alloc_func = 0x0; \
+		params.free_func  = 0x0; \
+		params.alloc_ctx  = 0x0;
 
 /*
 	Group: Context
@@ -154,12 +180,11 @@ typedef struct dl_alloc_functions
 		Creates a context.
 
 	Parameters:
-		dl_ctx            - Ptr to instance to create.
-		alloc_funcs       - Allocation functions that will be used when allocating context and loaded type-libraries when using this context.
-		                    This memory will be freed by DL.
-							If NULL, malloc/free will be used by default!
+		dl_ctx        - Ptr to instance to create.
+		create_params - Parameters to control the construction of the dl context. See DL_CREATE_PARAMS_SET_DEFAULT
+		                for usage.
 */
-dl_error_t DL_DLL_EXPORT dl_context_create( dl_ctx_t* dl_ctx, dl_alloc_functions_t* alloc_funcs );
+dl_error_t DL_DLL_EXPORT dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_params );
 
 /*
 	Function: dl_context_destroy
