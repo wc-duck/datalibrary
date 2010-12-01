@@ -34,6 +34,7 @@ LATER
 * multi-dimensional arrays.
 * pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
 * benchmarks need to be written
+* there are quite a few ugly type-casts in the code, cleanup needed!
 * create some benchmarks that measure pack/unpack speed.
 * unittest that are cross platform 
     - pack on 32 bit -> unpack on 64 bit should be possible localy
