@@ -16,6 +16,8 @@ DONE
 * base-types in generated headers need to be configurable and default to uint32_t and friends.
 * rework functions to retrieve instance-info from dl_instance_endian, dl_instance_ptr_size, dl_instance_root_type to dl_instance_get_properties(dl_instance_properties* )
 * dl_load_instance and friends should take dl_type_id even though the do not need it. Use it for error reporting.
+* "root"-element removed fromm text-format.
+* unittests to check that DL_ERROR_TYPE_MISMATCH is returned from all functions when it should be.
 
 BEFORE 1.0
 * get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 ))
@@ -25,46 +27,49 @@ BEFORE 1.0
 * write readme and tutorials.
 
 LATER
-* add check for versions in data so errors are thrown if typelib and packed data of older version can not be loaded.
-* get pointers to work in python-bindings again.
-* unittests should pass valgrind. ( might be done in 1.0 if there is not much to do )
-* unittests for C#-bindings.
-* break out C#-bindings and python-bindings to their own library?
-* more platforms
-* multi-dimensional arrays.
-* pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
-* benchmarks need to be written
-* create some benchmarks that measure pack/unpack speed.
-* errors from txt-packing should not report error to stdout, dl_txt_get_last_error()?
-* unittest that are cross platform 
-    - pack on 32 bit -> unpack on 64 bit should be possible localy
-    - pack on little endian -> unpack on big endian is harder. Do via network?
-* add functionallity to stream txt_pack and unpack
-* cleanup in libdl.py and dl_tlc.py
-* EDLType should not need to be exposed by the lib in the way it is now!
-* dl_tlc should be built around a python-lib so one can embed type-library building.
-* unittests to check that DL_ERROR_TYPE_MISMATCH is returned from all functions when it should be.
-* dimensions to array and inline_array.
-* export pure c-headers?
-* buffered parsing?
-* unicode-strings!
-* SIMD-byteswap of arrays?
-* could one use a concept close to a xor-linked-list to not need traversal of entire struct when patching pointers? would this work with convert
-  functions? 
-* Is the "root" element needed in text-format?
-* Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
-  able to determine that they do not match.
+c-library:
+	* add check for versions in data so errors are thrown if typelib and packed data of older version can not be loaded.
+	* more platforms
+	* multi-dimensional arrays.
+	* errors from txt-packing should not report error to stdout, dl_txt_get_last_error()?
+	* add functionallity to stream txt_pack and unpack
+	* EDLType should not need to be exposed by the lib in the way it is now!
+	* dimensions to array and inline_array.
+	* unicode-strings!
+	* SIMD-byteswap of arrays?
+	* could one use a concept close to a xor-linked-list to not need traversal of entire struct when patching pointers? would this work with convert
+	  functions? 
+	* Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
+	  able to determine that they do not match.
   
-  example:
-	  MyStructVer1 { uint32 m_Int32; }
-	  MyStructVer1 { uint32 m_Int32; uint32 m_Int32_2; }
+	  example:
+		  MyStructVer1 { uint32 m_Int32; }
+		  MyStructVer1 { uint32 m_Int32; uint32 m_Int32_2; }
 	  
-  or typeid:s could be generated as 16-24 bits typelib:id, 8-16 bits enumeration of type in typelib. Would give faster type-lookups.
-  ( find typelib, direct indexing )
-  On could also add information in typeid as one byte if the type has sub-arrays for optimized packing!
+	  or typeid:s could be generated as 16-24 bits typelib:id, 8-16 bits enumeration of type in typelib. Would give faster type-lookups.
+	  ( find typelib, direct indexing )
+	  On could also add information in typeid as one byte if the type has sub-arrays for optimized packing!
   
-  // these are not the same type any more, or are they?
-* Question: is it viable to get it to compile with -pedantic for gcc?
+	  // these are not the same type any more, or are they?
+	* Question: is it viable to get it to compile with -pedantic for gcc?
+
+dl_tlc:
+	* pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
+	* cleanup/rewrite header-generation
+	* dl_tlc should be built around a python-lib so one can embed type-library building.
+
+bindings:
+	* get pointers to work in python-bindings again.
+	* break out C#-bindings and python-bindings to their own library?
+
+tests:
+	* unittests should pass valgrind. ( might be done in 1.0 if there is not much to do )
+	* unittests for C#-bindings.
+	* benchmarks need to be written
+	* create some benchmarks that measure pack/unpack speed.
+	* unittest that are cross platform 
+	    - pack on 32 bit -> unpack on 64 bit should be possible localy
+	    - pack on little endian -> unpack on big endian is harder. Do via network?
 
 EVEN LATER
 * bindings for other languages?
