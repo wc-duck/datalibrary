@@ -133,12 +133,6 @@ class TestLibDL( DL ):
 		self.assertEqual(3, len(Instance.Strings))
 		self.assertEqual(str, type(Instance.Strings[0]))
 		self.AssertArrayHasSameType(Instance.Strings)
-	
-	def testHasCorrectMembersTestBits(self):
-		Instance = self.DLContext.CreateInstance('TestBits')
-		
-	def testHasCorrectMembersTestBits(self):
-		Instance = self.DLContext.CreateInstance('MoreBits')
 		
 	'''def testHasCorrectMembersSimplePtr(self):
 		Type     = self.DLContext.CreateType('SimplePtr')
@@ -371,5 +365,5 @@ class TestLibDL( DL ):
 		
 		
 if __name__ == '__main__':
-    libdl_init( "local/linux64/debug/dl.so" )
+    libdl_init( "local/linux_x86_64/debug/dl.so" )
     unittest.main()

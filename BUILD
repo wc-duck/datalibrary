@@ -10,12 +10,12 @@ This libraries is needed to build DL and the libraries need to be avaliable in t
 **** HOWTO BUILD DL ****
 
 Bam buildscripts assumes to find its dependencies installed on the system on platforms that support it, on the other
-systems dependencies are assumed to be found in the folder "external/" with includes under "include/DEP" and library-files 
+systems dependencies are assumed to be found in the folder "extern/" with includes under "include/DEP" and library-files 
 under "libs/PLATFORM/CONFIGURATION".
 They also assumes to find Python2.6 in the path.
 
 example:
-external/
+extern/
     include/
       yajl/
         headers.h

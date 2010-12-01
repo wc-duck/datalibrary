@@ -36,6 +36,7 @@ LATER
 * benchmarks need to be written
 * there are quite a few ugly type-casts in the code, cleanup needed!
 * create some benchmarks that measure pack/unpack speed.
+* errors from txt-packing should not report error to stdout, dl_txt_get_last_error()?
 * unittest that are cross platform 
     - pack on 32 bit -> unpack on 64 bit should be possible localy
     - pack on little endian -> unpack on big endian is harder. Do via network?
@@ -49,6 +50,9 @@ LATER
 * buffered parsing?
 * unicode-strings!
 * SIMD-byteswap of arrays?
+* could one use a concept close to a xor-linked-list to not need traversal of entire struct when patching pointers? would this work with convert
+  functions? 
+* Is the "root" element needed in text-format?
 * Better type:ids, right now type-ids are calculated as name-hash but they sholud be calculated by member types and name to be 
   able to determine that they do not match.
   
@@ -58,6 +62,7 @@ LATER
 	  
   or typeid:s could be generated as 16-24 bits typelib:id, 8-16 bits enumeration of type in typelib. Would give faster type-lookups.
   ( find typelib, direct indexing )
+  On could also add information in typeid as one byte if the type has sub-arrays for optimized packing!
   
   // these are not the same type any more, or are they?
 * Question: is it viable to get it to compile with -pedantic for gcc?

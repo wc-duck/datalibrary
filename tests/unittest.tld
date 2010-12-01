@@ -11,6 +11,8 @@
 	},
 	
 	"module_types" : {
+		"unused" : { "members" : [ { "name" : "member",  "type" : "int32", "comment" : "only used in unittests to check for errors" } ] },
+		
 		"Pods" : {
 			"members" : [
 				{ "name" : "i8",  "type" : "int8"   },

@@ -44,14 +44,9 @@ const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned
 		EXPECT_TRUE(WasEq) << Err; \
 	}
 
-static void* MyAlloc(unsigned int  _Size, unsigned int _Alignment) { (void)_Alignment; return malloc(_Size); }
-static void  MyFree (void* _pPtr) { free(_pPtr); }
-
 class DL : public ::testing::Test
 {
 protected:
-	dl_alloc_functions_t MyAllocs;
-
 	virtual void SetUp()
 	{
 		// bake the unittest-type library into the exe!
@@ -60,10 +55,10 @@ protected:
 			#include "generated/unittest.bin.h"
 		};
 
-		MyAllocs.alloc = MyAlloc;
-		MyAllocs.free  = MyFree;
+		dl_create_params_t p;
+		DL_CREATE_PARAMS_SET_DEFAULT(p);
 
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &MyAllocs ) );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &p ) );
 		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib, sizeof(TypeLib)) );
 	}
 
