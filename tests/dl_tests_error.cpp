@@ -20,8 +20,8 @@ TEST_F(DLError, buffer_to_small_returned)
 {
 	// testing that DL_ERROR_BUFFER_TO_SMALL is returned when buffers are to small ;)
 
-	Pods p;
-	unsigned char packed[1];
+	// Pods p;
+	// unsigned char packed[1];
 
 	// TODO: fix this test!
 	// EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, DL_ARRAY_LENGTH(packed) ) );

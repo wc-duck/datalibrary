@@ -37,9 +37,12 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 	error = dl_instance_get_info( file_content, file_size, &info);
 
 	dl_util_file_type_t in_file_type = DL_UTIL_FILE_TYPE_TEXT;
-	if( error == DL_ERROR_OK) // could read it as binary!
+	if( error == DL_ERROR_OK ) // could read it as binary!
 		in_file_type = DL_UTIL_FILE_TYPE_BINARY;
 
+	if( (in_file_type & filetype) == 0 )
+		return DL_ERROR_UTIL_FILE_TYPE_MISMATCH;
+	
 	unsigned char* load_instance = 0x0;
 	unsigned int   load_size = 0;
 
