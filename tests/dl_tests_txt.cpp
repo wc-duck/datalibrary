@@ -9,6 +9,7 @@
 
 class DLText : public DL {};
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, member_order)
 {
 	// test to pack a txt-instance that is not in order!
@@ -47,7 +48,9 @@ TEST_F(DLText, member_order)
 	EXPECT_EQ(3.14f,  P1.f32);
 	EXPECT_EQ(4.1234, P1.f64);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, set_member_twice)
 {
 	// test to pack a txt-instance that is not in order!
@@ -73,7 +76,9 @@ TEST_F(DLText, set_member_twice)
 
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, member_not_exist)
 {
 	// test to pack a txt-instance that is not in order!
@@ -83,7 +88,9 @@ TEST_F(DLText, member_not_exist)
 
 	EXPECT_DL_ERR_EQ(DL_ERROR_MEMBER_NOT_FOUND, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, member_missing)
 {
 	// error should be cast if member is not set and has no default value!
@@ -94,7 +101,9 @@ TEST_F(DLText, member_missing)
 	unsigned char OutDataText[1024];
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_pod)
 {
 	// default-values should be set correctly!
@@ -118,7 +127,9 @@ TEST_F(DLText, defalut_value_pod)
 	EXPECT_EQ(10.0f, P1.f32);
 	EXPECT_EQ(11.0,  P1.f64);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_string)
 {
 	// default-values should be set correctly!
@@ -133,7 +144,9 @@ TEST_F(DLText, defalut_value_string)
 
 	EXPECT_STREQ("cowbells ftw!", P1[0].Str);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_ptr)
 {
 	// default-values should be set correctly!
@@ -148,7 +161,9 @@ TEST_F(DLText, defalut_value_ptr)
 
 	EXPECT_EQ(0x0, P1.Ptr);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_struct)
 {
 	const char* TextData = "{ \"type\" : \"DefaultStruct\", \"data\" : {} }";
@@ -162,7 +177,9 @@ TEST_F(DLText, defalut_value_struct)
 	EXPECT_EQ(13u, P1.Struct.Int1);
 	EXPECT_EQ(37u, P1.Struct.Int2);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_enum)
 {
 	const char* TextData = "{ \"type\" : \"DefaultEnum\", \"data\" : {} }";
@@ -175,7 +192,9 @@ TEST_F(DLText, defalut_value_enum)
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.Enum);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_inline_array_pod)
 {
 	// default-values should be set correctly!
@@ -193,7 +212,9 @@ TEST_F(DLText, defalut_value_inline_array_pod)
 	EXPECT_EQ(3u, P1.Arr[2]);
 	EXPECT_EQ(7u, P1.Arr[3]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_inline_array_enum)
 {
 	// default-values should be set correctly!
@@ -211,7 +232,9 @@ TEST_F(DLText, defalut_value_inline_array_enum)
 	EXPECT_EQ(TESTENUM1_VALUE2, P1.Arr[2]);
 	EXPECT_EQ(TESTENUM1_VALUE4, P1.Arr[3]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_inline_array_string)
 {
 	// default-values should be set correctly!
@@ -232,7 +255,9 @@ TEST_F(DLText, defalut_value_inline_array_string)
 	EXPECT_STREQ("are",   P1[0].Arr[2]);
 	EXPECT_STREQ("cool",  P1[0].Arr[3]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_array_pod)
 {
 	const char* TextData = "{ \"type\" : \"DefaultArrayPod\", \"data\" : {} }";
@@ -250,7 +275,9 @@ TEST_F(DLText, defalut_value_array_pod)
 	EXPECT_EQ(3u, P1[0].Arr[2]);
 	EXPECT_EQ(7u, P1[0].Arr[3]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_array_enum)
 {
 	const char* TextData = "{ \"type\" : \"DefaultArrayEnum\", \"data\" : {} }";
@@ -268,7 +295,9 @@ TEST_F(DLText, defalut_value_array_enum)
 	EXPECT_EQ(TESTENUM1_VALUE2, P1[0].Arr[2]);
 	EXPECT_EQ(TESTENUM1_VALUE4, P1[0].Arr[3]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLText, defalut_value_array_string)
 {
 	// default-values should be set correctly!
@@ -288,3 +317,4 @@ TEST_F(DLText, defalut_value_array_string)
 	EXPECT_STREQ("are",   P1[0].Arr[2]);
 	EXPECT_STREQ("cool",  P1[0].Arr[3]);
 }
+#endif // DL_UNITTEST_ALL

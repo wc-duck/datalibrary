@@ -99,7 +99,7 @@ class TestLibDL( DL ):
 		
 	def testHasCorrectMembersPodArray1(self):
 		Instance = self.DLContext.CreateInstance('PodArray1')
-		self.assertEqual(0, len(Instance.Array))
+		self.assertEqual(0, len(Instance.u32_arr))
 	
 	def testHasCorrectMembersWithInlineArray(self):
 		Instance = self.DLContext.CreateInstance('WithInlineArray')
@@ -220,7 +220,7 @@ class TestLibDL( DL ):
 	def testWritePodArray1(self):
 		Instance = self.DLContext.CreateInstance('PodArray1')
 		
-		Instance.Array = [ 1337, 7331, 13, 37 ]
+		Instance.u32_arr = [ 1337, 7331, 13, 37 ]
 		
 		self.do_the_round_about('PodArray1', Instance)
 		
@@ -228,10 +228,10 @@ class TestLibDL( DL ):
 		Instance = self.DLContext.CreateInstance('PodArray2')
 		SubType  = self.DLContext.CreateType('PodArray1')
 		
-		Instance.Array = [ SubType() ] * 3
-		Instance.Array[0].Array = [ 1, 2, 3 ]
-		Instance.Array[1].Array = [ 3, 4, 5 ]
-		Instance.Array[2].Array = [ 6, 7, 8 ]
+		Instance.sub_arr = [ SubType() ] * 3
+		Instance.sub_arr[0].u32_arr = [ 1, 2, 3 ]
+		Instance.sub_arr[1].u32_arr = [ 3, 4, 5 ]
+		Instance.sub_arr[2].u32_arr = [ 6, 7, 8 ]
 		
 		self.do_the_round_about('PodArray2', Instance)
 		

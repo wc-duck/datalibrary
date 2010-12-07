@@ -193,6 +193,7 @@ void do_the_round_about(dl_ctx_t dl_ctx, dl_typeid_t type, void* pack_me, void* 
 	}
 }
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, pods)
 {
 	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
@@ -211,7 +212,9 @@ TEST_F(DL, pods)
 	EXPECT_EQ(P1Original.f32, P1.f32);
 	EXPECT_EQ(P1Original.f64, P1.f64);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, pods_max)
 {
 	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
@@ -231,7 +234,9 @@ TEST_F(DL, pods_max)
 	// EXPECT_FLOAT_EQ(P1Original.f32,   P1.f32);
 	// EXPECT_DOUBLE_EQ(P1Original.f64,   P1.f64);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, pods_min)
 {
 	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
@@ -250,7 +255,9 @@ TEST_F(DL, pods_min)
 	EXPECT_NEAR(P1Original.f32, P1.f32, 0.0000001f);
 	EXPECT_NEAR(P1Original.f64, P1.f64, 0.0000001f);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, struct_in_struct)
 {
 	MorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
@@ -280,7 +287,9 @@ TEST_F(DL, struct_in_struct)
 	EXPECT_NEAR(P1Original.Pods2.f32, P1.Pods2.f32, 0.0000001f);
 	EXPECT_NEAR(P1Original.Pods2.f64, P1.Pods2.f64, 0.0000001f);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, struct_in_struct_in_struct)
 {
 	Pod2InStructInStruct Orig;
@@ -298,7 +307,9 @@ TEST_F(DL, struct_in_struct_in_struct)
 	EXPECT_EQ(Orig.p2struct.Pod2.Int1, New.p2struct.Pod2.Int1);
 	EXPECT_EQ(Orig.p2struct.Pod2.Int2, New.p2struct.Pod2.Int2);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, string)
 {
 	Strings Orig = { "cow", "bell" } ;
@@ -313,7 +324,9 @@ TEST_F(DL, string)
 	EXPECT_STREQ(Orig.Str1, New->Str1);
 	EXPECT_STREQ(Orig.Str2, New->Str2);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, enum)
 {
 	EXPECT_EQ(TESTENUM2_VALUE2 + 1, TESTENUM2_VALUE3); // value3 is after value2 but has no value. It sohuld automticallay be one bigger!
@@ -327,8 +340,9 @@ TEST_F(DL, enum)
 
 	EXPECT_EQ(Inst.TheEnum, Loaded.TheEnum);
 }
+#endif // DL_UNITTEST_ALL
 
-
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, inline_array_pod)
 {
 	WithInlineArray Orig;
@@ -344,7 +358,9 @@ TEST_F(DL, inline_array_pod)
 	EXPECT_EQ(Orig.Array[1], New.Array[1]);
 	EXPECT_EQ(Orig.Array[2], New.Array[2]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, inline_array_struct)
 {
 	WithInlineStructArray Orig;
@@ -366,7 +382,9 @@ TEST_F(DL, inline_array_struct)
 	EXPECT_EQ(Orig.Array[2].Int1, New.Array[2].Int1);
 	EXPECT_EQ(Orig.Array[2].Int2, New.Array[2].Int2);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, inline_array_struct_in_struct)
 {
 	WithInlineStructStructArray Orig;
@@ -400,7 +418,9 @@ TEST_F(DL, inline_array_struct_in_struct)
 	EXPECT_EQ(Orig.Array[1].Array[2].Int1, New.Array[1].Array[2].Int1);
 	EXPECT_EQ(Orig.Array[1].Array[2].Int2, New.Array[1].Array[2].Int2);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, inline_array_string)
 {
 	StringInlineArray Orig = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
@@ -416,7 +436,9 @@ TEST_F(DL, inline_array_string)
 	EXPECT_STREQ(Orig.Strings[1], New->Strings[1]);
 	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, inline_array_enum)
 {
 	InlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };
@@ -429,7 +451,9 @@ TEST_F(DL, inline_array_enum)
 	EXPECT_EQ(Inst.EnumArr[2], Loaded.EnumArr[2]);
 	EXPECT_EQ(Inst.EnumArr[3], Loaded.EnumArr[3]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_pod1)
 {
 	uint32_t Data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
@@ -442,26 +466,22 @@ TEST_F(DL, array_pod1)
 
 	New = (PodArray1*)&Loaded[0];
 
-	EXPECT_EQ(Orig.Array.count, New->Array.count);
-	EXPECT_EQ(Orig.Array[0],    New->Array[0]);
-	EXPECT_EQ(Orig.Array[1],    New->Array[1]);
-	EXPECT_EQ(Orig.Array[2],    New->Array[2]);
-	EXPECT_EQ(Orig.Array[3],    New->Array[3]);
-	EXPECT_EQ(Orig.Array[4],    New->Array[4]);
-	EXPECT_EQ(Orig.Array[5],    New->Array[5]);
-	EXPECT_EQ(Orig.Array[6],    New->Array[6]);
-	EXPECT_EQ(Orig.Array[7],    New->Array[7]);
+	EXPECT_EQ(Orig.u32_arr.count, New->u32_arr.count);
+	EXPECT_ARRAY_EQ(Orig.u32_arr.count, Orig.u32_arr.data, New->u32_arr.data);
 }
+#endif // DL_UNITTEST_ALL
 
-/*
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_with_sub_array)
 {
-	uint32_t Data1[] = { 1337, 7331,  13, 37, 133 } ;
-	uint32_t Data2[] = {    7,    1, 337 } ;
+	uint32_t Data[] = { 1337, 7331 } ;
 
-	PodArray1 OrigArray[] = { { { Data1, 5 } }, { { Data2, 3 } } } ;
-
-	PodArray2 Orig = { { OrigArray, 2 } };
+	PodArray1 OrigArray[1];
+	OrigArray[0].u32_arr.data  = Data;
+	OrigArray[0].u32_arr.count = DL_ARRAY_LENGTH(Data);
+	PodArray2 Orig;
+	Orig.sub_arr.data  = OrigArray;
+	Orig.sub_arr.count = DL_ARRAY_LENGTH(OrigArray);
 	PodArray2* New;
 
 	uint32_t Loaded[1024]; // this is so ugly!
@@ -470,22 +490,37 @@ TEST_F(DL, array_with_sub_array)
 
 	New = (PodArray2*)&Loaded[0];
 
-	EXPECT_EQ(Orig.Array.count, New->Array.count);
-
-	EXPECT_EQ(Orig.Array[0].Array.count, New->Array[0].Array.count);
-	EXPECT_EQ(Orig.Array[1].Array.count, New->Array[1].Array.count);
-
-	EXPECT_EQ(Orig.Array[0].Array[0], New->Array[0].Array[0]);
-	EXPECT_EQ(Orig.Array[0].Array[1], New->Array[0].Array[1]);
-	EXPECT_EQ(Orig.Array[0].Array[2], New->Array[0].Array[2]);
-	EXPECT_EQ(Orig.Array[0].Array[3], New->Array[0].Array[3]);
-	EXPECT_EQ(Orig.Array[0].Array[4], New->Array[0].Array[4]);
-	EXPECT_EQ(Orig.Array[1].Array[0], New->Array[1].Array[0]);
-	EXPECT_EQ(Orig.Array[1].Array[1], New->Array[1].Array[1]);
-	EXPECT_EQ(Orig.Array[1].Array[2], New->Array[1].Array[2]);
+	EXPECT_EQ(Orig.sub_arr.count, New->sub_arr.count);
+	EXPECT_EQ(Orig.sub_arr[0].u32_arr.count, New->sub_arr[0].u32_arr.count);
+	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, New->sub_arr[0].u32_arr.data);
 }
-*/
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
+TEST_F(DL, array_with_sub_array2)
+{
+	uint32_t Data1[] = { 1337, 7331,  13, 37, 133 } ;
+	uint32_t Data2[] = {    7,    1, 337 } ;
+
+	PodArray1 OrigArray[] = { { Data1, DL_ARRAY_LENGTH(Data1) }, { Data2, DL_ARRAY_LENGTH(Data2) } } ;
+	PodArray2 Orig = { { OrigArray, DL_ARRAY_LENGTH(OrigArray) } };
+	PodArray2* New;
+
+	uint32_t Loaded[1024]; // this is so ugly!
+
+	do_the_round_about(Ctx, PodArray2::TYPE_ID, &Orig, Loaded);
+
+	New = (PodArray2*)&Loaded[0];
+
+	EXPECT_EQ(Orig.sub_arr.count, New->sub_arr.count);
+	EXPECT_EQ(Orig.sub_arr[0].u32_arr.count, New->sub_arr[0].u32_arr.count);
+	EXPECT_EQ(Orig.sub_arr[1].u32_arr.count, New->sub_arr[1].u32_arr.count);
+	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, New->sub_arr[0].u32_arr.data);
+	EXPECT_ARRAY_EQ(Orig.sub_arr[1].u32_arr.count, Orig.sub_arr[1].u32_arr.data, New->sub_arr[1].u32_arr.data);
+}
+#endif // DL_UNITTEST_ALL
+
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_string)
 {
 	char* TheStringArray[] = { (char*)"I like", (char*)"the", (char*)"1337 ", (char*)"cowbells of doom!" };
@@ -503,7 +538,9 @@ TEST_F(DL, array_string)
 	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
 	EXPECT_STREQ(Orig.Strings[3], New->Strings[3]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_struct)
 {
 	Pods2 Data[4] = { { 1, 2}, { 3, 4 }, { 5, 6 }, { 7, 8 } } ;
@@ -527,7 +564,9 @@ TEST_F(DL, array_struct)
 	EXPECT_EQ(Inst.Array[3].Int2, New->Array[3].Int2);
 
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_enum)
 {
 	TestEnum2 Data[8] = { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4, TESTENUM2_VALUE4, TESTENUM2_VALUE3, TESTENUM2_VALUE2, TESTENUM2_VALUE1 } ;
@@ -550,7 +589,9 @@ TEST_F(DL, array_enum)
 	EXPECT_EQ(Inst.EnumArr[6],    New->EnumArr[6]);
 	EXPECT_EQ(Inst.EnumArr[7],    New->EnumArr[7]);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, bitfield)
 {
 	TestBits Orig;
@@ -574,7 +615,9 @@ TEST_F(DL, bitfield)
 	EXPECT_EQ(Orig.Bit5, New.Bit5);
 	EXPECT_EQ(Orig.Bit6, New.Bit6);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, bitfield2)
 {
 	MoreBits Orig;
@@ -588,7 +631,9 @@ TEST_F(DL, bitfield2)
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, bitfield_64bit)
 {
 	BitBitfield64 Orig;
@@ -606,7 +651,9 @@ TEST_F(DL, bitfield_64bit)
 	EXPECT_EQ(Orig.PathHash, New.PathHash);
 	EXPECT_EQ(Orig.FileHash, New.FileHash);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, ptr)
 {
 	Pods Pods = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
@@ -632,7 +679,9 @@ TEST_F(DL, ptr)
 	EXPECT_EQ(Orig.Ptr1->f32, New->Ptr1->f32);
 	EXPECT_EQ(Orig.Ptr1->f64, New->Ptr1->f64);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, ptr_chain)
 {
 	PtrChain Ptr1 = { 1337,   0x0 };
@@ -657,7 +706,9 @@ TEST_F(DL, ptr_chain)
 	EXPECT_EQ(Ptr2.Int, New->Next->Next->Int);
 	EXPECT_EQ(Ptr1.Int, New->Next->Next->Next->Int);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, ptr_chain_circle)
 {
 	// tests both circualar ptrs and reference to root-node!
@@ -701,7 +752,9 @@ TEST_F(DL, ptr_chain_circle)
 	EXPECT_EQ(Ptr4.Next->Next->Next->Int,  New->Next->Next->Next->Int);
 	EXPECT_EQ(New->Next->Next,             New->Next->Next->Next->Prev);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_pod_empty)
 {
 	PodArray1 Inst = { { NULL, 0 } };
@@ -709,10 +762,12 @@ TEST_F(DL, array_pod_empty)
 
 	do_the_round_about(Ctx, PodArray1::TYPE_ID, &Inst, &Loaded);
 
-	EXPECT_EQ(0u,  Loaded.Array.count);
-	EXPECT_EQ(0x0, Loaded.Array.data);
+	EXPECT_EQ(0u,  Loaded.u32_arr.count);
+	EXPECT_EQ(0x0, Loaded.u32_arr.data);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_struct_empty)
 {
 	StructArray1 Inst = { { NULL, 0 } };
@@ -723,7 +778,9 @@ TEST_F(DL, array_struct_empty)
 	EXPECT_EQ(0u,  Loaded.Array.count);
 	EXPECT_EQ(0x0, Loaded.Array.data);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, array_string_empty)
 {
 	StringArray Inst = { { NULL, 0 } };
@@ -734,7 +791,9 @@ TEST_F(DL, array_string_empty)
 	EXPECT_EQ(0u,  Loaded.Strings.count);
 	EXPECT_EQ(0x0, Loaded.Strings.data);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, bug1)
 {
 	// There was some error packing arrays ;)
@@ -758,7 +817,9 @@ TEST_F(DL, bug1)
 	EXPECT_EQ(Arr[2].u64_2, Loaded[0].Arr[2].u64_2);
 	EXPECT_EQ(Arr[2].u16,   Loaded[0].Arr[2].u16);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DL, bug2)
 {
 	// some error converting from 32-bit-data to 64-bit.
@@ -785,7 +846,9 @@ TEST_F(DL, bug2)
  	EXPECT_ARRAY_EQ(16, Arr[0].Transform, Loaded[0].Instances[0].Transform);
  	EXPECT_ARRAY_EQ(16, Arr[1].Transform, Loaded[0].Instances[1].Transform);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST(DLMisc, endian_is_correct)
 {
 	// Test that DL_ENDIAN_HOST is set correctly
@@ -811,6 +874,7 @@ TEST(DLMisc, endian_is_correct)
 		EXPECT_EQ(4, test.c[3]);
 	}
 }
+#endif // DL_UNITTEST_ALL
 
 int main(int argc, char **argv)
 {

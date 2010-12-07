@@ -37,8 +37,8 @@
 		"WithInlineStructArray"       : { "members" : [ { "name" : "Array",    "type" : "inline-array", "subtype" : "Pods2",                 "count" : 3 } ] },
 		"WithInlineStructStructArray" : { "members" : [ { "name" : "Array",    "type" : "inline-array", "subtype" : "WithInlineStructArray", "count" : 2 } ] },
 		
-		"PodArray1"    : { "members" : [ { "name" : "Array", "type" : "array", "subtype" : "uint32" } ] }, 
-		"PodArray2"    : { "members" : [ { "name" : "Array", "type" : "array", "subtype" : "PodArray1" } ] }, 
+		"PodArray1"    : { "members" : [ { "name" : "u32_arr", "type" : "array", "subtype" : "uint32" } ] }, 
+		"PodArray2"    : { "members" : [ { "name" : "sub_arr", "type" : "array", "subtype" : "PodArray1" } ] }, 
 		
 		"StructArray1" : { "members" : [ { "name" : "Array", "type" : "array", "subtype" : "Pods2" }  ] },
 		

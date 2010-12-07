@@ -16,6 +16,7 @@ struct TAlignmentOf
 
 class DLReflect : public DL {};
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLReflect, pods)
 {
 	dl_type_info_t   Info = { 0 };
@@ -67,7 +68,9 @@ TEST_F(DLReflect, pods)
 	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[9].type & DL_TYPE_ATOM_MASK);
 	EXPECT_EQ   (DL_TYPE_STORAGE_FP64,   Members[9].type & DL_TYPE_STORAGE_MASK);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLReflect, size_and_alignment)
 {
 	dl_type_info_t   ti;
@@ -160,7 +163,9 @@ TEST_F(DLReflect, size_and_alignment)
 	EXPECT_EQ(sizeof(BugTest1_InArray),                    ti.size);
 	EXPECT_EQ(DL_ALIGNMENTOF(BugTest1_InArray),            ti.alignment);
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLReflect, type_lookup)
 {
 	dl_typeid_t type_id = 0;
@@ -176,3 +181,4 @@ TEST_F(DLReflect, type_lookup)
 	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_reflect_get_type_id(Ctx, "bloobloo", &type_id) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_reflect_get_type_id(Ctx, "bopp", &type_id) );
 }
+#endif // DL_UNITTEST_ALL

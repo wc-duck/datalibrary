@@ -10,12 +10,15 @@
 
 class DLError : public DL {};
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLError, all_errors_defined_in_error_to_string)
 {
 	for(dl_error_t Err = DL_ERROR_OK; Err < DL_ERROR_INTERNAL_ERROR; Err = (dl_error_t)((unsigned int)Err + 1))
 		EXPECT_STRNE("Unknown error!", dl_error_to_string(Err));
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLError, buffer_to_small_returned)
 {
 	// testing that DL_ERROR_BUFFER_TO_SMALL is returned when buffers are to small ;)
@@ -26,7 +29,9 @@ TEST_F(DLError, buffer_to_small_returned)
 	// TODO: fix this test!
 	// EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, DL_ARRAY_LENGTH(packed) ) );
 }
+#endif // DL_UNITTEST_ALL
 
+#ifdef DL_UNITTEST_ALL
 TEST_F(DLError, type_mismatch_returned)
 {
 	// testing that DL_ERROR_TYPE_MISMATCH is returned if provided type is not matching type stored in instance
@@ -65,3 +70,4 @@ TEST_F(DLError, type_mismatch_returned)
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_txt_unpack_calc_size( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), &dummy ) );
 #undef EXPECT_DL_ERR_TYPE_MISMATCH
 }
+#endif // DL_UNITTEST_ALL
