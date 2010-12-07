@@ -88,7 +88,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 	{
 		const SDLMember& Member = _pType->m_lMembers[i];
 
-		yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)Member.m_Name, strlen(Member.m_Name));
+		yajl_gen_string(_Ctx->m_JsonGen, (const unsigned char*)Member.m_Name, (unsigned int)strlen(Member.m_Name));
 
 		const uint8* pMemberData = _pData + Member.m_Offset[DL_PTR_SIZE_HOST];
 
@@ -113,7 +113,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					{
 	 					pint  Offset     = *(pint*)pMemberData;
 	 					char* pTheString =  (char*)(_pDataBase + Offset);
-	 					yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pTheString, strlen(pTheString));
+	 					yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pTheString, (unsigned int)strlen(pTheString));
 	 				}
 					break;
 					case DL_TYPE_STORAGE_PTR:
@@ -134,7 +134,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					case DL_TYPE_STORAGE_ENUM:
 					{
 						const char* pEnumName = DLFindEnumName(_Ctx->m_Ctx, Member.m_TypeID, *(uint32*)pMemberData);
-						yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, strlen(pEnumName));
+						yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, (unsigned int)strlen(pEnumName));
 					}
 					break;
 					default: // default is a standard pod-type
@@ -175,7 +175,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						{
 							pint Offset = *(pint*)(pMemberData + (iElem * Size));
 							char* pStr =   (char*)(_pDataBase + Offset);
-							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pStr, strlen(pStr));
+							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pStr, (unsigned int)strlen(pStr));
 						}
 					}
 					break;
@@ -190,7 +190,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 							uint32* pEnumData = (uint32*)pMemberData;
 
 							const char* pEnumName = DLFindEnumName(_Ctx->m_Ctx, Member.m_TypeID, pEnumData[iElem]);
-							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, strlen(pEnumName));
+							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, (unsigned int)strlen(pEnumName));
 						}
 					}
 					break;
@@ -233,7 +233,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						{
 							pint  Offset     = *(pint*)(pArrayData + (iElem * sizeof(char*)));
 							char* pTheString =  (char*)(_pData + Offset);
-							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pTheString, strlen(pTheString));
+							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pTheString, (unsigned int)strlen(pTheString));
 						}
 					}
 					break;
@@ -244,7 +244,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						for(pint iElem = 0; iElem < Count; ++iElem)
 						{
 							const char* pEnumName = DLFindEnumName(_Ctx->m_Ctx, Member.m_TypeID, pEnumData[iElem]);
-							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, strlen(pEnumName));
+							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, (unsigned int)strlen(pEnumName));
 						}
 					}
 					break;
@@ -317,11 +317,8 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 				const SDLMember* pMember = _Ctx->m_lSubdataMembers[iSubData].m_pMember;
 				const uint8* pMemberData = _Ctx->m_lSubdataMembers[iSubData].m_pData;
 
-				dl_type_t AtomType    = pMember->AtomType();
-				dl_type_t StorageType = pMember->StorageType();
-
-				M_ASSERT(AtomType == DL_TYPE_ATOM_POD);
-				M_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
+				M_ASSERT(pMember->AtomType() == DL_TYPE_ATOM_POD);
+				M_ASSERT(pMember->StorageType() == DL_TYPE_STORAGE_PTR);
 
 				const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, pMember->m_TypeID);
 				if(pSubType == 0x0)
