@@ -12,6 +12,8 @@
 	#define snprintf _snprintf // ugly fugly.
 #endif // defined(_MSC_VER)
 
+#define DL_UNITTEST_ALL // all tests are run! undef to disabla all unittests
+
 #define EXPECT_DL_ERR_EQ(_Expect, _Res) { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; }
 #define EXPECT_DL_ERR_OK(_Res) EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
@@ -19,11 +21,11 @@
 template<typename T>
 const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned int nBuffer)
 {
-	unsigned int Pos = snprintf(pBuffer, nBuffer, "{ %f", _pArr[0]);
+	unsigned int Pos = snprintf(pBuffer, nBuffer, "{ %f", (float)_pArr[0]);
 
 	for(unsigned int i = 1; i < _Count && Pos < nBuffer; ++i)
 	{
-		Pos += snprintf(pBuffer + Pos, nBuffer - Pos, ", %f", _pArr[i]);
+		Pos += snprintf(pBuffer + Pos, nBuffer - Pos, ", %f", (float)_pArr[i]);
 	}
 
 	snprintf(pBuffer + Pos, nBuffer - Pos, " }");
@@ -38,7 +40,7 @@ const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned
 		char ExpectBuf[1024]; \
 		char ActualBuf[1024]; \
 		char Err[2048]; \
-		snprintf(Err, DL_ARRAY_LENGTH(Err), "Arrays diffed!\nExpected:\n%s\nActual:\n%s", \
+		snprintf(Err, DL_ARRAY_LENGTH(Err), "Expected:\n%s\nActual:\n%s", \
 											ArrayToString(_Expect, _Count, ExpectBuf, DL_ARRAY_LENGTH(ExpectBuf)), \
 											ArrayToString(_Actual, _Count, ActualBuf, DL_ARRAY_LENGTH(ActualBuf))); \
 		EXPECT_TRUE(WasEq) << Err; \
