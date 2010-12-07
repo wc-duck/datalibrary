@@ -18,11 +18,11 @@ DONE
 * dl_load_instance and friends should take dl_type_id even though the do not need it. Use it for error reporting.
 * "root"-element removed fromm text-format.
 * unittests to check that DL_ERROR_TYPE_MISMATCH is returned from all functions when it should be.
+* rework text-format for arrays from #1 to the same syntax as inline arrays.
 
 BEFORE 1.0
 * get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 ))
 * linux x86 has alignment 4 on double, dl do not support it. FIX!
-* rework text-format for arrays from #1 to the same syntax as inline arrays.
 
 * write readme and tutorials.
 
@@ -52,17 +52,63 @@ c-library:
   
 	  // these are not the same type any more, or are they?
 	* Question: is it viable to get it to compile with -pedantic for gcc?
+	* text-packing/binary-writer-code is messy. I do not like =/
 
 dl_tlc:
 	* pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
 	* cleanup/rewrite header-generation
 	* dl_tlc should be built around a python-lib so one can embed type-library building.
+	* add decompile-option for typelib-description files bin -> json
+	* .tld file format change!
+		members are a list right now to be able to controll order of parameters.
+
+		this should be replaced with a map and the potential index-parameter if controll of order is needed.
+
+		old:
+			"MorePods" : { 
+				"members" : [ 
+					{ "name" : "Pods1", "type" : "Pods"  },  
+					{ "name" : "Pods2", "type" : "Pods" } 
+				]
+			}
+
+		new:
+			"MorePods" : { 
+				"members" : { 
+					"Pods1" : { "type" : "Pods" },  
+					"Pods2" : { "type" : "Pods" } 
+				}
+			}
+
+		if only type is set a shorthand form can be used:
+			"MorePods" : { 
+				"members" : { 
+					"Pods1" : "Pods",
+					"Pods2" : "Pods"
+				}
+			}
+
+		if order of parameters in generated structs is required, for example a vector3 where one might want x,y,z in that order
+		one can use the index parameter. Dl will sort members first on index, then on alignment, then on type, lastly on name. 
+		Default-index if not set is uint32-max or configurable?
+		( this might be a bad example since they are sorted by name, but it gets the idea across )
+		Index might also be used to group members together by setting index to the same for different members.
+
+			"vec3" : { 
+				"members" : { 
+					"x" : { "type" : "float", "index" : 0 },
+					"y" : { "type" : "float", "index" : 1 },
+					"z" : { "type" : "float", "index" : 2 }
+				}
+			}
+
 
 bindings:
 	* get pointers to work in python-bindings again.
 	* break out C#-bindings and python-bindings to their own library?
 
 tests:
+	* harder unittests for subarrays.
 	* unittests should pass valgrind. ( might be done in 1.0 if there is not much to do )
 	* unittests for C#-bindings.
 	* benchmarks need to be written
