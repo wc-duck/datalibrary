@@ -234,6 +234,7 @@ def parse_options():
 	parser.add_option("", "--dldll")
 	parser.add_option("-o", "--output",     dest="output",    help="write type library to file")
 	parser.add_option("-x", "--hexarray",   dest="hexarray",  help="write type library as hex-array that can be included in c/cpp-code")
+	parser.add_option("",   "--c-header",   dest="cheader",   help="write C-header to file")
 	parser.add_option("-c", "--cpp-header", dest="cppheader", help="write C++-header to file")
 	parser.add_option("-s", "--cs-header",  dest="csheader",  help="write C#-header to file")	
 	parser.add_option("",   "--config",     dest="config",    help="configuration file to configure generated headers.")	
@@ -282,7 +283,16 @@ if __name__ == "__main__":
 	# write headers
 	if options.cppheader:
 		options.cppheader = open(options.cppheader, 'w')
-		hw = HeaderWriterCPP(options.cppheader, config['cpp'])
+		hw = HeaderWriterCPP(options.cppheader, config['cpp'], pure_c = False)
+		hw.write_header(data)
+		hw.write_enums(data)
+		hw.write_structs(data)
+		hw.finalize(data)
+		options.cppheader.close()
+		
+	if options.cheader:
+		options.cppheader = open(options.cppheader, 'w')
+		hw = HeaderWriterCPP(options.cppheader, config['cpp'], pure_c = True)
 		hw.write_header(data)
 		hw.write_enums(data)
 		hw.write_structs(data)
