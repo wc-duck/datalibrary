@@ -478,14 +478,13 @@ class DLContext:
             _TypeName   -- name of type.
             _DataBuffer -- string containing buffer to load from.
         '''
+        type_info = self.type_cache[_TypeName]
+        
         UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
         
-        err = g_DLDll.dl_instance_load(self.DLContext, byref(UnpackedData), _DataBuffer, len(_DataBuffer));
+        err = g_DLDll.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), _DataBuffer, len(_DataBuffer));
         if err != 0:
             raise DLError('Could not store instance!', err)
-        
-        # TODO: Guess that there is a bug here, what happens if type is not loaded!
-        type_info = self.type_cache[_TypeName]
         
         c_instance = cast(UnpackedData, POINTER(type_info.c_type)).contents
         
@@ -534,19 +533,19 @@ class DLContext:
         
         ConvertedSize = c_ulong(0)
         
-        err = g_DLDll.dl_convert_calc_size(self.DLContext, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
+        err = g_DLDll.dl_convert_calc_size(self.DLContext, TypeID, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
         if err != 0:
             raise DLError('Could not calc convert instance size!', err)
         
         if DataSize == ConvertedSize:
             # can convert inplace
-            err = g_DLDll.dl_convert_inplace(self.DLContext, PackedData, len(PackedData), 0 if _Endian == 'big' else 1, _PtrSize);
+            err = g_DLDll.dl_convert_inplace(self.DLContext, TypeID, PackedData, len(PackedData), 0 if _Endian == 'big' else 1, _PtrSize);
             if err != 0:
                 raise DLError('Could not convert instance!', err)
         else:
             # need new memory
             ConvertedData = (c_ubyte * ConvertedSize.value)()
-            err = g_DLDll.dl_convert(self.DLContext, PackedData, len(PackedData), ConvertedData, len(ConvertedData), 0 if _Endian == 'big' else 1, _PtrSize);
+            err = g_DLDll.dl_convert(self.DLContext, TypeID, PackedData, len(PackedData), ConvertedData, len(ConvertedData), 0 if _Endian == 'big' else 1, _PtrSize);
             
             PackedData = ConvertedData
             
