@@ -1,6 +1,6 @@
 BUILD_PATH = "local"
-PYTHON = "python"
--- PYTHON = "C:\\Python26\\python.exe"
+-- PYTHON = "python"
+PYTHON = "C:\\Python26\\python.exe"
 
 function DLTypeLibrary( tlc_file, dl_shared_lib )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
@@ -39,8 +39,26 @@ end
 
 
 function DefaultSettings( platform, config )
+	local settings = {}
+	
+	settings.debug = 0
+	settings.optimize = 0
+	settings._is_settingsobject = true
+	settings.invoke_count = 0
+	
+	-- SetCommonSettings(settings)
+	settings.config_name = ""
+	settings.config_ext  = ""
+	settings.labelprefix = ""
+	
+	-- add all tools
+	for _, tool in pairs(_bam_tools) do
+		tool(settings)
+	end
 
-	local settings = NewSettings()
+	-- lock the table and return
+	TableLock(settings)	
+
 	settings.cc.includes:Add("include")
 	settings.cc.includes:Add("local")
 	
@@ -59,12 +77,26 @@ end
 
 function DefaultGCC( platform, config )
 	local settings = DefaultSettings( platform, config )
+	SetDriversGCC(settings)
+	
 	settings.cc.flags:Add("-Werror", "-ansi")
 	if config == "debug" then
 		settings.cc.flags:Add("-O0", "-g")
 	else
 		settings.cc.flags:Add("-O2")
 	end
+	
+	if platform == "linux_x86" then
+		settings.cc.flags:Add( "-malign-double" ) -- TODO: temporary workaround, dl should support natural alignment for double
+		settings.cc.flags:Add( "-m32" )
+		settings.dll.flags:Add( "-m32" )
+		settings.link.flags:Add( "-m32" )
+	else
+		settings.cc.flags:Add( "-m64" )
+		settings.dll.flags:Add( "-m64" )
+		settings.link.flags:Add( "-m64" )
+	end
+	
 	return settings
 end
 
@@ -73,7 +105,6 @@ function SetupMSVCBinaries( settings, build_platform )
 		return
 	end
 
-	path = os.getenv("PATH")
 	vs8_path = os.getenv("VS80COMNTOOLS")
 	
 	if vs8_path == nil then error("Visual Studio 8 is not installed on this machine!") end
@@ -81,89 +112,72 @@ function SetupMSVCBinaries( settings, build_platform )
 	local vs_install_dir = Path( vs8_path .. "/../../../" )
 	local vc_inc_path = Path( vs_install_dir .. "/VC/include" )
 	local vs_ide_path = Path( vs_install_dir .. "/Common7/IDE" )
-	local vs_bin_path = ""
-	local vs_lib_path = ""
 	local vs_define_name = ""
 	
+	local lib_path_sufix = ""
+	
 	if build_platform == "win32" then
-		vc_lib_path = Path( vs_install_dir .. "/VC/lib" )
-		vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/\"" )
 		vs_define_name = "DL_VS32_PATH"
+		EnvironmentSet( vs_define_name, Path( "\"" .. vs_install_dir .. "/VC/bin/\"" ) )
 	elseif build_platform == "winx64" then
-		vc_lib_path = Path( vs_install_dir .. "/VC/lib/amd64" )
+		lib_path_sufix = "/amd64"
 		vs_define_name = "DL_VS64_PATH"
 		if platform == "win32" then
-			vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/x86_amd64/\"" )
+			EnvironmentSet( vs_define_name, Path( "\"" .. vs_install_dir .. "/VC/bin/x86_amd64/\"" ) )
 		else
-			vs_bin_path = Path( "\"" .. vs_install_dir .. "/VC/bin/amd64/\"" )
+			EnvironmentSet( vs_define_name, Path( "\"" .. vs_install_dir .. "/VC/bin/amd64/\"" ) )
 		end
 	end
 	
 	EnvironmentSet("PATH", vs_ide_path)
-	EnvironmentSet(vs_define_name, vs_bin_path)
 	
 	settings.cc.exe_c = "%" .. vs_define_name .. "%cl"
 	settings.lib.exe  = "%" .. vs_define_name .. "%lib"
 	settings.dll.exe  = "%" .. vs_define_name .. "%link"
 	settings.link.exe = "%" .. vs_define_name .. "%link"
 	
+	local lib_path  = Path( vs_install_dir .. "/VC/lib" .. lib_path_sufix )
+	local psdk_path = Path( vs_install_dir .. "/VC/PlatformSDK/lib" .. lib_path_sufix )
 	settings.cc.includes:Add(vc_inc_path)
-	settings.dll.libpath:Add(vc_lib_path)
-	settings.link.libpath:Add(vc_lib_path)
+	settings.dll.libpath:Add(lib_path)
+	settings.dll.libpath:Add(psdk_path)
+	settings.link.libpath:Add(lib_path)
+	settings.link.libpath:Add(psdk_path)
 end
 
 function DefaultMSVC( build_platform, config )
 	local settings = DefaultSettings( build_platform, config )
+	SetDriversCL(settings)
+	
 	--[[
-		Settings here should be!
-		settings.cc.flags:Add("/Wall", "-WX")
 		/EHsc only on unittest
 		/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
 	--]]
-	settings.cc.flags:Add("/W4", "-WX", "/EHsc", "/wd4324")
+	settings.cc.flags:Add("/W4", "/WX", "/EHsc", "/wd4324") -- add /Wall?
+	
+	if config == "debug" then
+		settings.cc.flags:Add("/Od", "/MTd", "/Z7", "/D \"_DEBUG\"")
+		settings.dll.flags:Add("/DEBUG")
+		settings.link.flags:Add("/DEBUG")
+	else
+		settings.cc.flags:Add("/Ox", "/Ot", "/MT", "/D \"NDEBUG\"")
+	end
 	
 	settings.cc.includes:Add("extern/include")
-	settings.dll.libpath:Add("extern/libs/" .. platform .. "/" .. config)
-	settings.link.libpath:Add("extern/libs/" .. platform .. "/" .. config)
+	settings.dll.libpath:Add("extern/libs/" .. build_platform .. "/" .. config)
+	settings.link.libpath:Add("extern/libs/" .. build_platform .. "/" .. config)
+	
+	SetupMSVCBinaries( settings, build_platform )
 
-	return settings
-end
-
-function DefaultMSVS_Win32( config )
-	local settings = DefaultMSVC( "win32", config )
-	SetupMSVCBinaries( settings, "win32" )
-	return settings
-end
-
-function DefaultMSVS_Winx64( config )
-	local settings = DefaultMSVC( "winx64", config )
-	SetupMSVCBinaries( settings, "winx64" )
-	return settings
-end
-
-function DefaultGCCLinux_x86( config )
-	local settings = DefaultGCC( "linux_x86", config )
-	settings.cc.flags:Add( "-m32" )
-	settings.cc.flags:Add( "-malign-double" ) -- TODO: temporary workaround, dl should support natural alignment for double
-	settings.dll.flags:Add( "-m32" )
-	settings.link.flags:Add( "-m32" )
-	return settings
-end
-
-function DefaultGCCLinux_x86_64( config )
-	local settings = DefaultGCC( "linux_x86_64", config )
-	settings.cc.flags:Add( "-m64" )
-	settings.dll.flags:Add( "-m64" )
-	settings.link.flags:Add( "-m64" )
 	return settings
 end
 
 settings = 
 {
-	linux_x86    = { debug = DefaultGCCLinux_x86( "debug" ),    release = DefaultGCCLinux_x86( "release" ) },
-	linux_x86_64 = { debug = DefaultGCCLinux_x86_64( "debug" ), release = DefaultGCCLinux_x86_64( "release" ) },
-	win32        = { debug = DefaultMSVS_Win32( "debug" ),      release = DefaultMSVS_Win32( "release" ) },
-	winx64       = { debug = DefaultMSVS_Winx64( "debug" ),     release = DefaultMSVS_Winx64( "release" ) }
+	linux_x86    = { debug = DefaultGCC( "linux_x86",    "debug" ), release = DefaultGCC( "linux_x86",    "release" ) },
+	linux_x86_64 = { debug = DefaultGCC( "linux_x86_64", "debug" ), release = DefaultGCC( "linux_x86_64", "release" ) },
+	win32        = { debug = DefaultMSVC( "win32",       "debug" ), release = DefaultMSVC( "win32",       "release" ) },
+	winx64       = { debug = DefaultMSVC( "winx64",      "debug" ), release = DefaultMSVC( "winx64",      "release" ) }
 }
 
 build_platform = ScriptArgs["platform"]
