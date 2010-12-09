@@ -1,25 +1,3 @@
-DONE
-* remove all unnessesary stuff from public interface. No unneded symbols should be exposed from dl.
-* fix how dl_tlc loads dl.so/.dll
-    - read from system paths ( 1. same path as dl_tlc 2. system installed )
-    - add flag to dl_tlc to specify shared lib to use in unittests
-* add dl_reflect_get_type_id( const char* type_name  ), to be able to build binds without exposing hash-function.
-* unittest for python should work and be incorprated into build-scripts
-* make interface more consistent
-    - consistent order of parameters between functions
-    - consistent nameing of functions, dl_instance_*, dl_convert_*, dl_txt_*, dl_util_*
-    - consistent nameing of parameters to functions.
-* rename StrHash, user need not know that it is a string-hash ( it might not even be later on! ). dl_type_id?
-* code-style should be a c-isch interface. HDLContext -> dl_ctx_t etc.
-* rename targets linux32 -> linux_x86 and linux64 -> linux_x86_64
-* remove all adding of m_, p, S when generating headers from dl_tlc. Let users define their struct-names in type-lib!
-* base-types in generated headers need to be configurable and default to uint32_t and friends.
-* rework functions to retrieve instance-info from dl_instance_endian, dl_instance_ptr_size, dl_instance_root_type to dl_instance_get_properties(dl_instance_properties* )
-* dl_load_instance and friends should take dl_type_id even though the do not need it. Use it for error reporting.
-* "root"-element removed fromm text-format.
-* unittests to check that DL_ERROR_TYPE_MISMATCH is returned from all functions when it should be.
-* rework text-format for arrays from #1 to the same syntax as inline arrays.
-
 BEFORE 1.0
 * get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 ))
 * linux x86 has alignment 4 on double, dl do not support it. FIX!
@@ -112,7 +90,7 @@ tests:
 	* unittests should pass valgrind. ( might be done in 1.0 if there is not much to do )
 	* unittests for C#-bindings.
 	* benchmarks need to be written
-	* create some benchmarks that measure pack/unpack speed.
+	* create some benchmarks that measure pack/unpack speed. 
 	* unittest that are cross platform 
 	    - pack on 32 bit -> unpack on 64 bit should be possible localy
 	    - pack on little endian -> unpack on big endian is harder. Do via network?
