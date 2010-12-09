@@ -55,8 +55,8 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t     _Context,
                                     unsigned int*  _pNeededSize,
                                     dl_endian_t     _SourceEndian,
                                     dl_endian_t     _TargetEndian,
-                                    EDLPtrSize     _SourcePtrSize,
-                                    EDLPtrSize     _TargetPtrSize,
+                                    dl_ptr_size_t     _SourcePtrSize,
+                                    dl_ptr_size_t     _TargetPtrSize,
                                     const SDLType* _pRootType,
                                     unsigned int   _BaseOffset );
 

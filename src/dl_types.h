@@ -37,7 +37,7 @@
 
 #define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
-#define M_ASSERT(_Expr, ...) // implement me plox!
+#define M_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: Rename and implement me plox!
 
 #define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
 #define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
@@ -86,7 +86,7 @@ struct TAlignmentOf
 };
 #define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
 
-#define DL_LOG_DL_ERROR(_Fmt, ...) fprintf(stderr, "DL: " _Fmt, ##__VA_ARGS__)
+#define DL_LOG_DL_ERROR(_Fmt, ...) fprintf(stderr, "DL: " _Fmt "\n", ##__VA_ARGS__)
 
 enum
 {
@@ -144,7 +144,7 @@ struct SDLTypeLookup
 	uint32  m_Offset;
 };
 
-enum EDLPtrSize
+enum dl_ptr_size_t
 {
 	DL_PTR_SIZE_32BIT = 0,
 	DL_PTR_SIZE_64BIT = 1,
@@ -259,7 +259,7 @@ inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset,
 
 DL_FORCEINLINE dl_endian_t DLOtherEndian(dl_endian_t _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
 
-DL_FORCEINLINE pint DLPtrSize(EDLPtrSize _SizeEnum)
+DL_FORCEINLINE pint DLPtrSize(dl_ptr_size_t _SizeEnum)
 {
 	switch(_SizeEnum)
 	{

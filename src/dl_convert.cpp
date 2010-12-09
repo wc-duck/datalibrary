@@ -19,13 +19,13 @@ struct SInstance
 	pint           m_ArrayCount;
 	pint           m_OffsetAfterPatch;
 	const SDLType* m_pType;
-	dl_type_t        m_Type;
+	dl_type_t      m_Type;
 };
 
 class SConvertContext
 {
 public:
-	SConvertContext( dl_endian_t _SourceEndian, dl_endian_t _TargetEndian, EDLPtrSize _SourcePtrSize, EDLPtrSize _TargetPtrSize )
+	SConvertContext( dl_endian_t _SourceEndian, dl_endian_t _TargetEndian, dl_ptr_size_t _SourcePtrSize, dl_ptr_size_t _TargetPtrSize )
 		: m_SourceEndian(_SourceEndian)
 		, m_TargetEndian(_TargetEndian)
 		, m_SourcePtrSize(_SourcePtrSize)
@@ -42,8 +42,8 @@ public:
 
 	dl_endian_t m_SourceEndian;
 	dl_endian_t m_TargetEndian;
-	EDLPtrSize m_SourcePtrSize;
-	EDLPtrSize m_TargetPtrSize;
+	dl_ptr_size_t m_SourcePtrSize;
+	dl_ptr_size_t m_TargetPtrSize;
 
 	CArrayStatic<SInstance, 128> m_lInstances;
 
@@ -69,9 +69,9 @@ static inline void DLSwapHeader(SDLDataHeader* _pHeader)
 	_pHeader->m_InstanceSize     = DLSwapEndian(_pHeader->m_InstanceSize);
 }
 
-static pint DLInternalReadPtrData( const uint8* _pPtrData,
+static pint DLInternalReadPtrData( const uint8*  _pPtrData,
 								   dl_endian_t   _SourceEndian,
-								   EDLPtrSize   _PtrSize )
+								   dl_ptr_size_t _PtrSize )
 {
 	switch(_PtrSize)
 	{
@@ -102,11 +102,11 @@ static pint DLInternalReadPtrData( const uint8* _pPtrData,
 	return 0;
 }
 
-static void DLInternalReadArrayData( const uint8* _pArrayData,
-									 pint*        _pOffset,
-									 uint32*      _pCount,
+static void DLInternalReadArrayData( const uint8*  _pArrayData,
+									 pint*         _pOffset,
+									 uint32*       _pCount,
 									 dl_endian_t   _SourceEndian,
-									 EDLPtrSize   _PtrSize )
+									 dl_ptr_size_t _PtrSize )
 {
 	union { const uint8* m_u8; const uint32* m_u32; const uint64* m_u64; } pArrayData;
 	pArrayData.m_u8 = _pArrayData;
@@ -327,11 +327,11 @@ static T DLConvertBitFieldFormat(T _OldValue, const SDLMember* _plBFMember, uint
 	return NewValue;
 }
 
-static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t       _Context,
-											  const uint8*     _pData,
-											  const SDLType*   _pType,
-											  SConvertContext& _ConvertContext,
-											  CDLBinaryWriter& _Writer )
+static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
+											    const uint8*     _pData,
+											    const SDLType*   _pType,
+											    SConvertContext& _ConvertContext,
+											    CDLBinaryWriter& _Writer )
 {
 	_Writer.Align(_pType->m_Alignment[_ConvertContext.m_TargetPtrSize]);
 	pint Pos = _Writer.Tell();
@@ -571,18 +571,22 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 	return DLInternalConvertWriteStruct(_Context, Data.m_u8, _Inst.m_pType, _ConvertContext, _Writer);
 }
 
-dl_error_t DLInternalConvertNoHeader( dl_ctx_t     _Context,
-                                    unsigned char* _pData,
-                                    unsigned char* _pBaseData,
-                                    unsigned char* _pOutData,
-                                    unsigned int   _OutDataSize,
-                                    unsigned int*  _pNeededSize,
-                                    dl_endian_t     _SourceEndian,
-                                    dl_endian_t     _TargetEndian,
-                                    EDLPtrSize     _SourcePtrSize,
-                                    EDLPtrSize     _TargetPtrSize,
-                                    const SDLType* _pRootType,
-                                    unsigned int   _BaseOffset )
+#include <algorithm>
+
+bool dl_internal_sort_pred( const SInstance& i1, const SInstance& i2 ) { return i1.m_pAddress < i2.m_pAddress; }
+
+dl_error_t DLInternalConvertNoHeader( dl_ctx_t       _Context,
+                                      unsigned char* _pData,
+                                      unsigned char* _pBaseData,
+                                      unsigned char* _pOutData,
+                                      unsigned int   _OutDataSize,
+                                      unsigned int*  _pNeededSize,
+                                      dl_endian_t    _SourceEndian,
+                                      dl_endian_t    _TargetEndian,
+                                      dl_ptr_size_t  _SourcePtrSize,
+                                      dl_ptr_size_t  _TargetPtrSize,
+                                      const SDLType* _pRootType,
+                                      unsigned int   _BaseOffset )
 {
 	// need a parameter for IsSwapping
 	CDLBinaryWriter Writer(_pOutData, _OutDataSize, _pOutData == 0x0, _SourceEndian, _TargetEndian, _TargetPtrSize);
@@ -592,6 +596,9 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t     _Context,
 	dl_error_t err = DLInternalConvertCollectInstances(_Context, _pRootType, _pData, _pBaseData, ConvCtx);
 
 	// TODO: we need to sort the instances here after their offset!
+
+	SInstance* insts = ConvCtx.m_lInstances.GetBasePtr();
+	std::sort( insts, insts + ConvCtx.m_lInstances.Len(), dl_internal_sort_pred );
 
 	for(unsigned int i = 0; i < ConvCtx.m_lInstances.Len(); ++i)
 	{
@@ -648,8 +655,8 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 		header->m_RootInstanceType != DLSwapEndian(type) ) return DL_ERROR_TYPE_MISMATCH;
 	if( out_ptr_size != 4 && out_ptr_size != 8 )           return DL_ERROR_INVALID_PARAMETER;
 
-	EDLPtrSize src_ptr_size = header->m_64BitPtr != 0 ? DL_PTR_SIZE_64BIT : DL_PTR_SIZE_32BIT;
-	EDLPtrSize dst_ptr_size;
+	dl_ptr_size_t src_ptr_size = header->m_64BitPtr != 0 ? DL_PTR_SIZE_64BIT : DL_PTR_SIZE_32BIT;
+	dl_ptr_size_t dst_ptr_size;
 
 	switch(out_ptr_size)
 	{
@@ -662,31 +669,31 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 
 	if(src_endian == out_endian && src_ptr_size == dst_ptr_size)
 	{
-		if(out_instance == 0x0)
+		if(out_instance != 0x0)
 			memcpy(out_instance, packed_instance, packed_instance_size); // TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
 
 		*out_size = packed_instance_size; // TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
 		return DL_ERROR_OK;
 	}
 
-	dl_typeid_t RootHash = src_endian != DL_ENDIAN_HOST ? DLSwapEndian(header->m_RootInstanceType) : header->m_RootInstanceType;
+	dl_typeid_t root_type_id = src_endian != DL_ENDIAN_HOST ? DLSwapEndian(header->m_RootInstanceType) : header->m_RootInstanceType;
 
-	const SDLType* root_type = DLFindType(dl_ctx, RootHash);
+	const SDLType* root_type = DLFindType(dl_ctx, root_type_id);
 	if(root_type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	dl_error_t err = DLInternalConvertNoHeader( dl_ctx,
-											  packed_instance + sizeof(SDLDataHeader),
-											  packed_instance + sizeof(SDLDataHeader),
-											  out_instance == 0x0 ? 0x0 : out_instance + sizeof(SDLDataHeader),
-											  out_instance_size - sizeof(SDLDataHeader),
-											  out_size,
-											  src_endian,
-											  out_endian,
-											  src_ptr_size,
-											  dst_ptr_size,
-											  root_type,
-											  0 );
+											    packed_instance + sizeof(SDLDataHeader),
+											    packed_instance + sizeof(SDLDataHeader),
+											    out_instance == 0x0 ? 0x0 : out_instance + sizeof(SDLDataHeader),
+											    out_instance_size - sizeof(SDLDataHeader),
+											    out_size,
+											    src_endian,
+											    out_endian,
+											    src_ptr_size,
+											    dst_ptr_size,
+											    root_type,
+											    0 );
 
 	if(out_instance != 0x0)
 	{

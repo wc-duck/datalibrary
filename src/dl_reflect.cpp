@@ -80,7 +80,6 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 				break;
 				case DL_TYPE_STORAGE_STR: out_members[nMember].array_count = Member.m_Size[DL_PTR_SIZE_HOST] / sizeof(char*); break;
 				default:
-					M_ASSERT(Member.IsSimplePod());
 					out_members[nMember].array_count = Member.m_Size[DL_PTR_SIZE_HOST] / (uint32)DLPodSize(Member.m_Type); break;
 			}
 		}
