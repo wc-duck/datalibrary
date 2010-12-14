@@ -751,8 +751,16 @@ dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned 
 		return DL_ERROR_VERSION_MISMATCH;
 
 	out_info->ptrsize   = header->m_64BitPtr ? 8 : 4;
-	out_info->endian    = header->m_Id == DL_TYPE_DATA_ID_SWAPED ? DLOtherEndian(DL_ENDIAN_HOST) : DL_ENDIAN_HOST;
-	out_info->root_type = header->m_RootInstanceType;
+	if( header->m_Id == DL_TYPE_DATA_ID )
+	{
+		out_info->endian    = DL_ENDIAN_HOST;
+		out_info->root_type = header->m_RootInstanceType ;
+	}
+	else
+	{
+		out_info->endian    = DLOtherEndian( DL_ENDIAN_HOST );
+		out_info->root_type = DLSwapEndian( header->m_RootInstanceType );
+	}
 
 	return DL_ERROR_OK;
 }

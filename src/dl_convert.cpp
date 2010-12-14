@@ -700,24 +700,14 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 
 	if(out_instance != 0x0)
 	{
-		// write new header!
-		memmove(out_instance, packed_instance, sizeof(SDLDataHeader));
-
 		SDLDataHeader* pNewHeader = (SDLDataHeader*)out_instance;
+		pNewHeader->m_Id               = DL_TYPE_DATA_ID;
+		pNewHeader->m_Version          = DL_VERSION;
+		pNewHeader->m_RootInstanceType = type;
+		pNewHeader->m_InstanceSize     = uint32(*out_size);
+		pNewHeader->m_64BitPtr         = out_ptr_size == 4 ? 0 : 1;
 
-		if(src_ptr_size != dst_ptr_size)
-		{
-			pNewHeader->m_64BitPtr ^= 1; // flip ptr-size!
-
-			uint32 NewSize = uint32(*out_size);
-
-			if(DL_ENDIAN_HOST == src_endian)
-				pNewHeader->m_InstanceSize = NewSize;
- 			else
- 				pNewHeader->m_InstanceSize = DLSwapEndian(NewSize);
-		}
-
-		if(src_endian != out_endian)
+		if(DL_ENDIAN_HOST != out_endian)
 			DLSwapHeader(pNewHeader);
 	}
 
