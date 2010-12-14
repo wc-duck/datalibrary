@@ -726,10 +726,14 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 extern "C" {
 #endif  // __cplusplus
 
-dl_error_t dl_convert_inplace(dl_ctx_t _Context, dl_typeid_t type, unsigned char* _pData, unsigned int _DataSize, dl_endian_t _Endian, unsigned int _PtrSize)
+dl_error_t dl_convert_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
+		                       unsigned char* packed_instance, unsigned int packed_instance_size,
+		                       dl_endian_t    out_endian,      unsigned int out_ptr_size)
 {
 	unsigned int dummy_needed_size;
-	return DLInternalConvertInstance( _Context, type, _pData, _DataSize, _pData, _DataSize, _Endian, _PtrSize, &dummy_needed_size);
+	if( out_ptr_size > sizeof(void*) ) // we can not do inplace conversion to increase pointersize, converted instance should in most instances grow!
+		return DL_ERROR_UNSUPORTED_OPERATION;
+	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, packed_instance, packed_instance_size, out_endian, out_ptr_size, &dummy_needed_size);
 }
 
 dl_error_t dl_convert( dl_ctx_t dl_ctx,                dl_typeid_t  type,
