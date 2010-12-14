@@ -571,7 +571,9 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 
 			pint Offset = 0;
 
-			if(Count > 0)
+			if( Count == 0 )
+				Offset = DL_NULL_PTR_OFFSET[ DL_PTR_SIZE_HOST ];
+			else
 			{
 				pint Pos = _pStoreContext->Tell();
 				_pStoreContext->SeekEnd();

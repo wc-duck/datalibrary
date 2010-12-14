@@ -238,7 +238,10 @@ static dl_error_t DLInternalConvertCollectInstances( dl_ctx_t       _Context,
 				DLInternalReadArrayData( pMemberData, &Offset, &Count, _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize );
 
 				if(Offset == DL_NULL_PTR_OFFSET[_ConvertContext.m_SourcePtrSize])
+				{
+					M_ASSERT( Count == 0 );
 					break;
+				}
 
 				switch(StorageType)
 				{
