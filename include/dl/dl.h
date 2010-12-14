@@ -34,6 +34,7 @@ typedef struct dl_context* dl_ctx_t;
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
 	DL_ERROR_BUFFER_TO_SMALL                               - Provided buffer is to small.
 	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platforms.
+	DL_ERROR_UNSUPPORTED_OPERATION                         - The operation is not supported by dl-function.
 
 	DL_ERROR_TXT_PARSE_ERROR                               - Syntax error while parsing txt-file. Check log for details.
 	DL_ERROR_TXT_MEMBER_MISSING                            - A member is missing in a struct and in do not have a default value.

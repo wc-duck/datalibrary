@@ -29,177 +29,143 @@ static const uint16_t DL_UINT16_MIN = 0x0000U;
 static const uint32_t DL_UINT32_MIN = 0x00000000UL;
 static const uint64_t DL_UINT64_MIN = 0x0000000000000000ULL;
 
-
-void do_the_round_about(dl_ctx_t dl_ctx, dl_typeid_t type, void* pack_me, void* unpack_me)
-{
-	unsigned char OutDataInstance[1024];
-	char  TxtOut[2048];
-
-	memset(OutDataInstance, 0x0, sizeof(OutDataInstance));
-	memset(TxtOut, 0x0,  sizeof(TxtOut));
-
-	dl_instance_info_t inst_info;
-
-	// store instance to binary
-	EXPECT_DL_ERR_OK(dl_instance_store(dl_ctx, type, pack_me, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance)));
-	EXPECT_DL_ERR_OK(dl_instance_get_info(OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), &inst_info));
-	EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
-	EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-	EXPECT_EQ(type,           inst_info.root_type);
-
-	// unpack binary to txt
-	EXPECT_DL_ERR_OK(dl_txt_unpack(dl_ctx, type, OutDataInstance, DL_ARRAY_LENGTH(OutDataInstance), TxtOut, DL_ARRAY_LENGTH(TxtOut)));
-
-	// printf("%s\n", TxtOut);
-
-	unsigned char OutDataText[1024];
-	memset(OutDataText, 0x0, DL_ARRAY_LENGTH(OutDataText));
-
-	// pack txt to binary
-	EXPECT_DL_ERR_OK(dl_txt_pack(dl_ctx, TxtOut, OutDataText, DL_ARRAY_LENGTH(OutDataText)));
-	EXPECT_DL_ERR_OK(dl_instance_get_info(OutDataText,  DL_ARRAY_LENGTH(OutDataText), &inst_info));
-	EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
-	EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-	EXPECT_EQ(type,           inst_info.root_type);
-
-	// load binary
-	EXPECT_DL_ERR_OK(dl_instance_load(dl_ctx, type, unpack_me, OutDataText, DL_ARRAY_LENGTH(OutDataText)));
-
-	// return;
-
-	dl_endian_t  OtherEndian  = DL_ENDIAN_HOST == DL_ENDIAN_BIG ? DL_ENDIAN_LITTLE : DL_ENDIAN_BIG;
-	unsigned int OtherPtrSize = sizeof(void*) == 4 ? 8 : 4;
-
-	// check if we can convert only endianness!
-	{
-		unsigned char SwitchedEndian[DL_ARRAY_LENGTH(OutDataText)];
-		memcpy(SwitchedEndian, OutDataText, DL_ARRAY_LENGTH(OutDataText));
-
-		EXPECT_DL_ERR_OK(dl_convert_inplace(dl_ctx, type, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), OtherEndian, sizeof(void*)));
-		EXPECT_DL_ERR_OK(dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
-		EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
-		EXPECT_EQ(OtherEndian,    inst_info.endian);
-
-		EXPECT_NE(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
-
-		EXPECT_DL_ERR_OK(dl_convert_inplace(dl_ctx, type, SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), DL_ENDIAN_HOST, sizeof(void*)));
-		EXPECT_DL_ERR_OK(dl_instance_get_info(SwitchedEndian, DL_ARRAY_LENGTH(SwitchedEndian), &inst_info));
-		EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
-		EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-		EXPECT_EQ(type,           inst_info.root_type);
-
-		// EXPECT_EQ(0, memcmp(OutDataText, SwitchedEndian, DL_ARRAY_LENGTH(OutDataText))); // original data should be equal !
-	}
-
-	// check problems when only ptr-size!
-	{
-		unsigned char OriginalData[DL_ARRAY_LENGTH(OutDataText)];
-		memcpy(OriginalData, OutDataText, DL_ARRAY_LENGTH(OutDataText));
-
-		unsigned int PackedSize = 0;
-		EXPECT_DL_ERR_OK(dl_instance_calc_size(dl_ctx, type, pack_me, &PackedSize));
-
-		unsigned int ConvertedSize = 0;
-		EXPECT_DL_ERR_OK(dl_convert_calc_size(dl_ctx, type, OriginalData, DL_ARRAY_LENGTH(OriginalData), OtherPtrSize, &ConvertedSize));
-
-		if(OtherPtrSize <= sizeof(void*)) EXPECT_LE(ConvertedSize, PackedSize);
-		else                              EXPECT_GE(ConvertedSize, PackedSize);
-
-		// check inplace conversion.
-		if(OtherPtrSize < sizeof(void*))
-		{
-			// if this is true, the conversion is doable with inplace-version.
-			unsigned char ConvertedData[DL_ARRAY_LENGTH(OutDataText)];
-			memcpy(ConvertedData, OriginalData, DL_ARRAY_LENGTH(OriginalData));
-
-			EXPECT_DL_ERR_OK(dl_convert_inplace(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), DL_ENDIAN_HOST, OtherPtrSize));
-			EXPECT_DL_ERR_OK(dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
-			EXPECT_EQ(OtherPtrSize,   inst_info.ptrsize);
-			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-			EXPECT_EQ(type,           inst_info.root_type);
-
-			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
-
-			unsigned char OriginalConverted[DL_ARRAY_LENGTH(OutDataText)];
-			memcpy(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalData));
-
-			unsigned int ReConvertedSize = 0;
-			EXPECT_DL_ERR_OK(dl_convert_calc_size(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize));
-			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
-
-			unsigned char ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
-			ReConvertedData[ReConvertedSize + 1] = 'L';
-			ReConvertedData[ReConvertedSize + 2] = 'O';
-			ReConvertedData[ReConvertedSize + 3] = 'L';
-			ReConvertedData[ReConvertedSize + 4] = '!';
-
-			EXPECT_DL_ERR_OK(dl_convert(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*)));
-			EXPECT_DL_ERR_OK(dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
-			EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
-			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-			EXPECT_EQ(type,           inst_info.root_type);
-
-			EXPECT_EQ(0, memcmp(OriginalConverted, ConvertedData, DL_ARRAY_LENGTH(OriginalConverted))); // original data should be equal !
-
-			EXPECT_EQ('L', ReConvertedData[ReConvertedSize + 1]);
-			EXPECT_EQ('O', ReConvertedData[ReConvertedSize + 2]);
-			EXPECT_EQ('L', ReConvertedData[ReConvertedSize + 3]);
-			EXPECT_EQ('!', ReConvertedData[ReConvertedSize + 4]);
-		}
-
-		// check both endian and ptrsize convert!
-		{
-			unsigned char ConvertedData[DL_ARRAY_LENGTH(OutDataText) * 3];
-			ConvertedData[ConvertedSize + 1] = 'L';
-			ConvertedData[ConvertedSize + 2] = 'O';
-			ConvertedData[ConvertedSize + 3] = 'L';
-			ConvertedData[ConvertedSize + 4] = '!';
-
-			EXPECT_DL_ERR_OK(dl_convert(dl_ctx,type , OriginalData, DL_ARRAY_LENGTH(OriginalData), ConvertedData, DL_ARRAY_LENGTH(ConvertedData), OtherEndian, OtherPtrSize));
-			EXPECT_DL_ERR_OK(dl_instance_get_info(ConvertedData, DL_ARRAY_LENGTH(ConvertedData), &inst_info));
-			EXPECT_EQ(OtherPtrSize, inst_info.ptrsize);
-			EXPECT_EQ(OtherEndian,  inst_info.endian);
-
-			EXPECT_EQ('L', ConvertedData[ConvertedSize + 1]);
-			EXPECT_EQ('O', ConvertedData[ConvertedSize + 2]);
-			EXPECT_EQ('L', ConvertedData[ConvertedSize + 3]);
-			EXPECT_EQ('!', ConvertedData[ConvertedSize + 4]);
-
-			EXPECT_NE(0, memcmp(OutDataText, ConvertedData, DL_ARRAY_LENGTH(OutDataText))); // original data should not be equal !
-
-			unsigned int ReConvertedSize = 0;
-			EXPECT_DL_ERR_OK(dl_convert_calc_size(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), sizeof(void*), &ReConvertedSize));
-			EXPECT_EQ(PackedSize, ReConvertedSize); // should be same size as original!
-
-			unsigned char ReConvertedData[DL_ARRAY_LENGTH(OutDataText) * 2];
-			ReConvertedData[ReConvertedSize + 1] = 'L';
-			ReConvertedData[ReConvertedSize + 2] = 'O';
-			ReConvertedData[ReConvertedSize + 3] = 'L';
-			ReConvertedData[ReConvertedSize + 4] = '!';
-
-			EXPECT_DL_ERR_OK(dl_convert(dl_ctx, type, ConvertedData, DL_ARRAY_LENGTH(ConvertedData), ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), DL_ENDIAN_HOST, sizeof(void*)));
-			EXPECT_DL_ERR_OK(dl_instance_get_info(ReConvertedData, DL_ARRAY_LENGTH(ReConvertedData), &inst_info));
-			EXPECT_EQ(sizeof(void*),  inst_info.ptrsize);
-			EXPECT_EQ(DL_ENDIAN_HOST, inst_info.endian);
-			EXPECT_EQ(type,      inst_info.root_type);
-
-			// EXPECT_EQ(0, memcmp(OutDataText, ReConvertedData, PackedSize)); // original data should be equal !
-
-			EXPECT_EQ('L', ReConvertedData[ReConvertedSize + 1]);
-			EXPECT_EQ('O', ReConvertedData[ReConvertedSize + 2]);
-			EXPECT_EQ('L', ReConvertedData[ReConvertedSize + 3]);
-			EXPECT_EQ('!', ReConvertedData[ReConvertedSize + 4]);
-		}
-	}
+#define EXPECT_INSTANCE_INFO( inst, size, exp_ptr_size, exp_endian, exp_type ) \
+{ \
+	dl_instance_info_t inst_info; \
+	EXPECT_DL_ERR_OK( dl_instance_get_info( inst, size, &inst_info ) ); \
+	EXPECT_EQ( exp_ptr_size, inst_info.ptrsize ); \
+	EXPECT_EQ( exp_endian,   inst_info.endian ); \
+	EXPECT_EQ( exp_type,     inst_info.root_type ); \
 }
 
+struct pack_text_test
+{
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
+					   unsigned char* store_buffer, unsigned int  store_size,
+					   unsigned char* out_buffer,   unsigned int* out_size )
+	{
+		// unpack binary to txt
+		char text_buffer[2048];
+		memset(text_buffer, 0xFE, sizeof(text_buffer));
+
+		unsigned int text_size = 0;
+		EXPECT_DL_ERR_OK( dl_txt_unpack_calc_size( dl_ctx, type, store_buffer, store_size, &text_size ) );
+		EXPECT_DL_ERR_OK( dl_txt_unpack( dl_ctx, type, store_buffer, store_size, text_buffer, text_size ) );
+		EXPECT_EQ( (char)0xFE, text_buffer[text_size] ); // no overwrite on the generated text plox!
+
+		// printf("%s\n", TxtOut);
+
+		// pack txt to binary
+		EXPECT_DL_ERR_OK( dl_txt_pack_calc_size( dl_ctx, text_buffer, out_size ) );
+		// BUG: txt_pack_size goes out of its buffer!
+		EXPECT_DL_ERR_OK( dl_txt_pack( dl_ctx, text_buffer, out_buffer, *out_size ) );
+	}
+};
+
+template<unsigned int conv_ptr_size, dl_endian_t conv_endian>
+struct convert_test
+{
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
+					   unsigned char* store_buffer, unsigned int  store_size,
+					   unsigned char* out_buffer,   unsigned int* out_size )
+	{
+		// calc size to convert
+		unsigned char convert_buffer[2048];
+		memset(convert_buffer, 0xFE, sizeof(convert_buffer));
+		unsigned int convert_size = 0;
+		EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, store_buffer, store_size, conv_ptr_size, &convert_size ) );
+
+		// convert to other pointer size
+		EXPECT_DL_ERR_OK( dl_convert( dl_ctx, type, store_buffer, store_size, convert_buffer, convert_size, conv_endian, conv_ptr_size ) );
+		EXPECT_EQ( (unsigned char)0xFE, convert_buffer[convert_size] ); // no overwrite on the generated text plox!
+		EXPECT_INSTANCE_INFO( convert_buffer, convert_size, conv_ptr_size, conv_endian, type );
+
+		// calc size to re-convert to host pointer size
+		EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, convert_buffer, convert_size, sizeof(void*), out_size ) );
+
+		// re-convert to host pointer size
+		EXPECT_DL_ERR_OK( dl_convert( dl_ctx, type, convert_buffer, convert_size, out_buffer, *out_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+	}
+};
+
+template<unsigned int conv_ptr_size, dl_endian_t conv_endian>
+struct convert_inplace_test
+{
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
+			           unsigned char* store_buffer, unsigned int  store_size,
+			           unsigned char* out_buffer,   unsigned int* out_size )
+	{
+		if(conv_ptr_size > sizeof(void*)) // can't do inplace convert to bigger ptr size, check that error msg is correct
+		{
+			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, store_buffer, store_size, conv_endian, conv_ptr_size ) );
+		}
+		else // inplace convert plox!
+		{
+			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, store_buffer, store_size, conv_endian, conv_ptr_size ) );
+			EXPECT_EQ( (unsigned char)0xFE, store_buffer[store_size] ); // no overwrite on the generated text plox!
+			EXPECT_INSTANCE_INFO( store_buffer, store_size, conv_ptr_size, conv_endian, type );
+
+			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, store_buffer, store_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+		}
+	}
+};
+
+template <typename T>
+struct DLBase : public DL
+{
+	void do_the_round_about( dl_typeid_t type, void* pack_me, void* unpack_me )
+	{
+		dl_ctx_t dl_ctx = this->Ctx;
+
+		unsigned char store_buffer[1024];
+		memset(store_buffer, 0xFE, sizeof(store_buffer));
+
+		// calc size of stored instance
+		unsigned int store_size = 0;
+		EXPECT_DL_ERR_OK( dl_instance_calc_size( dl_ctx, type, pack_me, &store_size ) );
+
+		// store instance to binary
+		EXPECT_DL_ERR_OK( dl_instance_store( dl_ctx, type, pack_me, store_buffer, store_size ) );
+		EXPECT_INSTANCE_INFO( store_buffer, store_size, sizeof(void*), DL_ENDIAN_HOST, type );
+		EXPECT_EQ( 0xFE, store_buffer[store_size] ); // no overwrite on the calculated size plox!
+
+		unsigned char out_buffer[2048];
+		memset( out_buffer, 0xFE, sizeof(out_buffer) );
+		unsigned int out_size;
+
+		T::do_it( dl_ctx, type, store_buffer, store_size, out_buffer, &out_size );
+
+		EXPECT_EQ( (unsigned char)0xFE, out_buffer[out_size] ); // no overwrite when packing text plox!
+
+		// out instance should have correct format
+		EXPECT_INSTANCE_INFO( out_buffer, out_size, sizeof(void*), DL_ENDIAN_HOST, type );
+
+		// load binary
+		EXPECT_DL_ERR_OK( dl_instance_load( dl_ctx, type, unpack_me, out_buffer, out_size ) );
+	}
+};
+
+// tests to run!
+typedef ::testing::Types<
+	 pack_text_test
+	,convert_test<4, DL_ENDIAN_LITTLE>
+	,convert_test<8, DL_ENDIAN_LITTLE>
+	,convert_test<4, DL_ENDIAN_BIG>
+	,convert_test<8, DL_ENDIAN_BIG>
+	,convert_inplace_test<4, DL_ENDIAN_LITTLE>
+	,convert_inplace_test<8, DL_ENDIAN_LITTLE>
+	,convert_inplace_test<4, DL_ENDIAN_BIG>
+	,convert_inplace_test<8, DL_ENDIAN_BIG>
+> DLBaseTypes;
+TYPED_TEST_CASE(DLBase, DLBaseTypes);
+
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, pods)
+TYPED_TEST(DLBase, pods)
 {
 	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
 	Pods P1         = { 0 };
 
-	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
+	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1 );
 
 	EXPECT_EQ(P1Original.i8,  P1.i8);
 	EXPECT_EQ(P1Original.i16, P1.i16);
@@ -215,12 +181,12 @@ TEST_F(DL, pods)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, pods_max)
+TYPED_TEST(DLBase, pods_max)
 {
 	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
 	Pods P1         = { 0 };
 
-	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
+	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1 );
 
 	EXPECT_EQ(P1Original.i8,  P1.i8);
 	EXPECT_EQ(P1Original.i16, P1.i16);
@@ -237,12 +203,12 @@ TEST_F(DL, pods_max)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, pods_min)
+TYPED_TEST(DLBase, pods_min)
 {
 	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
 	Pods P1         = { 0 };
 
-	do_the_round_about(Ctx, Pods::TYPE_ID, &P1Original, &P1);
+	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1 );
 
 	EXPECT_EQ(P1Original.i8,    P1.i8);
 	EXPECT_EQ(P1Original.i16,   P1.i16);
@@ -258,12 +224,12 @@ TEST_F(DL, pods_min)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, struct_in_struct)
+TYPED_TEST(DLBase, struct_in_struct)
 {
 	MorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
 	MorePods P1         = { { 0 }, { 0 } };
 
-	do_the_round_about(Ctx, MorePods::TYPE_ID, &P1Original, &P1);
+	this->do_the_round_about( MorePods::TYPE_ID, &P1Original, &P1 );
 
 	EXPECT_EQ(P1Original.Pods1.i8,    P1.Pods1.i8);
 	EXPECT_EQ(P1Original.Pods1.i16,   P1.Pods1.i16);
@@ -290,7 +256,7 @@ TEST_F(DL, struct_in_struct)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, struct_in_struct_in_struct)
+TYPED_TEST(DLBase, struct_in_struct_in_struct)
 {
 	Pod2InStructInStruct Orig;
 	Pod2InStructInStruct New;
@@ -300,7 +266,7 @@ TEST_F(DL, struct_in_struct_in_struct)
 	Orig.p2struct.Pod2.Int1 = 1234;
 	Orig.p2struct.Pod2.Int2 = 4321;
 
-	do_the_round_about(Ctx, Pod2InStructInStruct::TYPE_ID, &Orig, &New);
+	this->do_the_round_about( Pod2InStructInStruct::TYPE_ID, &Orig, &New );
 
 	EXPECT_EQ(Orig.p2struct.Pod1.Int1, New.p2struct.Pod1.Int1);
 	EXPECT_EQ(Orig.p2struct.Pod1.Int2, New.p2struct.Pod1.Int2);
@@ -310,14 +276,14 @@ TEST_F(DL, struct_in_struct_in_struct)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, string)
+TYPED_TEST(DLBase, string)
 {
 	Strings Orig = { "cow", "bell" } ;
 	Strings* New;
 
 	Strings Loaded[5]; // this is so ugly!
 
-	do_the_round_about(Ctx, Strings::TYPE_ID, &Orig, Loaded);
+	this->do_the_round_about( Strings::TYPE_ID, &Orig, Loaded );
 
 	New = Loaded;
 
@@ -327,7 +293,7 @@ TEST_F(DL, string)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, enum)
+TYPED_TEST(DLBase, enum)
 {
 	EXPECT_EQ(TESTENUM2_VALUE2 + 1, TESTENUM2_VALUE3); // value3 is after value2 but has no value. It sohuld automticallay be one bigger!
 
@@ -336,14 +302,14 @@ TEST_F(DL, enum)
 
 	TestingEnum Loaded;
 
-	do_the_round_about(Ctx, TestingEnum::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( TestingEnum::TYPE_ID, &Inst, &Loaded );
 
 	EXPECT_EQ(Inst.TheEnum, Loaded.TheEnum);
 }
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, inline_array_pod)
+TYPED_TEST(DLBase, inline_array_pod)
 {
 	WithInlineArray Orig;
 	WithInlineArray New;
@@ -352,7 +318,7 @@ TEST_F(DL, inline_array_pod)
 	Orig.Array[1] = 7331;
 	Orig.Array[2] = 1234;
 
-	do_the_round_about(Ctx, WithInlineArray::TYPE_ID, &Orig, &New);
+	this->do_the_round_about( WithInlineArray::TYPE_ID, &Orig, &New );
 
 	EXPECT_EQ(Orig.Array[0], New.Array[0]);
 	EXPECT_EQ(Orig.Array[1], New.Array[1]);
@@ -361,7 +327,7 @@ TEST_F(DL, inline_array_pod)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, inline_array_struct)
+TYPED_TEST(DLBase, inline_array_struct)
 {
 	WithInlineStructArray Orig;
 	WithInlineStructArray New;
@@ -373,7 +339,7 @@ TEST_F(DL, inline_array_struct)
 	Orig.Array[2].Int1 = 9012;
 	Orig.Array[2].Int2 = 3456;
 
-	do_the_round_about(Ctx, WithInlineStructArray::TYPE_ID, &Orig, &New);
+	this->do_the_round_about( WithInlineStructArray::TYPE_ID, &Orig, &New );
 
 	EXPECT_EQ(Orig.Array[0].Int1, New.Array[0].Int1);
 	EXPECT_EQ(Orig.Array[0].Int2, New.Array[0].Int2);
@@ -385,7 +351,7 @@ TEST_F(DL, inline_array_struct)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, inline_array_struct_in_struct)
+TYPED_TEST(DLBase, inline_array_struct_in_struct)
 {
 	WithInlineStructStructArray Orig;
 	WithInlineStructStructArray New;
@@ -403,7 +369,7 @@ TEST_F(DL, inline_array_struct_in_struct)
 	Orig.Array[1].Array[2].Int1 = 133;
 	Orig.Array[1].Array[2].Int2 = 7;
 
-	do_the_round_about(Ctx, WithInlineStructStructArray::TYPE_ID, &Orig, &New);
+	this->do_the_round_about( WithInlineStructStructArray::TYPE_ID, &Orig, &New );
 
 	EXPECT_EQ(Orig.Array[0].Array[0].Int1, New.Array[0].Array[0].Int1);
 	EXPECT_EQ(Orig.Array[0].Array[0].Int2, New.Array[0].Array[0].Int2);
@@ -421,14 +387,14 @@ TEST_F(DL, inline_array_struct_in_struct)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, inline_array_string)
+TYPED_TEST(DLBase, inline_array_string)
 {
 	StringInlineArray Orig = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
 	StringInlineArray* New;
 
 	StringInlineArray Loaded[5]; // this is so ugly!
 
-	do_the_round_about(Ctx, StringInlineArray::TYPE_ID, &Orig, Loaded);
+	this->do_the_round_about( StringInlineArray::TYPE_ID, &Orig, Loaded );
 
 	New = Loaded;
 
@@ -439,12 +405,12 @@ TEST_F(DL, inline_array_string)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, inline_array_enum)
+TYPED_TEST(DLBase, inline_array_enum)
 {
 	InlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };
 	InlineArrayEnum Loaded;
 
-	do_the_round_about(Ctx, InlineArrayEnum::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( InlineArrayEnum::TYPE_ID, &Inst, &Loaded );
 
 	EXPECT_EQ(Inst.EnumArr[0], Loaded.EnumArr[0]);
 	EXPECT_EQ(Inst.EnumArr[1], Loaded.EnumArr[1]);
@@ -454,7 +420,7 @@ TEST_F(DL, inline_array_enum)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_pod1)
+TYPED_TEST(DLBase, array_pod1)
 {
 	uint32_t Data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
 	PodArray1 Orig = { { Data, 8 } };
@@ -462,7 +428,7 @@ TEST_F(DL, array_pod1)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	do_the_round_about(Ctx, PodArray1::TYPE_ID, &Orig, Loaded);
+	this->do_the_round_about( PodArray1::TYPE_ID, &Orig, Loaded );
 
 	New = (PodArray1*)&Loaded[0];
 
@@ -472,7 +438,7 @@ TEST_F(DL, array_pod1)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_with_sub_array)
+TYPED_TEST(DLBase, array_with_sub_array)
 {
 	uint32_t Data[] = { 1337, 7331 } ;
 
@@ -486,7 +452,7 @@ TEST_F(DL, array_with_sub_array)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	do_the_round_about(Ctx, PodArray2::TYPE_ID, &Orig, Loaded);
+	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded );
 
 	New = (PodArray2*)&Loaded[0];
 
@@ -497,7 +463,7 @@ TEST_F(DL, array_with_sub_array)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_with_sub_array2)
+TYPED_TEST(DLBase, array_with_sub_array2)
 {
 	uint32_t Data1[] = { 1337, 7331,  13, 37, 133 } ;
 	uint32_t Data2[] = {    7,    1, 337 } ;
@@ -508,7 +474,7 @@ TEST_F(DL, array_with_sub_array2)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	do_the_round_about(Ctx, PodArray2::TYPE_ID, &Orig, Loaded);
+	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded );
 
 	New = (PodArray2*)&Loaded[0];
 
@@ -521,7 +487,7 @@ TEST_F(DL, array_with_sub_array2)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_string)
+TYPED_TEST(DLBase, array_string)
 {
 	char* TheStringArray[] = { (char*)"I like", (char*)"the", (char*)"1337 ", (char*)"cowbells of doom!" };
 	StringArray Orig = { { TheStringArray, 4 } };
@@ -529,7 +495,7 @@ TEST_F(DL, array_string)
 
 	StringArray Loaded[10]; // this is so ugly!
 
-	do_the_round_about(Ctx, StringArray::TYPE_ID, &Orig, Loaded);
+	this->do_the_round_about( StringArray::TYPE_ID, &Orig, Loaded );
 
 	New = Loaded;
 
@@ -541,7 +507,7 @@ TEST_F(DL, array_string)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_struct)
+TYPED_TEST(DLBase, array_struct)
 {
 	Pods2 Data[4] = { { 1, 2}, { 3, 4 }, { 5, 6 }, { 7, 8 } } ;
 	StructArray1 Inst = { { Data, 4 } };
@@ -549,7 +515,7 @@ TEST_F(DL, array_struct)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	do_the_round_about(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, &Loaded );
 
 	New = (StructArray1*)&Loaded[0];
 
@@ -567,7 +533,7 @@ TEST_F(DL, array_struct)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_enum)
+TYPED_TEST(DLBase, array_enum)
 {
 	TestEnum2 Data[8] = { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4, TESTENUM2_VALUE4, TESTENUM2_VALUE3, TESTENUM2_VALUE2, TESTENUM2_VALUE1 } ;
 	ArrayEnum Inst = { { Data, 8 } };
@@ -575,7 +541,7 @@ TEST_F(DL, array_enum)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	do_the_round_about(Ctx, ArrayEnum::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( ArrayEnum::TYPE_ID, &Inst, &Loaded );
 
 	New = (ArrayEnum*)&Loaded[0];
 
@@ -592,7 +558,7 @@ TEST_F(DL, array_enum)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, bitfield)
+TYPED_TEST(DLBase, bitfield)
 {
 	TestBits Orig;
 	TestBits New;
@@ -605,7 +571,7 @@ TEST_F(DL, bitfield)
 	Orig.Bit5 = 0;
 	Orig.Bit6 = 5;
 
-	do_the_round_about(Ctx, TestBits::TYPE_ID, &Orig, &New);
+	this->do_the_round_about( TestBits::TYPE_ID, &Orig, &New );
 
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
@@ -618,7 +584,7 @@ TEST_F(DL, bitfield)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, bitfield2)
+TYPED_TEST(DLBase, bitfield2)
 {
 	MoreBits Orig;
 	MoreBits New;
@@ -626,7 +592,7 @@ TEST_F(DL, bitfield2)
 	Orig.Bit1 = 512;
 	Orig.Bit2 = 1;
 
-	do_the_round_about(Ctx, MoreBits::TYPE_ID, &Orig, &New);
+	this->do_the_round_about( MoreBits::TYPE_ID, &Orig, &New );
 
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
@@ -634,7 +600,7 @@ TEST_F(DL, bitfield2)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, bitfield_64bit)
+TYPED_TEST(DLBase, bitfield_64bit)
 {
 	BitBitfield64 Orig;
 	BitBitfield64 New;
@@ -644,7 +610,7 @@ TEST_F(DL, bitfield_64bit)
 	Orig.PathHash = 1337;
 	Orig.FileHash = 0xDEADBEEF;
 
-	do_the_round_about(Ctx, BitBitfield64::TYPE_ID, &Orig, &New);
+	this->do_the_round_about( BitBitfield64::TYPE_ID, &Orig, &New );
 
 	EXPECT_EQ(Orig.Package,  New.Package);
 	EXPECT_EQ(Orig.FileType, New.FileType);
@@ -654,7 +620,7 @@ TEST_F(DL, bitfield_64bit)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, ptr)
+TYPED_TEST(DLBase, ptr)
 {
 	Pods Pods = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
 	SimplePtr  Orig = { &Pods, &Pods };
@@ -662,7 +628,7 @@ TEST_F(DL, ptr)
 
 	SimplePtr Loaded[64]; // this is so ugly!
 
-	do_the_round_about(Ctx, SimplePtr::TYPE_ID, &Orig, Loaded);
+	this->do_the_round_about( SimplePtr::TYPE_ID, &Orig, Loaded );
 
 	New = Loaded;
 	EXPECT_NE(Orig.Ptr1, New->Ptr1);
@@ -682,7 +648,7 @@ TEST_F(DL, ptr)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, ptr_chain)
+TYPED_TEST(DLBase, ptr_chain)
 {
 	PtrChain Ptr1 = { 1337,   0x0 };
 	PtrChain Ptr2 = { 7331, &Ptr1 };
@@ -693,7 +659,7 @@ TEST_F(DL, ptr_chain)
 
 	PtrChain Loaded[10]; // this is so ugly!
 
-	do_the_round_about(Ctx, PtrChain::TYPE_ID, &Ptr4, Loaded);
+	this->do_the_round_about( PtrChain::TYPE_ID, &Ptr4, Loaded );
 	New = Loaded;
 
 	EXPECT_NE(Ptr4.Next, New->Next);
@@ -709,7 +675,7 @@ TEST_F(DL, ptr_chain)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, ptr_chain_circle)
+TYPED_TEST(DLBase, ptr_chain_circle)
 {
 	// tests both circualar ptrs and reference to root-node!
 
@@ -726,7 +692,7 @@ TEST_F(DL, ptr_chain_circle)
 
 	DoublePtrChain Loaded[10]; // this is so ugly!
 
-	do_the_round_about(Ctx, DoublePtrChain::TYPE_ID, &Ptr4, Loaded);
+	this->do_the_round_about( DoublePtrChain::TYPE_ID, &Ptr4, Loaded );
 	New = Loaded;
 
 	// Ptr4
@@ -755,12 +721,12 @@ TEST_F(DL, ptr_chain_circle)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_pod_empty)
+TYPED_TEST(DLBase, array_pod_empty)
 {
 	PodArray1 Inst = { { NULL, 0 } };
 	PodArray1 Loaded;
 
-	do_the_round_about(Ctx, PodArray1::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( PodArray1::TYPE_ID, &Inst, &Loaded );
 
 	EXPECT_EQ(0u,  Loaded.u32_arr.count);
 	EXPECT_EQ(0x0, Loaded.u32_arr.data);
@@ -768,12 +734,12 @@ TEST_F(DL, array_pod_empty)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_struct_empty)
+TYPED_TEST(DLBase, array_struct_empty)
 {
 	StructArray1 Inst = { { NULL, 0 } };
 	StructArray1 Loaded;
 
-	do_the_round_about(Ctx, StructArray1::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, &Loaded );
 
 	EXPECT_EQ(0u,  Loaded.Array.count);
 	EXPECT_EQ(0x0, Loaded.Array.data);
@@ -781,12 +747,12 @@ TEST_F(DL, array_struct_empty)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, array_string_empty)
+TYPED_TEST(DLBase, array_string_empty)
 {
 	StringArray Inst = { { NULL, 0 } };
 	StringArray Loaded;
 
-	do_the_round_about(Ctx, StringArray::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( StringArray::TYPE_ID, &Inst, &Loaded );
 
 	EXPECT_EQ(0u,  Loaded.Strings.count);
 	EXPECT_EQ(0x0, Loaded.Strings.data);
@@ -794,7 +760,7 @@ TEST_F(DL, array_string_empty)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, bug1)
+TYPED_TEST(DLBase, bug1)
 {
 	// There was some error packing arrays ;)
 
@@ -805,7 +771,7 @@ TEST_F(DL, bug1)
 
 	BugTest1 Loaded[10];
 
-	do_the_round_about(Ctx, BugTest1::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( BugTest1::TYPE_ID, &Inst, &Loaded );
 
 	EXPECT_EQ(Arr[0].u64_1, Loaded[0].Arr[0].u64_1);
 	EXPECT_EQ(Arr[0].u64_2, Loaded[0].Arr[0].u64_2);
@@ -820,7 +786,7 @@ TEST_F(DL, bug1)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DL, bug2)
+TYPED_TEST(DLBase, bug2)
 {
 	// some error converting from 32-bit-data to 64-bit.
 
@@ -839,7 +805,7 @@ TEST_F(DL, bug2)
 
 	BugTest2 Loaded[40];
 
-	do_the_round_about(Ctx, BugTest2::TYPE_ID, &Inst, &Loaded);
+	this->do_the_round_about( BugTest2::TYPE_ID, &Inst, &Loaded );
 
  	EXPECT_EQ(Arr[0].iSubModel, Loaded[0].Instances[0].iSubModel);
  	EXPECT_EQ(Arr[1].iSubModel, Loaded[0].Instances[1].iSubModel);

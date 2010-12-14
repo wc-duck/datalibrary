@@ -46,9 +46,8 @@ const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned
 		EXPECT_TRUE(WasEq) << Err; \
 	}
 
-class DL : public ::testing::Test
+struct DL : public ::testing::Test
 {
-protected:
 	virtual void SetUp()
 	{
 		// bake the unittest-type library into the exe!
@@ -69,7 +68,6 @@ protected:
 		EXPECT_EQ(DL_ERROR_OK, dl_context_destroy(Ctx));
 	}
 
-public:
 	dl_ctx_t Ctx;
 };
 

@@ -48,6 +48,10 @@ dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t
 
 	Note:
 		Function is restricted to converting endianness and converting 8-byte ptr:s to 4-byte ptr:s
+
+	Return:
+		DL_ERROR_OK on success. DL_ERROR_UNSUPORTED_OPERATION is returned if trying to convert to format not
+		supported, for example converting 4-byte ptrs to 8-byte.
 */
 dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t dl_ctx,                dl_typeid_t  type,
                                              unsigned char* packed_instance, unsigned int packed_instance_size,
