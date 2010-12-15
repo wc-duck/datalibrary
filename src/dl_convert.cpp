@@ -725,10 +725,13 @@ extern "C" {
 
 dl_error_t dl_convert_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
 		                       unsigned char* packed_instance, unsigned int packed_instance_size,
-		                       dl_endian_t    out_endian,      unsigned int out_ptr_size)
+		                       unsigned int*  out_size,        dl_endian_t  out_endian,
+                               unsigned int   out_ptr_size )
 {
-	unsigned int dummy_needed_size;
-	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, packed_instance, packed_instance_size, out_endian, out_ptr_size, &dummy_needed_size);
+	unsigned int dummy;
+	if( out_size == 0x0 )
+		out_size = &dummy;
+	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, packed_instance, packed_instance_size, out_endian, out_ptr_size, out_size );
 }
 
 dl_error_t dl_convert( dl_ctx_t dl_ctx,                dl_typeid_t  type,

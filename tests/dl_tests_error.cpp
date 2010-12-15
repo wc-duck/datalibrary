@@ -37,6 +37,7 @@ TEST_F(DLError, type_mismatch_returned)
 	// testing that DL_ERROR_TYPE_MISMATCH is returned if provided type is not matching type stored in instance
 
 	unused u;
+	unsigned int dummy;
 	unsigned char packed[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char swaped[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char bus_buffer[sizeof(unused) * 10]; // large enough buffer!
@@ -58,10 +59,9 @@ TEST_F(DLError, type_mismatch_returned)
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*) ) );
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), DL_ENDIAN_HOST, sizeof(void*) ) );
 
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), other_endian,   sizeof(void*) ) );
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), DL_ENDIAN_HOST, sizeof(void*) ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), 0x0, other_endian,   sizeof(void*) ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), 0x0, DL_ENDIAN_HOST, sizeof(void*) ) );
 
-	unsigned int dummy = 0;
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_calc_size( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), sizeof(void*), &dummy ) );
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_calc_size( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), sizeof(void*), &dummy ) );
 

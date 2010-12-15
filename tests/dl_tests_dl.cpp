@@ -38,6 +38,8 @@ static const uint64_t DL_UINT64_MIN = 0x0000000000000000ULL;
 	EXPECT_EQ( exp_type,     inst_info.root_type ); \
 }
 
+const unsigned int OUT_BUFFER_SIZE = 2048;
+
 struct pack_text_test
 {
 	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
@@ -113,14 +115,13 @@ struct convert_inplace_test
 		if( conv_ptr_size <= sizeof(void*) )
 		{
 			memcpy( convert_buffer, store_buffer, store_size );
-			convert_size = store_size; // TODO: WHUÄÄÄÄÄÄÄ!!! This is incorrect!
-			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, conv_endian, conv_ptr_size ) );
-			// memset the rest to 0xFE
+			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, &convert_size, conv_endian, conv_ptr_size ) );
+			memset( convert_buffer + convert_size, 0xFE, sizeof(convert_buffer) - convert_size );
 		}
 		else
 		{
 			// check that error is correct
-			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, store_buffer, store_size, conv_endian, conv_ptr_size ) );
+			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, store_buffer, store_size, &convert_size, conv_endian, conv_ptr_size ) );
 
 			// convert with ordinary convert
 			EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, store_buffer, store_size, conv_ptr_size, &convert_size ) );
@@ -135,7 +136,7 @@ struct convert_inplace_test
 		if( conv_ptr_size < sizeof(void*))
 		{
 			// check that error is correct
-			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, out_size, DL_ENDIAN_HOST, sizeof(void*) ) );
 
 			// convert with ordinary convert
 			EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, convert_buffer, convert_size, sizeof(void*), out_size ) );
@@ -144,8 +145,8 @@ struct convert_inplace_test
 		else
 		{
 			memcpy( out_buffer, convert_buffer, convert_size );
-			*out_size = convert_size; // TODO: WHUÄÄÄÄÄÄÄ!!! This is incorrect!
-			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, out_buffer, *out_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, out_buffer, convert_size, out_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+			memset( out_buffer + *out_size, 0xFE, OUT_BUFFER_SIZE - *out_size );
 		}
 	}
 };
@@ -169,7 +170,7 @@ struct DLBase : public DL
 		EXPECT_INSTANCE_INFO( store_buffer, store_size, sizeof(void*), DL_ENDIAN_HOST, type );
 		EXPECT_EQ( 0xFE, store_buffer[store_size] ); // no overwrite on the calculated size plox!
 
-		unsigned char out_buffer[2048];
+		unsigned char out_buffer[OUT_BUFFER_SIZE];
 		memset( out_buffer, 0xFE, sizeof(out_buffer) );
 		unsigned int out_size;
 
