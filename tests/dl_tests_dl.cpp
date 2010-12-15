@@ -120,7 +120,7 @@ struct convert_inplace_test
 		else
 		{
 			// check that error is correct
-			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, store_buffer, store_size, conv_endian, conv_ptr_size ) );
+			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, store_buffer, store_size, conv_endian, conv_ptr_size ) );
 
 			// convert with ordinary convert
 			EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, store_buffer, store_size, conv_ptr_size, &convert_size ) );
@@ -135,7 +135,7 @@ struct convert_inplace_test
 		if( conv_ptr_size < sizeof(void*))
 		{
 			// check that error is correct
-			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, DL_ENDIAN_HOST, sizeof(void*) ) );
 
 			// convert with ordinary convert
 			EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, convert_buffer, convert_size, sizeof(void*), out_size ) );

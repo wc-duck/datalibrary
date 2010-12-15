@@ -670,7 +670,7 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 
 	// converting to larger pointersize in an inplace conversion is not possible!
 	if( dst_ptr_size > src_ptr_size && packed_instance == out_instance )
-		return DL_ERROR_UNSUPORTED_OPERATION;
+		return DL_ERROR_UNSUPPORTED_OPERATION;
 
 	dl_endian_t src_endian = header->m_Id == DL_TYPE_DATA_ID ? DL_ENDIAN_HOST : DLOtherEndian(DL_ENDIAN_HOST);
 
