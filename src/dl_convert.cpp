@@ -578,25 +578,25 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 
 bool dl_internal_sort_pred( const SInstance& i1, const SInstance& i2 ) { return i1.m_pAddress < i2.m_pAddress; }
 
-dl_error_t DLInternalConvertNoHeader( dl_ctx_t       _Context,
-                                      unsigned char* _pData,
-                                      unsigned char* _pBaseData,
-                                      unsigned char* _pOutData,
-                                      unsigned int   _OutDataSize,
-                                      unsigned int*  _pNeededSize,
-                                      dl_endian_t    _SourceEndian,
-                                      dl_endian_t    _TargetEndian,
-                                      dl_ptr_size_t  _SourcePtrSize,
-                                      dl_ptr_size_t  _TargetPtrSize,
-                                      const SDLType* _pRootType,
-                                      unsigned int   _BaseOffset )
+dl_error_t DLInternalConvertNoHeader( dl_ctx_t       dl_ctx,
+                                      unsigned char* packed_instance,
+                                      unsigned char* packed_instance_base,
+                                      unsigned char* out_instance,
+                                      unsigned int   out_instance_size,
+                                      unsigned int*  needed_size,
+                                      dl_endian_t    src_endian,
+                                      dl_endian_t    out_endian,
+                                      dl_ptr_size_t  src_ptr_size,
+                                      dl_ptr_size_t  out_ptr_size,
+                                      const SDLType* root_type,
+                                      unsigned int   base_offset )
 {
 	// need a parameter for IsSwapping
-	CDLBinaryWriter Writer(_pOutData, _OutDataSize, _pOutData == 0x0, _SourceEndian, _TargetEndian, _TargetPtrSize);
-	SConvertContext ConvCtx( _SourceEndian, _TargetEndian, _SourcePtrSize, _TargetPtrSize );
+	CDLBinaryWriter Writer(out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, out_ptr_size);
+	SConvertContext ConvCtx( src_endian, out_endian, src_ptr_size, out_ptr_size );
 
-	ConvCtx.m_lInstances.Add(SInstance(_pData, _pRootType, 0x0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STRUCT)));
-	dl_error_t err = DLInternalConvertCollectInstances(_Context, _pRootType, _pData, _pBaseData, ConvCtx);
+	ConvCtx.m_lInstances.Add(SInstance(packed_instance, root_type, 0x0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STRUCT)));
+	dl_error_t err = DLInternalConvertCollectInstances(dl_ctx, root_type, packed_instance, packed_instance_base, ConvCtx);
 
 	// TODO: we need to sort the instances here after their offset!
 
@@ -605,12 +605,12 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t       _Context,
 
 	for(unsigned int i = 0; i < ConvCtx.m_lInstances.Len(); ++i)
 	{
-		err = DLInternalConvertWriteInstance( _Context, ConvCtx.m_lInstances[i], &ConvCtx.m_lInstances[i].m_OffsetAfterPatch, ConvCtx, Writer);
+		err = DLInternalConvertWriteInstance( dl_ctx, ConvCtx.m_lInstances[i], &ConvCtx.m_lInstances[i].m_OffsetAfterPatch, ConvCtx, Writer);
 		if(err != DL_ERROR_OK) 
 			return err;
 	}
 
-	if(_pOutData != 0x0) // no need to patch data if we are only calculating size
+	if(out_instance != 0x0) // no need to patch data if we are only calculating size
 	{
 		for(unsigned int i = 0; i < ConvCtx.m_lPatchOffset.Len(); ++i)
 		{
@@ -621,7 +621,7 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t       _Context,
 
 			for(unsigned int j = 0; j < ConvCtx.m_lInstances.Len(); ++j )
 			{
-				pint OldOffset = ConvCtx.m_lInstances[j].m_pAddress - _pBaseData;
+				pint OldOffset = ConvCtx.m_lInstances[j].m_pAddress - packed_instance_base;
 
 				if(OldOffset == PP.m_OldOffset)
 				{
@@ -633,12 +633,12 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t       _Context,
 			M_ASSERT(NewOffset != pint(-1) && "We should have found the instance!");
 
 			Writer.SeekSet(PP.m_Pos);
-			Writer.WritePtr(NewOffset + _BaseOffset);
+			Writer.WritePtr(NewOffset + base_offset);
 		}
 	}
 
 	Writer.SeekEnd();
-	*_pNeededSize = (unsigned int)Writer.Tell();
+	*needed_size = (unsigned int)Writer.Tell();
 
 	return err;
 }
@@ -667,6 +667,10 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 		case 8: dst_ptr_size = DL_PTR_SIZE_64BIT; break;
 		default: return DL_ERROR_INVALID_PARAMETER;
 	}
+
+	// converting to larger pointersize in an inplace conversion is not possible!
+	if( dst_ptr_size > src_ptr_size && packed_instance == out_instance )
+		return DL_ERROR_UNSUPORTED_OPERATION;
 
 	dl_endian_t src_endian = header->m_Id == DL_TYPE_DATA_ID ? DL_ENDIAN_HOST : DLOtherEndian(DL_ENDIAN_HOST);
 
@@ -724,8 +728,6 @@ dl_error_t dl_convert_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t  type
 		                       dl_endian_t    out_endian,      unsigned int out_ptr_size)
 {
 	unsigned int dummy_needed_size;
-	if( out_ptr_size > sizeof(void*) ) // we can not do inplace conversion to increase pointersize, converted instance should in most instances grow!
-		return DL_ERROR_UNSUPORTED_OPERATION;
 	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, packed_instance, packed_instance_size, out_endian, out_ptr_size, &dummy_needed_size);
 }
 
