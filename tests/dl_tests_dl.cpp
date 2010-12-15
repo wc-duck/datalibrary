@@ -95,21 +95,56 @@ struct convert_inplace_test
 			           unsigned char* store_buffer, unsigned int  store_size,
 			           unsigned char* out_buffer,   unsigned int* out_size )
 	{
-		// inplace conversion will, as the name states not copy data to a buffer, hence copy source to output and do conversion in
-		// outbuffer.
-		memcpy( out_buffer, store_buffer, store_size );
-		*out_size = store_size;
+		/*
+			About test
+				since converting pointersizes from smaller to bigger can't be done inplace this test differs
+				depending on conversion.
+				tests will use inplace convert if possible, otherwise it checks that the operation returns
+				DL_ERROR_UNSUPORTED_OPERATION as it should.
 
-		if(conv_ptr_size > sizeof(void*)) // can't do inplace convert to bigger ptr size, check that error msg is correct
+				ie. if our test is only converting endian we do both conversions inplace, otherwise we
+				do the supported operation inplace.
+		*/
+
+		unsigned char convert_buffer[2048];
+		memset( convert_buffer, 0xFE, sizeof(convert_buffer) );
+		unsigned int convert_size = 0;
+
+		if( conv_ptr_size <= sizeof(void*) )
 		{
-			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, out_buffer, *out_size, conv_endian, conv_ptr_size ) );
+			memcpy( convert_buffer, store_buffer, store_size );
+			convert_size = store_size; // TODO: WHUÄÄÄÄÄÄÄ!!! This is incorrect!
+			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, conv_endian, conv_ptr_size ) );
+			// memset the rest to 0xFE
 		}
-		else // inplace convert plox!
+		else
 		{
-			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, out_buffer, *out_size, conv_endian, conv_ptr_size ) );
-			EXPECT_EQ( (unsigned char)0xFE, out_buffer[*out_size] ); // no overwrite on the generated text plox!
-			EXPECT_INSTANCE_INFO( out_buffer, *out_size, conv_ptr_size, conv_endian, type );
+			// check that error is correct
+			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, store_buffer, store_size, conv_endian, conv_ptr_size ) );
 
+			// convert with ordinary convert
+			EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, store_buffer, store_size, conv_ptr_size, &convert_size ) );
+			EXPECT_DL_ERR_OK( dl_convert( dl_ctx, type, store_buffer, store_size, convert_buffer, convert_size, conv_endian, conv_ptr_size ) );
+		}
+
+		EXPECT_EQ( (unsigned char)0xFE, convert_buffer[convert_size] ); // no overwrite on the generated text plox!
+		EXPECT_INSTANCE_INFO( convert_buffer, convert_size, conv_ptr_size, conv_endian, type );
+
+
+		// convert back!
+		if( conv_ptr_size < sizeof(void*))
+		{
+			// check that error is correct
+			EXPECT_DL_ERR_EQ( DL_ERROR_UNSUPORTED_OPERATION, dl_convert_inplace( dl_ctx, type, convert_buffer, store_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+
+			// convert with ordinary convert
+			EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, convert_buffer, convert_size, sizeof(void*), out_size ) );
+			EXPECT_DL_ERR_OK( dl_convert( dl_ctx, type, convert_buffer, convert_size, out_buffer, *out_size, DL_ENDIAN_HOST, sizeof(void*) ) );
+		}
+		else
+		{
+			memcpy( out_buffer, convert_buffer, convert_size );
+			*out_size = convert_size; // TODO: WHUÄÄÄÄÄÄÄ!!! This is incorrect!
 			EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, out_buffer, *out_size, DL_ENDIAN_HOST, sizeof(void*) ) );
 		}
 	}
