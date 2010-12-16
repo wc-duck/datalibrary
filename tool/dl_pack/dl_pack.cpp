@@ -3,13 +3,16 @@
 #include <dl/dl_txt.h>
 #include <dl/dl_convert.h>
 
-#include <string.h>
-
 #include "../../src/getopt/getopt.h" // these includes are horrific!
 #include "../../src/container/dl_array.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#define M_VERBOSE_OUTPUT(fmt, ...) if(g_Verbose) { fprintf(stderr, fmt "\n", ##__VA_ARGS__); }
+#define M_ERROR_AND_FAIL(fmt, ...) { fprintf(stderr, "Error: " fmt "\n", ##__VA_ARGS__); return 0x0; }
+#define M_ERROR_AND_QUIT(fmt, ...) { fprintf(stderr, "Error: " fmt "\n", ##__VA_ARGS__); return 1; }
 
 /*
 	Tool that take SBDL-data in text-form and output a packed binary.
@@ -18,29 +21,31 @@
 int g_Verbose = 0;
 int g_Unpack = 0;
 
-void PrintHelp(SGetOptContext* _pCtx)
+void print_help(SGetOptContext* _pCtx)
 {
-	char Buffer[2048];
+	char buffer[2048];
 	printf("usage: dl_pack.exe [options] file_to_pack\n\n");
-	printf("%s", GetOptCreateHelpString(_pCtx, Buffer, 2048));
+	printf("%s", GetOptCreateHelpString(_pCtx, buffer, 2048));
 }
 
-unsigned char* ReadFile(FILE* _pFile, unsigned int* Size)
+unsigned char* read_file(FILE* file, unsigned int* out_size)
 {
-	fseek(_pFile, 0, SEEK_END);
-	*Size = ftell(_pFile);
-	fseek(_pFile, 0, SEEK_SET);
+	const unsigned int CHUNK_SIZE = 1024;
+	size_t         total_size = 0;
+	size_t         chunk_size = 0;
+	unsigned char* out_buffer = 0;
 
-	unsigned char* pData = (unsigned char*)malloc(*Size + 1);
-	pData[*Size] = '\0';
-	size_t read = fread(pData, 1, *Size, _pFile);
-	(void)read;
-	return pData;
+	do
+	{
+		out_buffer = (unsigned char*)realloc(out_buffer, CHUNK_SIZE + total_size);
+		chunk_size = fread( out_buffer + total_size, 1, CHUNK_SIZE, file );
+		total_size += chunk_size;
+	}
+	while( chunk_size >= CHUNK_SIZE );
+
+	*out_size = total_size;
+	return out_buffer;
 }
-
-#define M_VERBOSE_OUTPUT(fmt, ...) if(g_Verbose) { fprintf(stderr, fmt "\n", ##__VA_ARGS__); }
-
-#define M_ERROR_AND_FAIL(fmt, ...) { fprintf(stderr, "Error: " fmt "\n", ##__VA_ARGS__); return 0x0; }
 
 dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<const char*, 128>& _lLibs)
 {
@@ -72,7 +77,7 @@ dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<
 				M_VERBOSE_OUTPUT("Reading type-library from file %s", Path);
 
 				unsigned int Size;
-				unsigned char* TL = ReadFile(File, &Size);
+				unsigned char* TL = read_file(File, &Size);
 				err = dl_context_load_type_library(Ctx, TL, Size);
 				if(err != DL_ERROR_OK)
 					M_ERROR_AND_FAIL( "SBDL error while loading type library (%s): %s", Path, dl_error_to_string(err));
@@ -86,8 +91,6 @@ dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<
 
 	return Ctx;
 }
-
-#define M_ERROR_AND_QUIT(fmt, ...) { fprintf(stderr, "Error: " fmt "\n", ##__VA_ARGS__); return 1; }
 
 int main(int argc, char** argv)
 {
@@ -119,7 +122,7 @@ int main(int argc, char** argv)
 	{
 		switch(opt)
 		{
-			case 'h': PrintHelp(&GOCtx); return 0;
+			case 'h': print_help(&GOCtx); return 0;
 			case 'L':
 				if(lLibPaths.Full())
 					M_ERROR_AND_QUIT("dl_pack only supports %u libpaths!", (unsigned int)lLibPaths.Capacity());
@@ -169,13 +172,12 @@ int main(int argc, char** argv)
 	FILE* pInFile  = stdin;
 	FILE* pOutFile = stdout;
 
-	// TODO: Support read stdin, write stdout
-	if(pInput[0] == '\0')
-		M_ERROR_AND_QUIT("Should have read input from stdin, but this is not supported yet =/");
-
-	pInFile = fopen(pInput, "rb");
-	if(pInFile == 0x0) 
-		M_ERROR_AND_QUIT("Could not open input file: %s", pInput);
+	if(pInput[0] != '\0')
+	{
+		pInFile = fopen(pInput, "rb");
+		if(pInFile == 0x0)
+			M_ERROR_AND_QUIT("Could not open input file: %s", pInput);
+	}
 
 	if(pOutput[0] != '\0')
 	{
@@ -185,7 +187,7 @@ int main(int argc, char** argv)
 	}
 
 	unsigned int Size;
-	unsigned char* InData = ReadFile(pInFile, &Size);
+	unsigned char* InData = read_file(pInFile, &Size);
 
 	dl_ctx_t Ctx = CreateContext(lLibPaths, lLibs);
 	if(Ctx == 0x0)
