@@ -144,7 +144,7 @@ int GetOpt(SGetOptContext* _Ctx)
 		}
 	}
 
- 	M_ASSERT(false && "This should not happen!");
+ 	DL_ASSERT(false && "This should not happen!");
  	return -1;
 }
 

@@ -96,7 +96,7 @@ static pint DLInternalReadPtrData( const uint8*  _pPtrData,
 		}
 		break;
 		default:
-			M_ASSERT(false && "Invalid ptr-size");
+			DL_ASSERT(false && "Invalid ptr-size");
 	}
 
 	return 0;
@@ -150,7 +150,7 @@ static void DLInternalReadArrayData( const uint8*  _pArrayData,
 		break;
 
 		default:
-			M_ASSERT(false && "Invalid ptr-size");
+			DL_ASSERT(false && "Invalid ptr-size");
 	}
 }
 
@@ -226,7 +226,7 @@ static dl_error_t DLInternalConvertCollectInstances( dl_ctx_t       _Context,
 					}
 					break;
 					default:
-						M_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 						// ignore
 				}
 			}
@@ -239,7 +239,7 @@ static dl_error_t DLInternalConvertCollectInstances( dl_ctx_t       _Context,
 
 				if(Offset == DL_NULL_PTR_OFFSET[_ConvertContext.m_SourcePtrSize])
 				{
-					M_ASSERT( Count == 0 );
+					DL_ASSERT( Count == 0 );
 					break;
 				}
 
@@ -282,7 +282,7 @@ static dl_error_t DLInternalConvertCollectInstances( dl_ctx_t       _Context,
 
 					default:
 					{
-						M_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 						DLInternalReadArrayData( pMemberData, &Offset, &Count, _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize );
 						_ConvertContext.m_lInstances.Add(SInstance(_pBaseData + Offset, 0x0, Count, Member.m_Type));
 					}
@@ -296,7 +296,7 @@ static dl_error_t DLInternalConvertCollectInstances( dl_ctx_t       _Context,
 				break;
 
 			default:
-				M_ASSERT(false && "Invalid ATOM-type!");
+				DL_ASSERT(false && "Invalid ATOM-type!");
 		}
 	}
 
@@ -382,7 +382,7 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 					}
 					break;
 					default:
-						M_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 						_Writer.WriteSwap(pMemberData, Member.m_Size[_ConvertContext.m_SourcePtrSize]);
 						break;
 				}
@@ -422,7 +422,7 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 					break;
 					default:
 					{
-						M_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 
 						pint   PodSize   = DLPodSize(Member.m_Type);
 						uint32 ArraySize = Member.m_Size[_ConvertContext.m_SourcePtrSize];
@@ -434,7 +434,7 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 							case 4: _Writer.WriteArray((uint32*)pMemberData, ArraySize / sizeof(uint32) ); break;
 							case 8: _Writer.WriteArray((uint64*)pMemberData, ArraySize / sizeof(uint64) ); break;
 							default:
-								M_ASSERT(false && "Not supported pod-size!");
+								DL_ASSERT(false && "Not supported pod-size!");
 						}
 					}
 					break;
@@ -474,7 +474,7 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 						case 4: _Writer.Write( DLConvertBitFieldFormat(*(uint32*)pMemberData, &Member, nBFMembers, _ConvertContext) ); break;
 						case 8: _Writer.Write( DLConvertBitFieldFormat(*(uint64*)pMemberData, &Member, nBFMembers, _ConvertContext) ); break;
 						default:
-							M_ASSERT(false && "Not supported pod-size or bitfield-size!");
+							DL_ASSERT(false && "Not supported pod-size or bitfield-size!");
 					}
 				}
 				else
@@ -485,7 +485,7 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 			break;
 
 			default:
-				M_ASSERT(false && "Invalid ATOM-type!");
+				DL_ASSERT(false && "Invalid ATOM-type!");
 		}
 	}
 
@@ -495,7 +495,7 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 	if(PosDiff < _pType->m_Size[_ConvertContext.m_TargetPtrSize])
 		_Writer.WriteZero(_pType->m_Size[_ConvertContext.m_TargetPtrSize] - PosDiff);
 
-	M_ASSERT(_Writer.Tell() - Pos == _pType->m_Size[_ConvertContext.m_TargetPtrSize]);
+	DL_ASSERT(_Writer.Tell() - Pos == _pType->m_Size[_ConvertContext.m_TargetPtrSize]);
 
 	return DL_ERROR_OK;
 }
@@ -557,7 +557,7 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 			case DL_TYPE_STORAGE_FP64:   _Writer.WriteArray(Data.m_u64, _Inst.m_ArrayCount ); break;
 
 			default:
-				M_ASSERT(false && "Unknown storage type!");
+				DL_ASSERT(false && "Unknown storage type!");
 		}
 
 		return DL_ERROR_OK;
@@ -569,8 +569,8 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 		return DL_ERROR_OK;
 	}
 
-	M_ASSERT(AtomType == DL_TYPE_ATOM_POD);
-	M_ASSERT(StorageType == DL_TYPE_STORAGE_STRUCT || StorageType == DL_TYPE_STORAGE_PTR);
+	DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
+	DL_ASSERT(StorageType == DL_TYPE_STORAGE_STRUCT || StorageType == DL_TYPE_STORAGE_PTR);
 	return DLInternalConvertWriteStruct(_Context, Data.m_u8, _Inst.m_pType, _ConvertContext, _Writer);
 }
 
@@ -630,7 +630,7 @@ dl_error_t DLInternalConvertNoHeader( dl_ctx_t       dl_ctx,
 				}
 			}
 
-			M_ASSERT(NewOffset != pint(-1) && "We should have found the instance!");
+			DL_ASSERT(NewOffset != pint(-1) && "We should have found the instance!");
 
 			Writer.SeekSet(PP.m_Pos);
 			Writer.WritePtr(NewOffset + base_offset);
@@ -739,7 +739,7 @@ dl_error_t dl_convert( dl_ctx_t dl_ctx,                dl_typeid_t  type,
                        unsigned char* out_instance,    unsigned int out_instance_size,
                        dl_endian_t    out_endian,      unsigned int out_ptr_size )
 {
-	M_ASSERT(out_instance != packed_instance && "Src and destination can not be the same!");
+	DL_ASSERT(out_instance != packed_instance && "Src and destination can not be the same!");
 	unsigned int dummy_needed_size;
 	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, out_instance, out_instance_size, out_endian, out_ptr_size, &dummy_needed_size);
 }

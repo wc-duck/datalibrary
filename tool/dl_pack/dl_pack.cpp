@@ -162,13 +162,14 @@ int main(int argc, char** argv)
 				break;
 			case 0: break; // ignore, flag was set!
 			default:
-				M_ASSERT(false && "This should not happen!");
+				DL_ASSERT(false && "This should not happen!");
 		}
 	}
 
 	FILE* pInFile  = stdin;
 	FILE* pOutFile = stdout;
 
+	// TODO: Support read stdin, write stdout
 	if(pInput[0] == '\0')
 		M_ERROR_AND_QUIT("Should have read input from stdin, but this is not supported yet =/");
 
@@ -196,7 +197,7 @@ int main(int argc, char** argv)
 	if(g_Unpack == 1) // should unpack
 	{
 		dl_instance_info_t info;
-		dl_instance_get_info( InData, Size, &info);
+		dl_instance_get_info( InData, Size, &info );
 		if(sizeof(void*) <= info.ptrsize)
 		{
 			// we are converting ptr-size down and can use the faster inplace load.

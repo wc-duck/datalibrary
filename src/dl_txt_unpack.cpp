@@ -72,7 +72,7 @@ static void DLWritePodMember(yajl_gen _Gen, dl_type_t _PodType, const uint8* _pD
 		case DL_TYPE_STORAGE_UINT32: Fmt = "%llu"; Val.m_Unsigned = uint64(*(uint32*)_pData); break;
 		case DL_TYPE_STORAGE_UINT64: Fmt = "%llu"; Val.m_Unsigned = uint64(*(uint64*)_pData); break;
 
-		default: M_ASSERT(false && "This should not happen!"); Val.m_Unsigned = 0; break;
+		default: DL_ASSERT(false && "This should not happen!"); Val.m_Unsigned = 0; break;
 	}
 
 	char Buffer64[128];
@@ -138,7 +138,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					}
 					break;
 					default: // default is a standard pod-type
-						M_ASSERT(Member.IsSimplePod());
+						DL_ASSERT(Member.IsSimplePod());
 						DLWritePodMember(_Ctx->m_JsonGen, Member.m_Type, pMemberData);
 						break;
 				}
@@ -197,7 +197,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 
 					default: // default is a standard pod-type
 					{
-						M_ASSERT(Member.IsSimplePod());
+						DL_ASSERT(Member.IsSimplePod());
 
 						pint Size = DLPodSize(Member.m_Type); // the size of the inline-array could be saved in the aux-data only used by bit-field!
 						pint Count = Member.m_Size[DL_PTR_SIZE_HOST] / Size;
@@ -273,7 +273,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
  					case 4: WriteMe = DL_EXTRACT_BITS( uint64(*(uint32*)pMemberData), uint64(BFOffset), uint64(BFBits) ); break; 
  					case 8: WriteMe = DL_EXTRACT_BITS( uint64(*(uint64*)pMemberData), uint64(BFOffset), uint64(BFBits) ); break; 
  					default: 
- 						M_ASSERT(false && "This should not happen!"); 
+ 						DL_ASSERT(false && "This should not happen!"); 
  						break;
  				}
  
@@ -283,7 +283,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 			break;
 
 			default:
-				M_ASSERT(false && "Invalid ATOM-type!");
+				DL_ASSERT(false && "Invalid ATOM-type!");
 		}
 	}
 
@@ -317,8 +317,8 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 				const SDLMember* pMember = _Ctx->m_lSubdataMembers[iSubData].m_pMember;
 				const uint8* pMemberData = _Ctx->m_lSubdataMembers[iSubData].m_pData;
 
-				M_ASSERT(pMember->AtomType() == DL_TYPE_ATOM_POD);
-				M_ASSERT(pMember->StorageType() == DL_TYPE_STORAGE_PTR);
+				DL_ASSERT(pMember->AtomType() == DL_TYPE_ATOM_POD);
+				DL_ASSERT(pMember->StorageType() == DL_TYPE_STORAGE_PTR);
 
 				const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, pMember->m_TypeID);
 				if(pSubType == 0x0)
@@ -364,7 +364,7 @@ void* DLUnpackMallocFunc(void* _pCtx, unsigned int _Sz)
 {
 	(void)_Sz;
 	SDLUnpackStorage* Storage = (SDLUnpackStorage*)_pCtx;
-	M_ASSERT(_Sz <= sizeof(SDLUnpackStorage));
+	DL_ASSERT(_Sz <= sizeof(SDLUnpackStorage));
 	return (void*)Storage->m_Storage;
 }
 void  DLUnpackFreeFunc(void* _pCtx, void* _pPtr)
@@ -376,7 +376,7 @@ void  DLUnpackFreeFunc(void* _pCtx, void* _pPtr)
 void* DLUnpackReallocFunc(void* _pCtx, void* _pPtr, unsigned int _Sz) 
 {
 	DL_UNUSED(_pCtx); DL_UNUSED(_pPtr); DL_UNUSED(_Sz);
-	M_ASSERT(false && "yajl should never need to realloc");
+	DL_ASSERT(false && "yajl should never need to realloc");
 	return 0x0;
 }
 

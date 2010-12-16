@@ -186,7 +186,7 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 			break;
 
 		default:
-			M_ASSERT(false && "Unknown atom type");
+			DL_ASSERT(false && "Unknown atom type");
 		}
 	}
 	return DL_ERROR_OK;
@@ -398,7 +398,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			M_ASSERT(m_WritePtr < m_OutDataSize);
+			DL_ASSERT(m_WritePtr < m_OutDataSize);
 			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%lu)", m_WritePtr, _DataSize, *(pint*)_pData);
 			memcpy(m_OutData + m_WritePtr, _pData, _DataSize);
 		}
@@ -503,7 +503,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 
 					if(pData == 0x0) // Null-pointer, store pint(-1) to signal to patching!
 					{
-						M_ASSERT(Offset == pint(-1) && "This pointer should not have been found among the written ptrs!");
+						DL_ASSERT(Offset == pint(-1) && "This pointer should not have been found among the written ptrs!");
 						// keep the -1 in Offset and store it to ptr.
 					}
 					else if(Offset == pint(-1)) // has not been written yet!
@@ -531,7 +531,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				}
 				break;
 				default: // default is a standard pod-type
-					M_ASSERT(_pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(_pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 					_pStoreContext->Write(_pInstance, _pMember->m_Size[DL_PTR_SIZE_HOST]);
 					break;
 			}
@@ -554,7 +554,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				}
 				break;
 				default: // default is a standard pod-type
-					M_ASSERT(_pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(_pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 					_pStoreContext->Write(_pInstance, _pMember->m_Size[DL_PTR_SIZE_HOST]);
 					break;
 			}
@@ -632,7 +632,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 		break;
 
 		default:
-			M_ASSERT(false && "Invalid ATOM-type!");
+			DL_ASSERT(false && "Invalid ATOM-type!");
 	}
 
 	return DL_ERROR_OK;

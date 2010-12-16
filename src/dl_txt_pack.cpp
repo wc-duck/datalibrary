@@ -156,7 +156,7 @@ struct SDLPackContext
 
 	void PushState( EDLPackState _State ) 
 	{
-		M_ASSERT(_State != DL_PACK_STATE_STRUCT && "Please use PushStructState()");
+		DL_ASSERT(_State != DL_PACK_STATE_STRUCT && "Please use PushStructState()");
 		m_StateStack.Push(_State);
 	}
 
@@ -212,7 +212,7 @@ struct SDLPackContext
 
 	void RegisterSubdataElement(unsigned int _Element, pint _Pos)
 	{
-		M_ASSERT(m_SubdataElements[_Element].m_Pos == pint(-1) && "Subdata element already registered!");
+		DL_ASSERT(m_SubdataElements[_Element].m_Pos == pint(-1) && "Subdata element already registered!");
 		m_SubdataElements[_Element].m_Pos = _Pos;
 		m_CurrentSubdataElement = _Element;
 	}
@@ -248,7 +248,7 @@ private:
 static int DLOnNull(void* _pCtx)
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
-	M_ASSERT(pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID);
+	DL_ASSERT(pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID);
 	pCtx->m_Writer->Write(pint(-1)); // mark Null-ptr
 	pCtx->PopState();
 	return 1;
@@ -257,7 +257,7 @@ static int DLOnNull(void* _pCtx)
 static int DLOnBool(void* _pCtx, int _Boolean)
 {
 	DL_UNUSED(_pCtx); DL_UNUSED(_Boolean);
-	M_ASSERT(false && "No support for bool yet!");
+	DL_ASSERT(false && "No support for bool yet!");
 	return 1;
 }
 
@@ -296,7 +296,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 			case DL_TYPE_STORAGE_UINT64: pCtx->m_Writer->Write((uint64)DL_INSERT_BITS(pCtx->m_Writer->Read<uint64>(), uint64(Val), DLBitFieldOffset(sizeof(uint64), BFOffset, BFBits), BFBits)); break;
 
 			default:
-				M_ASSERT(false && "This should not happen!");
+				DL_ASSERT(false && "This should not happen!");
 				break;
 		}
 
@@ -335,7 +335,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 		return 1;
 
 		default:
-			M_ASSERT(false && "This should not happen!");
+			DL_ASSERT(false && "This should not happen!");
 			return 0;
 	}
 
@@ -389,7 +389,7 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 	switch(State)
 	{
 		case DL_PACK_STATE_INSTANCE_TYPE:
-			M_ASSERT(pCtx->m_pRootType == 0x0);
+			DL_ASSERT(pCtx->m_pRootType == 0x0);
 			// we are packing an instance, get the type plox!
 			pCtx->m_pRootType = DLFindType(pCtx->m_DLContext, DLHashBuffer(_pStringVal, _StringLen, 0));
 
@@ -483,7 +483,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			// seek to position for member! ( members can come in any order in the text-file so we need to seek )
 			pint MemberPos = pCtx->m_StateStack.Top().m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
 			pCtx->m_Writer->SeekSet(MemberPos);
-			M_ASSERT(pCtx->m_Writer->InBackAllocArea() || IsAlign((void*)MemberPos, pMember->m_Alignment[DL_PTR_SIZE_HOST]));
+			DL_ASSERT(pCtx->m_Writer->InBackAllocArea() || IsAlign((void*)MemberPos, pMember->m_Alignment[DL_PTR_SIZE_HOST]));
 
 			pint array_count_patch_pos = 0; // for inline array, keep as 0.
 			bool array_has_sub_ptrs = false;
@@ -508,7 +508,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 						case DL_TYPE_STORAGE_PTR:  pCtx->PushMemberState(DL_PACK_STATE_SUBDATA_ID, pMember); break;
 						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState(DLFindEnum(pCtx->m_DLContext, pMember->m_TypeID)); break;
 						default:
-							M_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
+							DL_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
 							pCtx->PushState(EDLPackState(StorageType));
 							break;
 					}
@@ -548,7 +548,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 						}
 						break;
 						default: // default is a standard pod-type
-							M_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
+							DL_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
 							pCtx->PushState(EDLPackState(StorageType));
 							break;
 					}
@@ -558,7 +558,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					pCtx->PushMemberState(EDLPackState(pMember->m_Type), 0x0);
 				break;
 				default:
-					M_ASSERT(false && "Invalid ATOM-type!");
+					DL_ASSERT(false && "Invalid ATOM-type!");
 			}
 		}
 		break;
@@ -587,8 +587,8 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			dl_type_t AtomType = pMember->AtomType();
 			dl_type_t StorageType = pMember->StorageType();
 
-			M_ASSERT(AtomType == DL_TYPE_ATOM_POD);
-			M_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
+			DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
+			DL_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
 			const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->m_TypeID);
 			if(pSubType == 0x0)
 				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->m_Name);
@@ -601,7 +601,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 		break;
 
 		default:
-			M_ASSERT(false && "This should not happen!");
+			DL_ASSERT(false && "This should not happen!");
 	}
 
 	return 1;
@@ -703,7 +703,7 @@ static int DLOnMapEnd(void* _pCtx)
 								case DL_TYPE_STORAGE_STR: pCtx->m_lStrings.Add(SDLPackContext::SStringItem(MemberPos, *(char**)pDefMember, strlen(*(char**)pDefMember))); break;
 								case DL_TYPE_STORAGE_PTR: pCtx->m_Writer->Write(pint(-1)); break; // can only default to null!
 								default:
-									M_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
+									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
 									pCtx->m_Writer->Write(pDefMember, pMember->m_Size[DL_PTR_SIZE_HOST]);
 							}
 						}
@@ -722,7 +722,7 @@ static int DLOnMapEnd(void* _pCtx)
 								}
 								break;
 								default:
-									M_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
+									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
 									pCtx->m_Writer->Write(pDefMember, pMember->m_Size[DL_PTR_SIZE_HOST]);
 							}
 						}
@@ -748,13 +748,13 @@ static int DLOnMapEnd(void* _pCtx)
 								}
 								break;
 								default:
-									M_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
+									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
 									pCtx->m_Writer->Write(*(uint8**)pDefMember, Count * DLPodSize(pMember->m_Type));
 							}
 						}
 						break;
 						default:
-							M_ASSERT(false && "WHoo?");
+							DL_ASSERT(false && "WHoo?");
 					}
 				}
 			}
@@ -763,7 +763,7 @@ static int DLOnMapEnd(void* _pCtx)
 		}
 		break;
 		default:
-			M_ASSERT(false && "This should not happen!");
+			DL_ASSERT(false && "This should not happen!");
 	}
 	return 1;
 }

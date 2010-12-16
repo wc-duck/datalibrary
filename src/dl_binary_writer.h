@@ -28,7 +28,7 @@ public:
 		, m_DataSize(_OutDataSize)
 		{}
 
-	~CDLBinaryWriter() { M_ASSERT( m_BackAllocStack.Empty() ); }
+	~CDLBinaryWriter() { DL_ASSERT( m_BackAllocStack.Empty() ); }
 
 	void SeekSet (pint _pPos) { DL_LOG_BIN_WRITER_VERBOSE("Seek: %lu", _pPos); m_Pos  = _pPos; }
 	void SeekEnd ()           { DL_LOG_BIN_WRITER_VERBOSE("Seek End: %lu", m_NeededSize); m_Pos  = m_NeededSize; }
@@ -40,7 +40,7 @@ public:
 		if(!m_Dummy)
 		{
 			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", m_Pos, _Size, uint32(*(pint*)_pData) );
-			M_ASSERT(m_Pos + _Size <= m_DataSize && "To small buffer!");
+			DL_ASSERT(m_Pos + _Size <= m_DataSize && "To small buffer!");
 			memmove(m_Data + m_Pos, _pData, _Size);
 		}
 
@@ -95,7 +95,7 @@ public:
 				case DL_PTR_SIZE_32BIT: Write((uint32)_Val); break;
 				case DL_PTR_SIZE_64BIT: Write((uint64)_Val); break;
 				default:
-					M_ASSERT(false && "Bad ptr-size!?!");
+					DL_ASSERT(false && "Bad ptr-size!?!");
 			}
 		}
 		else
@@ -105,7 +105,7 @@ public:
 				case DL_PTR_SIZE_32BIT: { uint32 u = (uint32)_Val; Write(&u, 4); } break;
 				case DL_PTR_SIZE_64BIT: { uint64 u = (uint64)_Val; Write(&u, 8); } break;
 				default:
-					M_ASSERT(false && "Bad ptr-size!?!");
+					DL_ASSERT(false && "Bad ptr-size!?!");
 			}
 		}
 	}
@@ -115,7 +115,7 @@ public:
 		if(!m_Dummy)
 		{
 			DL_LOG_BIN_WRITER_VERBOSE("Write zero: %lu + %lu", m_Pos, _Bytes);
-			M_ASSERT(m_Pos + _Bytes <= m_DataSize && "To small buffer!");
+			DL_ASSERT(m_Pos + _Bytes <= m_DataSize && "To small buffer!");
 			memset(m_Data + m_Pos, 0x0, _Bytes);
 		}
 
@@ -146,7 +146,7 @@ public:
 		DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu\n", new_elem);
 		m_BackAllocStack.Push( new_elem );
 
-		M_ASSERT( new_elem > m_NeededSize && "back-alloc and front-alloc overlap!" );
+		DL_ASSERT( new_elem > m_NeededSize && "back-alloc and front-alloc overlap!" );
 
 		return new_elem;
 	}
@@ -154,7 +154,7 @@ public:
 	// return start of new array!
 	pint PopBackAlloc(uint32 num_elem, uint32 elem_size, uint32 elem_align)
 	{
-		M_ASSERT( !m_BackAllocStack.Empty() );
+		DL_ASSERT( !m_BackAllocStack.Empty() );
 
 		m_BackAllocStack.Pop(); // TODO: Extra pop, one element to much is pushed!
 

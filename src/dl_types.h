@@ -37,7 +37,7 @@
 
 #define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
-#define M_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: Rename and implement me plox!
+#define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: Rename and implement me plox!
 
 #define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
 #define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
@@ -265,7 +265,7 @@ DL_FORCEINLINE pint DLPtrSize(dl_ptr_size_t _SizeEnum)
 	{
 		case DL_PTR_SIZE_32BIT: return 4;
 		case DL_PTR_SIZE_64BIT: return 8;
-		default: M_ASSERT("unknown ptr size!"); return 0;
+		default: DL_ASSERT("unknown ptr size!"); return 0;
 	}
 }
 
@@ -289,7 +289,7 @@ static inline pint DLPodSize(dl_type_t _Type)
 		case DL_TYPE_STORAGE_FP64:   return 8;
 
 		default:
-			M_ASSERT(false && "This should not happen!");
+			DL_ASSERT(false && "This should not happen!");
 			return 0;
 	}
 }
@@ -341,7 +341,7 @@ static inline const char* DLFindEnumName(dl_ctx_t _Context, dl_typeid_t _EnumHas
 
 DL_FORCEINLINE static uint32_t DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, uint32_t _BaseHash)
 {
-	M_ASSERT(_pBuffer != 0x0 && "You made wrong!");
+	DL_ASSERT(_pBuffer != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;
 	for (unsigned int i = 0; i < _Bytes; i++)
 		Hash = (Hash * uint32(33)) + *((uint8*)_pBuffer + i);
@@ -350,7 +350,7 @@ DL_FORCEINLINE static uint32_t DLHashBuffer(const uint8* _pBuffer, unsigned int 
 
 DL_FORCEINLINE static uint32_t DLHashString(const char* _pStr, uint32_t _BaseHash = 0)
 {
-	M_ASSERT(_pStr != 0x0 && "You made wrong!");
+	DL_ASSERT(_pStr != 0x0 && "You made wrong!");
 	uint32 Hash = _BaseHash + 5381;
 	for (unsigned int i = 0; _pStr[i] != 0; i++)
 		Hash = (Hash * uint32(33)) + _pStr[i];

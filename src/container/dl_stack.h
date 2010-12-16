@@ -40,7 +40,7 @@ public:
 		Note: 
 			A call to top on an empty stack is invalid! 
 	*/
-	TArg Top() { M_ASSERT( !Empty() && "Stack is empty" ); return m_Data[m_Data.Len() - 1]; }
+	TArg Top() { DL_ASSERT( !Empty() && "Stack is empty" ); return m_Data[m_Data.Len() - 1]; }
 	
 	/*
 		Function: Empty

@@ -52,7 +52,7 @@ public:
 	*/
 	inline void SetSize(pint _NewSize)
 	{
-		M_ASSERT(_NewSize <= m_Storage.AllocSize());
+		DL_ASSERT(_NewSize <= m_Storage.AllocSize());
 		if(_NewSize < m_nElements) // destroy the rest
 		{
 			for(pint i=_NewSize; i<m_nElements; i++)
@@ -101,7 +101,7 @@ public:
 	*/
 	void Add(TArgConst _Element)
 	{
-		M_ASSERT(!Full() && "Array is full");
+		DL_ASSERT(!Full() && "Array is full");
 		new(&(m_Storage.Base()[m_nElements])) T(_Element);
 		m_nElements++;
 	}
@@ -112,7 +112,7 @@ public:
 	*/
 	void Decr()
 	{
-		M_ASSERT(m_nElements != 0 && "Array is empty");
+		DL_ASSERT(m_nElements != 0 && "Array is empty");
 		m_Storage.Base()[m_nElements--].~T();
 	}
 
@@ -127,7 +127,7 @@ public:
 	*/
 	T& operator[](pint _iEl)
 	{
-		M_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
 		return m_Storage.Base()[_iEl];
 	}
 
@@ -142,7 +142,7 @@ public:
 	*/
 	const T& operator[](pint _iEl) const
 	{
-		M_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
 		return m_Storage.Base()[_iEl];
 	}
 
@@ -288,7 +288,7 @@ public:
 	*/
 	void Add(TArgConst _Element)
 	{
-		M_ASSERT(!Full() && "Array is full");
+		DL_ASSERT(!Full() && "Array is full");
 		new(&(m_pData[m_nElements])) T(_Element);
 		m_nElements++;
 	}
@@ -299,7 +299,7 @@ public:
 	*/
 	void Decr()
 	{
-		M_ASSERT(m_nElements != 0 && "Array is empty");
+		DL_ASSERT(m_nElements != 0 && "Array is empty");
 		m_pData[m_nElements--].~T();
 	}
 
@@ -314,7 +314,7 @@ public:
 	*/
 	TArg operator[](pint _iEl)
 	{
-		M_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
 		return m_pData[_iEl];
 	}
 
@@ -329,7 +329,7 @@ public:
 	*/
 	TArgConst operator[](pint _iEl) const
 	{
-		M_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
 		return m_pData[_iEl];
 	}
 
