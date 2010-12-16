@@ -39,7 +39,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", m_Pos, _Size, (uint32)*(pint*)_pData);
+			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", m_Pos, _Size, uint32(*(pint*)_pData) );
 			M_ASSERT(m_Pos + _Size <= m_DataSize && "To small buffer!");
 			memmove(m_Data + m_Pos, _pData, _Size);
 		}
@@ -138,27 +138,22 @@ public:
 
 		pint new_elem = 0;
 
-		if(!m_Dummy)
-		{
-			if(m_BackAllocStack.Empty())
-				new_elem = m_DataSize - bytes;
-			else
-				new_elem = m_BackAllocStack.Top() - bytes;
+		if(m_BackAllocStack.Empty())
+			new_elem = m_DataSize - bytes;
+		else
+			new_elem = m_BackAllocStack.Top() - bytes;
 
-			DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu\n", new_elem);
-			m_BackAllocStack.Push( new_elem );
+		DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu\n", new_elem);
+		m_BackAllocStack.Push( new_elem );
 
-			M_ASSERT( new_elem > m_NeededSize && "back-alloc and front-alloc overlap!" );
-		}
+		M_ASSERT( new_elem > m_NeededSize && "back-alloc and front-alloc overlap!" );
+
 		return new_elem;
 	}
 
 	// return start of new array!
 	pint PopBackAlloc(uint32 num_elem, uint32 elem_size, uint32 elem_align)
 	{
-		if(m_Dummy)
-			return 0;
-
 		M_ASSERT( !m_BackAllocStack.Empty() );
 
 		m_BackAllocStack.Pop(); // TODO: Extra pop, one element to much is pushed!
@@ -208,7 +203,7 @@ public:
 private:
 	void UpdateNeededSize()
 	{
-		if( m_BackAllocStack.Empty() || m_Pos < m_BackAllocStack.Top() )
+		if( m_BackAllocStack.Empty() || m_Pos <= m_BackAllocStack.Top() )
 			m_NeededSize = Max(m_NeededSize, m_Pos);
 	}
 
