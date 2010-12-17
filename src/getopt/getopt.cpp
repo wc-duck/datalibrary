@@ -2,11 +2,39 @@
 
 #include "getopt.h"
 
-#include "../dl_types.h"
-#include "../dl_temp.h"
-
 #include <ctype.h>
+#include <stdio.h>  // for vsnprintf
+#include <stdarg.h> // for va_list
 #include <string.h>
+
+static inline int str_case_cmp_len(const char* s1, const char* s2, unsigned int len)
+{
+#if defined (_MSC_VER)
+	for(unsigned int i = 0; i < len; i++)
+	{
+		int c1 = tolower(s1[i]);
+		int c2 = tolower(s2[i]);
+		if(c1 < c2) return -1;
+		if(c1 > c2) return  1;
+		if(c1 == '\0' && c1 == c2) return 0;
+	}
+	return 0;
+#else // defined (_MSC_VER)
+	return strncasecmp(s1, s2, len);
+#endif // defined (_MSC_VER)
+}
+
+static inline int str_format(char* buf, unsigned int buf_size, const char* fmt, ...)
+{
+	va_list args;
+	va_start( args, fmt );
+	int ret = vsnprintf( buf, buf_size, fmt, args );
+#if defined(_MSC_VER)
+	buf[buf_size - 1] = '\0';
+#endif // defined(_MSC_VER)
+	va_end( args );
+	return ret;
+}
 
 EGetOptError GetOptCreateContext(SGetOptContext* _Ctx, int argc, char** argv, const SOption* _Opts)
 {
@@ -87,7 +115,7 @@ int GetOpt(SGetOptContext* _Ctx)
 
 			unsigned int name_len = (unsigned int)strlen(opt->m_Name);
 
-			if(StrCaseCompareLen(opt->m_Name, check_option, name_len) == 0)
+			if(str_case_cmp_len(opt->m_Name, check_option, name_len) == 0)
 			{
 				check_option += name_len;
 				found_arg = *check_option == '=' ? check_option + 1 : 0x0;
@@ -144,27 +172,26 @@ int GetOpt(SGetOptContext* _Ctx)
 		}
 	}
 
- 	DL_ASSERT(false && "This should not happen!");
  	return -1;
 }
 
 const char* GetOptCreateHelpString(SGetOptContext* _Ctx, char* _pBuffer, unsigned int BufferSize)
 {
 	int BufferPos = 0;
-	for(uint32 iOpt = 0; iOpt < _Ctx->m_NumOpts; ++iOpt)
+	for(unsigned int iOpt = 0; iOpt < _Ctx->m_NumOpts; ++iOpt)
 	{
 		const SOption& Opt = _Ctx->m_Opts[iOpt];
 
 		char LongName[64];
-		int Outpos = StrFormat(LongName, 64, "--%s", Opt.m_Name);
+		int Outpos = str_format(LongName, 64, "--%s", Opt.m_Name);
 
 		if(Opt.m_Type == E_OPTION_TYPE_REQUIRED)
-			StrFormat(LongName + Outpos, 64 - Outpos, "=<%s>", Opt.m_ValueDesc);
+			str_format(LongName + Outpos, 64 - Outpos, "=<%s>", Opt.m_ValueDesc);
 
 		if(Opt.m_NameShort == 0x0)
-			BufferPos += StrFormat(_pBuffer + BufferPos, BufferSize - BufferPos, "   %-32s - %s\n", LongName, Opt.m_Desc);
+			BufferPos += str_format(_pBuffer + BufferPos, BufferSize - BufferPos, "   %-32s - %s\n", LongName, Opt.m_Desc);
 		else
-			BufferPos += StrFormat(_pBuffer + BufferPos, BufferSize - BufferPos, "-%c %-32s - %s\n", Opt.m_NameShort, LongName, Opt.m_Desc);
+			BufferPos += str_format(_pBuffer + BufferPos, BufferSize - BufferPos, "-%c %-32s - %s\n", Opt.m_NameShort, LongName, Opt.m_Desc);
 	}
 
 	return _pBuffer;
