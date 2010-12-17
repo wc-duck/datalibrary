@@ -420,6 +420,9 @@ static dl_error_t DLUnpackInternal( dl_ctx_t dl_ctx,                      dl_typ
 
 	yajl_gen_free(Generator);
 
+	if(out_txt_instance != 0x0)
+		out_txt_instance[ *out_txt_instance_size - 1 ] = 0;
+
 	if(out_txt_instance != 0x0 && WriteCtx.m_WritePos > WriteCtx.m_BufferSize)
 		return DL_ERROR_BUFFER_TO_SMALL;
 
