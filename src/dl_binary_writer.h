@@ -8,10 +8,10 @@
 
 #include <stdio.h>
 
-#if 1 // BinaryWriterVerbose
-	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...)
-#else
+#if 0 // BinaryWriterVerbose
 	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...) printf("DL:" _Fmt "\n", ##__VA_ARGS__)
+#else
+	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...)
 #endif
 
 class CDLBinaryWriter
@@ -30,7 +30,7 @@ public:
 
 	~CDLBinaryWriter() { DL_ASSERT( m_BackAllocStack.Empty() ); }
 
-	void SeekSet (pint _pPos) { DL_LOG_BIN_WRITER_VERBOSE("Seek: %lu", _pPos); m_Pos  = _pPos; }
+	void SeekSet (pint _pPos) { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); m_Pos  = _pPos; }
 	void SeekEnd ()           { DL_LOG_BIN_WRITER_VERBOSE("Seek End: %lu", m_NeededSize); m_Pos  = m_NeededSize; }
 	pint Tell()               { return m_Pos; }
 	pint NeededSize()         { return m_NeededSize; }
@@ -143,7 +143,7 @@ public:
 		else
 			new_elem = m_BackAllocStack.Top() - bytes;
 
-		DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu\n", new_elem);
+		DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu (%lu)\n", new_elem, bytes);
 		m_BackAllocStack.Push( new_elem );
 
 		DL_ASSERT( new_elem > m_NeededSize && "back-alloc and front-alloc overlap!" );
@@ -161,22 +161,48 @@ public:
 		SeekEnd();
 		Align( elem_align );
 		Reserve( elem_size * num_elem );
-		SeekEnd();
+		pint arr_pos = Tell();
 
-		pint next_elem = Tell() - elem_size;
+		pint first_elem = m_BackAllocStack.Top();
+		pint last_elem  = m_BackAllocStack.Top() + elem_size * ( num_elem - 1 );
 
-		// elements are stored in reverse in the back of buffer since it contained sub-arrays.
-		for( uint32 elem = 0; elem < num_elem; ++elem)
+		DL_LOG_BIN_WRITER_VERBOSE("First: %lu last %lu", first_elem, last_elem);
+
+		unsigned char* curr_first = m_Data + first_elem;
+		unsigned char* curr_last  = m_Data + last_elem;
+
+		unsigned char swap_buffer[256]; // TODO: Handle bigger elements!
+
+		if( !m_Dummy )
+		while( curr_first < curr_last )
 		{
-			SeekSet(next_elem);
-			DL_LOG_BIN_WRITER_VERBOSE("Move back-alloc: %lu to %lu size: %u", m_BackAllocStack.Top(), m_Pos, elem_size);
-			Write( m_Data + m_BackAllocStack.Top(), elem_size);
+			DL_ASSERT( elem_size <= DL_ARRAY_LENGTH(swap_buffer));
 
-			next_elem -= elem_size;
-			m_BackAllocStack.Pop();
+			DL_LOG_BIN_WRITER_VERBOSE("Swap: %lu to %lu", curr_first - m_Data, curr_last - m_Data );
+
+			memcpy( swap_buffer, curr_first,  elem_size );
+			memcpy( curr_first,  curr_last,   elem_size );
+			memcpy( curr_last,   swap_buffer, elem_size );
+
+			curr_first += elem_size;
+			curr_last  -= elem_size;
 		}
 
-		return next_elem + elem_size;
+		if( elem_size == elem_align )
+			Write( m_Data + first_elem, elem_size + num_elem );
+		else
+		{
+			for( uint32 elem = 0; elem < num_elem; ++elem )
+			{
+				Align( elem_align );
+				Write( m_Data + first_elem + elem * elem_size, elem_size );
+			}
+		}
+
+		for( uint32 elem = 0; elem < num_elem; ++elem )
+			m_BackAllocStack.Pop(); // TODO: Is this stack really needed?
+
+		return arr_pos;
 	}
 
 	bool InBackAllocArea() { return m_Pos > m_NeededSize; }

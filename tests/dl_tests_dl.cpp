@@ -55,11 +55,10 @@ struct pack_text_test
 		EXPECT_DL_ERR_OK( dl_txt_unpack( dl_ctx, type, store_buffer, store_size, text_buffer, text_size ) );
 		EXPECT_EQ( (char)0xFE, text_buffer[text_size] ); // no overwrite on the generated text plox!
 
-		// printf("%s\n", TxtOut);
+		// printf("%s\n", text_buffer);
 
 		// pack txt to binary
 		EXPECT_DL_ERR_OK( dl_txt_pack_calc_size( dl_ctx, text_buffer, out_size ) );
-		// BUG: txt_pack_size goes out of its buffer!
 		EXPECT_DL_ERR_OK( dl_txt_pack( dl_ctx, text_buffer, out_buffer, *out_size ) );
 	}
 };

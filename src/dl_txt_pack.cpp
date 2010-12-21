@@ -522,7 +522,6 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					pCtx->m_Writer->SeekEnd();
 
 					array_has_sub_ptrs = dl_internal_has_sub_ptr(pCtx->m_DLContext, pMember->m_TypeID); // TODO: Optimize this, store info in type-data
-
 				case DL_TYPE_ATOM_INLINE_ARRAY: // FALLTHROUGH
 				{
 					pCtx->PushState(DL_PACK_STATE_ARRAY);
@@ -620,7 +619,8 @@ static int DLOnMapStart(void* _pCtx)
 		case DL_PACK_STATE_STRUCT:
 			if( pCtx->m_Writer->InBackAllocArea() )
 				pCtx->m_Writer->SeekEnd();
-			pCtx->m_Writer->Reserve(pCtx->m_StateStack.Top().m_pType->m_Size[DL_PTR_SIZE_HOST]);
+			else
+				pCtx->m_Writer->Reserve(pCtx->m_StateStack.Top().m_pType->m_Size[DL_PTR_SIZE_HOST]);
 			break;
 		default:
 			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
