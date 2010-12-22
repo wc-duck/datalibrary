@@ -442,19 +442,19 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			if(_StringLen != 4 && _StringLen != 7) 
 				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\" or \"data\"!", _StringLen, _pStringVal);
 
-			if(StrCaseCompareLen((const char*)_pStringVal, "type", _StringLen) == 0)
+			if(strncmp((const char*)_pStringVal, "type", _StringLen) == 0)
 			{
 				if(pCtx->m_pRootType != 0x0) 
 					DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance set two times!");
 				pCtx->PushState(DL_PACK_STATE_INSTANCE_TYPE);
 			}
-			else if (StrCaseCompareLen((const char*)_pStringVal, "data", _StringLen) == 0)
+			else if (strncmp((const char*)_pStringVal, "data", _StringLen) == 0)
 			{
 				if(pCtx->m_pRootType == 0x0) 
 					DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance not set or after data-segment!");
 				pCtx->PushStructState(pCtx->m_pRootType);
 			}
-			else if (StrCaseCompareLen((const char*)_pStringVal, "subdata", _StringLen) == 0)
+			else if (strncmp((const char*)_pStringVal, "subdata", _StringLen) == 0)
 			{
 				pCtx->PushState(DL_PACK_STATE_SUBDATA);
 			}

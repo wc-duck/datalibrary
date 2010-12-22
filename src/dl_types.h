@@ -263,6 +263,8 @@ static void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
 	vsnprintf( buffer, DL_ARRAY_LENGTH(buffer), fmt, args );
 	va_end(args);
 
+	buffer[DL_ARRAY_LENGTH(buffer) - 1] = '\0';
+
 	dl_ctx->error_msg_func( buffer, dl_ctx->error_msg_ctx );
 }
 
