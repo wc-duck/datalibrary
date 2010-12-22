@@ -6,7 +6,8 @@
 #include <dl/dl.h>
 
 #include <string.h> // for memcpy
-#include <stdio.h>
+#include <stdio.h>  // for vsnprintf
+#include <stdarg.h> // for va_list
 
 // remove me!
 #if defined(_MSC_VER)
@@ -85,8 +86,6 @@ struct TAlignmentOf
         enum { ALIGNOF = sizeof(CAlign) - sizeof(T) };
 };
 #define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
-
-#define DL_LOG_DL_ERROR(_Fmt, ...) fprintf(stderr, "DL: " _Fmt "\n", ##__VA_ARGS__)
 
 enum
 {
@@ -238,6 +237,9 @@ struct dl_context
 	void  (*free_func) ( void* ptr, void* alloc_ctx );
 	void* alloc_ctx;
 
+	dl_error_msg_handler error_msg_func;
+	void*                error_msg_ctx;
+
 	struct STypeLookUp { dl_typeid_t  m_TypeID; SDLType* m_pType; } m_TypeLookUp[128]; // dynamic alloc?
 	struct SEnumLookUp { dl_typeid_t  m_EnumID; SDLEnum* m_pEnum; } m_EnumLookUp[128]; // dynamic alloc?
 
@@ -249,6 +251,20 @@ struct dl_context
 
 	uint8* m_pDefaultInstances;
 };
+
+static void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
+{
+	if( dl_ctx->error_msg_func == 0x0 )
+		return;
+
+	char buffer[256];
+	va_list args;
+	va_start( args, fmt );
+	vsnprintf( buffer, DL_ARRAY_LENGTH(buffer), fmt, args );
+	va_end(args);
+
+	dl_ctx->error_msg_func( buffer, dl_ctx->error_msg_ctx );
+}
 
 /*
 	return a bitfield offset on a particular platform (currently endian-ness is used to set them apart, that might break ;) )

@@ -104,7 +104,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					case DL_TYPE_STORAGE_STRUCT:
 					{
 						const SDLType* pStructType = DLFindType(_Ctx->m_Ctx, Member.m_TypeID);
-						if(pStructType == 0x0) { DL_LOG_DL_ERROR("Subtype for member %s not found!", Member.m_Name); return; }
+						if(pStructType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Subtype for member %s not found!", Member.m_Name); return; }
 
 						DLWriteInstance(_Ctx, pStructType, pMemberData, _pDataBase);
 					}
@@ -156,7 +156,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					case DL_TYPE_STORAGE_STRUCT:
 					{
 						const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, Member.m_TypeID);
-						if(pSubType == 0x0) { DL_LOG_DL_ERROR("Type for inline-array member %s not found!", Member.m_Name); return; }
+						if(pSubType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", Member.m_Name); return; }
 
 						pint Size  = pSubType->m_Size[DL_PTR_SIZE_HOST];
 						pint Count = Member.m_Size[DL_PTR_SIZE_HOST] / Size;
@@ -220,7 +220,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					case DL_TYPE_STORAGE_STRUCT:
 					{
 						const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, Member.m_TypeID);
-						if(pSubType == 0x0) { DL_LOG_DL_ERROR("Type for inline-array member %s not found!", Member.m_Name); return; }
+						if(pSubType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", Member.m_Name); return; }
 
 						pint Size = AlignUp(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 						for(pint iElem = 0; iElem < Count; ++iElem)
@@ -323,7 +323,7 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 				const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, pMember->m_TypeID);
 				if(pSubType == 0x0)
 				{
-					DL_LOG_DL_ERROR("Type for inline-array member %s not found!", pMember->m_Name);
+					dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", pMember->m_Name);
 					return; // TODO: need to report error some how!
 				}
 

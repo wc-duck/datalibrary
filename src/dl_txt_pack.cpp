@@ -53,7 +53,7 @@ enum EDLPackState
 	DL_PACK_STATE_STRUCT,
 };
 
-#define DL_PACK_ERROR_AND_FAIL(err, fmt, ...) { DL_LOG_DL_ERROR(fmt, ##__VA_ARGS__); pCtx->m_ErrorCode = err; return 0x0; }
+#define DL_PACK_ERROR_AND_FAIL(dl_ctx, err, fmt, ...) { dl_log_error( dl_ctx, fmt, ##__VA_ARGS__ ); pCtx->m_ErrorCode = err; return 0x0; }
 
 template<unsigned int TBits>
 class CFlagField
@@ -277,14 +277,14 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 	{
 		uint64 Val;
 		if(sscanf(_pStringVal, DL_UINT64_FMT_STR, &Val) != 1)
-			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as bitfield member!", _StringLen, _pStringVal);
+			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as bitfield member!", _StringLen, _pStringVal);
 
 		unsigned int BFBits   = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED);
 		unsigned int BFOffset = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED);
 
 		uint64 MaxVal = (uint64(1) << BFBits) - uint64(1);
 		if(Val > MaxVal)
-			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", Val, BFBits);
+			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", Val, BFBits);
 
 		dl_type_t StorageType = dl_type_t(State & DL_TYPE_STORAGE_MASK);
 
@@ -323,7 +323,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 		{
 			uint32 ID;
 			if(sscanf(_pStringVal, "%u", &ID) != 1)
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
 
 			pCtx->AddPatchPosition( (unsigned int)ID );
 
@@ -341,7 +341,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 
 	union { int64 m_Signed; uint64 m_Unsigned; } Val;
 	if(sscanf(_pStringVal, pFmt, &Val.m_Signed) != 1)
-		DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct integer type!", _StringLen, _pStringVal);
+		DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct integer type!", _StringLen, _pStringVal);
 
 	switch(State)
 	{
@@ -350,14 +350,14 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 		case DL_PACK_STATE_POD_INT32:
 		case DL_PACK_STATE_POD_INT64:
 			if(!Between(Val.m_Signed, Min.m_Signed, Max.m_Signed))
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, DL_INT64_FMT_STR " will not fit in type", Val.m_Signed);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, DL_INT64_FMT_STR " will not fit in type", Val.m_Signed);
 			break;
 		case DL_PACK_STATE_POD_UINT8:
 		case DL_PACK_STATE_POD_UINT16:
 		case DL_PACK_STATE_POD_UINT32:
 		case DL_PACK_STATE_POD_UINT64:
 			if(!Between(Val.m_Unsigned, Min.m_Unsigned, Max.m_Unsigned))
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, DL_UINT64_FMT_STR " will not fit in type", Val.m_Unsigned);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, DL_UINT64_FMT_STR " will not fit in type", Val.m_Unsigned);
 			break;
 		default:
 			break;
@@ -394,7 +394,7 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			pCtx->m_pRootType = DLFindType(pCtx->m_DLContext, DLHashBuffer(_pStringVal, _StringLen, 0));
 
 			if(pCtx->m_pRootType == 0x0) 
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", _StringLen, _pStringVal);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", _StringLen, _pStringVal);
 
 			pCtx->PopState(); // back to last state plox!
 		break;
@@ -411,7 +411,7 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 		}
 		break;
 		default:
-			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Unexpected string \"%.*s\"!", _StringLen, _pStringVal);
+			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Unexpected string \"%.*s\"!", _StringLen, _pStringVal);
 	}
 
 	return 1;
@@ -440,18 +440,18 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 	{
 		case DL_PACK_STATE_INSTANCE:
 			if(_StringLen != 4 && _StringLen != 7) 
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\" or \"data\"!", _StringLen, _pStringVal);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\" or \"data\"!", _StringLen, _pStringVal);
 
 			if(StrCaseCompareLen((const char*)_pStringVal, "type", _StringLen) == 0)
 			{
 				if(pCtx->m_pRootType != 0x0) 
-					DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance set two times!");
+					DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance set two times!");
 				pCtx->PushState(DL_PACK_STATE_INSTANCE_TYPE);
 			}
 			else if (StrCaseCompareLen((const char*)_pStringVal, "data", _StringLen) == 0)
 			{
 				if(pCtx->m_pRootType == 0x0) 
-					DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance not set or after data-segment!");
+					DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance not set or after data-segment!");
 				pCtx->PushStructState(pCtx->m_pRootType);
 			}
 			else if (StrCaseCompareLen((const char*)_pStringVal, "subdata", _StringLen) == 0)
@@ -459,7 +459,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 				pCtx->PushState(DL_PACK_STATE_SUBDATA);
 			}
 			else
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\", \"data\" or \"subdata\"!", _StringLen, _pStringVal);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\", \"data\" or \"subdata\"!", _StringLen, _pStringVal);
 		break;
 
 		case DL_PACK_STATE_STRUCT:
@@ -469,14 +469,14 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			unsigned int MemberID = DLFindMember( State.m_pType, DLHashBuffer(_pStringVal, _StringLen, 0) );
 
 			if(MemberID > State.m_pType->m_nMembers) 
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_MEMBER_NOT_FOUND, "Member \"%.*s\" not in type!", _StringLen, _pStringVal);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_MEMBER_NOT_FOUND, "Type \"%s\" has no member named \"%.*s\"!", State.m_pType->m_Name, _StringLen, _pStringVal);
 
 			const SDLMember* pMember = State.m_pType->m_lMembers + MemberID;
 
 			// printf("packing member: %s->%s\n", State.m_pType->m_Name, pMember->m_Name);
 
 			if(State.m_MembersSet.IsSet(MemberID)) 
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_MEMBER_SET_TWICE, "Trying to set Member \"%.*s\" twice!", _StringLen, _pStringVal );
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_SET_TWICE, "Trying to set Member \"%.*s\" twice!", _StringLen, _pStringVal );
 
 			State.m_MembersSet.SetBit(MemberID);
 
@@ -501,7 +501,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 						{
 							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->m_TypeID);
 							if(pSubType == 0x0)
-								DL_PACK_ERROR_AND_FAIL( DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->m_Name);
+								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->m_Name);
 							pCtx->PushStructState(pSubType); 
 						}
 						break;
@@ -534,7 +534,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 						{
 							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->m_TypeID);
 							if(pSubType == 0x0)
-								DL_PACK_ERROR_AND_FAIL( DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->m_Name );
+								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->m_Name );
 							pCtx->PushStructState(pSubType);
 						}
 						break;
@@ -542,7 +542,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 						{
 							const SDLEnum* pEnum = DLFindEnum(pCtx->m_DLContext, pMember->m_TypeID);
 							if(pEnum == 0x0) 
-								DL_PACK_ERROR_AND_FAIL( DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->m_Name);
+								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->m_Name);
 							pCtx->PushEnumState(pEnum);
 						}
 						break;
@@ -568,7 +568,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 
 			uint32 ID;
 			if(sscanf((char*)_pStringVal, "%u", &ID) != 1)
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
 
 			const SDLMember* pMember = 0x0;
 
@@ -581,7 +581,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 				}
 
 			if(pMember == 0)
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "An item with id %u has not been encountered in the earlier part of the document, hence the type could not be deduced!", ID);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "An item with id %u has not been encountered in the earlier part of the document, hence the type could not be deduced!", ID);
 
 			dl_type_t AtomType = pMember->AtomType();
 			dl_type_t StorageType = pMember->StorageType();
@@ -590,7 +590,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			DL_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
 			const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->m_TypeID);
 			if(pSubType == 0x0)
-				DL_PACK_ERROR_AND_FAIL( DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->m_Name);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->m_Name);
 			pCtx->m_Writer->Align(pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 			pCtx->PushStructState(pSubType);
 
@@ -623,7 +623,7 @@ static int DLOnMapStart(void* _pCtx)
 				pCtx->m_Writer->Reserve(pCtx->m_StateStack.Top().m_pType->m_Size[DL_PTR_SIZE_HOST]);
 			break;
 		default:
-			DL_PACK_ERROR_AND_FAIL( DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
+			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
 	}
 	return 1;
 }
@@ -684,7 +684,7 @@ static int DLOnMapEnd(void* _pCtx)
 				if(!PackState.m_MembersSet.IsSet(iMember))
 				{
 					if(pMember->m_DefaultValueOffset == DL_UINT32_MAX) // no default-value avaliable for tihs!
-						DL_PACK_ERROR_AND_FAIL(DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->m_Name, PackState.m_pType->m_Name);
+						DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->m_Name, PackState.m_pType->m_Name );
 
 					pint   MemberPos = PackState.m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
 					uint8* pDefMember = pCtx->m_DLContext->m_pDefaultInstances + pMember->m_DefaultValueOffset;
@@ -872,11 +872,11 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 				++Ch;
 			}
 
-			DL_LOG_DL_ERROR("At line %u, column %u", Line, Column);
+			dl_log_error( PackContext->m_DLContext, "At line %u, column %u", Line, Column);
 		}
 
 		char* pStr = (char*)yajl_get_error(YAJLHandle, 1 /* verbose */, TxtData, (unsigned int)TxtLen);
-		DL_LOG_DL_ERROR("%s", pStr);
+		dl_log_error( PackContext->m_DLContext, "%s", pStr );
 		yajl_free_error(YAJLHandle, (unsigned char*)pStr);
 
 		if(PackContext->m_ErrorCode == DL_ERROR_OK)
@@ -885,7 +885,7 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 
 	if(PackContext->m_pRootType == 0x0)
 	{
-		DL_LOG_DL_ERROR("Missing root-element in dl-data");
+		dl_log_error( PackContext->m_DLContext, "Missing root-element in dl-data" );
 		return DL_ERROR_TXT_PARSE_ERROR;
 	}
 

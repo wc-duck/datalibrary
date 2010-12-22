@@ -137,6 +137,8 @@ DL_FORCEINLINE dl_endian_t dl_endian_host()
 
 #define DL_ENDIAN_HOST dl_endian_host()
 
+typedef void (*dl_error_msg_handler)( const char* msg, void* userdata );
+
 /*
 	Struct: dl_create_params_t
 		Passed with initialization parameters to dl_context_create.
@@ -146,12 +148,19 @@ DL_FORCEINLINE dl_endian_t dl_endian_host()
 		alloc_func - function called by dl to allocate memory, set to 0x0 to use malloc
 		free_func  - function called by dl to free memory, set to 0x0 to use free
 		alloc_ctx  - parameter passed to alloc_func/free_func for userdata.
+
+		error_msg_func - callback used to report errors in more detail than error-codes
+		                 to the user, set to 0x0 to ignore error-strings.
+		error_msg_ctx  - data passed to error_msg_func as user-data.
 */
 typedef struct dl_create_params
 {
 	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
 	void  (*free_func) ( void* ptr, void* alloc_ctx );
 	void* alloc_ctx;
+
+	dl_error_msg_handler error_msg_func;
+	void*                error_msg_ctx;
 } dl_create_params_t;
 
 /*
@@ -170,7 +179,9 @@ typedef struct dl_create_params
 #define DL_CREATE_PARAMS_SET_DEFAULT( params ) \
 		params.alloc_func = 0x0; \
 		params.free_func  = 0x0; \
-		params.alloc_ctx  = 0x0;
+		params.alloc_ctx  = 0x0; \
+		params.error_msg_func = 0x0; \
+		params.error_msg_ctx  = 0x0;
 
 /*
 	Group: Context

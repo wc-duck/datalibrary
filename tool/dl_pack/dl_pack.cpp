@@ -21,6 +21,11 @@
 int g_Verbose = 0;
 int g_Unpack = 0;
 
+void error_report_function( const char* msg, void* ctx )
+{
+	fprintf( stderr, "%s\n", msg );
+}
+
 void print_help(SGetOptContext* _pCtx)
 {
 	char buffer[2048];
@@ -52,6 +57,7 @@ dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<
 	dl_ctx_t Ctx;
 	dl_create_params_t p;
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	p.error_msg_func = error_report_function;
 	dl_error_t err = dl_context_create( &Ctx, &p );
 	if(err != DL_ERROR_OK)
 		M_ERROR_AND_FAIL( "SBDL error while creating context: %s", dl_error_to_string(err));

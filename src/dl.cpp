@@ -30,6 +30,9 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 	if( create_params->alloc_func == 0x0 ) ctx->alloc_func = dl_internal_default_alloc;
 	if( create_params->free_func == 0x0 )  ctx->free_func  = dl_internal_default_free;
 
+	ctx->error_msg_func = create_params->error_msg_func;
+	ctx->error_msg_ctx  = create_params->error_msg_ctx;
+
 	ctx->m_nTypes = 0;
 	ctx->m_nEnums = 0;
 
@@ -487,7 +490,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 					const SDLType* pSubType = DLFindType(_Context, _pMember->m_TypeID);
 					if(pSubType == 0x0)
 					{
-						DL_LOG_DL_ERROR("Could not find subtype for member %s", _pMember->m_Name);
+						dl_log_error( _Context, "Could not find subtype for member %s", _pMember->m_Name );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
 					DLInternalStoreInstance(_Context, pSubType, _pInstance, _pStoreContext );
