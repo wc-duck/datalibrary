@@ -3,8 +3,8 @@
 #include <dl/dl_txt.h>
 #include <dl/dl_convert.h>
 
-#include "../../src/getopt/getopt.h" // these includes are horrific!
-#include "../../src/container/dl_array.h"
+#include "getopt/getopt.h"
+#include "../../src/container/dl_array.h"  // this includes are horrific!
 
 #include <stdio.h>
 #include <stdlib.h>

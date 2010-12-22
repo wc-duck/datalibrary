@@ -1,6 +1,6 @@
 BUILD_PATH = "local"
--- PYTHON = "python"
-PYTHON = "C:\\Python26\\python.exe"
+PYTHON = "python"
+-- PYTHON = "C:\\Python26\\python.exe"
 
 function DLTypeLibrary( tlc_file, dl_shared_lib )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
@@ -209,7 +209,7 @@ end
 static_library = StaticLibrary( build_settings, "dl", obj_files )
 shared_library = SharedLibrary( build_settings, "dl", dll_files )
 
-dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, Collect("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
+dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, CollectRecursive("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
 
 -- HACK BONANZA!
 if build_platform == "linux_x86" then
@@ -235,7 +235,7 @@ else
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v " .. dl_tests, dl_tests ) -- valgrind c unittests
 end
 
-AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py .. " -v", dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
+AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py, dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
 
 -- do not run unittest as default, only run
 PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
