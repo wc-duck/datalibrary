@@ -136,6 +136,8 @@ public:
 		// function ignores alignment and tries to pack data as tightly as possible
 		// since data that will be stored here is only temporary.
 
+		// TODO: there should only need to be one element in the BackAllocStack per array.
+
 		pint new_elem = 0;
 
 		if(m_BackAllocStack.Empty())
@@ -146,8 +148,6 @@ public:
 		DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu (%lu)\n", new_elem, bytes);
 		m_BackAllocStack.Push( new_elem );
 
-		DL_ASSERT( new_elem > m_NeededSize && "back-alloc and front-alloc overlap!" );
-
 		return new_elem;
 	}
 
@@ -157,6 +157,8 @@ public:
 		DL_ASSERT( !m_BackAllocStack.Empty() );
 
 		m_BackAllocStack.Pop(); // TODO: Extra pop, one element to much is pushed!
+
+		DL_ASSERT( m_BackAllocStack.Top() >= m_NeededSize && "back-alloc and front-alloc overlap!" );
 
 		SeekEnd();
 		Align( elem_align );
