@@ -677,7 +677,7 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 	if(src_endian == out_endian && src_ptr_size == dst_ptr_size)
 	{
 		if(out_instance != 0x0)
-			memcpy(out_instance, packed_instance, packed_instance_size); // TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
+			memmove(out_instance, packed_instance, packed_instance_size); // TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
 
 		*out_size = packed_instance_size; // TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
 		return DL_ERROR_OK;
