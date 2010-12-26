@@ -195,6 +195,32 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 	return DL_ERROR_OK;
 }
 
+struct SOneMemberType
+{
+	SOneMemberType(const SDLMember* _pMember)
+	{
+		m_Size[0] = _pMember->m_Size[0];
+		m_Size[1] = _pMember->m_Size[1];
+		m_Alignment[0] = _pMember->m_Alignment[0];
+		m_Alignment[1] = _pMember->m_Alignment[1];
+		m_nMembers = 1;
+
+		memcpy(&m_Member, _pMember, sizeof(SDLMember));
+		m_Member.m_Offset[0] = 0;
+		m_Member.m_Offset[0] = 0;
+	}
+
+	const SDLType* AsDLType() { return (const SDLType*)this; }
+
+	char      m_Name[DL_TYPE_NAME_MAX_LEN];
+	uint32    m_Size[2];
+	uint32    m_Alignment[2];
+	uint32    m_nMembers;
+	SDLMember m_Member;
+};
+
+DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
+
 static void DLLoadTypeLibraryLoadDefaults(dl_ctx_t _Context, const uint8* _pDefaultData, unsigned int _DefaultDataSize)
 {
 	_Context->m_pDefaultInstances = (uint8*)_Context->alloc_func( _DefaultDataSize * 2, sizeof(void*), _Context->alloc_ctx ); // times 2 here need to be fixed!
@@ -399,7 +425,7 @@ public:
 
 	void Write(void* _pData, pint _DataSize)
 	{
-		if(!m_Dummy)
+		if( !m_Dummy && ( m_WritePtr + _DataSize <= m_OutDataSize ) )
 		{
 			DL_ASSERT(m_WritePtr < m_OutDataSize);
 			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%lu)", m_WritePtr, _DataSize, *(pint*)_pData);
@@ -416,7 +442,7 @@ public:
 
 		pint MoveMe = AlignUp(m_WritePtr, _Alignment) - m_WritePtr;
 
-		if(!m_Dummy)
+		if( !m_Dummy && ( m_WritePtr + MoveMe <= m_OutDataSize ) )
 		{
 			memset(m_OutData + m_WritePtr, 0x0, MoveMe);
 			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu", m_WritePtr, MoveMe);
@@ -664,6 +690,9 @@ static dl_error_t DLInternalStoreInstance(dl_ctx_t _Context, const SDLType* _pTy
 
 dl_error_t dl_instance_store(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
 {
+	if( _DataSize <= sizeof(SDLDataHeader))
+		return DL_ERROR_BUFFER_TO_SMALL;
+
 	const SDLType* pType = DLFindType(_Context, _TypeHash);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
@@ -689,6 +718,9 @@ dl_error_t dl_instance_store(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pI
 	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
 	StoreContext.SeekEnd();
 	pHeader->m_InstanceSize = (uint32)StoreContext.Tell();
+
+	if( pHeader->m_InstanceSize > _DataSize )
+		return DL_ERROR_BUFFER_TO_SMALL;
 
 	return err;
 }

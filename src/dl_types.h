@@ -205,32 +205,6 @@ struct SDLEnum
 #pragma warning(pop)
 #endif // defined( _MSC_VER )
 
-struct SOneMemberType
-{
-	SOneMemberType(const SDLMember* _pMember)
-	{
-		m_Size[0] = _pMember->m_Size[0];
-		m_Size[1] = _pMember->m_Size[1];
-		m_Alignment[0] = _pMember->m_Alignment[0];
-		m_Alignment[1] = _pMember->m_Alignment[1];
-		m_nMembers = 1;
-
-		memcpy(&m_Member, _pMember, sizeof(SDLMember));
-		m_Member.m_Offset[0] = 0;
-		m_Member.m_Offset[0] = 0;
-	}
-
-	const SDLType* AsDLType() { return (const SDLType*)this; }
-
-	char      m_Name[DL_TYPE_NAME_MAX_LEN];
-	uint32    m_Size[2];
-	uint32    m_Alignment[2];
-	uint32    m_nMembers;
-	SDLMember m_Member;
-};
-
-DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
-
 struct dl_context
 {
 	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
