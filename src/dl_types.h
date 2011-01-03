@@ -97,11 +97,13 @@ enum
 
 #include "dl_swap.h"
 
-static const uint32 DL_VERSION = 1;
-static const uint32 DL_TYPE_LIB_ID         = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
-static const uint32 DL_TYPE_LIB_ID_SWAPED  = DLSwapEndian(DL_TYPE_LIB_ID);
-static const uint32 DL_TYPE_DATA_ID        = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
-static const uint32 DL_TYPE_DATA_ID_SWAPED = DLSwapEndian(DL_TYPE_DATA_ID);
+static const uint32 DL_TYPELIB_VERSION    = 1; // format version for type-libraries.
+static const uint32 DL_INSTANCE_VERSION   = 1; // format version for instances.
+static const uint32 DL_INSTANCE_VERSION_SWAPED = DLSwapEndian(DL_INSTANCE_VERSION);
+static const uint32 DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
+static const uint32 DL_TYPELIB_ID_SWAPED       = DLSwapEndian(DL_TYPELIB_ID);
+static const uint32 DL_INSTANCE_ID             = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
+static const uint32 DL_INSTANCE_ID_SWAPED      = DLSwapEndian(DL_INSTANCE_ID);
 
 static const pint DL_NULL_PTR_OFFSET[2] =
 {

@@ -69,3 +69,39 @@ TEST_F(DLError, type_mismatch_returned)
 #undef EXPECT_DL_ERR_TYPE_MISMATCH
 }
 #endif // DL_UNITTEST_ALL
+
+#ifdef DL_UNITTEST_ALL
+TEST_F(DLError, typelib_version_mismatch_returned)
+{
+	static const unsigned char typelib[] =
+	{
+		#include "generated/unittest.bin.h"
+	};
+
+	unsigned char modded_type_lib[sizeof(typelib)];
+
+	memcpy( modded_type_lib, typelib, sizeof(typelib) );
+
+	EXPECT_EQ(4, sizeof(unsigned int));
+
+	// testing that errors are returned correctly by modding data.
+	unsigned int* lib_version = ((unsigned int*)modded_type_lib) + 1;
+
+	EXPECT_EQ(1, *lib_version);
+
+	*lib_version = 0xFFFFFFFF;
+
+	dl_ctx_t tmp_ctx;
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	EXPECT_DL_ERR_OK( dl_context_create( &tmp_ctx, &p ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_VERSION_MISMATCH, dl_context_load_type_library( tmp_ctx, modded_type_lib, sizeof(modded_type_lib) ) );
+}
+#endif // DL_UNITTEST_ALL
+
+
+#ifdef DL_UNITTEST_ALL
+TEST_F(DLError, version_mismatch_returned)
+{
+}
+#endif // DL_UNITTEST_ALL

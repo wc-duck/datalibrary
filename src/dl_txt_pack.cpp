@@ -908,8 +908,8 @@ dl_error_t dl_txt_pack(dl_ctx_t dl_ctx, const char* txt_instance, unsigned char*
 
 	// write header
 	SDLDataHeader Header;
-	Header.m_Id = DL_TYPE_DATA_ID;
-	Header.m_Version = DL_VERSION;
+	Header.m_Id = DL_INSTANCE_ID;
+	Header.m_Version = DL_INSTANCE_VERSION;
 	Header.m_RootInstanceType = DLHashString(PackContext.m_pRootType->m_Name);
 	Header.m_InstanceSize = (uint32)Writer.NeededSize();
 	Header.m_64BitPtr = sizeof(void*) == 8 ? 1 : 0;

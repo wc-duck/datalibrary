@@ -388,9 +388,9 @@ static dl_error_t DLUnpackInternal( dl_ctx_t dl_ctx,                      dl_typ
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
 	if(packed_instance_size < sizeof(SDLDataHeader)) return DL_ERROR_MALFORMED_DATA;
-	if( header->m_Id == DL_TYPE_DATA_ID_SWAPED )     return DL_ERROR_ENDIAN_MISMATCH;
-	if( header->m_Id != DL_TYPE_DATA_ID )            return DL_ERROR_MALFORMED_DATA;
-	if( header->m_Version != DL_VERSION)         return DL_ERROR_VERSION_MISMATCH;
+	if( header->m_Id == DL_INSTANCE_ID_SWAPED )      return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->m_Id != DL_INSTANCE_ID )             return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Version != DL_INSTANCE_VERSION)    return DL_ERROR_VERSION_MISMATCH;
 	if( header->m_RootInstanceType != type )     return DL_ERROR_TYPE_MISMATCH;
 
 	const SDLType* pType = DLFindType(dl_ctx, header->m_RootInstanceType);

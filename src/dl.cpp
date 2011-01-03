@@ -294,8 +294,8 @@ dl_error_t dl_context_load_type_library(dl_ctx_t dl_ctx, const unsigned char* li
 	SDLTypeLibraryHeader Header;
 	DLReadTLHeader(&Header, lib_data);
 
-	if(Header.m_Id != DL_TYPE_LIB_ID ) return DL_ERROR_MALFORMED_DATA;
-	if(Header.m_Version != DL_VERSION) return DL_ERROR_VERSION_MISMATCH;
+	if(Header.m_Id != DL_TYPELIB_ID ) return DL_ERROR_MALFORMED_DATA;
+	if(Header.m_Version != DL_TYPELIB_VERSION) return DL_ERROR_VERSION_MISMATCH;
 
 	// store type-info data.
 	dl_ctx->m_TypeInfoData = (uint8*)dl_ctx->alloc_func( Header.m_TypesSize, sizeof(void*), dl_ctx->alloc_ctx );
@@ -388,10 +388,10 @@ dl_error_t dl_instance_load(dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, c
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if(packed_instance_size < sizeof(SDLDataHeader))       return DL_ERROR_MALFORMED_DATA;
-	if(header->m_Id == DL_TYPE_DATA_ID_SWAPED) return DL_ERROR_ENDIAN_MISMATCH;
-	if(header->m_Id != DL_TYPE_DATA_ID )       return DL_ERROR_MALFORMED_DATA;
-	if(header->m_Version != DL_VERSION)        return DL_ERROR_VERSION_MISMATCH;
+	if(packed_instance_size < sizeof(SDLDataHeader)) return DL_ERROR_MALFORMED_DATA;
+	if(header->m_Id == DL_INSTANCE_ID_SWAPED)        return DL_ERROR_ENDIAN_MISMATCH;
+	if(header->m_Id != DL_INSTANCE_ID )              return DL_ERROR_MALFORMED_DATA;
+	if(header->m_Version != DL_INSTANCE_VERSION)     return DL_ERROR_VERSION_MISMATCH;
 	if(header->m_RootInstanceType != type)     return DL_ERROR_TYPE_MISMATCH;
 
 	const SDLType* pType = DLFindType(dl_ctx, header->m_RootInstanceType);
@@ -699,8 +699,8 @@ dl_error_t dl_instance_store(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pI
 
 	// write header
 	SDLDataHeader Header;
-	Header.m_Id = DL_TYPE_DATA_ID;
-	Header.m_Version = DL_VERSION;
+	Header.m_Id = DL_INSTANCE_ID;
+	Header.m_Version = DL_INSTANCE_VERSION;
 	Header.m_RootInstanceType = _TypeHash;
 	Header.m_InstanceSize = 0;
 	Header.m_64BitPtr = sizeof(void*) == 8 ? 1 : 0;
@@ -780,13 +780,13 @@ dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned 
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if( packed_instance_size < sizeof(SDLDataHeader) && header->m_Id != DL_TYPE_DATA_ID_SWAPED && header->m_Id != DL_TYPE_DATA_ID )
+	if( packed_instance_size < sizeof(SDLDataHeader) && header->m_Id != DL_INSTANCE_ID_SWAPED && header->m_Id != DL_INSTANCE_ID )
 		return DL_ERROR_MALFORMED_DATA;
-	if(header->m_Version != DL_VERSION && header->m_Version != DLSwapEndian(DL_VERSION))
+	if(header->m_Version != DL_INSTANCE_VERSION && header->m_Version != DL_INSTANCE_VERSION_SWAPED)
 		return DL_ERROR_VERSION_MISMATCH;
 
 	out_info->ptrsize   = header->m_64BitPtr ? 8 : 4;
-	if( header->m_Id == DL_TYPE_DATA_ID )
+	if( header->m_Id == DL_INSTANCE_ID )
 	{
 		out_info->endian    = DL_ENDIAN_HOST;
 		out_info->root_type = header->m_RootInstanceType ;

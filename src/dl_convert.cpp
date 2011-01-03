@@ -652,8 +652,8 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
 	if( packed_instance_size < sizeof(SDLDataHeader) )     return DL_ERROR_MALFORMED_DATA;
-	if( header->m_Id != DL_TYPE_DATA_ID &&
-		header->m_Id != DL_TYPE_DATA_ID_SWAPED )           return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Id != DL_INSTANCE_ID &&
+		header->m_Id != DL_INSTANCE_ID_SWAPED )            return DL_ERROR_MALFORMED_DATA;
 	if( header->m_RootInstanceType != type &&
 		header->m_RootInstanceType != DLSwapEndian(type) ) return DL_ERROR_TYPE_MISMATCH;
 	if( out_ptr_size != 4 && out_ptr_size != 8 )           return DL_ERROR_INVALID_PARAMETER;
@@ -672,7 +672,7 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 	if( dst_ptr_size > src_ptr_size && packed_instance == out_instance )
 		return DL_ERROR_UNSUPPORTED_OPERATION;
 
-	dl_endian_t src_endian = header->m_Id == DL_TYPE_DATA_ID ? DL_ENDIAN_HOST : DLOtherEndian(DL_ENDIAN_HOST);
+	dl_endian_t src_endian = header->m_Id == DL_INSTANCE_ID ? DL_ENDIAN_HOST : DLOtherEndian(DL_ENDIAN_HOST);
 
 	if(src_endian == out_endian && src_ptr_size == dst_ptr_size)
 	{
@@ -705,8 +705,8 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 	if(out_instance != 0x0)
 	{
 		SDLDataHeader* pNewHeader = (SDLDataHeader*)out_instance;
-		pNewHeader->m_Id               = DL_TYPE_DATA_ID;
-		pNewHeader->m_Version          = DL_VERSION;
+		pNewHeader->m_Id               = DL_INSTANCE_ID;
+		pNewHeader->m_Version          = DL_INSTANCE_VERSION;
 		pNewHeader->m_RootInstanceType = type;
 		pNewHeader->m_InstanceSize     = uint32(*out_size);
 		pNewHeader->m_64BitPtr         = out_ptr_size == 4 ? 0 : 1;
