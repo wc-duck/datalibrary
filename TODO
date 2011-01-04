@@ -6,13 +6,12 @@ BEFORE 1.0
 
 LATER
 c-library:
-	* add check for versions in data so errors are thrown if typelib and packed data of older version can not be loaded.
+	* EDLType should not need to be exposed by the lib in the way it is now!
 	* more platforms
 	* multi-dimensional arrays.
-	* errors from txt-packing should not report error to stdout, dl_txt_get_last_error()?
 	* add functionallity to stream txt_pack and unpack
-	* EDLType should not need to be exposed by the lib in the way it is now!
 	* dimensions to array and inline_array.
+	* support signed bitfields
 	* unicode-strings!
 	* SIMD-byteswap of arrays?
 	* could one use a concept close to a xor-linked-list to not need traversal of entire struct when patching pointers? would this work with convert
@@ -74,9 +73,9 @@ dl_tlc:
 
 			"vec3" : { 
 				"members" : { 
-					"x" : { "type" : "float", "index" : 0 },
-					"y" : { "type" : "float", "index" : 1 },
-					"z" : { "type" : "float", "index" : 2 }
+					"x" : { "type" : "fp32", "index" : 0 },
+					"y" : { "type" : "fp32", "index" : 1 },
+					"z" : { "type" : "fp32", "index" : 2 }
 				}
 			}
 
@@ -87,7 +86,6 @@ bindings:
 
 tests:
 	* harder unittests for subarrays.
-	* unittests should pass valgrind. ( might be done in 1.0 if there is not much to do )
 	* unittests for C#-bindings.
 	* benchmarks need to be written
 	* create some benchmarks that measure pack/unpack speed. 
