@@ -152,8 +152,9 @@ function DefaultMSVC( build_platform, config )
 	--[[
 		/EHsc only on unittest
 		/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
+		/wd4127 = warning C4127: conditional expression is constant.
 	--]]
-	settings.cc.flags:Add("/W4", "/WX", "/EHsc", "/wd4324") -- add /Wall?
+	settings.cc.flags:Add("/W4", "/WX", "/EHsc", "/wd4324", "/wd4127") -- add /Wall?
 	
 	if config == "debug" then
 		settings.cc.flags:Add("/Od", "/MTd", "/Z7", "/D \"_DEBUG\"")
