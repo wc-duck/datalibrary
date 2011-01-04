@@ -654,6 +654,8 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 	if( packed_instance_size < sizeof(SDLDataHeader) )     return DL_ERROR_MALFORMED_DATA;
 	if( header->m_Id != DL_INSTANCE_ID &&
 		header->m_Id != DL_INSTANCE_ID_SWAPED )            return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Version != DL_INSTANCE_VERSION &&
+		header->m_Version != DL_INSTANCE_VERSION_SWAPED )  return DL_ERROR_VERSION_MISMATCH;
 	if( header->m_RootInstanceType != type &&
 		header->m_RootInstanceType != DLSwapEndian(type) ) return DL_ERROR_TYPE_MISMATCH;
 	if( out_ptr_size != 4 && out_ptr_size != 8 )           return DL_ERROR_INVALID_PARAMETER;

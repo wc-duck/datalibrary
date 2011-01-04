@@ -103,5 +103,47 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 #ifdef DL_UNITTEST_ALL
 TEST_F(DLError, version_mismatch_returned)
 {
+	unused u;
+	unsigned int dummy;
+	unsigned char packed[sizeof(unused) * 10]; // large enough buffer!
+	unsigned char swaped[sizeof(unused) * 10]; // large enough buffer!
+	unsigned char bus_buffer[sizeof(unused) * 10]; // large enough buffer!
+			 char bus_text[sizeof(unused) * 10]; // large enough buffer!
+
+	dl_endian_t other_endian = DL_ENDIAN_HOST == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE;
+
+	EXPECT_DL_ERR_OK( dl_instance_store( Ctx, unused::TYPE_ID, &u, packed, DL_ARRAY_LENGTH(packed) ) );
+	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*) ) );
+
+	// testing that errors are returned correctly by modding data.
+	unsigned int* instance_version;
+	instance_version = ((unsigned int*)packed) + 1;
+	EXPECT_EQ(1, *instance_version);
+	*instance_version = 0xFFFFFFFF;
+	instance_version = ((unsigned int*)swaped) + 1;
+	EXPECT_EQ(0x01000000, *instance_version);
+	*instance_version = 0xFFFFFFFF;
+
+	// test all functions in...
+
+	#define EXPECT_DL_ERR_VERSION_MISMATCH( err ) EXPECT_DL_ERR_EQ( DL_ERROR_VERSION_MISMATCH, err )
+		Pods p;
+		// dl.h
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_instance_load( Ctx, unused::TYPE_ID, &p, packed, DL_ARRAY_LENGTH(packed) ) );
+
+		// dl_convert.h
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*) ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), DL_ENDIAN_HOST, sizeof(void*) ) );
+
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_inplace( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), 0x0, other_endian,   sizeof(void*) ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_inplace( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), 0x0, DL_ENDIAN_HOST, sizeof(void*) ) );
+
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_calc_size( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), sizeof(void*), &dummy ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_calc_size( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), sizeof(void*), &dummy ) );
+
+		// dl_txt.h
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_txt_unpack( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_text, DL_ARRAY_LENGTH(bus_text) ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_txt_unpack_calc_size( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), &dummy ) );
+	#undef EXPECT_DL_ERR_VERSION_MISMATCH
 }
 #endif // DL_UNITTEST_ALL
