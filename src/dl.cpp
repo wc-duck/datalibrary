@@ -24,6 +24,8 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 	if(ctx == 0x0)
 		return DL_ERROR_OUT_OF_LIBRARY_MEMORY;
 
+	memset(ctx, 0x0, sizeof(dl_context));
+
 	ctx->alloc_func = create_params->alloc_func;
 	ctx->free_func  = create_params->free_func;
 	ctx->alloc_ctx  = create_params->alloc_ctx;
@@ -32,9 +34,6 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 
 	ctx->error_msg_func = create_params->error_msg_func;
 	ctx->error_msg_ctx  = create_params->error_msg_ctx;
-
-	ctx->m_nTypes = 0;
-	ctx->m_nEnums = 0;
 
 	*dl_ctx = ctx;
 

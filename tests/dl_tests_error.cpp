@@ -96,6 +96,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
 	EXPECT_DL_ERR_OK( dl_context_create( &tmp_ctx, &p ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_VERSION_MISMATCH, dl_context_load_type_library( tmp_ctx, modded_type_lib, sizeof(modded_type_lib) ) );
+	EXPECT_DL_ERR_OK( dl_context_destroy( tmp_ctx ) );
 }
 #endif // DL_UNITTEST_ALL
 

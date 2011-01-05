@@ -880,15 +880,19 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 		yajl_free_error(YAJLHandle, (unsigned char*)pStr);
 
 		if(PackContext->m_ErrorCode == DL_ERROR_OK)
+		{
+			yajl_free(YAJLHandle);
 			return DL_ERROR_TXT_PARSE_ERROR;
+		}
 	}
 
 	if(PackContext->m_pRootType == 0x0)
 	{
 		dl_log_error( PackContext->m_DLContext, "Missing root-element in dl-data" );
-		return DL_ERROR_TXT_PARSE_ERROR;
+		PackContext->m_ErrorCode = DL_ERROR_TXT_PARSE_ERROR;
 	}
 
+	yajl_free(YAJLHandle);
 	return PackContext->m_ErrorCode;
 }
 
