@@ -232,7 +232,7 @@ if family == "windows" then
 	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ), dl_tests )
 else
 	AddJob( "test",          "unittest c",        dl_tests,                   dl_tests )
-	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v " .. dl_tests, dl_tests ) -- valgrind c unittests
+	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests ) -- valgrind c unittests
 end
 
 AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py, dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
