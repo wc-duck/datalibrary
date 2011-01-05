@@ -153,7 +153,7 @@ struct convert_inplace_test
 template <typename T>
 struct DLBase : public DL
 {
-	void do_the_round_about( dl_typeid_t type, void* pack_me, void* unpack_me )
+	void do_the_round_about( dl_typeid_t type, void* pack_me, void* unpack_me, unsigned int unpack_me_size )
 	{
 		dl_ctx_t dl_ctx = this->Ctx;
 
@@ -181,7 +181,7 @@ struct DLBase : public DL
 		EXPECT_INSTANCE_INFO( out_buffer, out_size, sizeof(void*), DL_ENDIAN_HOST, type );
 
 		// load binary
-		EXPECT_DL_ERR_OK( dl_instance_load( dl_ctx, type, unpack_me, out_buffer, out_size ) );
+		EXPECT_DL_ERR_OK( dl_instance_load( dl_ctx, type, unpack_me, unpack_me_size, out_buffer, out_size ) );
 	}
 };
 
@@ -205,7 +205,7 @@ TYPED_TEST(DLBase, pods)
 	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
 	Pods P1         = { 0 };
 
-	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1 );
+	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1, sizeof(Pods) );
 
 	EXPECT_EQ(P1Original.i8,  P1.i8);
 	EXPECT_EQ(P1Original.i16, P1.i16);
@@ -226,7 +226,7 @@ TYPED_TEST(DLBase, pods_max)
 	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
 	Pods P1         = { 0 };
 
-	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1 );
+	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1, sizeof(Pods) );
 
 	EXPECT_EQ(P1Original.i8,  P1.i8);
 	EXPECT_EQ(P1Original.i16, P1.i16);
@@ -248,7 +248,7 @@ TYPED_TEST(DLBase, pods_min)
 	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
 	Pods P1         = { 0 };
 
-	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1 );
+	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1, sizeof(Pods) );
 
 	EXPECT_EQ(P1Original.i8,    P1.i8);
 	EXPECT_EQ(P1Original.i16,   P1.i16);
@@ -269,7 +269,7 @@ TYPED_TEST(DLBase, struct_in_struct)
 	MorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
 	MorePods P1         = { { 0 }, { 0 } };
 
-	this->do_the_round_about( MorePods::TYPE_ID, &P1Original, &P1 );
+	this->do_the_round_about( MorePods::TYPE_ID, &P1Original, &P1, sizeof(MorePods) );
 
 	EXPECT_EQ(P1Original.Pods1.i8,    P1.Pods1.i8);
 	EXPECT_EQ(P1Original.Pods1.i16,   P1.Pods1.i16);
@@ -306,7 +306,7 @@ TYPED_TEST(DLBase, struct_in_struct_in_struct)
 	Orig.p2struct.Pod2.Int1 = 1234;
 	Orig.p2struct.Pod2.Int2 = 4321;
 
-	this->do_the_round_about( Pod2InStructInStruct::TYPE_ID, &Orig, &New );
+	this->do_the_round_about( Pod2InStructInStruct::TYPE_ID, &Orig, &New, sizeof(Pod2InStructInStruct) );
 
 	EXPECT_EQ(Orig.p2struct.Pod1.Int1, New.p2struct.Pod1.Int1);
 	EXPECT_EQ(Orig.p2struct.Pod1.Int2, New.p2struct.Pod1.Int2);
@@ -323,7 +323,7 @@ TYPED_TEST(DLBase, string)
 
 	Strings Loaded[5]; // this is so ugly!
 
-	this->do_the_round_about( Strings::TYPE_ID, &Orig, Loaded );
+	this->do_the_round_about( Strings::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
 	New = Loaded;
 
@@ -342,7 +342,7 @@ TYPED_TEST(DLBase, enum)
 
 	TestingEnum Loaded;
 
-	this->do_the_round_about( TestingEnum::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( TestingEnum::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
 
 	EXPECT_EQ(Inst.TheEnum, Loaded.TheEnum);
 }
@@ -358,7 +358,7 @@ TYPED_TEST(DLBase, inline_array_pod)
 	Orig.Array[1] = 7331;
 	Orig.Array[2] = 1234;
 
-	this->do_the_round_about( WithInlineArray::TYPE_ID, &Orig, &New );
+	this->do_the_round_about( WithInlineArray::TYPE_ID, &Orig, &New, sizeof(WithInlineArray) );
 
 	EXPECT_EQ(Orig.Array[0], New.Array[0]);
 	EXPECT_EQ(Orig.Array[1], New.Array[1]);
@@ -379,7 +379,7 @@ TYPED_TEST(DLBase, inline_array_struct)
 	Orig.Array[2].Int1 = 9012;
 	Orig.Array[2].Int2 = 3456;
 
-	this->do_the_round_about( WithInlineStructArray::TYPE_ID, &Orig, &New );
+	this->do_the_round_about( WithInlineStructArray::TYPE_ID, &Orig, &New, sizeof(WithInlineStructArray) );
 
 	EXPECT_EQ(Orig.Array[0].Int1, New.Array[0].Int1);
 	EXPECT_EQ(Orig.Array[0].Int2, New.Array[0].Int2);
@@ -409,7 +409,7 @@ TYPED_TEST(DLBase, inline_array_struct_in_struct)
 	Orig.Array[1].Array[2].Int1 = 133;
 	Orig.Array[1].Array[2].Int2 = 7;
 
-	this->do_the_round_about( WithInlineStructStructArray::TYPE_ID, &Orig, &New );
+	this->do_the_round_about( WithInlineStructStructArray::TYPE_ID, &Orig, &New, sizeof(WithInlineStructStructArray) );
 
 	EXPECT_EQ(Orig.Array[0].Array[0].Int1, New.Array[0].Array[0].Int1);
 	EXPECT_EQ(Orig.Array[0].Array[0].Int2, New.Array[0].Array[0].Int2);
@@ -434,7 +434,7 @@ TYPED_TEST(DLBase, inline_array_string)
 
 	StringInlineArray Loaded[5]; // this is so ugly!
 
-	this->do_the_round_about( StringInlineArray::TYPE_ID, &Orig, Loaded );
+	this->do_the_round_about( StringInlineArray::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
 	New = Loaded;
 
@@ -450,7 +450,7 @@ TYPED_TEST(DLBase, inline_array_enum)
 	InlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };
 	InlineArrayEnum Loaded;
 
-	this->do_the_round_about( InlineArrayEnum::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( InlineArrayEnum::TYPE_ID, &Inst, &Loaded, sizeof(InlineArrayEnum) );
 
 	EXPECT_EQ(Inst.EnumArr[0], Loaded.EnumArr[0]);
 	EXPECT_EQ(Inst.EnumArr[1], Loaded.EnumArr[1]);
@@ -468,7 +468,7 @@ TYPED_TEST(DLBase, array_pod1)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	this->do_the_round_about( PodArray1::TYPE_ID, &Orig, Loaded );
+	this->do_the_round_about( PodArray1::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
 	New = (PodArray1*)&Loaded[0];
 
@@ -492,7 +492,7 @@ TYPED_TEST(DLBase, array_with_sub_array)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded );
+	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
 	New = (PodArray2*)&Loaded[0];
 
@@ -514,7 +514,7 @@ TYPED_TEST(DLBase, array_with_sub_array2)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded );
+	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
 	New = (PodArray2*)&Loaded[0];
 
@@ -535,7 +535,7 @@ TYPED_TEST(DLBase, array_string)
 
 	StringArray Loaded[10]; // this is so ugly!
 
-	this->do_the_round_about( StringArray::TYPE_ID, &Orig, Loaded );
+	this->do_the_round_about( StringArray::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
 	New = Loaded;
 
@@ -555,7 +555,7 @@ TYPED_TEST(DLBase, array_struct)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
 
 	New = (StructArray1*)&Loaded[0];
 
@@ -581,7 +581,7 @@ TYPED_TEST(DLBase, array_enum)
 
 	uint32_t Loaded[1024]; // this is so ugly!
 
-	this->do_the_round_about( ArrayEnum::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( ArrayEnum::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
 
 	New = (ArrayEnum*)&Loaded[0];
 
@@ -611,7 +611,7 @@ TYPED_TEST(DLBase, bitfield)
 	Orig.Bit5 = 0;
 	Orig.Bit6 = 5;
 
-	this->do_the_round_about( TestBits::TYPE_ID, &Orig, &New );
+	this->do_the_round_about( TestBits::TYPE_ID, &Orig, &New, sizeof(TestBits) );
 
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
@@ -632,7 +632,7 @@ TYPED_TEST(DLBase, bitfield2)
 	Orig.Bit1 = 512;
 	Orig.Bit2 = 1;
 
-	this->do_the_round_about( MoreBits::TYPE_ID, &Orig, &New );
+	this->do_the_round_about( MoreBits::TYPE_ID, &Orig, &New, sizeof(MoreBits) );
 
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
@@ -650,7 +650,7 @@ TYPED_TEST(DLBase, bitfield_64bit)
 	Orig.PathHash = 1337;
 	Orig.FileHash = 0xDEADBEEF;
 
-	this->do_the_round_about( BitBitfield64::TYPE_ID, &Orig, &New );
+	this->do_the_round_about( BitBitfield64::TYPE_ID, &Orig, &New, sizeof(BitBitfield64) );
 
 	EXPECT_EQ(Orig.Package,  New.Package);
 	EXPECT_EQ(Orig.FileType, New.FileType);
@@ -668,7 +668,7 @@ TYPED_TEST(DLBase, ptr)
 
 	SimplePtr Loaded[64]; // this is so ugly!
 
-	this->do_the_round_about( SimplePtr::TYPE_ID, &Orig, Loaded );
+	this->do_the_round_about( SimplePtr::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
 	New = Loaded;
 	EXPECT_NE(Orig.Ptr1, New->Ptr1);
@@ -699,7 +699,7 @@ TYPED_TEST(DLBase, ptr_chain)
 
 	PtrChain Loaded[10]; // this is so ugly!
 
-	this->do_the_round_about( PtrChain::TYPE_ID, &Ptr4, Loaded );
+	this->do_the_round_about( PtrChain::TYPE_ID, &Ptr4, Loaded, sizeof(Loaded) );
 	New = Loaded;
 
 	EXPECT_NE(Ptr4.Next, New->Next);
@@ -732,7 +732,7 @@ TYPED_TEST(DLBase, ptr_chain_circle)
 
 	DoublePtrChain Loaded[10]; // this is so ugly!
 
-	this->do_the_round_about( DoublePtrChain::TYPE_ID, &Ptr4, Loaded );
+	this->do_the_round_about( DoublePtrChain::TYPE_ID, &Ptr4, Loaded, sizeof(Loaded) );
 	New = Loaded;
 
 	// Ptr4
@@ -766,7 +766,7 @@ TYPED_TEST(DLBase, array_pod_empty)
 	PodArray1 Inst = { { NULL, 0 } };
 	PodArray1 Loaded;
 
-	this->do_the_round_about( PodArray1::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( PodArray1::TYPE_ID, &Inst, &Loaded, sizeof(PodArray1) );
 
 	EXPECT_EQ(0u,  Loaded.u32_arr.count);
 	EXPECT_EQ(0x0, Loaded.u32_arr.data);
@@ -779,7 +779,7 @@ TYPED_TEST(DLBase, array_struct_empty)
 	StructArray1 Inst = { { NULL, 0 } };
 	StructArray1 Loaded;
 
-	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, &Loaded, sizeof(StructArray1) );
 
 	EXPECT_EQ(0u,  Loaded.Array.count);
 	EXPECT_EQ(0x0, Loaded.Array.data);
@@ -792,7 +792,7 @@ TYPED_TEST(DLBase, array_string_empty)
 	StringArray Inst = { { NULL, 0 } };
 	StringArray Loaded;
 
-	this->do_the_round_about( StringArray::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( StringArray::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
 
 	EXPECT_EQ(0u,  Loaded.Strings.count);
 	EXPECT_EQ(0x0, Loaded.Strings.data);
@@ -811,7 +811,7 @@ TYPED_TEST(DLBase, bug1)
 
 	BugTest1 Loaded[10];
 
-	this->do_the_round_about( BugTest1::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( BugTest1::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
 
 	EXPECT_EQ(Arr[0].u64_1, Loaded[0].Arr[0].u64_1);
 	EXPECT_EQ(Arr[0].u64_2, Loaded[0].Arr[0].u64_2);
@@ -845,7 +845,7 @@ TYPED_TEST(DLBase, bug2)
 
 	BugTest2 Loaded[40];
 
-	this->do_the_round_about( BugTest2::TYPE_ID, &Inst, &Loaded );
+	this->do_the_round_about( BugTest2::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
 
  	EXPECT_EQ(Arr[0].iSubModel, Loaded[0].Instances[0].iSubModel);
  	EXPECT_EQ(Arr[1].iSubModel, Loaded[0].Instances[1].iSubModel);

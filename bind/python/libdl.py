@@ -79,39 +79,11 @@ DL_STORAGE_TO_NAME = { DL_TYPE_STORAGE_INT8   : 'int8',
                        DL_TYPE_STORAGE_ENUM   : 'uint32',
                  
                        DL_TYPE_STORAGE_STR    : 'string' }
-
-'''DL_TO_C_TYPE = { DL_TYPE_STORAGE_INT8   : c_int8,
-                 DL_TYPE_STORAGE_INT16  : c_int16,
-                 DL_TYPE_STORAGE_INT32  : c_int32,
-                 DL_TYPE_STORAGE_INT64  : c_int64,
-                 DL_TYPE_STORAGE_UINT8  : c_uint8,
-                 DL_TYPE_STORAGE_UINT16 : c_uint16,
-                 DL_TYPE_STORAGE_UINT32 : c_uint32,
-                 DL_TYPE_STORAGE_UINT64 : c_uint64,
-                 DL_TYPE_STORAGE_FP32   : c_float,
-                 DL_TYPE_STORAGE_FP64   : c_double,
-                 DL_TYPE_STORAGE_ENUM   : c_uint32,
-                 
-                 DL_TYPE_STORAGE_STR    : c_char_p }'''
-
-'''DL_TO_PY_TYPE = { DL_TYPE_STORAGE_INT8   : int,
-                  DL_TYPE_STORAGE_INT16  : int,
-                  DL_TYPE_STORAGE_INT32  : int,
-                  DL_TYPE_STORAGE_INT64  : int,
-                  DL_TYPE_STORAGE_UINT8  : int,
-                  DL_TYPE_STORAGE_UINT16 : int,
-                  DL_TYPE_STORAGE_UINT32 : int,
-                  DL_TYPE_STORAGE_UINT64 : int,
-                  DL_TYPE_STORAGE_FP32   : float,
-                  DL_TYPE_STORAGE_FP64   : float,
-                  DL_TYPE_STORAGE_ENUM   : int,
-                 
-                  DL_TYPE_STORAGE_STR    : str,
-                  DL_TYPE_STORAGE_PTR    : object }'''
     
 global g_DLDll
 g_DLDll = None
 
+# TODO: should there be a subclass each for correct dl-errors?
 class DLError(Exception):
     def __init__(self, err, value):
         self.err = err
@@ -482,7 +454,7 @@ class DLContext:
         
         UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
         
-        err = g_DLDll.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), _DataBuffer, len(_DataBuffer));
+        err = g_DLDll.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer));
         if err != 0:
             raise DLError('Could not store instance!', err)
         

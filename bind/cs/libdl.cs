@@ -36,7 +36,7 @@ public class CDLContext
     {
         IntPtr buffer = Marshal.AllocHGlobal(_DataBuffer.Length);
 
-        CheckDLErrors(DLLoadInstanceInplace(m_Context, buffer, _DataBuffer, _DataBuffer.Length));
+        CheckDLErrors(DLLoadInstanceInplace(m_Context, buffer, _DataBuffer, _DataBuffer.Length, _DataBuffer.Length));
         object obj = Marshal.PtrToStructure(buffer, _Type);
 
         Marshal.FreeHGlobal(buffer);
@@ -153,7 +153,7 @@ public class CDLContext
     private extern static int DLContextCreate(IntPtr _pContext, IntPtr _pDLAllocFuncs);
 
     [DllImport("dldyn.dll", EntryPoint = "dl_instance_load", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLLoadInstanceInplace(IntPtr _Context, IntPtr _pInstance, byte[] _pData, int _DataSize);
+    private extern static int DLLoadInstanceInplace(IntPtr _Context, IntPtr _pInstance, int _InstanceSize, byte[] _pData, int _DataSize);
 
     [DllImport("dldyn.dll", EntryPoint = "dl_Instace_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLInstaceSizeStored(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pDataSize);

@@ -94,7 +94,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 			return DL_ERROR_INTERNAL_ERROR;
 	}
 
-	error = dl_instance_load(dl_ctx, type, load_instance, load_instance, load_size);
+	error = dl_instance_load(dl_ctx, type, load_instance, load_size, load_instance, load_size);
 
 	*out_instance = load_instance;
 

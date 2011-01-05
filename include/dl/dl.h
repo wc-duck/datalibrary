@@ -34,6 +34,7 @@ typedef struct dl_context* dl_ctx_t;
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
 	DL_ERROR_BUFFER_TO_SMALL                               - Provided buffer is to small.
 	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platforms.
+	DL_ERROR_BAD_ALIGNMENT                                 - One argument has a bad alignment that will break, for example, loaded data.
 	DL_ERROR_UNSUPPORTED_OPERATION                         - The operation is not supported by dl-function.
 
 	DL_ERROR_TXT_PARSE_ERROR                               - Syntax error while parsing txt-file. Check log for details.
@@ -58,6 +59,7 @@ enum dl_error_t
 	DL_ERROR_MEMBER_NOT_FOUND,
 	DL_ERROR_BUFFER_TO_SMALL,
 	DL_ERROR_ENDIAN_MISMATCH,
+	DL_ERROR_BAD_ALIGNMENT,
 	DL_ERROR_INVALID_PARAMETER,
 	DL_ERROR_UNSUPPORTED_OPERATION,
 
@@ -223,20 +225,22 @@ dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const un
 
 /*
 	Function: dl_instance_load
-		Load instances inplace from a binary blob of data.
-		Loads the instance to the memory area pointed to by _pInstance. Will return error if type is not constant size!
+		Loads an instance from packed format to usable by system.
 
 	Parameters:
 		dl_ctx               - Context to load type-library into.
 		dl_typeid            - Type of instance in the packed data.
 		instance             - Ptr where to load the instance to.
+		instance_size        - Size of buffer pointed to by instance.
 		packed_instance      - Ptr to binary data to load from.
 		packed_instance_size - Size of _pData.
 
 	Note:
 		Packed instance to load is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, const unsigned char* packed_instance, unsigned int packed_instance_size );
+dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t type,
+                                           void*                instance,        unsigned int instance_size,
+                                           const unsigned char* packed_instance, unsigned int packed_instance_size );
 
 /*
 	Group: Store

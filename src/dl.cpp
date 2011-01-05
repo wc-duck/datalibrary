@@ -384,19 +384,25 @@ dl_error_t dl_context_load_type_library(dl_ctx_t dl_ctx, const unsigned char* li
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_instance_load(dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, const unsigned char* packed_instance, unsigned int packed_instance_size)
+dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t type,
+                             void*                instance,        unsigned int instance_size,
+                             const unsigned char* packed_instance, unsigned int packed_instance_size)
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if(packed_instance_size < sizeof(SDLDataHeader)) return DL_ERROR_MALFORMED_DATA;
-	if(header->m_Id == DL_INSTANCE_ID_SWAPED)        return DL_ERROR_ENDIAN_MISMATCH;
-	if(header->m_Id != DL_INSTANCE_ID )              return DL_ERROR_MALFORMED_DATA;
-	if(header->m_Version != DL_INSTANCE_VERSION)     return DL_ERROR_VERSION_MISMATCH;
-	if(header->m_RootInstanceType != type)     return DL_ERROR_TYPE_MISMATCH;
+	if( packed_instance_size < sizeof(SDLDataHeader) ) return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Id == DL_INSTANCE_ID_SWAPED )        return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->m_Id != DL_INSTANCE_ID )               return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Version != DL_INSTANCE_VERSION )     return DL_ERROR_VERSION_MISMATCH;
+	if( header->m_RootInstanceType != type )           return DL_ERROR_TYPE_MISMATCH;
+	if( header->m_InstanceSize > instance_size )       return DL_ERROR_BUFFER_TO_SMALL;
 
 	const SDLType* pType = DLFindType(dl_ctx, header->m_RootInstanceType);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
+
+	if( !IsAlign( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
+		return DL_ERROR_BAD_ALIGNMENT;
 
 	memcpy(instance, packed_instance + sizeof(SDLDataHeader), header->m_InstanceSize);
 
@@ -760,6 +766,7 @@ const char* dl_error_to_string(dl_error_t _Err)
 		M_DL_ERR_TO_STR(DL_ERROR_MEMBER_NOT_FOUND);
 		M_DL_ERR_TO_STR(DL_ERROR_BUFFER_TO_SMALL);
 		M_DL_ERR_TO_STR(DL_ERROR_ENDIAN_MISMATCH);
+		M_DL_ERR_TO_STR(DL_ERROR_BAD_ALIGNMENT);
 		M_DL_ERR_TO_STR(DL_ERROR_INVALID_PARAMETER);
 		M_DL_ERR_TO_STR(DL_ERROR_UNSUPPORTED_OPERATION);
 
