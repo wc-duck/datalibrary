@@ -529,7 +529,7 @@ TYPED_TEST(DLBase, array_with_sub_array2)
 #ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_string)
 {
-	char* TheStringArray[] = { (char*)"I like", (char*)"the", (char*)"1337 ", (char*)"cowbells of doom!" };
+	const char* TheStringArray[] = { "I like", "the", "1337 ", "cowbells of doom!" };
 	StringArray Orig = { { TheStringArray, 4 } };
 	StringArray* New;
 

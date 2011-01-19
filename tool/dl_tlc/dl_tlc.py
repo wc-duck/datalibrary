@@ -181,8 +181,7 @@ def calc_enum_vals(data):
 def check_for_bad_data(_Data):
 	# add error-check plox!
 	pass
-			
-from header_writer_cpp import HeaderWriterCPP
+
 from header_writer_cs import HeaderWriterCS
 from type_lib_writer import TypeLibraryWriter
 import logging
@@ -271,6 +270,9 @@ def parse_options():
 	return options
 
 if __name__ == "__main__":
+	import dl.typelibrary
+	import dl.generate
+	
 	options = parse_options()
 
 	data = read_type_library_definition(options.input)
@@ -279,16 +281,14 @@ if __name__ == "__main__":
 	calc_size_and_align(data)
 	
 	check_for_bad_data(data)
+	
+	tl = dl.typelibrary.TypeLibrary( options.input )
 
 	# write headers
 	if options.cppheader:
-		options.cppheader = open(options.cppheader, 'w')
-		hw = HeaderWriterCPP(options.cppheader, config['cpp'], pure_c = False)
-		hw.write_header(data)
-		hw.write_enums(data)
-		hw.write_structs(data)
-		hw.finalize(data)
-		options.cppheader.close()
+		file = open( options.cppheader, 'w' )
+		dl.generate.cpp.generate( tl, None, file )
+		file.close()
 		
 	if options.cheader:
 		options.cppheader = open(options.cppheader, 'w')
