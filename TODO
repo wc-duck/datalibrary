@@ -6,6 +6,9 @@ BEFORE 1.0
 
 LATER
 c-library:
+	* add consumed_bytes-parameter to dl_instance_load.
+	* load multiple typelibraries into one dl_context
+	* Add dl_instance_load_inplace ( how to handle alignment in this case? )
 	* EDLType should not need to be exposed by the lib in the way it is now!
 	* more platforms
 	* multi-dimensional arrays.
