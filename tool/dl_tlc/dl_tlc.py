@@ -182,7 +182,6 @@ def check_for_bad_data(_Data):
 	# add error-check plox!
 	pass
 
-from header_writer_cs import HeaderWriterCS
 from type_lib_writer import TypeLibraryWriter
 import logging
 
@@ -289,7 +288,7 @@ if __name__ == "__main__":
 	# write headers
 	if options.cppheader:
 		file = open( options.cppheader, 'w' )
-		dl.generate.cpp.generate( tl, None, file )
+		dl.generate.cplusplus.generate( tl, None, file )
 		file.close()
 		
 	if options.cheader:
@@ -303,7 +302,7 @@ if __name__ == "__main__":
 		
 	if options.csheader:
 		file = open( options.csheader, 'w' )
-		dl.generate.cs.generate( tl, None, file )
+		dl.generate.csharp.generate( tl, None, file )
 		file.close()
 
 	# write binary type library
