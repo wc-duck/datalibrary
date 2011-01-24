@@ -6,6 +6,8 @@
 '''
 
 from sys import maxint
+import logging
+import struct
 
 class PlatformValue( object ):
     def __init__(self, val=(0,0)):
@@ -81,6 +83,16 @@ class Enum( object ):
             
             self.values.append( self.EnumValue( name, value ) )
             current_value = value + 1
+            
+        # calculate dl-type-id
+        # better typeid-generation plox!
+        def hash_buffer( str ):
+            hash = 5381
+            for char in str:
+                hash = (hash * 33) + ord(char)
+            return (hash - 5381) & 0xFFFFFFFF;
+        
+        self.typeid = hash_buffer( self.name )
 
 class Member( object ):
     def __init__(self, name, data):
@@ -210,6 +222,9 @@ class Type( object ):
             bits = 0
             for mem in group:
                 bits += mem.bits
+                mem.last_in_group = False
+                
+            group[-1].last_in_group = True
             
             storage_type = select_storage_type( bits )
             
@@ -380,8 +395,52 @@ def read( stream ):
 
 def compile( typelibrary, stream ):
     ''' create binary lib '''
-    pass
+    def build_header( typelibrary ):
+        return ''
+    
+    def build_enum_data( typelibrary ):
+        lookup, data  = '', ''
+        
+        logging.debug('ENUMS')
+        logging.debug('                                    name          id    offset')
+        logging.debug('------------------------------------------------------------------------------------------------')
+        
+        for enum in typelibrary.enums.values():
+            enum_offset = len(data)
+            logging.debug('%40s  0x%08X%10u' % (enum.name, enum.typeid, enum_offset))
+            lookup += struct.pack('<II', enum.typeid, enum_offset)
+            data   += struct.pack( '<32sII', str(enum.name), enum.typeid, len(enum.values))
+            data   += ''.join( [ struct.pack( '<32sI', str(value.name), value.value ) for value in enum.values ] )
+        
+        return lookup, data
+    
+    def build_type_data( typelibrary ):
+        lookup, data  = '', ''
+        
+        logging.debug('TYPES')
+        logging.debug('                                    name          id    offset  size32  size64  align32  align64')
+        logging.debug('------------------------------------------------------------------------------------------------')
+        
+        type_offset = len(data)
+        
+        for type in typelibrary.types.values():
+            if isinstance( type, BuiltinType ):
+                continue
+            logging.debug( '%40s  0x%08X%10u%8u%8u%9u%9u' % ( type.name, type.typeid, type_offset, 
+                                                              type.size.ptr32,  type.size.ptr64,
+                                                              type.align.ptr32, type.align.ptr64 ) )
+        return lookup, data
+    
+    logging.basicConfig(level=logging.DEBUG)
+    
+    header                 = build_header( typelibrary )
+    enum_lookup, enum_data = build_enum_data( typelibrary )
+    type_lookup, type_data = build_type_data( typelibrary )
+    
+    # do defaults here compile temporary typelib, build typelib with it
 
 def generate( typelibrary, stream ):
     ''' generate json typelibrary definition ( some info might be lost ) '''
+    
+    # write header
     pass

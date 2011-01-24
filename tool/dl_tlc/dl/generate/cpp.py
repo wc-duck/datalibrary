@@ -92,7 +92,7 @@ def emit_member( member, stream ):
 
 def emit_struct( type, stream ):
     #if verbose:
-    print >> stream, '// size32 %u, size64 %u' % ( type.size.ptr32, type.size.ptr64 )
+    print >> stream, '// size32 %u, size64 %u, align32 %u, align64 %u' % ( type.size.ptr32, type.size.ptr64, type.align.ptr32, type.align.ptr64 )
     
     if type.comment:
         print >> stream, '//', type.comment
@@ -118,8 +118,8 @@ def generate( typelibrary, config, stream ):
     
     structs = StringIO()
     
-    for enum_name in typelibrary.enums:
-        emit_enum( typelibrary.enums[enum_name], structs )
+    for enum in typelibrary.enums.values():
+        emit_enum( enum, structs )
     
     for type_name in typelibrary.type_order:
         emit_struct( typelibrary.types[type_name], structs )

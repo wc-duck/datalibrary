@@ -284,6 +284,8 @@ if __name__ == "__main__":
 	
 	tl = dl.typelibrary.TypeLibrary( options.input )
 
+	dl.typelibrary.compile( tl, None )
+	
 	# write headers
 	if options.cppheader:
 		file = open( options.cppheader, 'w' )
@@ -300,11 +302,9 @@ if __name__ == "__main__":
 		options.cppheader.close()
 		
 	if options.csheader:
-		options.csheader = open(options.csheader, 'w')
-		hw = HeaderWriterCS(options.csheader, data['module_name'].upper())
-		hw.write_enums(data)
-		hw.write_structs(data)
-		options.csheader.close()
+		file = open( options.csheader, 'w' )
+		dl.generate.cs.generate( tl, None, file )
+		file.close()
 
 	# write binary type library
 	if options.output or options.hexarray:
