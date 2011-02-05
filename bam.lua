@@ -32,8 +32,8 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 		DL_TLC .. " -c " .. out_header .. " " .. tlc_file, 
 		tlc_file )
 
-	AddDependency( tlc_file, Collect( "tool/dl_tlc/*.py" ) )
-	AddDependency( tlc_file, Collect( "bind/python/*.py" ) )
+	AddDependency( tlc_file, CollectRecursive( "tool/dl_tlc/*.py" ) )
+	AddDependency( tlc_file, CollectRecursive( "bind/python/*.py" ) )
 	AddDependency( tlc_file, dl_shared_lib )
 end
 
