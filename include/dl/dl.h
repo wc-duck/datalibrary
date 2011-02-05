@@ -139,7 +139,9 @@ DL_FORCEINLINE dl_endian_t dl_endian_host()
 
 #define DL_ENDIAN_HOST dl_endian_host()
 
-typedef void (*dl_error_msg_handler)( const char* msg, void* userdata );
+typedef void* (*dl_alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
+typedef void  (*dl_free_func) ( void* ptr, void* alloc_ctx );
+typedef void  (*dl_error_msg_handler)( const char* msg, void* userdata );
 
 /*
 	Struct: dl_create_params_t
@@ -157,9 +159,9 @@ typedef void (*dl_error_msg_handler)( const char* msg, void* userdata );
 */
 typedef struct dl_create_params
 {
-	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
-	void  (*free_func) ( void* ptr, void* alloc_ctx );
-	void* alloc_ctx;
+	dl_alloc_func alloc_func;
+	dl_free_func  free_func;
+	void*         alloc_ctx;
 
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
@@ -228,19 +230,21 @@ dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const un
 		Loads an instance from packed format to usable by system.
 
 	Parameters:
-		dl_ctx               - Context to load type-library into.
+		dl_ctx               - DL-context to use when loading instance.
 		dl_typeid            - Type of instance in the packed data.
 		instance             - Ptr where to load the instance to.
 		instance_size        - Size of buffer pointed to by instance.
 		packed_instance      - Ptr to binary data to load from.
-		packed_instance_size - Size of _pData.
+		packed_instance_size - Size of the buffer pointed to by packed_instance
+		consumed             - Number of bytes consumed to load an instance is returned here, 0x0 to ignore.
 
 	Note:
 		Packed instance to load is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
 dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t type,
                                            void*                instance,        unsigned int instance_size,
-                                           const unsigned char* packed_instance, unsigned int packed_instance_size );
+                                           const unsigned char* packed_instance, unsigned int packed_instance_size,
+                                           unsigned int*        consumed );
 
 /*
 	Group: Store

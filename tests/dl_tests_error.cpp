@@ -51,7 +51,7 @@ TEST_F(DLError, type_mismatch_returned)
 #define EXPECT_DL_ERR_TYPE_MISMATCH( err ) EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_MISMATCH, err )
 	Pods p;
 	// dl.h
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_instance_load( Ctx, Pods::TYPE_ID, &p, sizeof(Pods), packed, DL_ARRAY_LENGTH(packed) ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_instance_load( Ctx, Pods::TYPE_ID, &p, sizeof(Pods), packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
 
 	// dl_convert.h
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*) ) );
@@ -130,7 +130,7 @@ TEST_F(DLError, version_mismatch_returned)
 	#define EXPECT_DL_ERR_VERSION_MISMATCH( err ) EXPECT_DL_ERR_EQ( DL_ERROR_VERSION_MISMATCH, err )
 		Pods p;
 		// dl.h
-		EXPECT_DL_ERR_VERSION_MISMATCH( dl_instance_load( Ctx, unused::TYPE_ID, &p, sizeof(Pods), packed, DL_ARRAY_LENGTH(packed) ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_instance_load( Ctx, unused::TYPE_ID, &p, sizeof(Pods), packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
 
 		// dl_convert.h
 		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*) ) );

@@ -91,10 +91,10 @@ static void DLPatchPtr(const uint8* _pPtr, const uint8* _pBaseData)
 };
 
 static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
-								  SPatchedInstances* _pPatchedInstances,
-								  const uint8*       _pInstance,
-								  const SDLType*     _pType,
-								  const uint8*       _pBaseData )
+								     SPatchedInstances* _pPatchedInstances,
+								     const uint8*       _pInstance,
+								     const SDLType*     _pType,
+								     const uint8*       _pBaseData )
 {
 	// TODO: Optimize this please, linear search might not be the best if many subinstances is in file!
 	if(_pPatchedInstances->IsPatched(_pInstance))
@@ -222,6 +222,9 @@ DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), 
 
 static void DLLoadTypeLibraryLoadDefaults(dl_ctx_t _Context, const uint8* _pDefaultData, unsigned int _DefaultDataSize)
 {
+	if( _DefaultDataSize == 0 )
+		return;
+
 	_Context->m_pDefaultInstances = (uint8*)_Context->alloc_func( _DefaultDataSize * 2, sizeof(void*), _Context->alloc_ctx ); // times 2 here need to be fixed!
 
 	uint8* pDst = _Context->m_pDefaultInstances;
@@ -283,6 +286,8 @@ static void DLReadTLHeader(SDLTypeLibraryHeader* _pHeader, const uint8* _pData)
 		_pHeader->m_DefaultValuesOffset = DLSwapEndian(_pHeader->m_DefaultValuesOffset);
 		_pHeader->m_DefaultValuesSize   = DLSwapEndian(_pHeader->m_DefaultValuesSize);
 	}
+
+	// printf("types: %u, %u, %u, enums: %u, %u, %u\n", _pHeader->m_nTypes, _pHeader->m_TypesOffset, _pHeader->m_TypesSize, _pHeader->m_nEnums, _pHeader->m_EnumsOffset, _pHeader->m_EnumsSize );
 }
 
 dl_error_t dl_context_load_type_library(dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size)
@@ -385,7 +390,8 @@ dl_error_t dl_context_load_type_library(dl_ctx_t dl_ctx, const unsigned char* li
 
 dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t type,
                              void*                instance,        unsigned int instance_size,
-                             const unsigned char* packed_instance, unsigned int packed_instance_size)
+                             const unsigned char* packed_instance, unsigned int packed_instance_size,
+                             unsigned int*        consumed )
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
@@ -407,6 +413,9 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t t
 
 	SPatchedInstances PI;
 	DLPatchLoadedPtrs(dl_ctx, &PI, (uint8*)instance, pType, (uint8*)instance);
+
+	if( consumed )
+			*consumed = header->m_InstanceSize + sizeof(SDLDataHeader);
 
 	return DL_ERROR_OK;
 }

@@ -453,8 +453,9 @@ class DLContext:
         type_info = self.type_cache[_TypeName]
         
         UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
+        consumed = c_uint(0)
         
-        err = g_DLDll.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer));
+        err = g_DLDll.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer), byref(consumed));
         if err != 0:
             raise DLError('Could not store instance!', err)
         
@@ -492,7 +493,7 @@ class DLContext:
         TypeID     = _Instance._dl_type
         c_instance = self.__py_type_to_ctype( _Instance ) # _Instance.AsCType()    
         
-        DataSize = c_ulong(0)
+        DataSize = c_uint(0)
         err = g_DLDll.dl_instance_calc_size(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
         if err != 0:
             raise DLError('Could not calculate size!', err)
@@ -503,7 +504,7 @@ class DLContext:
         if err != 0:
             raise DLError('Could not store instance!', err)
         
-        ConvertedSize = c_ulong(0)
+        ConvertedSize = c_uint(0)
         
         err = g_DLDll.dl_convert_calc_size(self.DLContext, TypeID, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
         if err != 0:
@@ -538,7 +539,7 @@ class DLContext:
     def StoreInstanceToString(self, _Instance):
         Packed = self.StoreInstance(_Instance)
         
-        DataSize = c_ulong(0)
+        DataSize = c_uint(0)
         
         if g_DLDll.dl_txt_unpack_calc_size(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
             raise DLError('Could not calculate txt-unpack-size', err)
@@ -555,7 +556,7 @@ class DLContext:
     
     def PackText(self, _Text):
         InstanceData = create_string_buffer(_Text)
-        DataSize = c_ulong(0)
+        DataSize = c_uint(0)
 
         if g_DLDll.dl_txt_pack_calc_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
             raise DLError('Could not calculate txt-pack-size', err)

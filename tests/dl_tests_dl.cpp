@@ -180,8 +180,11 @@ struct DLBase : public DL
 		// out instance should have correct format
 		EXPECT_INSTANCE_INFO( out_buffer, out_size, sizeof(void*), DL_ENDIAN_HOST, type );
 
+		unsigned int consumed = 0;
 		// load binary
-		EXPECT_DL_ERR_OK( dl_instance_load( dl_ctx, type, unpack_me, unpack_me_size, out_buffer, out_size ) );
+		EXPECT_DL_ERR_OK( dl_instance_load( dl_ctx, type, unpack_me, unpack_me_size, out_buffer, out_size, &consumed ) );
+
+		EXPECT_EQ( out_size, consumed );
 	}
 };
 
