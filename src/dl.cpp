@@ -510,7 +510,7 @@ static void DLInternalStoreString(const uint8* _pInstance, CDLBinStoreContext* _
 	_pStoreContext->Write(&Offset, sizeof(pint));	
 }
 
-static dl_error_t DLInternalStoreInstance(dl_ctx_t _Context, const SDLType* _pType, uint8* _pInstance, CDLBinStoreContext* _pStoreContext);
+static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_type, uint8* instance, CDLBinStoreContext* store_ctx);
 
 static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMember, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
 {
@@ -533,7 +533,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 						dl_log_error( _Context, "Could not find subtype for member %s", _pMember->m_Name );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
-					DLInternalStoreInstance(_Context, pSubType, _pInstance, _pStoreContext );
+					dl_internal_instance_store(_Context, pSubType, _pInstance, _pStoreContext );
 				}
 				break;
 				case DL_TYPE_STORAGE_STR:
@@ -565,7 +565,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 
 						_pStoreContext->AddWrittenPtr(pData, Offset);
 
-						DLInternalStoreInstance(_Context, pSubType, pData, _pStoreContext);
+						dl_internal_instance_store(_Context, pSubType, pData, _pStoreContext);
 
 						_pStoreContext->SeekSet(Pos);
 					}
@@ -648,7 +648,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 						for (unsigned int iElem = 0; iElem < Count; ++iElem)
-							DLInternalStoreInstance(_Context, pSubType, pData + (iElem * Size), _pStoreContext);
+							dl_internal_instance_store(_Context, pSubType, pData + (iElem * Size), _pStoreContext);
 						break;
 					case DL_TYPE_STORAGE_STR:
 						for (unsigned int iElem = 0; iElem < Count; ++iElem)
@@ -681,17 +681,17 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 	return DL_ERROR_OK;
 }
 
-static dl_error_t DLInternalStoreInstance(dl_ctx_t _Context, const SDLType* _pType, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
+static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_type, uint8* instance, CDLBinStoreContext* store_ctx)
 {
 	bool bLastWasBF = false;
 
-	for(uint32 iMember = 0; iMember < _pType->m_nMembers; ++iMember)
+	for(uint32 member = 0; member < dl_type->m_nMembers; ++member)
 	{
-		const SDLMember& Member = _pType->m_lMembers[iMember];
+		const SDLMember& Member = dl_type->m_lMembers[member];
 
 		if(!bLastWasBF || Member.AtomType() != DL_TYPE_ATOM_BITFIELD)
 		{
-			dl_error_t Err = DLInternalStoreMember(_Context, &Member, _pInstance + Member.m_Offset[DL_PTR_SIZE_HOST], _pStoreContext);
+			dl_error_t Err = DLInternalStoreMember(dl_ctx, &Member, instance + Member.m_Offset[DL_PTR_SIZE_HOST], store_ctx);
 			if(Err != DL_ERROR_OK)
 				return Err;
 		}
@@ -702,12 +702,13 @@ static dl_error_t DLInternalStoreInstance(dl_ctx_t _Context, const SDLType* _pTy
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_instance_store(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pInstance, unsigned char* _pData, unsigned int _DataSize)
+dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type,            void*         instance,
+							  unsigned char* out_buffer, unsigned int out_buffer_size, unsigned int* produced_bytes )
 {
-	if( _DataSize <= sizeof(SDLDataHeader))
+	if( out_buffer_size > 0 && out_buffer_size <= sizeof(SDLDataHeader) )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	const SDLType* pType = DLFindType(_Context, _TypeHash);
+	const SDLType* pType = DLFindType(dl_ctx, type);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -715,47 +716,46 @@ dl_error_t dl_instance_store(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pI
 	SDLDataHeader Header;
 	Header.m_Id = DL_INSTANCE_ID;
 	Header.m_Version = DL_INSTANCE_VERSION;
-	Header.m_RootInstanceType = _TypeHash;
+	Header.m_RootInstanceType = type;
 	Header.m_InstanceSize = 0;
 	Header.m_64BitPtr = sizeof(void*) == 8 ? 1 : 0;
 
-	memcpy(_pData, &Header, sizeof(SDLDataHeader));
+	unsigned char* store_ctx_buffer      = 0x0;
+	unsigned int   store_ctx_buffer_size = 0;
+	bool           store_ctx_is_dummy    = out_buffer_size == 0;
 
-	CDLBinStoreContext StoreContext(_pData + sizeof(SDLDataHeader), _DataSize - sizeof(SDLDataHeader), false);
+	if( out_buffer )
+	{
+		memcpy(out_buffer, &Header, sizeof(SDLDataHeader));
+		store_ctx_buffer      = out_buffer + sizeof(SDLDataHeader);
+		store_ctx_buffer_size = out_buffer_size - sizeof(SDLDataHeader);
+	}
+
+	CDLBinStoreContext StoreContext( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy );
 
 	StoreContext.Reserve(pType->m_Size[DL_PTR_SIZE_HOST]);
-	StoreContext.AddWrittenPtr(_pInstance, 0); // if pointer refere to root-node, it can be found at offset 0
+	StoreContext.AddWrittenPtr(instance, 0); // if pointer refere to root-node, it can be found at offset 0
 
-	dl_error_t err = DLInternalStoreInstance(_Context, pType, (uint8*)_pInstance, &StoreContext);
+	dl_error_t err = dl_internal_instance_store(dl_ctx, pType, (uint8*)instance, &StoreContext);
 
 	// write instance size!
-	SDLDataHeader* pHeader = (SDLDataHeader*)_pData;
+	SDLDataHeader* pHeader = (SDLDataHeader*)out_buffer;
 	StoreContext.SeekEnd();
-	pHeader->m_InstanceSize = (uint32)StoreContext.Tell();
+	if( out_buffer )
+		pHeader->m_InstanceSize = (uint32)StoreContext.Tell();
 
-	if( pHeader->m_InstanceSize > _DataSize )
+	if( produced_bytes )
+		*produced_bytes = (uint32)StoreContext.Tell() + sizeof(SDLDataHeader);
+
+	if( out_buffer_size > 0 && pHeader->m_InstanceSize > out_buffer_size )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
 	return err;
 }
 
-dl_error_t dl_instance_calc_size(dl_ctx_t _Context, dl_typeid_t _TypeHash, void* _pInstance, unsigned int* _pDataSize)
+dl_error_t dl_instance_calc_size(dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, unsigned int* out_size )
 {
-	const SDLType* pType = DLFindType(_Context, _TypeHash);
-	if(pType == 0x0)
-		return DL_ERROR_TYPE_NOT_FOUND;
-
-	CDLBinStoreContext StoreContext(0, 0, true);
-
-	StoreContext.Reserve(pType->m_Size[DL_PTR_SIZE_HOST]);
-	StoreContext.AddWrittenPtr(_pInstance, 0); // if pointer refere to root-node, it can be found at offset 0
-
-	dl_error_t err = DLInternalStoreInstance(_Context, pType, (uint8*)_pInstance, &StoreContext);
-
-	StoreContext.SeekEnd();
-	*_pDataSize = (unsigned int)StoreContext.Tell() + sizeof(SDLDataHeader);
-
-	return err;
+	return dl_instance_store( dl_ctx, type, instance, 0x0, 0, out_size );
 }
 
 const char* dl_error_to_string(dl_error_t _Err)

@@ -24,8 +24,9 @@ TEST_F(DLError, buffer_to_small_returned)
 	Pods p;
 	unsigned char packed[1024];
 
-	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 10 ) ); // test buffer smaller than header
-	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 21 ) ); // test buffer to small
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK,              dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed,  0, 0x0 ) ); // pack to 0-size out_buffer is ok, calculating size
+	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 10, 0x0 ) ); // test buffer smaller than header
+	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 21, 0x0 ) ); // test buffer to small
 }
 #endif // DL_UNITTEST_ALL
 
@@ -43,7 +44,7 @@ TEST_F(DLError, type_mismatch_returned)
 
 	dl_endian_t other_endian = DL_ENDIAN_HOST == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE;
 
-	EXPECT_DL_ERR_OK( dl_instance_store( Ctx, unused::TYPE_ID, &u, packed, DL_ARRAY_LENGTH(packed) ) );
+	EXPECT_DL_ERR_OK( dl_instance_store( Ctx, unused::TYPE_ID, &u, packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
 	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*) ) );
 
 	// test all functions in...
@@ -113,7 +114,7 @@ TEST_F(DLError, version_mismatch_returned)
 
 	dl_endian_t other_endian = DL_ENDIAN_HOST == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE;
 
-	EXPECT_DL_ERR_OK( dl_instance_store( Ctx, unused::TYPE_ID, &u, packed, DL_ARRAY_LENGTH(packed) ) );
+	EXPECT_DL_ERR_OK( dl_instance_store( Ctx, unused::TYPE_ID, &u, packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
 	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*) ) );
 
 	// testing that errors are returned correctly by modding data.

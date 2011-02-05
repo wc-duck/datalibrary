@@ -266,16 +266,27 @@ dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t typ
 		Store the instances.
 
 	Parameters:
-		dl_ctx            - Context to load type-library into.
-		type              - Type id for type to store.
-		instance          - Ptr to instance to store.
-		out_instance      - Ptr to memory-area where to store the instances.
-		out_instance_size - Size of _pData.
+		dl_ctx          - Context to load type-library into.
+		type            - Type id for type to store.
+		instance        - Ptr to instance to store.
+		out_buffer      - Ptr to memory-area where to store the instances.
+		out_buffer_size - Size of _pData.
+		produced_bytes  - number of bytes that would have been written to out_buffer if it was large enough.
+
+	Return:
+		DL_ERROR_OK on success. Storing an instance to a 0-sized out_buffer is thought of as a success as
+		it can be used to calculate the size of a stored instance.
+		If out_buffer_size is > 0 but smaller than the required size to store the instance, an error is
+		returned.
 
 	Note:
 		The instance after pack will be in current platform endian.
+
+		Function can be used to calculate the amount of bytes that will be produced if storing an instance
+		by setting out_buffer_size to 0.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, unsigned char* out_instance, unsigned int out_instance_size );
+dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type,            void*         instance,
+											unsigned char* out_buffer, unsigned int out_buffer_size, unsigned int* produced_bytes );
 
 
 /*

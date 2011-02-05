@@ -120,7 +120,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 	unsigned int packed_size = 0;
 
 	// calculate pack-size
-	dl_error_t error = dl_instance_calc_size( dl_ctx, type, instance, &packed_size );
+	dl_error_t error = dl_instance_store( dl_ctx, type, instance, 0x0, 0, &packed_size );
 
 	if( error != DL_ERROR_OK)
 		return error;
@@ -129,7 +129,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 	unsigned char* packed_instance = (unsigned char*)malloc(packed_size);
 
 	// pack data
-	error =  dl_instance_store( dl_ctx, type, instance, packed_instance, packed_size );
+	error = dl_instance_store( dl_ctx, type, instance, packed_instance, packed_size, 0x0 );
 
 	if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 

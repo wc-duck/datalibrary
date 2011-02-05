@@ -500,7 +500,8 @@ class DLContext:
             
         PackedData = (c_ubyte * DataSize.value)()
         
-        err = g_DLDll.dl_instance_store(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize)
+        ProducedBytes = c_uint(0)
+        err = g_DLDll.dl_instance_store(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize, byref(ProducedBytes))
         if err != 0:
             raise DLError('Could not store instance!', err)
         

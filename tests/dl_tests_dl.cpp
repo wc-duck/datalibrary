@@ -165,7 +165,7 @@ struct DLBase : public DL
 		EXPECT_DL_ERR_OK( dl_instance_calc_size( dl_ctx, type, pack_me, &store_size ) );
 
 		// store instance to binary
-		EXPECT_DL_ERR_OK( dl_instance_store( dl_ctx, type, pack_me, store_buffer, store_size ) );
+		EXPECT_DL_ERR_OK( dl_instance_store( dl_ctx, type, pack_me, store_buffer, store_size, 0x0 ) );
 		EXPECT_INSTANCE_INFO( store_buffer, store_size, sizeof(void*), DL_ENDIAN_HOST, type );
 		EXPECT_EQ( 0xFE, store_buffer[store_size] ); // no overwrite on the calculated size plox!
 
