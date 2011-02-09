@@ -511,15 +511,19 @@ class DLContext:
         if err != 0:
             raise DLError('Could not calc convert instance size!', err)
         
+        endian = 0 if _Endian == 'big' else 1
+        
         if DataSize == ConvertedSize:
             # can convert inplace
-            err = g_DLDll.dl_convert_inplace(self.DLContext, TypeID, PackedData, len(PackedData), 0 if _Endian == 'big' else 1, _PtrSize);
+            produced_bytes = c_uint(0)
+            err = g_DLDll.dl_convert_inplace(self.DLContext, TypeID, PackedData, len(PackedData), endian, _PtrSize, byref(produced_bytes));
             if err != 0:
                 raise DLError('Could not convert instance!', err)
         else:
             # need new memory
             ConvertedData = (c_ubyte * ConvertedSize.value)()
-            err = g_DLDll.dl_convert(self.DLContext, TypeID, PackedData, len(PackedData), ConvertedData, len(ConvertedData), 0 if _Endian == 'big' else 1, _PtrSize);
+            produced_bytes = c_uint(0)
+            err = g_DLDll.dl_convert(self.DLContext, TypeID, PackedData, len(PackedData), ConvertedData, len(ConvertedData), endian, _PtrSize, byref(produced_bytes));
             
             PackedData = ConvertedData
             

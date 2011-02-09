@@ -225,7 +225,7 @@ int main(int argc, char** argv)
 		if(sizeof(void*) <= info.ptrsize)
 		{
 			// we are converting ptr-size down and can use the faster inplace load.
-			dl_error_t err = dl_convert_inplace(Ctx, info.root_type, InData, Size, 0x0, DL_ENDIAN_HOST, sizeof(void*));
+			dl_error_t err = dl_convert_inplace(Ctx, info.root_type, InData, Size, DL_ENDIAN_HOST, sizeof(void*), 0x0);
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "DL error converting packed instance: %s", dl_error_to_string(err));
 		}
@@ -240,7 +240,7 @@ int main(int argc, char** argv)
 
 			unsigned char* pConverted = (unsigned char*)malloc(SizeAfterConvert);
 
-			err = dl_convert(Ctx, info.root_type, InData, Size, pConverted, SizeAfterConvert, DL_ENDIAN_HOST, sizeof(void*));
+			err = dl_convert(Ctx, info.root_type, InData, Size, pConverted, SizeAfterConvert, DL_ENDIAN_HOST, sizeof(void*), 0x0);
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT( "DL error converting endian of data: %s", dl_error_to_string(err));
 
@@ -283,7 +283,7 @@ int main(int argc, char** argv)
 
 			unsigned char* convert_data = (unsigned char*)malloc(convert_size);
 
-			err = dl_convert( Ctx, info.root_type, pOutData, OutDataSize, convert_data, convert_size, Endian, PtrSize );
+			err = dl_convert( Ctx, info.root_type, pOutData, OutDataSize, convert_data, convert_size, Endian, PtrSize, 0x0 );
 			if(err != DL_ERROR_OK)
 				M_ERROR_AND_QUIT("DL error while converting packed instance: %s", dl_error_to_string(err));
 

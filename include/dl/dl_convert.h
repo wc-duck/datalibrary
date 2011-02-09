@@ -23,16 +23,17 @@ extern "C" {
 		dl_ctx               - Handle to valid DL-context.
 		type                 - DL-type expected to be found in packed instance.
 		packed_instance      - Ptr to memory-area where packed instance is to be found.
-		packed_instance_size - Size of _pData.
+		packed_instance_size - Size of packed_instance.
 		out_instance         - Ptr to memory-area where to place the converted instance.
-		out_instance_size    - Size of _pOutData.
+		out_instance_size    - Size of out_instance_size.
 		out_endian           - Endian to convert the packed instance to.
 		out_ptr_size         - Size in bytes of pointers after conversions, valid values 4 and 8.
 */
 dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
                                      unsigned char* packed_instance, unsigned int packed_instance_size,
                                      unsigned char* out_instance,    unsigned int out_instance_size,
-                                     dl_endian_t    out_endian,      unsigned int out_ptr_size );
+                                     dl_endian_t    out_endian,      unsigned int out_ptr_size,
+                                     unsigned int*  produced_bytes );
 
 /*
 	Function: dl_convert_inplace
@@ -42,10 +43,10 @@ dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t
 		dl_ctx               - Handle to valid DL-context.
 		type                 - DL-type expected to be found in packed instance.
 		packed_instance      - Ptr to memory-area where packed instance is to be found.
-		packed_instance_size - Size of _pData.
-		out_size             - Ptr where new size of instance will be returned. Can be set to 0x0.
+		packed_instance_size - Size of packed_instance.
 		out_endian           - Endian to convert the packed instance to.
 		out_ptr_size         - Size in bytes of pointers after conversions, valid values 4 and 8.
+		produced_bytes       - Ptr where new size of instance will be returned. Can be set to 0x0.
 
 	Note:
 		Function is restricted to converting endianness and converting 8-byte ptr:s to 4-byte ptr:s
@@ -56,8 +57,8 @@ dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t
 */
 dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t dl_ctx,                dl_typeid_t  type,
                                              unsigned char* packed_instance, unsigned int packed_instance_size,
-                                             unsigned int*  out_size,        dl_endian_t  out_endian,
-                                             unsigned int   out_ptr_size );
+                                             dl_endian_t    out_endian,      unsigned int out_ptr_size,
+                                             unsigned int*  produced_bytes );
 
 /*
 	Function: dl_convert_calc_size

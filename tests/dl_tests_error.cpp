@@ -45,7 +45,7 @@ TEST_F(DLError, type_mismatch_returned)
 	dl_endian_t other_endian = DL_ENDIAN_HOST == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE;
 
 	EXPECT_DL_ERR_OK( dl_instance_store( Ctx, unused::TYPE_ID, &u, packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
-	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*) ) );
+	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*), 0x0 ) );
 
 	// test all functions in...
 
@@ -55,11 +55,11 @@ TEST_F(DLError, type_mismatch_returned)
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_instance_load( Ctx, Pods::TYPE_ID, &p, sizeof(Pods), packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
 
 	// dl_convert.h
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*) ) );
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), DL_ENDIAN_HOST, sizeof(void*) ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*), 0x0 ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), DL_ENDIAN_HOST, sizeof(void*), 0x0 ) );
 
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), 0x0, other_endian,   sizeof(void*) ) );
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), 0x0, DL_ENDIAN_HOST, sizeof(void*) ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), other_endian,   sizeof(void*), 0x0 ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_inplace( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), DL_ENDIAN_HOST, sizeof(void*), 0x0 ) );
 
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_calc_size( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), sizeof(void*), &dummy ) );
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_calc_size( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), sizeof(void*), &dummy ) );
@@ -115,7 +115,7 @@ TEST_F(DLError, version_mismatch_returned)
 	dl_endian_t other_endian = DL_ENDIAN_HOST == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE;
 
 	EXPECT_DL_ERR_OK( dl_instance_store( Ctx, unused::TYPE_ID, &u, packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
-	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*) ) );
+	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*), 0x0 ) );
 
 	// testing that errors are returned correctly by modding data.
 	unsigned int* instance_version;
@@ -134,11 +134,11 @@ TEST_F(DLError, version_mismatch_returned)
 		EXPECT_DL_ERR_VERSION_MISMATCH( dl_instance_load( Ctx, unused::TYPE_ID, &p, sizeof(Pods), packed, DL_ARRAY_LENGTH(packed), 0x0 ) );
 
 		// dl_convert.h
-		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*) ) );
-		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), DL_ENDIAN_HOST, sizeof(void*) ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), other_endian,   sizeof(void*), 0x0 ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), bus_buffer, DL_ARRAY_LENGTH(bus_buffer), DL_ENDIAN_HOST, sizeof(void*), 0x0 ) );
 
-		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_inplace( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), 0x0, other_endian,   sizeof(void*) ) );
-		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_inplace( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), 0x0, DL_ENDIAN_HOST, sizeof(void*) ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_inplace( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), other_endian,   sizeof(void*), 0x0 ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_inplace( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), DL_ENDIAN_HOST, sizeof(void*), 0x0 ) );
 
 		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_calc_size( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), sizeof(void*), &dummy ) );
 		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_calc_size( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), sizeof(void*), &dummy ) );

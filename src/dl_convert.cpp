@@ -727,30 +727,34 @@ extern "C" {
 
 dl_error_t dl_convert_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
 		                       unsigned char* packed_instance, unsigned int packed_instance_size,
-		                       unsigned int*  out_size,        dl_endian_t  out_endian,
-                               unsigned int   out_ptr_size )
+		                       dl_endian_t    out_endian,      unsigned int out_ptr_size,
+		                       unsigned int*  produced_bytes )
 {
 	unsigned int dummy;
-	if( out_size == 0x0 )
-		out_size = &dummy;
-	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, packed_instance, packed_instance_size, out_endian, out_ptr_size, out_size );
+	if( produced_bytes == 0x0 )
+		produced_bytes = &dummy;
+	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, packed_instance, packed_instance_size, out_endian, out_ptr_size, produced_bytes );
 }
 
 dl_error_t dl_convert( dl_ctx_t dl_ctx,                dl_typeid_t  type,
                        unsigned char* packed_instance, unsigned int packed_instance_size,
                        unsigned char* out_instance,    unsigned int out_instance_size,
-                       dl_endian_t    out_endian,      unsigned int out_ptr_size )
+                       dl_endian_t    out_endian,      unsigned int out_ptr_size,
+                       unsigned int*  produced_bytes )
 {
 	DL_ASSERT(out_instance != packed_instance && "Src and destination can not be the same!");
-	unsigned int dummy_needed_size;
-	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, out_instance, out_instance_size, out_endian, out_ptr_size, &dummy_needed_size);
+	unsigned int dummy;
+	if( produced_bytes == 0x0 )
+		produced_bytes = &dummy;
+	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, out_instance, out_instance_size, out_endian, out_ptr_size, produced_bytes );
 }
 
 dl_error_t dl_convert_calc_size( dl_ctx_t dl_ctx,                dl_typeid_t   type,
                                  unsigned char* packed_instance, unsigned int  packed_instance_size,
                                  unsigned int   out_ptr_size,    unsigned int* out_size )
 {
-	return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, DL_ENDIAN_HOST, out_ptr_size, out_size );
+	return dl_convert( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, DL_ENDIAN_HOST, out_ptr_size, out_size );
+	// return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, DL_ENDIAN_HOST, out_ptr_size, out_size );
 }
 
 #ifdef __cplusplus

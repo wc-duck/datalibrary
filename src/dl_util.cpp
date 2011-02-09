@@ -59,7 +59,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 			{
 				load_instance = (unsigned char*)malloc(load_size);
 
-				error = dl_convert( dl_ctx, type, file_content, file_size, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*));
+				error = dl_convert( dl_ctx, type, file_content, file_size, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*), 0x0 );
 
 				free( file_content );
 			}
@@ -67,7 +67,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 			{
 				load_instance = file_content;
 				load_size     = file_size;
-				error = dl_convert_inplace( dl_ctx, type, load_instance, load_size, 0x0, DL_ENDIAN_HOST, sizeof(void*));
+				error = dl_convert_inplace( dl_ctx, type, load_instance, load_size, DL_ENDIAN_HOST, sizeof(void*), 0x0 );
 			}
 
 			if( error != DL_ERROR_OK ) { free( load_instance ); return error; }
@@ -152,7 +152,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 				out_data = (unsigned char*)malloc(out_size);
 
 				// convert
-				error = dl_convert( dl_ctx, type, packed_instance, packed_size, out_data, out_size, out_endian, out_ptr_size );
+				error = dl_convert( dl_ctx, type, packed_instance, packed_size, out_data, out_size, out_endian, out_ptr_size, 0x0 );
 
 				free(packed_instance);
 
@@ -161,7 +161,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 			else
 			{
 				out_data = packed_instance;
-				error = dl_convert_inplace( dl_ctx, type, packed_instance, packed_size, 0x0, out_endian, out_ptr_size );
+				error = dl_convert_inplace( dl_ctx, type, packed_instance, packed_size, out_endian, out_ptr_size, 0x0 );
 
 				if( error != DL_ERROR_OK ) { free(out_data); return error; }
 			}
