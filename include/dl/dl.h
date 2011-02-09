@@ -216,7 +216,7 @@ dl_error_t DL_DLL_EXPORT dl_context_destroy( dl_ctx_t dl_ctx );
 	Parameters:
 		dl_ctx        - Context to load type-library into.
 		lib_data      - Pointer to binary-data with type-library.
-		lib_data_size - Size of _pData.
+		lib_data_size - Size of lib_data.
 */
 dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size );
 

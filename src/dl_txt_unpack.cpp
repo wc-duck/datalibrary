@@ -336,11 +336,6 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 	yajl_gen_map_close(_Ctx->m_JsonGen);
 }
 
-void DLCountSizeCallback(void* _pCtx, const char *_pStr, unsigned int _Len)
-{
-	DL_UNUSED(_pStr); *(pint*)_pCtx += pint(_Len);
-}
-
 struct SWriteTextContext
 {
 	char* m_pBuffer;
@@ -360,14 +355,14 @@ void DLWriteTextCallback(void* _pCtx, const char *_pStr, unsigned int _Len)
 
 struct SDLUnpackStorage { uint8 m_Storage[1024]; };
 
-void* DLUnpackMallocFunc(void* _pCtx, unsigned int _Sz)
+static void* dl_internal_unpack_malloc( void* _pCtx, unsigned int _Sz )
 {
 	(void)_Sz;
 	SDLUnpackStorage* Storage = (SDLUnpackStorage*)_pCtx;
-	DL_ASSERT(_Sz <= sizeof(SDLUnpackStorage));
+	DL_ASSERT( _Sz <= sizeof(SDLUnpackStorage) );
 	return (void*)Storage->m_Storage;
 }
-void  DLUnpackFreeFunc(void* _pCtx, void* _pPtr)
+static void dl_internal_unpack_free( void* _pCtx, void* _pPtr )
 {
 	DL_UNUSED(_pCtx); DL_UNUSED(_pPtr);
 	// just ignore free, the data should be allocated on the stack!
@@ -380,18 +375,18 @@ void* DLUnpackReallocFunc(void* _pCtx, void* _pPtr, unsigned int _Sz)
 	return 0x0;
 }
 
-
-static dl_error_t DLUnpackInternal( dl_ctx_t dl_ctx,                      dl_typeid_t   type,
-                                    const unsigned char* packed_instance, unsigned int  packed_instance_size,
-                                    char* out_txt_instance,               unsigned int* out_txt_instance_size )
+dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  type,
+                          const unsigned char* packed_instance,  unsigned int packed_instance_size,
+                          char*                out_txt_instance, unsigned int out_txt_instance_size,
+                          unsigned int*        produced_bytes )
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if(packed_instance_size < sizeof(SDLDataHeader)) return DL_ERROR_MALFORMED_DATA;
-	if( header->m_Id == DL_INSTANCE_ID_SWAPED )      return DL_ERROR_ENDIAN_MISMATCH;
-	if( header->m_Id != DL_INSTANCE_ID )             return DL_ERROR_MALFORMED_DATA;
-	if( header->m_Version != DL_INSTANCE_VERSION)    return DL_ERROR_VERSION_MISMATCH;
-	if( header->m_RootInstanceType != type )     return DL_ERROR_TYPE_MISMATCH;
+	if( packed_instance_size < sizeof(SDLDataHeader) ) return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Id == DL_INSTANCE_ID_SWAPED )        return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->m_Id != DL_INSTANCE_ID )               return DL_ERROR_MALFORMED_DATA;
+	if( header->m_Version != DL_INSTANCE_VERSION)      return DL_ERROR_VERSION_MISMATCH;
+	if( header->m_RootInstanceType != type )           return DL_ERROR_TYPE_MISMATCH;
 
 	const SDLType* pType = DLFindType(dl_ctx, header->m_RootInstanceType);
 	if(pType == 0x0)
@@ -400,19 +395,11 @@ static dl_error_t DLUnpackInternal( dl_ctx_t dl_ctx,                      dl_typ
 	static const int BEAUTIFY_OUTPUT = 1;
 	yajl_gen_config Conf = { BEAUTIFY_OUTPUT, "  " };
 
-	SWriteTextContext WriteCtx = { out_txt_instance, *out_txt_instance_size, 0 };
+	SWriteTextContext WriteCtx = { out_txt_instance, out_txt_instance_size, 0 };
 	SDLUnpackStorage Storage;
-	yajl_alloc_funcs AllocCatch = { DLUnpackMallocFunc, DLUnpackReallocFunc, DLUnpackFreeFunc, &Storage };
+	yajl_alloc_funcs AllocCatch = { dl_internal_unpack_malloc, DLUnpackReallocFunc, dl_internal_unpack_free, &Storage };
 
-	yajl_gen Generator;
-
-	if(out_txt_instance == 0x0)
-	{
-		*out_txt_instance_size = 0;
-		Generator = yajl_gen_alloc2(DLCountSizeCallback, &Conf, &AllocCatch, out_txt_instance_size);
-	}
-	else
-		Generator = yajl_gen_alloc2(DLWriteTextCallback, &Conf, &AllocCatch, &WriteCtx);
+	yajl_gen Generator = yajl_gen_alloc2(DLWriteTextCallback, &Conf, &AllocCatch, &WriteCtx);
 
 	SDLUnpackContext PackCtx(dl_ctx, Generator );
 
@@ -421,24 +408,20 @@ static dl_error_t DLUnpackInternal( dl_ctx_t dl_ctx,                      dl_typ
 	yajl_gen_free(Generator);
 
 	if(out_txt_instance != 0x0)
-		out_txt_instance[ *out_txt_instance_size - 1 ] = 0;
+		out_txt_instance[ WriteCtx.m_WritePos - 1 ] = 0;
 
-	if(out_txt_instance != 0x0 && WriteCtx.m_WritePos > WriteCtx.m_BufferSize)
+	if( produced_bytes )
+		*produced_bytes = WriteCtx.m_WritePos;
+
+	if( out_txt_instance_size > 0 && WriteCtx.m_WritePos > WriteCtx.m_BufferSize )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
 	return DL_ERROR_OK;
 };
 
-dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                      dl_typeid_t  type,
-                          const unsigned char* packed_instance, unsigned int packed_instance_size,
-                          char* out_txt_instance,               unsigned int out_txt_instance_size )
-{
-	return DLUnpackInternal( dl_ctx, type, packed_instance, packed_instance_size, out_txt_instance, &out_txt_instance_size );
-}
-
 dl_error_t dl_txt_unpack_calc_size( dl_ctx_t dl_ctx,                      dl_typeid_t  type,
                                     const unsigned char* packed_instance, unsigned int packed_instance_size,
                                     unsigned int* out_txt_instance_size )
 {
-	return DLUnpackInternal( dl_ctx, type, packed_instance, packed_instance_size, 0x0, out_txt_instance_size );
+	return dl_txt_unpack( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, out_txt_instance_size );
 }

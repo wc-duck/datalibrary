@@ -547,7 +547,8 @@ class DLContext:
         
         PackedData = create_string_buffer(DataSize.value)
         
-        if g_DLDll.dl_txt_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize) != 0:
+        produced_bytes = c_uint(0)
+        if g_DLDll.dl_txt_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize, byref(produced_bytes)) != 0:
             raise DLError('Could not calculate txt-unpack-size', err)
             
         return PackedData.raw
@@ -562,8 +563,9 @@ class DLContext:
         if g_DLDll.dl_txt_pack_calc_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
             raise DLError('Could not calculate txt-pack-size', err)
 
+        produced_bytes = c_uint(0)
         PackedData = create_string_buffer(DataSize.value)
-        if g_DLDll.dl_txt_pack(self.DLContext, InstanceData, PackedData, DataSize) != 0:
+        if g_DLDll.dl_txt_pack(self.DLContext, InstanceData, PackedData, DataSize, byref(produced_bytes)) != 0:
             raise DLError('Could not pack txt', err)
     
         return PackedData.raw

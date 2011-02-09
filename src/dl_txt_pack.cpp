@@ -828,12 +828,12 @@ void* DLPackAlloc(void* _pCtx, unsigned int _Sz)                { DL_UNUSED(_pCt
 void* DLPackRealloc(void* _pCtx, void* _pPtr, unsigned int _Sz) { DL_UNUSED(_pCtx); return realloc(_pPtr, _Sz); }
 void  DLPackFree(void* _pCtx, void* _pPtr)                      { DL_UNUSED(_pCtx); free(_pPtr); }
 
-static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtData)
+static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* text_data )
 {
 	// this could be incremental later on if needed!
 
-	pint TxtLen = strlen(_pTxtData);
-	const unsigned char* TxtData = (const unsigned char*)_pTxtData;
+	pint TxtLen = strlen(text_data);
+	const unsigned char* TxtData = (const unsigned char*)text_data;
 
 	yajl_handle YAJLHandle;
 	yajl_status YAJLStat;
@@ -841,7 +841,7 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 	yajl_parser_config YAJLCfg = { 1, 1 };
 	yajl_alloc_funcs YAJLAlloc = { DLPackAlloc, DLPackRealloc, DLPackFree, 0x0 };
 
-	YAJLHandle = yajl_alloc(&g_YAJLParseCallbacks, &YAJLCfg, &YAJLAlloc, (void*)PackContext);
+	YAJLHandle = yajl_alloc(&g_YAJLParseCallbacks, &YAJLCfg, &YAJLAlloc, (void*)pack_ctx);
 
 	YAJLStat = yajl_parse(YAJLHandle, TxtData, (unsigned int)TxtLen); // read file data, pass to parser
 
@@ -856,8 +856,8 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 			unsigned int Line = 1;
 			unsigned int Column = 0;
 
-			const char* Ch = _pTxtData;
-			const char* End = _pTxtData + BytesConsumed;
+			const char* Ch = text_data;
+			const char* End = text_data + BytesConsumed;
 
 			while(Ch != End)
 			{
@@ -872,68 +872,63 @@ static dl_error_t DLInternalPack(SDLPackContext* PackContext, const char* _pTxtD
 				++Ch;
 			}
 
-			dl_log_error( PackContext->m_DLContext, "At line %u, column %u", Line, Column);
+			dl_log_error( pack_ctx->m_DLContext, "At line %u, column %u", Line, Column);
 		}
 
 		char* pStr = (char*)yajl_get_error(YAJLHandle, 1 /* verbose */, TxtData, (unsigned int)TxtLen);
-		dl_log_error( PackContext->m_DLContext, "%s", pStr );
+		dl_log_error( pack_ctx->m_DLContext, "%s", pStr );
 		yajl_free_error(YAJLHandle, (unsigned char*)pStr);
 
-		if(PackContext->m_ErrorCode == DL_ERROR_OK)
+		if(pack_ctx->m_ErrorCode == DL_ERROR_OK)
 		{
 			yajl_free(YAJLHandle);
 			return DL_ERROR_TXT_PARSE_ERROR;
 		}
 	}
 
-	if(PackContext->m_pRootType == 0x0)
+	if(pack_ctx->m_pRootType == 0x0)
 	{
-		dl_log_error( PackContext->m_DLContext, "Missing root-element in dl-data" );
-		PackContext->m_ErrorCode = DL_ERROR_TXT_PARSE_ERROR;
+		dl_log_error( pack_ctx->m_DLContext, "Missing root-element in dl-data" );
+		pack_ctx->m_ErrorCode = DL_ERROR_TXT_PARSE_ERROR;
 	}
 
 	yajl_free(YAJLHandle);
-	return PackContext->m_ErrorCode;
+	return pack_ctx->m_ErrorCode;
 }
 
-dl_error_t dl_txt_pack(dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_instance, unsigned int out_instance_size)
+dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, unsigned int out_buffer_size, unsigned int* produced_bytes )
 {
-	const bool IS_DUMMY_WRITER = false;
-	CDLBinaryWriter Writer(out_instance + sizeof(SDLDataHeader), out_instance_size -  sizeof(SDLDataHeader), IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
+	const bool IS_DUMMY_WRITER = out_buffer_size == 0;
+	CDLBinaryWriter Writer(out_buffer + sizeof(SDLDataHeader), out_buffer_size -  sizeof(SDLDataHeader), IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
 
 	SDLPackContext PackContext;
 	PackContext.m_DLContext = dl_ctx;
 	PackContext.m_Writer    = &Writer;
 
-	dl_error_t error = DLInternalPack(&PackContext, txt_instance);
+	dl_error_t error = dl_internal_txt_pack(&PackContext, txt_instance);
 
 	if(error != DL_ERROR_OK)
 		return error;
 
 	// write header
-	SDLDataHeader Header;
-	Header.m_Id = DL_INSTANCE_ID;
-	Header.m_Version = DL_INSTANCE_VERSION;
-	Header.m_RootInstanceType = DLHashString(PackContext.m_pRootType->m_Name);
-	Header.m_InstanceSize = (uint32)Writer.NeededSize();
-	Header.m_64BitPtr = sizeof(void*) == 8 ? 1 : 0;
-	memcpy(out_instance, &Header, sizeof(SDLDataHeader));
+	if( out_buffer_size > 0 )
+	{
+		SDLDataHeader Header;
+		Header.m_Id = DL_INSTANCE_ID;
+		Header.m_Version = DL_INSTANCE_VERSION;
+		Header.m_RootInstanceType = DLHashString(PackContext.m_pRootType->m_Name);
+		Header.m_InstanceSize = (uint32)Writer.NeededSize();
+		Header.m_64BitPtr = sizeof(void*) == 8 ? 1 : 0;
+		memcpy(out_buffer, &Header, sizeof(SDLDataHeader));
+	}
+
+	if( produced_bytes )
+		*produced_bytes = (unsigned int)Writer.NeededSize() + sizeof(SDLDataHeader);
 
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_txt_pack_calc_size(dl_ctx_t dl_ctx, const char* txt_instance, unsigned int* out_instance_size)
+dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, unsigned int* out_instance_size )
 {
-	const bool IS_DUMMY_WRITER = true;
-	CDLBinaryWriter Writer(0x0, 0, IS_DUMMY_WRITER, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST);
-
-	SDLPackContext PackContext;
-	PackContext.m_DLContext = dl_ctx;
-	PackContext.m_Writer    = &Writer;
-
-	dl_error_t err = DLInternalPack(&PackContext, txt_instance);
-
-	*out_instance_size = (unsigned int)Writer.NeededSize() + sizeof(SDLDataHeader);
-
-	return err;
+	return dl_txt_pack( dl_ctx, txt_instance, 0x0, 0, out_instance_size );
 }

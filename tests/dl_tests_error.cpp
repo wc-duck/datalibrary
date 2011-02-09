@@ -65,7 +65,7 @@ TEST_F(DLError, type_mismatch_returned)
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_convert_calc_size( Ctx, Pods::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), sizeof(void*), &dummy ) );
 
 	// dl_txt.h
-	EXPECT_DL_ERR_TYPE_MISMATCH( dl_txt_unpack( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_text, DL_ARRAY_LENGTH(bus_text) ) );
+	EXPECT_DL_ERR_TYPE_MISMATCH( dl_txt_unpack( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_text, DL_ARRAY_LENGTH(bus_text), 0x0 ) );
 	EXPECT_DL_ERR_TYPE_MISMATCH( dl_txt_unpack_calc_size( Ctx, Pods::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), &dummy ) );
 #undef EXPECT_DL_ERR_TYPE_MISMATCH
 }
@@ -144,7 +144,7 @@ TEST_F(DLError, version_mismatch_returned)
 		EXPECT_DL_ERR_VERSION_MISMATCH( dl_convert_calc_size( Ctx, unused::TYPE_ID, swaped, DL_ARRAY_LENGTH(swaped), sizeof(void*), &dummy ) );
 
 		// dl_txt.h
-		EXPECT_DL_ERR_VERSION_MISMATCH( dl_txt_unpack( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_text, DL_ARRAY_LENGTH(bus_text) ) );
+		EXPECT_DL_ERR_VERSION_MISMATCH( dl_txt_unpack( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), bus_text, DL_ARRAY_LENGTH(bus_text), 0x0 ) );
 		EXPECT_DL_ERR_VERSION_MISMATCH( dl_txt_unpack_calc_size( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), &dummy ) );
 	#undef EXPECT_DL_ERR_VERSION_MISMATCH
 }

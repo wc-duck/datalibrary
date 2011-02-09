@@ -83,7 +83,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 
 			load_instance = (unsigned char*)malloc(packed_size);
 
-			error = dl_txt_pack(dl_ctx, (char*)file_content, load_instance, packed_size);
+			error = dl_txt_pack(dl_ctx, (char*)file_content, load_instance, packed_size, 0x0);
 
 			free(file_content);
 
@@ -178,7 +178,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 			out_data = (unsigned char*)malloc(out_size);
 
 			// pack data
-			error = dl_txt_unpack( dl_ctx, type, packed_instance, packed_size, (char*)out_data, out_size);
+			error = dl_txt_unpack( dl_ctx, type, packed_instance, packed_size, (char*)out_data, out_size, 0x0 );
 
 			free(packed_instance);
 

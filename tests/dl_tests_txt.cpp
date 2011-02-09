@@ -34,7 +34,7 @@ TEST_F(DLText, member_order)
 
  	unsigned char OutDataText[1024];
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, Pods::TYPE_ID, &P1, sizeof(Pods), OutDataText, 1024, 0x0 ));
 
 	EXPECT_EQ(1,      P1.i8);
@@ -74,7 +74,7 @@ TEST_F(DLText, set_member_twice)
 
 	unsigned char OutDataText[1024];
 
-	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 }
 #endif // DL_UNITTEST_ALL
 
@@ -86,7 +86,7 @@ TEST_F(DLText, member_not_exist)
 
 	unsigned char OutDataText[1024];
 
-	EXPECT_DL_ERR_EQ(DL_ERROR_MEMBER_NOT_FOUND, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_EQ(DL_ERROR_MEMBER_NOT_FOUND, dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 }
 #endif // DL_UNITTEST_ALL
 
@@ -99,7 +99,7 @@ TEST_F(DLText, member_missing)
 	const char* TextData = "{ \"type\" : \"Pods2\", \"data\" : { \"Int1\" : 1337 } }";
 
 	unsigned char OutDataText[1024];
-	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 }
 #endif // DL_UNITTEST_ALL
 
@@ -113,7 +113,7 @@ TEST_F(DLText, defalut_value_pod)
 	unsigned char OutDataText[1024];
 	PodsDefaults P1;
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, PodsDefaults::TYPE_ID, &P1, sizeof(P1), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(2,     P1.i8);
@@ -139,7 +139,7 @@ TEST_F(DLText, defalut_value_string)
 	unsigned char OutDataText[1024];
 	DefaultStr P1[10]; // this is so ugly!
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
 
 	EXPECT_STREQ("cowbells ftw!", P1[0].Str);
@@ -156,7 +156,7 @@ TEST_F(DLText, defalut_value_ptr)
 	unsigned char OutDataText[1024];
 	DefaultPtr P1 = { 0 }; // this is so ugly!
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultPtr::TYPE_ID, &P1, sizeof(DefaultPtr), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(0x0, P1.Ptr);
@@ -171,7 +171,7 @@ TEST_F(DLText, defalut_value_struct)
 	unsigned char OutDataText[1024];
 	DefaultStruct P1; // this is so ugly!
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStruct::TYPE_ID, &P1, sizeof(DefaultStruct), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(13u, P1.Struct.Int1);
@@ -187,7 +187,7 @@ TEST_F(DLText, defalut_value_enum)
 	unsigned char OutDataText[1024];
 	DefaultEnum P1;
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultEnum::TYPE_ID, &P1, sizeof(DefaultEnum), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.Enum);
@@ -204,7 +204,7 @@ TEST_F(DLText, defalut_value_inline_array_pod)
 	unsigned char OutDataText[1024];
 	DefaultInlArrayPod P1;
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayPod::TYPE_ID, &P1, sizeof(DefaultInlArrayPod), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(1u, P1.Arr[0]);
@@ -224,7 +224,7 @@ TEST_F(DLText, defalut_value_inline_array_enum)
 	unsigned char OutDataText[1024];
 	DefaultInlArrayEnum P1;
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayEnum::TYPE_ID, &P1, sizeof(DefaultInlArrayEnum), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(TESTENUM1_VALUE3, P1.Arr[0]);
@@ -243,7 +243,7 @@ TEST_F(DLText, defalut_value_inline_array_string)
 
 	unsigned char OutDataText[1024];
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 
 	DefaultInlArrayStr P1[10];
 
@@ -265,7 +265,7 @@ TEST_F(DLText, defalut_value_array_pod)
 	unsigned char OutDataText[1024];
 	DefaultArrayPod P1[10];
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayPod::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(4u, P1[0].Arr.count);
@@ -285,7 +285,7 @@ TEST_F(DLText, defalut_value_array_enum)
 	unsigned char OutDataText[1024];
 	DefaultArrayEnum P1[10];
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayEnum::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(4u, P1[0].Arr.count);
@@ -307,7 +307,7 @@ TEST_F(DLText, defalut_value_array_string)
 	unsigned char OutDataText[1024];
 	DefaultArrayStr P1[10];
 
-	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024));
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
 
 	EXPECT_EQ(4u, P1[0].Arr.count);

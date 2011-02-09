@@ -225,7 +225,7 @@ static void DLLoadTypeLibraryLoadDefaults(dl_ctx_t _Context, const uint8* _pDefa
 	if( _DefaultDataSize == 0 )
 		return;
 
-	_Context->m_pDefaultInstances = (uint8*)_Context->alloc_func( _DefaultDataSize * 2, sizeof(void*), _Context->alloc_ctx ); // times 2 here need to be fixed!
+	_Context->m_pDefaultInstances = (uint8*)_Context->alloc_func( _DefaultDataSize * 2, sizeof(void*), _Context->alloc_ctx ); // TODO: times 2 here need to be fixed!
 
 	uint8* pDst = _Context->m_pDefaultInstances;
 	// ptr-patch and convert to native
@@ -724,7 +724,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type,     
 	unsigned int   store_ctx_buffer_size = 0;
 	bool           store_ctx_is_dummy    = out_buffer_size == 0;
 
-	if( out_buffer )
+	if( out_buffer_size > 0 )
 	{
 		memcpy(out_buffer, &Header, sizeof(SDLDataHeader));
 		store_ctx_buffer      = out_buffer + sizeof(SDLDataHeader);

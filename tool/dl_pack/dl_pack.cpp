@@ -255,7 +255,7 @@ int main(int argc, char** argv)
 
 		pOutData = (unsigned char*)malloc(OutDataSize);
 
-		err = dl_txt_unpack(Ctx, info.root_type, InData, Size, (char*)pOutData, OutDataSize);
+		err = dl_txt_unpack(Ctx, info.root_type, InData, Size, (char*)pOutData, OutDataSize, 0x0);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT( "DL error while unpacking: %s", dl_error_to_string(err));
 	}
@@ -267,7 +267,7 @@ int main(int argc, char** argv)
 
 		pOutData = (unsigned char*)malloc(OutDataSize);
 
-		err = dl_txt_pack(Ctx, (char*)InData, pOutData, OutDataSize);
+		err = dl_txt_pack(Ctx, (char*)InData, pOutData, OutDataSize, 0x0);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT("DL error while packing: %s", dl_error_to_string(err));
 
