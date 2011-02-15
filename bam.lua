@@ -1,6 +1,9 @@
 BUILD_PATH = "local"
+
 PYTHON = "python"
--- PYTHON = "C:\\Python26\\python.exe"
+if family == "windows" then -- hackery hack
+    PYTHON = "C:\\Python26\\python.exe"
+end
 
 function DLTypeLibrary( tlc_file, dl_shared_lib )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
@@ -68,7 +71,7 @@ function DefaultSettings( platform, config )
 	local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
 	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
 	settings.cc.Output = output_func
-	settings.lib.Output = output_func	
+	settings.lib.Output = output_func
 	settings.dll.Output = output_func
 	settings.link.Output = output_func
 
@@ -227,8 +230,6 @@ end
 
 dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
-dl_tests_py = "tests/dl_tests.py"
-
 if family == "windows" then
 	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ), dl_tests )
 else
@@ -236,7 +237,8 @@ else
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v " .. dl_tests, dl_tests ) -- valgrind c unittests
 end
 
-AddJob( "test_py",       "unittest python bindings", "python " .. dl_tests_py, dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
+dl_tests_py = "tests/python_bindings/dl_tests.py"
+AddJob( "test_py",       "unittest python bindings", PYTHON .. " " .. dl_tests_py .. " " .. shared_library, dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
 
 -- do not run unittest as default, only run
 PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
