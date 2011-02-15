@@ -3,13 +3,13 @@
 import unittest
 
 import sys, os
-sys.path.append(os.path.dirname(__file__) + '/../bind/python/')
+sys.path.append(os.path.dirname(__file__) + '/../../bind/python/')
 from libdl import DLContext, libdl_init
 
 class DL(unittest.TestCase):
 	def setUp(self):
 		self.DLContext = DLContext()
-		self.DLContext.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../local/generated/unittest.bin')
+		self.DLContext.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../../local/generated/unittest.bin')
 		
 	def tearDown(self):
 		self.DLContext = None
@@ -365,5 +365,6 @@ class TestLibDL( DL ):
 		
 		
 if __name__ == '__main__':
-    libdl_init( "local/linux_x86_64/debug/dl.so" )
+    libdl_init( sys.argv[1] )
+    del sys.argv[1]
     unittest.main()

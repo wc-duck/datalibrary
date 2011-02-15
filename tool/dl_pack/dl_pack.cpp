@@ -25,6 +25,7 @@ int g_Info    = 0;
 
 void error_report_function( const char* msg, void* ctx )
 {
+	(void)ctx;
 	fprintf( stderr, "%s\n", msg );
 }
 
@@ -50,7 +51,7 @@ unsigned char* read_file(FILE* file, unsigned int* out_size)
 	}
 	while( chunk_size >= CHUNK_SIZE );
 
-	*out_size = total_size;
+	*out_size = (unsigned int)total_size;
 	return out_buffer;
 }
 

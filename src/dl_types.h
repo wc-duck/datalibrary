@@ -228,7 +228,7 @@ struct dl_context
 	uint8* m_pDefaultInstances;
 };
 
-static void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
+inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
 {
 	if( dl_ctx->error_msg_func == 0x0 )
 		return;
