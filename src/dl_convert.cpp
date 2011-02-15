@@ -754,7 +754,6 @@ dl_error_t dl_convert_calc_size( dl_ctx_t dl_ctx,                dl_typeid_t   t
                                  unsigned int   out_ptr_size,    unsigned int* out_size )
 {
 	return dl_convert( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, DL_ENDIAN_HOST, out_ptr_size, out_size );
-	// return DLInternalConvertInstance( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, DL_ENDIAN_HOST, out_ptr_size, out_size );
 }
 
 #ifdef __cplusplus

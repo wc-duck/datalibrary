@@ -270,7 +270,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t typ
 		type            - Type id for type to store.
 		instance        - Ptr to instance to store.
 		out_buffer      - Ptr to memory-area where to store the instances.
-		out_buffer_size - Size of _pData.
+		out_buffer_size - Size of out_buffer.
 		produced_bytes  - number of bytes that would have been written to out_buffer if it was large enough.
 
 	Return:
