@@ -14,7 +14,7 @@ CLASS_TEMPLATE = '''
 [StructLayout(LayoutKind.Sequential, Size=%(size32)u, CharSet=CharSet.Ansi)]
 public class %(name)s
 {
-    public const UInt32 TYPE_ID = 0x%(typeid)08X;
+    public static const UInt32 TYPE_ID = 0x%(typeid)08X;
     
     %(members)s
 }'''
