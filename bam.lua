@@ -230,10 +230,15 @@ end
 
 dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
+local test_args = ""
+if ScriptArgs["test_filter"] then
+	test_args =  " --gtest_filter=" .. ScriptArgs["test_filter"]
+end
+
 if family == "windows" then
-	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ), dl_tests )
+	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests )
 else
-	AddJob( "test",          "unittest c",        dl_tests,                   dl_tests )
+	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests ) -- valgrind c unittests
 end
 
