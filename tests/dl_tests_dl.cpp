@@ -53,7 +53,7 @@ struct pack_text_test
 		unsigned int text_size = 0;
 		EXPECT_DL_ERR_OK( dl_txt_unpack_calc_size( dl_ctx, type, store_buffer, store_size, &text_size ) );
 		EXPECT_DL_ERR_OK( dl_txt_unpack( dl_ctx, type, store_buffer, store_size, text_buffer, text_size, 0x0 ) );
-		EXPECT_EQ( (char)0xFE, text_buffer[text_size] ); // no overwrite on the generated text plox!
+		EXPECT_EQ( (unsigned char)0xFE, (unsigned char)text_buffer[text_size] ); // no overwrite on the generated text plox!
 
 		// printf("%s\n", text_buffer);
 

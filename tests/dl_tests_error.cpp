@@ -92,7 +92,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 
 	*lib_version = 0xFFFFFFFF;
 
-	dl_ctx_t tmp_ctx;
+	dl_ctx_t tmp_ctx = 0;
 	dl_create_params_t p;
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
 	EXPECT_DL_ERR_OK( dl_context_create( &tmp_ctx, &p ) );

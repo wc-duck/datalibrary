@@ -406,8 +406,10 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t t
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	if( !IsAlign( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
-		return DL_ERROR_BAD_ALIGNMENT;
+	// TODO: Temporary disabled due to CL doing some magic stuff!!! 
+	// Structs allocated on qstack seems to be unaligned!!!
+	// if( !IsAlign( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
+	//	return DL_ERROR_BAD_ALIGNMENT;
 
 	memcpy(instance, packed_instance + sizeof(SDLDataHeader), header->m_InstanceSize);
 
