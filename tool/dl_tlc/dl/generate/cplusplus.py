@@ -92,11 +92,13 @@ def emit_member( member ):
         
     import dl.typelibrary as tl
     
-    if   isinstance( member, tl.PodMember ):         lines.append( '%s %s;' % ( to_cpp_name( member.type ), member.name ) )
-    elif isinstance( member, tl.ArrayMember ):       lines.append( 'TDLArray<%s> %s;' % ( to_cpp_name( member.type ), member.name ) )
-    elif isinstance( member, tl.InlineArrayMember ): lines.append( '%s %s[%u];' % ( to_cpp_name( member.type ), member.name, member.count ) ) 
-    elif isinstance( member, tl.PointerMember ):     lines.append( 'const %s* %s;' % ( to_cpp_name( member.type ), member.name ) )
-    elif isinstance( member, tl.BitfieldMember ):    lines.append( '%s %s : %u;' % ( to_cpp_name( member.type ), member.name, member.bits ) )
+    cpp_name = to_cpp_name( member.type.name )
+    
+    if   isinstance( member, tl.PodMember ):         lines.append( '%s %s;'           % ( cpp_name, member.name ) )
+    elif isinstance( member, tl.ArrayMember ):       lines.append( 'TDLArray<%s> %s;' % ( cpp_name, member.name ) )
+    elif isinstance( member, tl.InlineArrayMember ): lines.append( '%s %s[%u];'       % ( cpp_name, member.name, member.count ) ) 
+    elif isinstance( member, tl.PointerMember ):     lines.append( 'const %s* %s;'    % ( cpp_name, member.name ) )
+    elif isinstance( member, tl.BitfieldMember ):    lines.append( '%s %s : %u;'      % ( cpp_name, member.name, member.bits ) )
     else:
         assert False, 'missing type (%s)!' % type( member )
         
@@ -112,14 +114,14 @@ def emit_struct( type, stream ):
         member_lines.extend( emit_member( m ) )
         
     stream.write( CLASS_TEMPLATE % { 'size32'    : type.size.ptr32,
-                             'size64'    : type.size.ptr64,
-                             'align32'   : type.align.ptr32,
-                             'align64'   : type.align.ptr64,
-                             'align_str' : ' ' if not type.useralign else ' DL_ALIGN( %u ) ' % type.align.ptr32,
-                             'name'      : type.name,
-                             'uint32'    : to_cpp_name('uint32'),
-                             'typeid'    : type.typeid,
-                             'members'   : '\n    '.join( member_lines ) } )
+                                     'size64'    : type.size.ptr64,
+                                     'align32'   : type.align.ptr32,
+                                     'align64'   : type.align.ptr64,
+                                     'align_str' : ' ' if not type.useralign else ' DL_ALIGN( %u ) ' % type.align.ptr32,
+                                     'name'      : type.name,
+                                     'uint32'    : to_cpp_name('uint32'),
+                                     'typeid'    : type.typeid,
+                                     'members'   : '\n    '.join( member_lines ) } )
     
 def emit_enum( enum, stream ):
     stream.write( 'enum %s\n{' % enum.name )
