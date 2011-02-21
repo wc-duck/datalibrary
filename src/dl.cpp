@@ -417,7 +417,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t t
 	DLPatchLoadedPtrs(dl_ctx, &PI, (uint8*)instance, pType, (uint8*)instance);
 
 	if( consumed )
-			*consumed = header->m_InstanceSize + sizeof(SDLDataHeader);
+		*consumed = header->m_InstanceSize + sizeof(SDLDataHeader);
 
 	return DL_ERROR_OK;
 }

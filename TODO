@@ -1,6 +1,4 @@
-BEFORE 1.0
-* get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 ))
-* linux x86 has alignment 4 on double, dl do not support it. FIX!
+BEFORE 1.0 * get it to build on all platforms, again ;) ( linux i386, linux amd64, win32, win64, xenon, ps3 )) * linux x86 has alignment 4 on double, dl do not support it. FIX!
 
 * write readme and tutorials.
 
@@ -35,8 +33,7 @@ c-library:
 
 dl_tlc:
 	* pure c-headers generated as option? ( remove c++ extras ) --cpp or -c to dl_tlc
-	* cleanup/rewrite header-generation
-	* dl_tlc should be built around a python-lib so one can embed type-library building.
+	* figure out if typelibrary-class in python should store bitfield as bitfield-group?
 	* add decompile-option for typelib-description files bin -> json
 	* .tld file format change!
 		members are a list right now to be able to controll order of parameters.
@@ -89,7 +86,6 @@ bindings:
 tests:
 	* harder unittests for subarrays.
 	* unittests for C#-bindings.
-	* benchmarks need to be written
 	* create some benchmarks that measure pack/unpack speed. 
 	* unittest that are cross platform 
 	    - pack on 32 bit -> unpack on 64 bit should be possible localy
