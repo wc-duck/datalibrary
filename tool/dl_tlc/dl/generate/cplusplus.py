@@ -20,21 +20,28 @@ DEFAULT_STD_TYPES = '''
 #endif
 '''
 
-ARRAY_TEMPLATE = '''
-#ifndef DL_ARRAY_CLASS_DEFINED
-#define DL_ARRAY_CLASS_DEFINED
-template<typename T>
-struct TDLArray
-{
-    T* %(data_name)s;
-    %(count_type)s %(count_name)s;
+ARRAY_TEMPLATE = '''struct
+    {
+        %(data_type)s* %(data_name)s;
+        %(count_type)s %(count_name)s;
+    
+    #ifdef __cplusplus
+              %(data_type)s& operator[](unsigned int index)        { return %(data_name)s[index]; }
+        const %(data_type)s& operator[](unsigned int index) const  { return %(data_name)s[index]; }
+    #endif // __cplusplus
+    }'''
 
-          T& operator[](unsigned int index)        { return %(data_name)s[index]; }
-    const T& operator[](unsigned int index) const  { return %(data_name)s[index]; }
-};
-#endif // DL_ARRAY_CLASS_DEFINED
-'''
-
+ARRAY_TEMPLATE_STR = '''struct
+    {
+        const char** %(data_name)s;
+        %(count_type)s %(count_name)s;
+    
+    #ifdef __cplusplus
+        const char*& operator[](unsigned int index)        { return %(data_name)s[index]; }
+        const char*& operator[](unsigned int index) const  { return %(data_name)s[index]; }
+    #endif // __cplusplus
+    }'''
+    
 CLASS_TEMPLATE = '''// size32 %(size32)u, size64 %(size64)u, align32 %(align32)u, align64 %(align64)u
 struct%(align_str)s%(name)s
 {
@@ -53,8 +60,6 @@ HEADER_TEMPLATE = '''
 %(define_pods)s
 
 %(user_code)s
-
-%(array_template)s
 
 %(structs)s
 
@@ -76,10 +81,12 @@ a_config_here = { 'int8'   : 'int8_t',
                   'fp64'   : 'double',
                   'string' : 'const char*' }
 
-def to_cpp_name( typename ):
-    if typename in a_config_here:
-        return a_config_here[typename]
-    return typename
+def to_cpp_name( member ):
+    import dl.typelibrary as tl
+    if isinstance( member, tl.ArrayMember ) and member.type.name == 'string':
+        return 'char*'
+    
+    return a_config_here.get( member.type.name, member.type.name )
 
 def emit_member( member ):
     lines = []        
@@ -92,13 +99,24 @@ def emit_member( member ):
         
     import dl.typelibrary as tl
     
-    cpp_name = to_cpp_name( member.type.name )
+    cpp_name = to_cpp_name( member )
     
     if   isinstance( member, tl.PodMember ):         lines.append( '%s %s;'           % ( cpp_name, member.name ) )
-    elif isinstance( member, tl.ArrayMember ):       lines.append( 'TDLArray<%s> %s;' % ( cpp_name, member.name ) )
     elif isinstance( member, tl.InlineArrayMember ): lines.append( '%s %s[%u];'       % ( cpp_name, member.name, member.count ) ) 
     elif isinstance( member, tl.PointerMember ):     lines.append( 'const %s* %s;'    % ( cpp_name, member.name ) )
     elif isinstance( member, tl.BitfieldMember ):    lines.append( '%s %s : %u;'      % ( cpp_name, member.name, member.bits ) )
+    elif isinstance( member, tl.ArrayMember ):
+        if member.type.name == 'string':
+            lines.append( '%s %s;' % ( ARRAY_TEMPLATE_STR % { 'data_name'  : 'data',
+                                                              'count_name' : 'count',
+                                                              'count_type' : a_config_here['uint32'] },
+                                       member.name ) )
+        else:              
+            lines.append( '%s %s;' % ( ARRAY_TEMPLATE % { 'data_type'  : cpp_name, 
+                                                          'data_name'  : 'data',
+                                                          'count_name' : 'count',
+                                                          'count_type' : a_config_here['uint32'] },
+                                       member.name ) )
     else:
         assert False, 'missing type (%s)!' % type( member )
         
@@ -119,7 +137,7 @@ def emit_struct( type, stream ):
                                      'align64'   : type.align.ptr64,
                                      'align_str' : ' ' if not type.useralign else ' DL_ALIGN( %u ) ' % type.align.ptr32,
                                      'name'      : type.name,
-                                     'uint32'    : to_cpp_name('uint32'),
+                                     'uint32'    : a_config_here['uint32'],
                                      'typeid'    : type.typeid,
                                      'members'   : '\n    '.join( member_lines ) } )
     
@@ -144,7 +162,4 @@ def generate( typelibrary, config, stream ):
     stream.write( HEADER_TEMPLATE % { 'module'         : typelibrary.name.upper(),
                                       'define_pods'    : DEFAULT_STD_TYPES,
                                       'user_code'      : '// USER CODE',
-                                      'array_template' : ARRAY_TEMPLATE % { 'data_name'  : 'data',
-                                                                            'count_name' : 'count',
-                                                                            'count_type' : to_cpp_name('uint32') },
                                       'structs'        : structs.getvalue() } )
