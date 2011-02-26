@@ -119,4 +119,4 @@ def generate( typelibrary, config, stream ):
     for type_name in typelibrary.type_order:
         emit_struct( typelibrary.types[type_name], structs )
         
-    return HEADER_TEMPLATE % { 'structs' : structs.getvalue() }
+    stream.write( HEADER_TEMPLATE % { 'structs' : structs.getvalue() } )
