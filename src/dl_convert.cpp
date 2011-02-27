@@ -103,6 +103,16 @@ static pint DLInternalReadPtrData( const uint8*  _pPtrData,
 	return 0;
 }
 
+static pint dl_internal_ptr_size(dl_ptr_size_t size_enum)
+{
+	switch(size_enum)
+	{
+		case DL_PTR_SIZE_32BIT: return 4;
+		case DL_PTR_SIZE_64BIT: return 8;
+		default: DL_ASSERT("unknown ptr size!"); return 0;
+	}
+}
+
 static void DLInternalReadArrayData( const uint8*  _pArrayData,
 									 pint*         _pOffset,
 									 uint32*       _pCount,
@@ -216,7 +226,7 @@ static dl_error_t DLInternalConvertCollectInstances( dl_ctx_t       _Context,
 						// TODO: This might be optimized if we look at all the data in i inline-array of strings as 1 instance continious in memory.
 						// I am not sure if that is true for all cases right now!
 
-						uint32 PtrSize = (uint32)DLPtrSize(_ConvertContext.m_SourcePtrSize);
+						uint32 PtrSize = (uint32)dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize);
 						uint32 Count = Member.m_Size[_ConvertContext.m_SourcePtrSize] / PtrSize;
 
 						for (pint iElem = 0; iElem < Count; ++iElem)
@@ -251,7 +261,7 @@ static dl_error_t DLInternalConvertCollectInstances( dl_ctx_t       _Context,
 						// TODO: This might be optimized if we look at all the data in i inline-array of strings as 1 instance continious in memory.
 						// I am not sure if that is true for all cases right now!
 
-						uint32 PtrSize = (uint32)DLPtrSize(_ConvertContext.m_SourcePtrSize);
+						uint32 PtrSize = (uint32)dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize);
 						const uint8* pArrayData = _pBaseData + Offset;
 
 						_ConvertContext.m_lInstances.Add(SInstance(_pBaseData + Offset, 0x0, Count, Member.m_Type));
@@ -407,8 +417,8 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
-						pint PtrSizeSource = DLPtrSize(_ConvertContext.m_SourcePtrSize);
-						pint PtrSizeTarget = DLPtrSize(_ConvertContext.m_TargetPtrSize);
+						pint PtrSizeSource = dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize);
+						pint PtrSizeTarget = dl_internal_ptr_size(_ConvertContext.m_TargetPtrSize);
 						uint32 Count = Member.m_Size[_ConvertContext.m_SourcePtrSize] / (uint32)PtrSizeSource;
 						pint Pos = _Writer.Tell();
 
@@ -454,7 +464,7 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 					Offset = DL_NULL_PTR_OFFSET[_ConvertContext.m_TargetPtrSize];
 
 				_Writer.WritePtr(Offset);
-				_Writer.Write(*(uint32*)(pMemberData + DLPtrSize(_ConvertContext.m_SourcePtrSize)));
+				_Writer.Write(*(uint32*)(pMemberData + dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize)));
 			}
 			break;
 
@@ -536,7 +546,7 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 
 			case DL_TYPE_STORAGE_STR:
 			{
-				pint TypeSize = DLPtrSize(_ConvertContext.m_SourcePtrSize);
+				pint TypeSize = dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize);
 	 			for(pint ElemOffset = 0; ElemOffset < _Inst.m_ArrayCount * TypeSize; ElemOffset += TypeSize)
 	 			{
 	 				pint OrigOffset = DLInternalReadPtrData(Data.m_u8 + ElemOffset, _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize);
@@ -579,18 +589,13 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 
 bool dl_internal_sort_pred( const SInstance& i1, const SInstance& i2 ) { return i1.m_pAddress < i2.m_pAddress; }
 
-dl_error_t DLInternalConvertNoHeader( dl_ctx_t       dl_ctx,
-                                      unsigned char* packed_instance,
-                                      unsigned char* packed_instance_base,
-                                      unsigned char* out_instance,
-                                      unsigned int   out_instance_size,
-                                      unsigned int*  needed_size,
-                                      dl_endian_t    src_endian,
-                                      dl_endian_t    out_endian,
-                                      dl_ptr_size_t  src_ptr_size,
-                                      dl_ptr_size_t  out_ptr_size,
-                                      const SDLType* root_type,
-                                      unsigned int   base_offset )
+dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
+                                          unsigned char* packed_instance, unsigned char* packed_instance_base,
+                                          unsigned char* out_instance,    unsigned int   out_instance_size,
+                                          unsigned int*  needed_size,
+                                          dl_endian_t    src_endian,      dl_endian_t    out_endian,
+                                          dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
+                                          const SDLType* root_type,       unsigned int   base_offset )
 {
 	// need a parameter for IsSwapping
 	CDLBinaryWriter Writer(out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, out_ptr_size);
@@ -692,7 +697,7 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 	if(root_type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	dl_error_t err = DLInternalConvertNoHeader( dl_ctx,
+	dl_error_t err = dl_internal_convert_no_header( dl_ctx,
 											    packed_instance + sizeof(SDLDataHeader),
 											    packed_instance + sizeof(SDLDataHeader),
 											    out_instance == 0x0 ? 0x0 : out_instance + sizeof(SDLDataHeader),

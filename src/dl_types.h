@@ -38,7 +38,7 @@
 
 #define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
-#define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: Rename and implement me plox!
+#define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: implement me plox!
 
 #define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
 #define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
@@ -249,19 +249,9 @@ inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
 	the bitfield offset are counted from least significant bit or most significant bit on different platforms.
 */
 inline unsigned int DLBitFieldOffset(dl_endian_t _Endian, unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits) { return _Endian == DL_ENDIAN_LITTLE ? _Offset : (_BFSize * 8) - _Offset - _nBits; }
-inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits)                     { return DLBitFieldOffset(DL_ENDIAN_HOST, _BFSize, _Offset, _nBits); }
+inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits)                      { return DLBitFieldOffset(DL_ENDIAN_HOST, _BFSize, _Offset, _nBits); }
 
 DL_FORCEINLINE dl_endian_t DLOtherEndian(dl_endian_t _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
-
-DL_FORCEINLINE pint DLPtrSize(dl_ptr_size_t _SizeEnum)
-{
-	switch(_SizeEnum)
-	{
-		case DL_PTR_SIZE_32BIT: return 4;
-		case DL_PTR_SIZE_64BIT: return 8;
-		default: DL_ASSERT("unknown ptr size!"); return 0;
-	}
-}
 
 static inline pint DLPodSize(dl_type_t _Type)
 {
