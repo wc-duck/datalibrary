@@ -104,7 +104,7 @@ TEST_F(DLText, member_missing)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_pod)
+TEST_F(DLText, default_value_pod)
 {
 	// default-values should be set correctly!
 
@@ -130,7 +130,7 @@ TEST_F(DLText, defalut_value_pod)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_string)
+TEST_F(DLText, default_value_string)
 {
 	// default-values should be set correctly!
 
@@ -147,7 +147,7 @@ TEST_F(DLText, defalut_value_string)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_ptr)
+TEST_F(DLText, default_value_ptr)
 {
 	// default-values should be set correctly!
 
@@ -164,7 +164,7 @@ TEST_F(DLText, defalut_value_ptr)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_struct)
+TEST_F(DLText, default_value_struct)
 {
 	const char* TextData = "{ \"type\" : \"DefaultStruct\", \"data\" : {} }";
 
@@ -180,7 +180,7 @@ TEST_F(DLText, defalut_value_struct)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_enum)
+TEST_F(DLText, default_value_enum)
 {
 	const char* TextData = "{ \"type\" : \"DefaultEnum\", \"data\" : {} }";
 
@@ -195,7 +195,7 @@ TEST_F(DLText, defalut_value_enum)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_inline_array_pod)
+TEST_F(DLText, default_value_inline_array_pod)
 {
 	// default-values should be set correctly!
 
@@ -215,7 +215,7 @@ TEST_F(DLText, defalut_value_inline_array_pod)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_inline_array_enum)
+TEST_F(DLText, default_value_inline_array_enum)
 {
 	// default-values should be set correctly!
 
@@ -235,7 +235,7 @@ TEST_F(DLText, defalut_value_inline_array_enum)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_inline_array_string)
+TEST_F(DLText, default_value_inline_array_string)
 {
 	// default-values should be set correctly!
 
@@ -258,7 +258,7 @@ TEST_F(DLText, defalut_value_inline_array_string)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_array_pod)
+TEST_F(DLText, default_value_array_pod)
 {
 	const char* TextData = "{ \"type\" : \"DefaultArrayPod\", \"data\" : {} }";
 
@@ -278,7 +278,7 @@ TEST_F(DLText, defalut_value_array_pod)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_array_enum)
+TEST_F(DLText, default_value_array_enum)
 {
 	const char* TextData = "{ \"type\" : \"DefaultArrayEnum\", \"data\" : {} }";
 
@@ -298,7 +298,7 @@ TEST_F(DLText, defalut_value_array_enum)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLText, defalut_value_array_string)
+TEST_F(DLText, default_value_array_string)
 {
 	// default-values should be set correctly!
 

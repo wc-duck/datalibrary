@@ -13,6 +13,22 @@
 static void* dl_internal_default_alloc( unsigned int size, unsigned int alignment, void* alloc_ctx ) { DL_UNUSED(alignment); DL_UNUSED(alloc_ctx); return malloc(size); }
 static void  dl_internal_default_free ( void* ptr, void* alloc_ctx ) {  DL_UNUSED(alloc_ctx); free(ptr); }
 
+static void* dl_internal_realloc( dl_ctx_t dl_ctx, void* ptr, unsigned int old_size, unsigned int new_size, unsigned int alignment )
+{
+	if( old_size == new_size )
+		return ptr;
+
+	void* new_ptr = dl_ctx->alloc_func( new_size, alignment, dl_ctx->alloc_ctx );
+
+	if( ptr != 0x0 )
+	{
+		memmove( new_ptr, ptr, old_size );
+		dl_ctx->free_func( ptr, dl_ctx->alloc_ctx );
+	}
+
+	return new_ptr;
+}
+
 dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_params )
 {
 	dl_alloc_func the_alloc = create_params->alloc_func != 0x0 ? create_params->alloc_func : dl_internal_default_alloc;
@@ -211,7 +227,7 @@ struct SOneMemberType
 
 DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
 
-static void dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, const uint8* default_data, unsigned int default_data_size)
+static void dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsigned int first_new_type, const uint8* default_data, unsigned int default_data_size)
 {
 	if( default_data_size == 0 )
 		return;
@@ -220,9 +236,9 @@ static void dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, const uint8*
 
 	uint8* pDst = dl_ctx->m_pDefaultInstances;
 	// ptr-patch and convert to native
-	for(uint32 iType = 0; iType < dl_ctx->m_nTypes; ++iType)
+	for(uint32 iType = first_new_type; iType < dl_ctx->m_nTypes; ++iType)
 	{
-		const SDLType* pType = dl_ctx->m_TypeLookUp[iType].m_pType;
+		const SDLType* pType = (SDLType*)(dl_ctx->m_TypeInfoData + dl_ctx->m_TypeLookUp[iType].offset);
 		for(uint32 iMember = 0; iMember < pType->m_nMembers; ++iMember)
 		{
 			SDLMember* pMember = (SDLMember*)pType->m_lMembers + iMember;
@@ -276,7 +292,14 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 	}
 }
 
-dl_error_t dl_context_load_type_library(dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size)
+static void* dl_internal_append_data( dl_ctx_t dl_ctx, void* old_data, unsigned int old_data_size, const void* new_data, unsigned int new_data_size )
+{
+	uint8* data = (uint8*)dl_internal_realloc( dl_ctx, old_data, old_data_size, old_data_size + new_data_size, sizeof(void*) );
+	memcpy( data + old_data_size, new_data, new_data_size );
+	return data;
+}
+
+dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size )
 {
 	if(lib_data_size < sizeof(SDLTypeLibraryHeader))
 		return DL_ERROR_MALFORMED_DATA;
@@ -284,38 +307,33 @@ dl_error_t dl_context_load_type_library(dl_ctx_t dl_ctx, const unsigned char* li
 	SDLTypeLibraryHeader Header;
 	dl_internal_read_typelibrary_header(&Header, lib_data);
 
-	if(Header.m_Id != DL_TYPELIB_ID ) return DL_ERROR_MALFORMED_DATA;
-	if(Header.m_Version != DL_TYPELIB_VERSION) return DL_ERROR_VERSION_MISMATCH;
+	if( Header.m_Id      != DL_TYPELIB_ID )      return DL_ERROR_MALFORMED_DATA;
+	if( Header.m_Version != DL_TYPELIB_VERSION ) return DL_ERROR_VERSION_MISMATCH;
 
 	// store type-info data.
-	dl_ctx->m_TypeInfoData = (uint8*)dl_ctx->alloc_func( Header.m_TypesSize, sizeof(void*), dl_ctx->alloc_ctx );
-	memcpy(dl_ctx->m_TypeInfoData, lib_data + Header.m_TypesOffset, Header.m_TypesSize);
-
-	// store enum-info data.
-	dl_ctx->m_EnumInfoData = (uint8*)dl_ctx->alloc_func( Header.m_EnumsSize, sizeof(void*), dl_ctx->alloc_ctx );
-	memcpy(dl_ctx->m_EnumInfoData, lib_data + Header.m_EnumsOffset, Header.m_EnumsSize);
+	dl_ctx->m_TypeInfoData = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->m_TypeInfoData, dl_ctx->m_TypeInfoDataSize, lib_data + Header.m_TypesOffset, Header.m_TypesSize );
 
 	// read type-lookup table
 	SDLTypeLookup* _pFromData = (SDLTypeLookup*)(lib_data + sizeof(SDLTypeLibraryHeader));
-	for(uint32 i = 0; i < Header.m_nTypes; ++i)
+	for(uint32 i = dl_ctx->m_nTypes; i < dl_ctx->m_nTypes + Header.m_nTypes; ++i)
 	{
-		dl_context::STypeLookUp& Look = dl_ctx->m_TypeLookUp[i];
+		dl_context::STypeLookUp* look = dl_ctx->m_TypeLookUp + i;
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
-			Look.m_TypeID = DLSwapEndian(_pFromData->m_TypeID);
-			uint32 Offset = DLSwapEndian(_pFromData->m_Offset);
-			Look.m_pType  = (SDLType*)(dl_ctx->m_TypeInfoData + Offset);
+			look->type_id = DLSwapEndian(_pFromData->type_id);
+			look->offset  = dl_ctx->m_TypeInfoDataSize + DLSwapEndian(_pFromData->offset);
+			SDLType* pType     = (SDLType*)(dl_ctx->m_TypeInfoData + look->offset );
 
-			Look.m_pType->m_Size[DL_PTR_SIZE_32BIT]      = DLSwapEndian(Look.m_pType->m_Size[DL_PTR_SIZE_32BIT]);
-			Look.m_pType->m_Size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(Look.m_pType->m_Size[DL_PTR_SIZE_64BIT]);
-			Look.m_pType->m_Alignment[DL_PTR_SIZE_32BIT] = DLSwapEndian(Look.m_pType->m_Alignment[DL_PTR_SIZE_32BIT]);
-			Look.m_pType->m_Alignment[DL_PTR_SIZE_64BIT] = DLSwapEndian(Look.m_pType->m_Alignment[DL_PTR_SIZE_64BIT]);
-			Look.m_pType->m_nMembers                     = DLSwapEndian(Look.m_pType->m_nMembers);
+			pType->m_Size[DL_PTR_SIZE_32BIT]      = DLSwapEndian(pType->m_Size[DL_PTR_SIZE_32BIT]);
+			pType->m_Size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(pType->m_Size[DL_PTR_SIZE_64BIT]);
+			pType->m_Alignment[DL_PTR_SIZE_32BIT] = DLSwapEndian(pType->m_Alignment[DL_PTR_SIZE_32BIT]);
+			pType->m_Alignment[DL_PTR_SIZE_64BIT] = DLSwapEndian(pType->m_Alignment[DL_PTR_SIZE_64BIT]);
+			pType->m_nMembers                     = DLSwapEndian(pType->m_nMembers);
 
-			for(uint32 i = 0; i < Look.m_pType->m_nMembers; ++i)
+			for(uint32 i = 0; i < pType->m_nMembers; ++i)
 			{
-				SDLMember* pMember = Look.m_pType->m_lMembers + i;
+				SDLMember* pMember = pType->m_lMembers + i;
 
 				pMember->m_Type                         = DLSwapEndian(pMember->m_Type);
 				pMember->m_TypeID	                    = DLSwapEndian(pMember->m_TypeID);
@@ -330,46 +348,53 @@ dl_error_t dl_context_load_type_library(dl_ctx_t dl_ctx, const unsigned char* li
 		}
 		else
 		{
-			Look.m_TypeID = _pFromData->m_TypeID;
-			Look.m_pType  = (SDLType*)(dl_ctx->m_TypeInfoData + _pFromData->m_Offset);
+			look->type_id = _pFromData->type_id;
+			look->offset  = dl_ctx->m_TypeInfoDataSize + _pFromData->offset;
 		}
 
 		++_pFromData;
 	}
 
-	dl_ctx->m_nTypes += Header.m_nTypes;
+	dl_ctx->m_nTypes           += Header.m_nTypes;
+	dl_ctx->m_TypeInfoDataSize += Header.m_TypesSize;
 
-	dl_internal_load_type_library_defaults(dl_ctx, lib_data + Header.m_DefaultValuesOffset, Header.m_DefaultValuesSize);
+	// store enum-info data.
+	dl_ctx->m_EnumInfoData = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->m_EnumInfoData, dl_ctx->m_EnumInfoDataSize, lib_data + Header.m_EnumsOffset, Header.m_EnumsSize );
 
 	// read enum-lookup table
 	SDLTypeLookup* _pEnumFromData = (SDLTypeLookup*)(lib_data + Header.m_TypesOffset + Header.m_TypesSize);
-	for(uint32 i = 0; i < Header.m_nEnums; ++i)
+	for(uint32 i = dl_ctx->m_nEnums; i < dl_ctx->m_nEnums + Header.m_nEnums; ++i)
 	{
-		dl_context::SEnumLookUp& Look = dl_ctx->m_EnumLookUp[i];
+		dl_context::SEnumLookUp* look = dl_ctx->m_EnumLookUp + i;
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
-			Look.m_EnumID = DLSwapEndian(_pEnumFromData->m_TypeID);
-			uint32 Offset = DLSwapEndian(_pEnumFromData->m_Offset);
-			Look.m_pEnum  = (SDLEnum*)(dl_ctx->m_EnumInfoData + Offset);
-			Look.m_pEnum->m_EnumID  = DLSwapEndian(Look.m_pEnum->m_EnumID);
-			Look.m_pEnum->m_nValues = DLSwapEndian(Look.m_pEnum->m_nValues);
-			for(uint32 i = 0; i < Look.m_pEnum->m_nValues; ++i)
+			look->type_id = DLSwapEndian(_pEnumFromData->type_id);
+			look->offset  = dl_ctx->m_EnumInfoDataSize + DLSwapEndian(_pEnumFromData->offset);
+
+			SDLEnum* pEnum = (SDLEnum*)(dl_ctx->m_EnumInfoData + look->offset);
+
+			pEnum->m_EnumID  = DLSwapEndian(pEnum->m_EnumID);
+			pEnum->m_nValues = DLSwapEndian(pEnum->m_nValues);
+			for(uint32 i = 0; i < pEnum->m_nValues; ++i)
 			{
-				SDLEnumValue* pValue = Look.m_pEnum->m_lValues + i;
+				SDLEnumValue* pValue = pEnum->m_lValues + i;
 				pValue->m_Value = DLSwapEndian(pValue->m_Value);
 			}
 		}
 		else
 		{
-			Look.m_EnumID = _pEnumFromData->m_TypeID;
-			Look.m_pEnum  = (SDLEnum*)(dl_ctx->m_EnumInfoData + _pEnumFromData->m_Offset);
+			look->type_id = _pEnumFromData->type_id;
+			look->offset  = dl_ctx->m_EnumInfoDataSize + _pEnumFromData->offset;
 		}
 
 		++_pEnumFromData;
 	}
 
-	dl_ctx->m_nEnums += Header.m_nEnums;
+	dl_ctx->m_nEnums           += Header.m_nEnums;
+	dl_ctx->m_EnumInfoDataSize += Header.m_EnumsSize;
+
+	dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->m_nTypes - Header.m_nTypes, lib_data + Header.m_DefaultValuesOffset, Header.m_DefaultValuesSize );
 
 	return DL_ERROR_OK;
 }

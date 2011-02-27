@@ -141,8 +141,8 @@ struct SDLDataHeader
 
 struct SDLTypeLookup
 {
-	dl_typeid_t m_TypeID;
-	uint32  m_Offset;
+	dl_typeid_t type_id;
+	uint32      offset;
 };
 
 enum dl_ptr_size_t
@@ -216,16 +216,19 @@ struct dl_context
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
 
-	struct STypeLookUp { dl_typeid_t  m_TypeID; SDLType* m_pType; } m_TypeLookUp[128]; // dynamic alloc?
-	struct SEnumLookUp { dl_typeid_t  m_EnumID; SDLEnum* m_pEnum; } m_EnumLookUp[128]; // dynamic alloc?
+	struct STypeLookUp { dl_typeid_t type_id; unsigned int offset; } m_TypeLookUp[128]; // dynamic alloc?
+	struct SEnumLookUp { dl_typeid_t type_id; unsigned int offset; } m_EnumLookUp[128]; // dynamic alloc?
 
 	unsigned int m_nTypes;
-	uint8* m_TypeInfoData;
+	uint8*       m_TypeInfoData;
+	unsigned int m_TypeInfoDataSize;
 
 	unsigned int m_nEnums;
-	uint8* m_EnumInfoData;
+	uint8*       m_EnumInfoData;
+	unsigned int m_EnumInfoDataSize;
 
-	uint8* m_pDefaultInstances;
+	uint8*       m_pDefaultInstances;
+	unsigned int m_DefaultInstancesSize;
 };
 
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
@@ -278,25 +281,21 @@ static inline pint DLPodSize(dl_type_t _Type)
 	}
 }
 
-static inline const SDLType* DLFindType(dl_ctx_t _Context, dl_typeid_t _TypeHash)
+static inline const SDLType* DLFindType(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
 	// linear search right now!
-	for(unsigned int i = 0; i < _Context->m_nTypes; ++i)
-		if(_Context->m_TypeLookUp[i].m_TypeID == _TypeHash)
-			return _Context->m_TypeLookUp[i].m_pType;
+	for(unsigned int i = 0; i < dl_ctx->m_nTypes; ++i)
+		if(dl_ctx->m_TypeLookUp[i].type_id == type_id)
+			return (SDLType*)(dl_ctx->m_TypeInfoData + dl_ctx->m_TypeLookUp[i].offset);
 
 	return 0x0;
 }
 
-static inline const SDLEnum* DLFindEnum(dl_ctx_t _Context, dl_typeid_t _EnumHash)
+static inline const SDLEnum* DLFindEnum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
-	for (unsigned int i = 0; i < _Context->m_nEnums; ++i)
-	{
-		const dl_context::SEnumLookUp& LookUp = _Context->m_EnumLookUp[i];
-
-		if(LookUp.m_EnumID == _EnumHash)
-			return LookUp.m_pEnum;
-	}
+	for (unsigned int i = 0; i < dl_ctx->m_nEnums; ++i)
+		if( dl_ctx->m_EnumLookUp[i].type_id == type_id )
+			return (SDLEnum*)( dl_ctx->m_EnumInfoData + dl_ctx->m_EnumLookUp[i].offset );
 
 	return 0x0;
 }

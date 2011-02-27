@@ -18,7 +18,7 @@ dl_error_t dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_typeid_t* out_types, uns
 		return DL_ERROR_BUFFER_TO_SMALL;
 
 	for( unsigned int type = 0; type < dl_ctx->m_nTypes; ++type )
-		out_types[type] = dl_ctx->m_TypeLookUp[type].m_TypeID;
+		out_types[type] = dl_ctx->m_TypeLookUp[type].type_id;
 
 	return DL_ERROR_OK;
 }
