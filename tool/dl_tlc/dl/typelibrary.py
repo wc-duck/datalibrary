@@ -31,6 +31,10 @@ class PlatformValue( object ):
             return (val + alignment - 1) & ~(alignment - 1)
         return PlatformValue( ( align(val.ptr32, align_value.ptr32), align(val.ptr64, align_value.ptr64) ) )
 
+class DLTypeLibraryError(Exception):
+    def __init__(self, err): self.err = err
+    def __str__(self):       return self.err
+
 class BuiltinType( object ):
     def __init__(self, name, size, align):
         self.name   = name
@@ -172,7 +176,9 @@ class PointerMember( Member ):
     def __init__(self, name, data, typelibrary):
         Member.__init__( self, name, data )
         
-        assert not hasattr( self, 'default' ) or self.default == None, 'only null is supported for ptrs!'
+        if hasattr( self, 'default' ) and self.default != None:
+            raise  'only null is supported as default for ptrs!'
+        
         
         type = data['subtype']
         # TEMP!!!
@@ -325,7 +331,7 @@ class TypeLibrary( object ):
         
         ''' will this be doable? for example namespaces and alias:es are not stored in binary '''
         
-        assert False, "Not supported right now, will it ever be?"
+        raise DLTypeLibraryError( "Not supported right now, will it ever be?" )
         
     def find_type(self, name):
         if name in self.types:
@@ -337,12 +343,12 @@ class TypeLibrary( object ):
     
     def __read_enums( self, enum_data ):
         for name, values in enum_data.items():
-            assert name not in self.enums, name + ' already in library!' # handle this with exception!    
+            if name in self.enums: raise DLTypeLibraryError( name + ' already in library!' )    
             self.enums[name] = Enum( name, values )
     
     def __read_types( self, type_data ): 
         for name, values in type_data.items():
-            assert name not in self.types, name + ' already in library!' # handle this with exception!
+            if name in self.types: raise DLTypeLibraryError( name + ' already in library!' )
             self.types[name] = Type( name, values, self )
         
         for type in self.types.values():
@@ -356,7 +362,7 @@ class TypeLibrary( object ):
             type = self.types[typename]
             
             for member in type.members:
-                if member.type == 'bitfield':
+                if isinstance( member, BitfieldMember ):
                     return True
                 if ( not member.type.name is typename ) and ( not member.type.name in temp ):
                     return True
