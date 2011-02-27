@@ -51,8 +51,8 @@ namespace dl_staticassert
 };
 #define DL_STATIC_ASSERT(_Expr, _Msg) enum { DL_JOIN_TOKENS(_static_assert_enum_##_Msg, __LINE__) = sizeof(::dl_staticassert::STATIC_ASSERTION_FAILURE< (bool)( _Expr ) >) }
 
-#define DL_INT8_MAX  (0x7F)
-#define DL_INT16_MAX (0x7FFF)
+static const int8  DL_INT8_MAX  = 0x7F;
+static const int16 DL_INT16_MAX = 0x7FFF;
 static const int32 DL_INT32_MAX = 0x7FFFFFFFL;
 static const int64 DL_INT64_MAX = 0x7FFFFFFFFFFFFFFFLL;
 static const int8  DL_INT8_MIN  = (-DL_INT8_MAX  - 1);
@@ -60,8 +60,8 @@ static const int16 DL_INT16_MIN = (-DL_INT16_MAX - 1);
 static const int32 DL_INT32_MIN = (-DL_INT32_MAX - 1);
 static const int64 DL_INT64_MIN = (-DL_INT64_MAX - 1);
 
-#define DL_UINT8_MAX  (0xFFU)
-#define DL_UINT16_MAX (0xFFFFU)
+static const uint8  DL_UINT8_MAX  = 0xFFU;
+static const uint16 DL_UINT16_MAX = 0xFFFFU;
 static const uint32 DL_UINT32_MAX = 0xFFFFFFFFUL;
 static const uint64 DL_UINT64_MAX = 0xFFFFFFFFFFFFFFFFULL;
 static const uint8  DL_UINT8_MIN  = 0x00U;
