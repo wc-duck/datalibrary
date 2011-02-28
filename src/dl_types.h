@@ -227,8 +227,7 @@ struct dl_context
 	uint8*       m_EnumInfoData;
 	unsigned int m_EnumInfoDataSize;
 
-	uint8*       m_pDefaultInstances;
-	unsigned int m_DefaultInstancesSize;
+	uint8* default_data;
 };
 
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )

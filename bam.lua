@@ -218,8 +218,10 @@ dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, CollectRecur
 -- HACK BONANZA!
 if build_platform == "linux_x86" then
 	DLTypeLibrary( "tests/unittest.tld", "local/linux_x86_64/" .. config .. "/dl.so" )
+	DLTypeLibrary( "tests/unittest2.tld", "local/linux_x86_64/" .. config .. "/dl.so" )
 else
 	DLTypeLibrary( "tests/unittest.tld", shared_library )
+	DLTypeLibrary( "tests/unittest2.tld", shared_library )
 end
 
 build_settings.link.libs:Add( "gtest" )

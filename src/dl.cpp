@@ -29,6 +29,13 @@ static void* dl_internal_realloc( dl_ctx_t dl_ctx, void* ptr, unsigned int old_s
 	return new_ptr;
 }
 
+static void* dl_internal_append_data( dl_ctx_t dl_ctx, void* old_data, unsigned int old_data_size, const void* new_data, unsigned int new_data_size )
+{
+	uint8* data = (uint8*)dl_internal_realloc( dl_ctx, old_data, old_data_size, old_data_size + new_data_size, sizeof(void*) );
+	memcpy( data + old_data_size, new_data, new_data_size );
+	return data;
+}
+
 dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_params )
 {
 	dl_alloc_func the_alloc = create_params->alloc_func != 0x0 ? create_params->alloc_func : dl_internal_default_alloc;
@@ -55,7 +62,7 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 {
 	dl_ctx->free_func( dl_ctx->m_TypeInfoData, dl_ctx->alloc_ctx );
 	dl_ctx->free_func( dl_ctx->m_EnumInfoData, dl_ctx->alloc_ctx );
-	dl_ctx->free_func( dl_ctx->m_pDefaultInstances, dl_ctx->alloc_ctx );
+	dl_ctx->free_func( dl_ctx->default_data, dl_ctx->alloc_ctx );
 	dl_ctx->free_func( dl_ctx, dl_ctx->alloc_ctx );
 	return DL_ERROR_OK;
 }
@@ -216,8 +223,6 @@ struct SOneMemberType
 		m_Member.m_Offset[0] = 0;
 	}
 
-	const SDLType* AsDLType() { return (const SDLType*)this; }
-
 	char      m_Name[DL_TYPE_NAME_MAX_LEN];
 	uint32    m_Size[2];
 	uint32    m_Alignment[2];
@@ -227,14 +232,17 @@ struct SOneMemberType
 
 DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
 
-static void dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsigned int first_new_type, const uint8* default_data, unsigned int default_data_size)
+static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsigned int first_new_type, const uint8* default_data, unsigned int default_data_size)
 {
-	if( default_data_size == 0 )
-		return;
+	if( default_data_size == 0 ) return DL_ERROR_OK;
 
-	dl_ctx->m_pDefaultInstances = (uint8*)dl_ctx->alloc_func( default_data_size * 2, sizeof(void*), dl_ctx->alloc_ctx ); // TODO: times 2 here need to be fixed!
+	if( dl_ctx->default_data != 0x0 )
+		return DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS;
 
-	uint8* pDst = dl_ctx->m_pDefaultInstances;
+	dl_ctx->default_data = (uint8*)dl_ctx->alloc_func( default_data_size * 2, sizeof(void*), dl_ctx->alloc_ctx ); // TODO: times 2 here need to be fixed!
+
+	uint8* pDst = dl_ctx->default_data;
+
 	// ptr-patch and convert to native
 	for(uint32 iType = first_new_type; iType < dl_ctx->m_nTypes; ++iType)
 	{
@@ -242,32 +250,32 @@ static void dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsigned int
 		for(uint32 iMember = 0; iMember < pType->m_nMembers; ++iMember)
 		{
 			SDLMember* pMember = (SDLMember*)pType->m_lMembers + iMember;
-			if(pMember->m_DefaultValueOffset != DL_UINT32_MAX)
-			{
-				pDst = AlignUp(pDst, pMember->m_Alignment[DL_PTR_SIZE_HOST]);
-				uint32 SrcOffset = pMember->m_DefaultValueOffset;
-				pMember->m_DefaultValueOffset = uint32(pint(pDst) - pint(dl_ctx->m_pDefaultInstances));
-				uint8* pSrc = (uint8*)default_data + SrcOffset;
+			if(pMember->m_DefaultValueOffset == DL_UINT32_MAX)
+				continue;
 
-				SOneMemberType Dummy(pMember);
+			pDst                          = AlignUp( pDst, pMember->m_Alignment[DL_PTR_SIZE_HOST] );
+			uint8* pSrc                   = (uint8*)default_data + pMember->m_DefaultValueOffset;
+			pint BaseOffset               = pint( pDst ) - pint( dl_ctx->default_data );
+			pMember->m_DefaultValueOffset = uint32( BaseOffset );
 
-				pint BaseOffset = pint(pDst) - pint(dl_ctx->m_pDefaultInstances);
-				unsigned int NeededSize;
-				dl_internal_convert_no_header( dl_ctx,
-						                       pSrc, (unsigned char*)default_data,
-										       pDst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
-										       &NeededSize,
-											   DL_ENDIAN_LITTLE, DL_ENDIAN_HOST,
-											   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
-											   Dummy.AsDLType(), (unsigned int)BaseOffset ); // TODO: Ugly cast, remove plox!
+			SOneMemberType Dummy(pMember);
+			unsigned int NeededSize;
+			dl_internal_convert_no_header( dl_ctx,
+										   pSrc, (unsigned char*)default_data,
+										   pDst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
+										   &NeededSize,
+										   DL_ENDIAN_LITTLE,  DL_ENDIAN_HOST,
+										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
+										   (const SDLType*)&Dummy, (unsigned int)BaseOffset ); // TODO: Ugly cast, remove plox!
 
-				SPatchedInstances PI;
-				DLPatchLoadedPtrs(dl_ctx, &PI, pDst, Dummy.AsDLType(), dl_ctx->m_pDefaultInstances);
+			SPatchedInstances PI;
+			DLPatchLoadedPtrs( dl_ctx, &PI, pDst, (const SDLType*)&Dummy, dl_ctx->default_data );
 
-				pDst += NeededSize;
-			}
+			pDst += NeededSize;
 		}
 	}
+
+	return DL_ERROR_OK;
 }
 
 static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, const uint8* data )
@@ -292,13 +300,6 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 	}
 }
 
-static void* dl_internal_append_data( dl_ctx_t dl_ctx, void* old_data, unsigned int old_data_size, const void* new_data, unsigned int new_data_size )
-{
-	uint8* data = (uint8*)dl_internal_realloc( dl_ctx, old_data, old_data_size, old_data_size + new_data_size, sizeof(void*) );
-	memcpy( data + old_data_size, new_data, new_data_size );
-	return data;
-}
-
 dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size )
 {
 	if(lib_data_size < sizeof(SDLTypeLibraryHeader))
@@ -321,9 +322,9 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
-			look->type_id = DLSwapEndian(_pFromData->type_id);
-			look->offset  = dl_ctx->m_TypeInfoDataSize + DLSwapEndian(_pFromData->offset);
-			SDLType* pType     = (SDLType*)(dl_ctx->m_TypeInfoData + look->offset );
+			look->type_id  = DLSwapEndian(_pFromData->type_id);
+			look->offset   = dl_ctx->m_TypeInfoDataSize + DLSwapEndian(_pFromData->offset);
+			SDLType* pType = (SDLType*)(dl_ctx->m_TypeInfoData + look->offset );
 
 			pType->m_Size[DL_PTR_SIZE_32BIT]      = DLSwapEndian(pType->m_Size[DL_PTR_SIZE_32BIT]);
 			pType->m_Size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(pType->m_Size[DL_PTR_SIZE_64BIT]);
@@ -369,9 +370,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
-			look->type_id = DLSwapEndian(_pEnumFromData->type_id);
-			look->offset  = dl_ctx->m_EnumInfoDataSize + DLSwapEndian(_pEnumFromData->offset);
-
+			look->type_id  = DLSwapEndian(_pEnumFromData->type_id);
+			look->offset   = dl_ctx->m_EnumInfoDataSize + DLSwapEndian(_pEnumFromData->offset);
 			SDLEnum* pEnum = (SDLEnum*)(dl_ctx->m_EnumInfoData + look->offset);
 
 			pEnum->m_EnumID  = DLSwapEndian(pEnum->m_EnumID);
@@ -394,9 +394,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->m_nEnums           += Header.m_nEnums;
 	dl_ctx->m_EnumInfoDataSize += Header.m_EnumsSize;
 
-	dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->m_nTypes - Header.m_nTypes, lib_data + Header.m_DefaultValuesOffset, Header.m_DefaultValuesSize );
-
-	return DL_ERROR_OK;
+	return dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->m_nTypes - Header.m_nTypes, lib_data + Header.m_DefaultValuesOffset, Header.m_DefaultValuesSize );
 }
 
 dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t type,
@@ -773,35 +771,36 @@ dl_error_t dl_instance_calc_size(dl_ctx_t dl_ctx, dl_typeid_t type, void* instan
 
 const char* dl_error_to_string(dl_error_t _Err)
 {
-#define M_DL_ERR_TO_STR(ERR) case ERR: return #ERR
+#define DL_ERR_TO_STR(ERR) case ERR: return #ERR
 	switch(_Err)
 	{
-		M_DL_ERR_TO_STR(DL_ERROR_OK);
-		M_DL_ERR_TO_STR(DL_ERROR_MALFORMED_DATA);
-		M_DL_ERR_TO_STR(DL_ERROR_VERSION_MISMATCH);
-		M_DL_ERR_TO_STR(DL_ERROR_OUT_OF_LIBRARY_MEMORY);
-		M_DL_ERR_TO_STR(DL_ERROR_OUT_OF_INSTANCE_MEMORY);
-		M_DL_ERR_TO_STR(DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR);
-		M_DL_ERR_TO_STR(DL_ERROR_TYPE_MISMATCH);
-		M_DL_ERR_TO_STR(DL_ERROR_TYPE_NOT_FOUND);
-		M_DL_ERR_TO_STR(DL_ERROR_MEMBER_NOT_FOUND);
-		M_DL_ERR_TO_STR(DL_ERROR_BUFFER_TO_SMALL);
-		M_DL_ERR_TO_STR(DL_ERROR_ENDIAN_MISMATCH);
-		M_DL_ERR_TO_STR(DL_ERROR_BAD_ALIGNMENT);
-		M_DL_ERR_TO_STR(DL_ERROR_INVALID_PARAMETER);
-		M_DL_ERR_TO_STR(DL_ERROR_UNSUPPORTED_OPERATION);
+		DL_ERR_TO_STR(DL_ERROR_OK);
+		DL_ERR_TO_STR(DL_ERROR_MALFORMED_DATA);
+		DL_ERR_TO_STR(DL_ERROR_VERSION_MISMATCH);
+		DL_ERR_TO_STR(DL_ERROR_OUT_OF_LIBRARY_MEMORY);
+		DL_ERR_TO_STR(DL_ERROR_OUT_OF_INSTANCE_MEMORY);
+		DL_ERR_TO_STR(DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR);
+		DL_ERR_TO_STR(DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS);
+		DL_ERR_TO_STR(DL_ERROR_TYPE_MISMATCH);
+		DL_ERR_TO_STR(DL_ERROR_TYPE_NOT_FOUND);
+		DL_ERR_TO_STR(DL_ERROR_MEMBER_NOT_FOUND);
+		DL_ERR_TO_STR(DL_ERROR_BUFFER_TO_SMALL);
+		DL_ERR_TO_STR(DL_ERROR_ENDIAN_MISMATCH);
+		DL_ERR_TO_STR(DL_ERROR_BAD_ALIGNMENT);
+		DL_ERR_TO_STR(DL_ERROR_INVALID_PARAMETER);
+		DL_ERR_TO_STR(DL_ERROR_UNSUPPORTED_OPERATION);
 
-		M_DL_ERR_TO_STR(DL_ERROR_TXT_PARSE_ERROR);
-		M_DL_ERR_TO_STR(DL_ERROR_TXT_MEMBER_MISSING);
-		M_DL_ERR_TO_STR(DL_ERROR_TXT_MEMBER_SET_TWICE);
+		DL_ERR_TO_STR(DL_ERROR_TXT_PARSE_ERROR);
+		DL_ERR_TO_STR(DL_ERROR_TXT_MEMBER_MISSING);
+		DL_ERR_TO_STR(DL_ERROR_TXT_MEMBER_SET_TWICE);
 
-		M_DL_ERR_TO_STR(DL_ERROR_UTIL_FILE_NOT_FOUND);
-		M_DL_ERR_TO_STR(DL_ERROR_UTIL_FILE_TYPE_MISMATCH);
+		DL_ERR_TO_STR(DL_ERROR_UTIL_FILE_NOT_FOUND);
+		DL_ERR_TO_STR(DL_ERROR_UTIL_FILE_TYPE_MISMATCH);
 
-		M_DL_ERR_TO_STR(DL_ERROR_INTERNAL_ERROR);
+		DL_ERR_TO_STR(DL_ERROR_INTERNAL_ERROR);
 		default: return "Unknown error!";
 	}
-#undef M_DL_ERR_TO_STR
+#undef DL_ERR_TO_STR
 }
 
 dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned int packed_instance_size, dl_instance_info_t* out_info )
