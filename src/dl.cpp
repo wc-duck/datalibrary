@@ -805,11 +805,13 @@ dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned 
 	out_info->ptrsize   = header->m_64BitPtr ? 8 : 4;
 	if( header->m_Id == DL_INSTANCE_ID )
 	{
+		out_info->load_size = header->m_InstanceSize;
 		out_info->endian    = DL_ENDIAN_HOST;
 		out_info->root_type = header->m_RootInstanceType ;
 	}
 	else
 	{
+		out_info->load_size = DLSwapEndian( header->m_InstanceSize );
 		out_info->endian    = DLOtherEndian( DL_ENDIAN_HOST );
 		out_info->root_type = DLSwapEndian( header->m_RootInstanceType );
 	}

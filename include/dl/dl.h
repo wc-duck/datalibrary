@@ -301,6 +301,7 @@ DL_DLL_EXPORT const char* dl_error_to_string( dl_error_t error );
 
 typedef struct dl_instance_info
 {
+	unsigned int load_size;
 	unsigned int ptrsize;
 	dl_endian_t  endian;
 	dl_typeid_t  root_type;
