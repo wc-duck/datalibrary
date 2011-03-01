@@ -15,6 +15,10 @@
 			]
 		},
                          
-		"BugTest2" : { "members" : [ { "name" : "Instances", "type" : "array", "subtype" : "BugTest2_WithMat" } ] }
+		"BugTest2" : { "members" : [ { "name" : "Instances", "type" : "array", "subtype" : "BugTest2_WithMat" } ] },
+
+		// testing bug where struct first in struct with ptr in substruct will not get patched on load. 		
+		"BugTest3_StructWithPtr" : { "members" : [ { "name" : "arr", "type" : "array", "subtype" : "uint32" } ] },
+		"BugTest3" :               { "members" : [ { "name" : "sub", "type" : "BugTest3_StructWithPtr" } ] }
 	}
 }

@@ -89,37 +89,37 @@ struct SPatchedInstances
 	}
 };
 
-static void DLPatchPtr(const uint8* _pPtr, const uint8* _pBaseData)
+static void dl_internal_patch_ptr( const uint8* ptr, const uint8* base_data )
 {
-	union ReadMe
-	{
-		pint         m_Offset;
-		const uint8* m_RealData;
-	};
+	union conv_union { pint offset; const uint8* real_data; };
+	conv_union* read_me = (conv_union*)ptr;
 
-	ReadMe* pReadMe     = (ReadMe*)_pPtr;
-	if (pReadMe->m_Offset == DL_NULL_PTR_OFFSET[DL_PTR_SIZE_HOST])
-		pReadMe->m_RealData = 0x0;
+	if (read_me->offset == DL_NULL_PTR_OFFSET[DL_PTR_SIZE_HOST])
+		read_me->real_data = 0x0;
 	else
-		pReadMe->m_RealData = _pBaseData + pReadMe->m_Offset;
+		read_me->real_data = base_data + read_me->offset;
 };
 
-static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
-								     SPatchedInstances* _pPatchedInstances,
-								     const uint8*       _pInstance,
-								     const SDLType*     _pType,
-								     const uint8*       _pBaseData )
+static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
+												 SPatchedInstances* patched_instances,
+												 const uint8*       instance,
+												 const SDLType*     type,
+												 const uint8*       base_data,
+												 bool               is_member_struct )
 {
 	// TODO: Optimize this please, linear search might not be the best if many subinstances is in file!
-	if(_pPatchedInstances->IsPatched(_pInstance))
-		return DL_ERROR_OK;
-
-	_pPatchedInstances->m_lpPatched.Add(_pInstance);
-
-	for(uint32 iMember = 0; iMember < _pType->m_nMembers; ++iMember)
+	if( !is_member_struct )
 	{
-		const SDLMember& Member = _pType->m_lMembers[iMember];
-		const uint8* pMemberData = _pInstance + Member.m_Offset[DL_PTR_SIZE_HOST];
+		if(patched_instances->IsPatched(instance))
+			return DL_ERROR_OK;
+
+		patched_instances->m_lpPatched.Add(instance);
+	}
+
+	for(uint32 iMember = 0; iMember < type->m_nMembers; ++iMember)
+	{
+		const SDLMember& Member = type->m_lMembers[iMember];
+		const uint8* pMemberData = instance + Member.m_Offset[DL_PTR_SIZE_HOST];
 
 		dl_type_t AtomType    = Member.AtomType();
 		dl_type_t StorageType = Member.StorageType();
@@ -130,22 +130,17 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 			{
 				switch(StorageType)
 				{
-					case DL_TYPE_STORAGE_STR: DLPatchPtr(pMemberData, _pBaseData); break;
-					case DL_TYPE_STORAGE_STRUCT:
-					{
-						const SDLType* pStructType = DLFindType(_Context, Member.m_TypeID);
-						DLPatchLoadedPtrs(_Context, _pPatchedInstances, pMemberData, pStructType, _pBaseData);
-					}
-					break;
+					case DL_TYPE_STORAGE_STR:    dl_internal_patch_ptr(pMemberData, base_data); break;
+					case DL_TYPE_STORAGE_STRUCT: dl_internal_patch_loaded_ptrs(dl_ctx, patched_instances, pMemberData, DLFindType( dl_ctx, Member.m_TypeID), base_data, true ); break;
 					case DL_TYPE_STORAGE_PTR:
 					{
 						uint8** ppPtr = (uint8**)pMemberData;
-						DLPatchPtr(pMemberData, _pBaseData);
+						dl_internal_patch_ptr(pMemberData, base_data);
 
 						if(*ppPtr != 0x0)
 						{
-							const SDLType* pSubType = DLFindType(_Context, Member.m_TypeID);
-							DLPatchLoadedPtrs(_Context, _pPatchedInstances, *ppPtr, pSubType, _pBaseData);
+							const SDLType* pSubType = DLFindType(dl_ctx, Member.m_TypeID);
+							dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, *ppPtr, pSubType, base_data, false );
 						}
 					}
 					break;
@@ -159,7 +154,7 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 			{
 				if(StorageType == DL_TYPE_STORAGE_STR || StorageType == DL_TYPE_STORAGE_STRUCT)
 				{
-					DLPatchPtr(pMemberData, _pBaseData);
+					dl_internal_patch_ptr(pMemberData, base_data);
 					const uint8* pArrayData = *(const uint8**)pMemberData;
 
 					uint32 Count = *(uint32*)(pMemberData + sizeof(void*));
@@ -169,21 +164,21 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 						if(StorageType == DL_TYPE_STORAGE_STRUCT)
 						{
 							// patch sub-ptrs!
-							const SDLType* pSubType = DLFindType(_Context, Member.m_TypeID);
+							const SDLType* pSubType = DLFindType(dl_ctx, Member.m_TypeID);
 							uint32 Size = AlignUp(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 
 							for(uint32 iElemOffset = 0; iElemOffset < Count * Size; iElemOffset += Size)
-								DLPatchLoadedPtrs(_Context, _pPatchedInstances, pArrayData + iElemOffset, pSubType, _pBaseData);
+								dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, pArrayData + iElemOffset, pSubType, base_data, true );
 						}
 						else
 						{
 							for(uint32 iElemOffset = 0; iElemOffset < Count * sizeof(char*); iElemOffset += sizeof(char*))
-								DLPatchPtr(pArrayData + iElemOffset, _pBaseData);
+								dl_internal_patch_ptr(pArrayData + iElemOffset, base_data);
 						}
 					}
 				}
 				else // pod
-					DLPatchPtr(pMemberData, _pBaseData);
+					dl_internal_patch_ptr(pMemberData, base_data);
 			}
 			break;
 
@@ -192,7 +187,7 @@ static dl_error_t DLPatchLoadedPtrs( dl_ctx_t         _Context,
 				if(StorageType == DL_TYPE_STORAGE_STR)
 				{
 					for(pint iElemOffset = 0; iElemOffset < Member.m_Size[DL_PTR_SIZE_HOST]; iElemOffset += sizeof(char*))
-						DLPatchPtr(pMemberData + iElemOffset, _pBaseData);
+						dl_internal_patch_ptr(pMemberData + iElemOffset, base_data);
 				}
 			}
 			break;
@@ -269,7 +264,7 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 										   (const SDLType*)&Dummy, (unsigned int)BaseOffset ); // TODO: Ugly cast, remove plox!
 
 			SPatchedInstances PI;
-			DLPatchLoadedPtrs( dl_ctx, &PI, pDst, (const SDLType*)&Dummy, dl_ctx->default_data );
+			dl_internal_patch_loaded_ptrs( dl_ctx, &PI, pDst, (const SDLType*)&Dummy, dl_ctx->default_data, false );
 
 			pDst += NeededSize;
 		}
@@ -423,7 +418,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t t
 	memcpy(instance, packed_instance + sizeof(SDLDataHeader), header->m_InstanceSize);
 
 	SPatchedInstances PI;
-	DLPatchLoadedPtrs(dl_ctx, &PI, (uint8*)instance, pType, (uint8*)instance);
+	dl_internal_patch_loaded_ptrs( dl_ctx, &PI, (uint8*)instance, pType, (uint8*)instance, false );
 
 	if( consumed )
 		*consumed = header->m_InstanceSize + sizeof(SDLDataHeader);
