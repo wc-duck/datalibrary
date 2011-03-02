@@ -5,6 +5,7 @@
 
 // header file generated from unittest-type lib
 #include "generated/unittest.h"
+#include "generated/unittest2.h"
 
 #include <stdio.h>
 
@@ -51,16 +52,21 @@ struct DL : public ::testing::Test
 	virtual void SetUp()
 	{
 		// bake the unittest-type library into the exe!
-		static const unsigned char TypeLib[] =
+		static const unsigned char TypeLib1[] =
 		{
 			#include "generated/unittest.bin.h"
+		};
+		static const unsigned char TypeLib2[] =
+		{
+			#include "generated/unittest2.bin.h"
 		};
 
 		dl_create_params_t p;
 		DL_CREATE_PARAMS_SET_DEFAULT(p);
 
 		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &p ) );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib, sizeof(TypeLib)) );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib1, sizeof(TypeLib1)) );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib2, sizeof(TypeLib2)) );
 	}
 
 	virtual void TearDown()

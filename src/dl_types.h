@@ -38,7 +38,7 @@
 
 #define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
-#define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: Rename and implement me plox!
+#define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: implement me plox!
 
 #define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
 #define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
@@ -51,8 +51,8 @@ namespace dl_staticassert
 };
 #define DL_STATIC_ASSERT(_Expr, _Msg) enum { DL_JOIN_TOKENS(_static_assert_enum_##_Msg, __LINE__) = sizeof(::dl_staticassert::STATIC_ASSERTION_FAILURE< (bool)( _Expr ) >) }
 
-#define DL_INT8_MAX  (0x7F)
-#define DL_INT16_MAX (0x7FFF)
+static const int8  DL_INT8_MAX  = 0x7F;
+static const int16 DL_INT16_MAX = 0x7FFF;
 static const int32 DL_INT32_MAX = 0x7FFFFFFFL;
 static const int64 DL_INT64_MAX = 0x7FFFFFFFFFFFFFFFLL;
 static const int8  DL_INT8_MIN  = (-DL_INT8_MAX  - 1);
@@ -60,8 +60,8 @@ static const int16 DL_INT16_MIN = (-DL_INT16_MAX - 1);
 static const int32 DL_INT32_MIN = (-DL_INT32_MAX - 1);
 static const int64 DL_INT64_MIN = (-DL_INT64_MAX - 1);
 
-#define DL_UINT8_MAX  (0xFFU)
-#define DL_UINT16_MAX (0xFFFFU)
+static const uint8  DL_UINT8_MAX  = 0xFFU;
+static const uint16 DL_UINT16_MAX = 0xFFFFU;
 static const uint32 DL_UINT32_MAX = 0xFFFFFFFFUL;
 static const uint64 DL_UINT64_MAX = 0xFFFFFFFFFFFFFFFFULL;
 static const uint8  DL_UINT8_MIN  = 0x00U;
@@ -141,8 +141,8 @@ struct SDLDataHeader
 
 struct SDLTypeLookup
 {
-	dl_typeid_t m_TypeID;
-	uint32  m_Offset;
+	dl_typeid_t type_id;
+	uint32      offset;
 };
 
 enum dl_ptr_size_t
@@ -216,16 +216,18 @@ struct dl_context
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
 
-	struct STypeLookUp { dl_typeid_t  m_TypeID; SDLType* m_pType; } m_TypeLookUp[128]; // dynamic alloc?
-	struct SEnumLookUp { dl_typeid_t  m_EnumID; SDLEnum* m_pEnum; } m_EnumLookUp[128]; // dynamic alloc?
+	struct STypeLookUp { dl_typeid_t type_id; unsigned int offset; } m_TypeLookUp[128]; // dynamic alloc?
+	struct SEnumLookUp { dl_typeid_t type_id; unsigned int offset; } m_EnumLookUp[128]; // dynamic alloc?
 
 	unsigned int m_nTypes;
-	uint8* m_TypeInfoData;
+	uint8*       m_TypeInfoData;
+	unsigned int m_TypeInfoDataSize;
 
 	unsigned int m_nEnums;
-	uint8* m_EnumInfoData;
+	uint8*       m_EnumInfoData;
+	unsigned int m_EnumInfoDataSize;
 
-	uint8* m_pDefaultInstances;
+	uint8* default_data;
 };
 
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
@@ -249,19 +251,9 @@ inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
 	the bitfield offset are counted from least significant bit or most significant bit on different platforms.
 */
 inline unsigned int DLBitFieldOffset(dl_endian_t _Endian, unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits) { return _Endian == DL_ENDIAN_LITTLE ? _Offset : (_BFSize * 8) - _Offset - _nBits; }
-inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits)                     { return DLBitFieldOffset(DL_ENDIAN_HOST, _BFSize, _Offset, _nBits); }
+inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits)                      { return DLBitFieldOffset(DL_ENDIAN_HOST, _BFSize, _Offset, _nBits); }
 
 DL_FORCEINLINE dl_endian_t DLOtherEndian(dl_endian_t _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
-
-DL_FORCEINLINE pint DLPtrSize(dl_ptr_size_t _SizeEnum)
-{
-	switch(_SizeEnum)
-	{
-		case DL_PTR_SIZE_32BIT: return 4;
-		case DL_PTR_SIZE_64BIT: return 8;
-		default: DL_ASSERT("unknown ptr size!"); return 0;
-	}
-}
 
 static inline pint DLPodSize(dl_type_t _Type)
 {
@@ -288,25 +280,21 @@ static inline pint DLPodSize(dl_type_t _Type)
 	}
 }
 
-static inline const SDLType* DLFindType(dl_ctx_t _Context, dl_typeid_t _TypeHash)
+static inline const SDLType* DLFindType(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
 	// linear search right now!
-	for(unsigned int i = 0; i < _Context->m_nTypes; ++i)
-		if(_Context->m_TypeLookUp[i].m_TypeID == _TypeHash)
-			return _Context->m_TypeLookUp[i].m_pType;
+	for(unsigned int i = 0; i < dl_ctx->m_nTypes; ++i)
+		if(dl_ctx->m_TypeLookUp[i].type_id == type_id)
+			return (SDLType*)(dl_ctx->m_TypeInfoData + dl_ctx->m_TypeLookUp[i].offset);
 
 	return 0x0;
 }
 
-static inline const SDLEnum* DLFindEnum(dl_ctx_t _Context, dl_typeid_t _EnumHash)
+static inline const SDLEnum* DLFindEnum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
-	for (unsigned int i = 0; i < _Context->m_nEnums; ++i)
-	{
-		const dl_context::SEnumLookUp& LookUp = _Context->m_EnumLookUp[i];
-
-		if(LookUp.m_EnumID == _EnumHash)
-			return LookUp.m_pEnum;
-	}
+	for (unsigned int i = 0; i < dl_ctx->m_nEnums; ++i)
+		if( dl_ctx->m_EnumLookUp[i].type_id == type_id )
+			return (SDLEnum*)( dl_ctx->m_EnumInfoData + dl_ctx->m_EnumLookUp[i].offset );
 
 	return 0x0;
 }

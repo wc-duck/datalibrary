@@ -858,6 +858,24 @@ TYPED_TEST(DLBase, bug2)
 #endif // DL_UNITTEST_ALL
 
 #ifdef DL_UNITTEST_ALL
+TYPED_TEST(DLBase, bug3)
+{
+	// testing bug where struct first in struct with ptr in substruct will not get patched on load.
+
+	uint32_t arr[] = { 1337, 7331, 13, 37 };
+	BugTest3 Inst;
+	Inst.sub.arr.data = arr;
+	Inst.sub.arr.count = DL_ARRAY_LENGTH( arr );
+
+	BugTest3 Loaded[4];
+
+	this->do_the_round_about( BugTest3::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
+
+	EXPECT_ARRAY_EQ( Inst.sub.arr.count,  Inst.sub.arr.data, Loaded[0].sub.arr.data);
+}
+#endif // DL_UNITTEST_ALL
+
+#ifdef DL_UNITTEST_ALL
 TEST(DLMisc, endian_is_correct)
 {
 	// Test that DL_ENDIAN_HOST is set correctly

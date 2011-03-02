@@ -683,11 +683,11 @@ static int DLOnMapEnd(void* _pCtx)
 
 				if(!PackState.m_MembersSet.IsSet(iMember))
 				{
-					if(pMember->m_DefaultValueOffset == DL_UINT32_MAX) // no default-value avaliable for tihs!
+					if(pMember->m_DefaultValueOffset == DL_UINT32_MAX) // no default-value available for this!
 						DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->m_Name, PackState.m_pType->m_Name );
 
-					pint   MemberPos = PackState.m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
-					uint8* pDefMember = pCtx->m_DLContext->m_pDefaultInstances + pMember->m_DefaultValueOffset;
+					pint   MemberPos  = PackState.m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
+					uint8* pDefMember = pCtx->m_DLContext->default_data + pMember->m_DefaultValueOffset;
 
 					pCtx->m_Writer->SeekSet(MemberPos);
 

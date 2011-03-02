@@ -86,11 +86,8 @@ g_DLDll = None
 # TODO: should there be a subclass each for correct dl-errors?
 class DLError(Exception):
     def __init__(self, err, value):
-        self.err = err
-        if g_DLDll != None:
-            self.value = g_DLDll.dl_error_to_string(value)
-        else:
-            self.value = 'Unknown error'
+        self.err   = err
+        self.value = g_DLDll.dl_error_to_string(value) if g_DLDll != None else 'Unknown error'
     def __str__(self):
         return self.err + ' Error-code: ' + self.value
             

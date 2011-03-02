@@ -33,7 +33,7 @@ extern/
 
 the buildscripts define different targets and platforms.
 command-line parameters:
-	platform=PLATFORM ( supported linux32, linux64, win32, win64, ps3, xenon )
+	platform=PLATFORM ( supported linux_x86, linux_x86_64, win32, win64, ps3, xenon )
 	config=CONFIG ( supported debug, release )
 
 targets:
@@ -46,4 +46,4 @@ targets:
 ****    EXAMPLE     ****
 
 build and run linux 32bit unittest in debug:
-bam platform=linux32 config=debug test
+bam platform=linux_x86 config=debug test

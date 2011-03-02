@@ -10,29 +10,18 @@ import struct
 
 class PlatformValue( object ):
     def __init__(self, val=(0,0)):
-        self.ptr32 = val[0]
-        self.ptr64 = val[1]
+        if isinstance( val, tuple ):
+            self.ptr32, self.ptr64 = val
+        else:
+            self.ptr32, self.ptr64 = ( val, val )
         
-    def __repr__(self):
-        return '(' + self.ptr32.__repr__() + ', ' + self.ptr64.__repr__() + ')'
-        
-    def __add__(self, other):
-        ret = PlatformValue()
-        ret.ptr32 = self.ptr32 + other.ptr32
-        ret.ptr64 = self.ptr64 + other.ptr64
-        return ret
+    def __repr__(self):            return '(' + self.ptr32.__repr__() + ', ' + self.ptr64.__repr__() + ')'
+    def __add__(self, other):      return PlatformValue( ( self.ptr32 + other.ptr32, self.ptr64 + other.ptr64 ) )
+    def __sub__(self, other):      return PlatformValue( ( self.ptr32 - other.ptr32, self.ptr64 - other.ptr64 ) )
+    def __mul__(self, multiplier): return PlatformValue( ( self.ptr32 * multiplier,  self.ptr64 * multiplier ) )
     
-    def __sub__(self, other):
-        ret = PlatformValue()
-        ret.ptr32 = self.ptr32 - other.ptr32
-        ret.ptr64 = self.ptr64 - other.ptr64
-        return ret
-    
-    def __mul__(self, multiplier):
-        ret = PlatformValue()
-        ret.ptr32 = self.ptr32 * multiplier
-        ret.ptr64 = self.ptr64 * multiplier
-        return ret
+    @staticmethod
+    def max(val1, val2): return PlatformValue( ( max(val1.ptr32, val2.ptr32), max(val1.ptr64, val2.ptr64) ) )
     
     @staticmethod
     def align(val, align_value):
@@ -40,17 +29,11 @@ class PlatformValue( object ):
             if alignment == 0:
                 return val;
             return (val + alignment - 1) & ~(alignment - 1)
-        ret = PlatformValue()
-        ret.ptr32 = align(val.ptr32, align_value.ptr32)
-        ret.ptr64 = align(val.ptr64, align_value.ptr64)
-        return ret
-    
-    @staticmethod
-    def max(val1, val2):
-        ret = PlatformValue()
-        ret.ptr32 = max(val1.ptr32, val2.ptr32)
-        ret.ptr64 = max(val1.ptr64, val2.ptr64)
-        return ret
+        return PlatformValue( ( align(val.ptr32, align_value.ptr32), align(val.ptr64, align_value.ptr64) ) )
+
+class DLTypeLibraryError(Exception):
+    def __init__(self, err): self.err = err
+    def __str__(self):       return self.err
 
 class BuiltinType( object ):
     def __init__(self, name, size, align):
@@ -82,8 +65,8 @@ class Enum( object ):
         
     def __init__(self, name, values):
         self.name   = name
-        self.size   = PlatformValue( (4, 4) )
-        self.align  = PlatformValue( (4, 4) ) 
+        self.size   = PlatformValue( 4 )
+        self.align  = PlatformValue( 4 ) 
         self.values = []
         
         current_value = 0
@@ -186,14 +169,16 @@ class BitfieldMember( Member ):
         self.index = data.get('index', -maxint) # if no index, sort bitfields first
         self.bits  = data['bits']
         self.type  = 'bitfield' # TODO: this will be recalculated later on
-        self.size  = PlatformValue( (0, 0) )
-        self.align = PlatformValue( (0, 0) )
+        self.size  = PlatformValue( 0 )
+        self.align = PlatformValue( 0 )
 
 class PointerMember( Member ):
     def __init__(self, name, data, typelibrary):
         Member.__init__( self, name, data )
         
-        assert not hasattr( self, 'default' ) or self.default == None, 'only null is supported for ptrs!'
+        if hasattr( self, 'default' ) and self.default != None:
+            raise  'only null is supported as default for ptrs!'
+        
         
         type = data['subtype']
         # TEMP!!!
@@ -219,10 +204,9 @@ class Type( object ):
     def __init__(self, name, data, typelibrary):    
         self.name    = name
         self.typeid  = 0
-        self.comment = data.get('comment', '')
-        align        = data.get('align', 0) 
-        self.size    = PlatformValue( (0, 0) )
-        self.align   = PlatformValue( (align, align) )
+        self.comment = data.get('comment', '') 
+        self.size    = PlatformValue( 0 )
+        self.align   = PlatformValue( data.get('align', 0) )
         
     def read_members(self, data, typelibrary):
         # TODO: Handle aliases here!
@@ -347,7 +331,7 @@ class TypeLibrary( object ):
         
         ''' will this be doable? for example namespaces and alias:es are not stored in binary '''
         
-        assert False, "Not supported right now, will it ever be?"
+        raise DLTypeLibraryError( "Not supported right now, will it ever be?" )
         
     def find_type(self, name):
         if name in self.types:
@@ -359,12 +343,12 @@ class TypeLibrary( object ):
     
     def __read_enums( self, enum_data ):
         for name, values in enum_data.items():
-            assert name not in self.enums, name + ' already in library!' # handle this with exception!    
+            if name in self.enums: raise DLTypeLibraryError( name + ' already in library!' )    
             self.enums[name] = Enum( name, values )
     
     def __read_types( self, type_data ): 
         for name, values in type_data.items():
-            assert name not in self.types, name + ' already in library!' # handle this with exception!
+            if name in self.types: raise DLTypeLibraryError( name + ' already in library!' )
             self.types[name] = Type( name, values, self )
         
         for type in self.types.values():
@@ -378,7 +362,7 @@ class TypeLibrary( object ):
             type = self.types[typename]
             
             for member in type.members:
-                if member.type == 'bitfield':
+                if isinstance( member, BitfieldMember ):
                     return True
                 if ( not member.type.name is typename ) and ( not member.type.name in temp ):
                     return True
