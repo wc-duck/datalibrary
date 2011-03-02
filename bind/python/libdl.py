@@ -282,14 +282,18 @@ class DLContext:
         self.DLContext = c_void_p(0)
         
         class dl_create_params(Structure):
-            _fields_ = [ ('alloc_func', c_void_p), 
-                         ('free_func',  c_void_p), 
-                         ('alloc_ctx',  c_void_p) ]
+            _fields_ = [ ('alloc_func',     c_void_p), 
+                         ('free_func',      c_void_p), 
+                         ('alloc_ctx',      c_void_p),
+                         ('error_msg_func', c_void_p),
+                         ('error_msg_ctx',  c_void_p) ]
             
         params = dl_create_params()
         params.alloc_func = 0
         params.free_func  = 0
         params.alloc_ctx  = 0
+        params.error_msg_func = 0
+        params.error_msg_ctx  = 0
         err = g_DLDll.dl_context_create( byref(self.DLContext), byref(params) )
         
         if err != 0:
