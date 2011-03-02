@@ -363,11 +363,13 @@ class TypeLibrary( object ):
             
             for member in type.members:
                 if isinstance( member, BitfieldMember ):
-                    return True
-                if ( not member.type.name is typename ) and ( not member.type.name in temp ):
-                    return True
+                    continue
+                if member.type.name is typename:
+                    continue
+                if member.type.name in temp:
+                    return False
                 
-            return False
+            return True
         
         temp = self.types.keys()
         
