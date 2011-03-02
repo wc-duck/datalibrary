@@ -363,6 +363,28 @@ class TestLibDL( DL ):
 		self.assertEqual(Instance.m_Next.m_Int,        LoadInstance.m_Next.m_Int)
 		self.assertEqual(Instance.m_Next.m_Next.m_Int, LoadInstance.m_Next.m_Next.m_Int)'''
 		
+	def testWriteEnum(self):
+		Instance = self.DLContext.CreateInstance('TestingEnum')
+		Instance.TheEnum = self.DLContext.enums.TestEnum1.TESTENUM1_VALUE2
+		self.do_the_round_about('TestingEnum', Instance)
+		
+	def testWriteEnumInlineArray(self):
+		Instance = self.DLContext.CreateInstance('InlineArrayEnum')
+		Instance.EnumArr = [ self.DLContext.enums.TestEnum2.TESTENUM2_VALUE2,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE4,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE3,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE1 ]
+		self.do_the_round_about('InlineArrayEnum', Instance)
+		
+	def testWriteEnumArray(self):
+		Instance = self.DLContext.CreateInstance('ArrayEnum')
+		Instance.EnumArr = [ self.DLContext.enums.TestEnum2.TESTENUM2_VALUE2,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE4,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE3,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE1,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE3,
+						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE1 ]
+		self.do_the_round_about('ArrayEnum', Instance)
 		
 if __name__ == '__main__':
     libdl_init( sys.argv[1] )

@@ -143,6 +143,10 @@ class DLContext:
             self.c_type  = c_type
             self.py_type = py_type
             
+    class dl_type_context_info(Structure):
+        _fields_ = [ ('num_types', c_uint), 
+                     ('num_enums', c_uint) ]
+
     class dl_type_info(Structure):
         _fields_ = [ ('name',         c_char_p), 
                      ('size',         c_uint), 
@@ -159,6 +163,14 @@ class DLContext:
         def StorageType(self):    return self.type & DL_TYPE_STORAGE_MASK
         def BitFieldBits(self):   return M_EXTRACT_BITS(self.type, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED)
         def BitFieldOffset(self): return M_EXTRACT_BITS(self.type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED)
+        
+    class dl_enum_info(Structure):
+        _fields_ = [ ('name', c_char_p), 
+                     ('value_count', c_uint) ]
+
+    class dl_enum_value_info(Structure):
+        _fields_ = [ ('name',  c_char_p),
+                     ('value', c_uint) ]
     
     class dl_type(object):
         def __init__(self):
@@ -295,9 +307,12 @@ class DLContext:
         
         if err != 0:
             raise DLError('Could not create DLContext', err)
-            
+        
+        class enums( object ): pass
+        
         self.type_cache = {}
         self.type_info_cache = {}
+        self.enums = enums()
         
         ''' bootstrap type cache '''
         self.type_cache['int8']   = self.dl_cache_entry( 0, [], c_int8,   type(c_int8().value)   )
@@ -311,9 +326,6 @@ class DLContext:
         self.type_cache['fp32']   = self.dl_cache_entry( 0, [], c_float,  type(c_float().value)  )
         self.type_cache['fp64']   = self.dl_cache_entry( 0, [], c_double, type(c_double().value) )
         self.type_cache['string'] = self.dl_cache_entry( 0, [], c_char_p, str )
-        
-        
-        assert not (_TLBuffer != None and _TLFile != None)
         
         if _TLBuffer != None: self.LoadTypeLibrary(_TLBuffer)
         if _TLFile   != None: self.LoadTypeLibraryFromFile(_TLFile)
@@ -386,15 +398,20 @@ class DLContext:
         
         # load all types in type-library
         
-        num_types = c_uint()
-        err = g_DLDll.dl_reflect_num_types_loaded( self.DLContext, byref(num_types) )
+        ctx_info = self.dl_type_context_info()
+        err = g_DLDll.dl_reflect_context_info( self.DLContext, byref(ctx_info) )
         if err != 0:
             raise DLError('Could not get loaded types!', err)
         
-        loaded_types = (c_uint * num_types.value)()
-        err = g_DLDll.dl_reflect_loaded_types( self.DLContext, byref(loaded_types), num_types );
+        loaded_types = (c_uint * ctx_info.num_types)()
+        err = g_DLDll.dl_reflect_loaded_types( self.DLContext, byref(loaded_types), ctx_info.num_types );
         if err != 0:
             raise DLError('Could not get loaded types!', err)
+        
+        loaded_enums = (c_uint * ctx_info.num_enums)()
+        err = g_DLDll.dl_reflect_loaded_enums( self.DLContext, byref(loaded_enums), ctx_info.num_enums );
+        if err != 0:
+            raise DLError('Could not get loaded enums!', err)
         
         for typeid in loaded_types:
             type_info = self.dl_type_info()
@@ -405,13 +422,31 @@ class DLContext:
             
             self.type_info_cache[ typeid ] = type_info
         
-        for type in self.type_info_cache:
-            # print 'type', type
-            
+        for t in self.type_info_cache:
             '''
             1 ) if type not exist in type_cache, create it. ( recurse to create types used by types )
             '''
-            self.__cache_type( type )
+            self.__cache_type( t )
+        
+        for typeid in loaded_enums:
+            enum_info = self.dl_enum_info()
+            
+            err = g_DLDll.dl_reflect_get_enum_info(self.DLContext, typeid, byref(enum_info))
+            if err != 0:
+                raise DLError( 'Could not get enum!', err )
+            
+            enum_values = ( enum_info.value_count * self.dl_enum_value_info )()
+            
+            err = g_DLDll.dl_reflect_get_enum_values( self.DLContext, typeid, enum_values, enum_info.value_count );
+            if err != 0:
+                raise DLError( 'Could not fetch members!', err )
+            
+            values = {}
+            for value in enum_values:
+                values[value.name] = value.value
+            
+            setattr( self.enums, enum_info.name, type( enum_info.name, (), values )() )
+        
         # Add ability to read all arrays of numbers to numpy-arrays, even read normal numbers to numpy?
     
     def LoadTypeLibraryFromFile(self, _File):

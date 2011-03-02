@@ -353,22 +353,22 @@ static T DLConvertBitFieldFormat(T _OldValue, const SDLMember* _plBFMember, uint
 	return NewValue;
 }
 
-static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
-											    const uint8*     _pData,
-											    const SDLType*   _pType,
-											    SConvertContext& _ConvertContext,
-											    CDLBinaryWriter& _Writer )
+static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
+													const uint8*     data,
+													const SDLType*   type,
+													SConvertContext& conv_ctx,
+													CDLBinaryWriter& writer )
 {
-	_Writer.Align(_pType->m_Alignment[_ConvertContext.m_TargetPtrSize]);
-	pint Pos = _Writer.Tell();
-	_Writer.Reserve(_pType->m_Size[_ConvertContext.m_TargetPtrSize]);
+	writer.Align(type->m_Alignment[conv_ctx.m_TargetPtrSize]);
+	pint Pos = writer.Tell();
+	writer.Reserve(type->m_Size[conv_ctx.m_TargetPtrSize]);
 
-	for(uint32 iMember = 0; iMember < _pType->m_nMembers; ++iMember)
+	for(uint32 iMember = 0; iMember < type->m_nMembers; ++iMember)
 	{
-		const SDLMember& Member  = _pType->m_lMembers[iMember];
-		const uint8* pMemberData = _pData + Member.m_Offset[_ConvertContext.m_SourcePtrSize];
+		const SDLMember& Member  = type->m_lMembers[iMember];
+		const uint8* pMemberData = data + Member.m_Offset[conv_ctx.m_SourcePtrSize];
 
-		_Writer.Align(Member.m_Alignment[_ConvertContext.m_TargetPtrSize]);
+		writer.Align(Member.m_Alignment[conv_ctx.m_TargetPtrSize]);
 
 		dl_type_t AtomType    = Member.AtomType();
 		dl_type_t StorageType = Member.StorageType();
@@ -381,32 +381,32 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(_Context, Member.m_TypeID);
+						const SDLType* pSubType = DLFindType(dl_ctx, Member.m_TypeID);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
-						DLInternalConvertWriteStruct(_Context, pMemberData, pSubType, _ConvertContext, _Writer);
+						dl_internal_convert_write_struct(dl_ctx, pMemberData, pSubType, conv_ctx, writer);
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
-						pint Offset = DLInternalReadPtrData(pMemberData, _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize);
-						_ConvertContext.m_lPatchOffset.Add(SConvertContext::PatchPos(_Writer.Tell(), Offset));	
-						_Writer.WritePtr(0x0);
+						pint Offset = DLInternalReadPtrData(pMemberData, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
+						conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), Offset));	
+						writer.WritePtr(0x0);
 					}
 					break;
 					case DL_TYPE_STORAGE_PTR:
 					{
-						pint Offset = DLInternalReadPtrData(pMemberData, _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize);
+						pint Offset = DLInternalReadPtrData(pMemberData, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
 
-						if (Offset != DL_NULL_PTR_OFFSET[_ConvertContext.m_SourcePtrSize])
-							_ConvertContext.m_lPatchOffset.Add(SConvertContext::PatchPos(_Writer.Tell(), Offset));
+						if (Offset != DL_NULL_PTR_OFFSET[conv_ctx.m_SourcePtrSize])
+							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), Offset));
 
-						_Writer.WritePtr(pint(-1));
+						writer.WritePtr(pint(-1));
 					}
 					break;
 					default:
 						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
-						_Writer.WriteSwap(pMemberData, Member.m_Size[_ConvertContext.m_SourcePtrSize]);
+						writer.WriteSwap(pMemberData, Member.m_Size[conv_ctx.m_SourcePtrSize]);
 						break;
 				}
 			}
@@ -417,30 +417,30 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(_Context, Member.m_TypeID);
+						const SDLType* pSubType = DLFindType(dl_ctx, Member.m_TypeID);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
-						pint MemberSize  = Member.m_Size[_ConvertContext.m_SourcePtrSize];
-						pint SubtypeSize = pSubType->m_Size[_ConvertContext.m_SourcePtrSize];
+						pint MemberSize  = Member.m_Size[conv_ctx.m_SourcePtrSize];
+						pint SubtypeSize = pSubType->m_Size[conv_ctx.m_SourcePtrSize];
 						for (pint ElemOffset = 0; ElemOffset < MemberSize; ElemOffset += SubtypeSize)
-							DLInternalConvertWriteStruct(_Context, pMemberData + ElemOffset, pSubType, _ConvertContext, _Writer);
+							dl_internal_convert_write_struct(dl_ctx, pMemberData + ElemOffset, pSubType, conv_ctx, writer);
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
-						pint PtrSizeSource = dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize);
-						pint PtrSizeTarget = dl_internal_ptr_size(_ConvertContext.m_TargetPtrSize);
-						uint32 Count = Member.m_Size[_ConvertContext.m_SourcePtrSize] / (uint32)PtrSizeSource;
-						pint Pos = _Writer.Tell();
+						pint PtrSizeSource = dl_internal_ptr_size(conv_ctx.m_SourcePtrSize);
+						pint PtrSizeTarget = dl_internal_ptr_size(conv_ctx.m_TargetPtrSize);
+						uint32 Count = Member.m_Size[conv_ctx.m_SourcePtrSize] / (uint32)PtrSizeSource;
+						pint Pos = writer.Tell();
 
 						for (pint iElem = 0; iElem < Count; ++iElem)
 						{
-							pint OldOffset = DLInternalReadPtrData(pMemberData + (iElem * PtrSizeSource), _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize);
-							_ConvertContext.m_lPatchOffset.Add(SConvertContext::PatchPos(Pos + (iElem * PtrSizeTarget), OldOffset));
+							pint OldOffset = DLInternalReadPtrData(pMemberData + (iElem * PtrSizeSource), conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
+							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(Pos + (iElem * PtrSizeTarget), OldOffset));
 						}
 
-						_Writer.WriteZero(Member.m_Size[_ConvertContext.m_TargetPtrSize]);
+						writer.WriteZero(Member.m_Size[conv_ctx.m_TargetPtrSize]);
 					}
 					break;
 					default:
@@ -448,14 +448,14 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 
 						pint   PodSize   = DLPodSize(Member.m_Type);
-						uint32 ArraySize = Member.m_Size[_ConvertContext.m_SourcePtrSize];
+						uint32 ArraySize = Member.m_Size[conv_ctx.m_SourcePtrSize];
 
 						switch(PodSize)
 						{
-							case 1: _Writer.WriteArray((uint8* )pMemberData, ArraySize / sizeof(uint8) );  break;
-							case 2: _Writer.WriteArray((uint16*)pMemberData, ArraySize / sizeof(uint16) ); break;
-							case 4: _Writer.WriteArray((uint32*)pMemberData, ArraySize / sizeof(uint32) ); break;
-							case 8: _Writer.WriteArray((uint64*)pMemberData, ArraySize / sizeof(uint64) ); break;
+							case 1: writer.WriteArray((uint8* )pMemberData, ArraySize / sizeof(uint8) );  break;
+							case 2: writer.WriteArray((uint16*)pMemberData, ArraySize / sizeof(uint16) ); break;
+							case 4: writer.WriteArray((uint32*)pMemberData, ArraySize / sizeof(uint32) ); break;
+							case 8: writer.WriteArray((uint64*)pMemberData, ArraySize / sizeof(uint64) ); break;
 							default:
 								DL_ASSERT(false && "Not supported pod-size!");
 						}
@@ -468,15 +468,15 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 			case DL_TYPE_ATOM_ARRAY:
 			{
 				pint Offset = 0; uint32 Count = 0;
-				DLInternalReadArrayData( pMemberData, &Offset, &Count, _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize );
+				DLInternalReadArrayData( pMemberData, &Offset, &Count, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize );
 
-				if(Offset != DL_NULL_PTR_OFFSET[_ConvertContext.m_SourcePtrSize])
-					_ConvertContext.m_lPatchOffset.Add(SConvertContext::PatchPos(_Writer.Tell(), Offset));
+				if(Offset != DL_NULL_PTR_OFFSET[conv_ctx.m_SourcePtrSize])
+					conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), Offset));
 				else
-					Offset = DL_NULL_PTR_OFFSET[_ConvertContext.m_TargetPtrSize];
+					Offset = DL_NULL_PTR_OFFSET[conv_ctx.m_TargetPtrSize];
 
-				_Writer.WritePtr(Offset);
-				_Writer.Write(*(uint32*)(pMemberData + dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize)));
+				writer.WritePtr(Offset);
+				writer.Write(*(uint32*)(pMemberData + dl_internal_ptr_size(conv_ctx.m_SourcePtrSize)));
 			}
 			break;
 
@@ -484,24 +484,24 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 			{
 				uint32 j = iMember;
 
-				do { j++; } while(j < _pType->m_nMembers && _pType->m_lMembers[j].AtomType() == DL_TYPE_ATOM_BITFIELD);
+				do { j++; } while(j < type->m_nMembers && type->m_lMembers[j].AtomType() == DL_TYPE_ATOM_BITFIELD);
 
-				if(_ConvertContext.m_SourceEndian != _ConvertContext.m_TargetEndian)
+				if(conv_ctx.m_SourceEndian != conv_ctx.m_TargetEndian)
 				{
 					uint32 nBFMembers = j - iMember;
 
-					switch(Member.m_Size[_ConvertContext.m_SourcePtrSize])
+					switch(Member.m_Size[conv_ctx.m_SourcePtrSize])
 					{
-						case 1: _Writer.Write( DLConvertBitFieldFormat( *(uint8*)pMemberData, &Member, nBFMembers, _ConvertContext) ); break;
-						case 2: _Writer.Write( DLConvertBitFieldFormat(*(uint16*)pMemberData, &Member, nBFMembers, _ConvertContext) ); break;
-						case 4: _Writer.Write( DLConvertBitFieldFormat(*(uint32*)pMemberData, &Member, nBFMembers, _ConvertContext) ); break;
-						case 8: _Writer.Write( DLConvertBitFieldFormat(*(uint64*)pMemberData, &Member, nBFMembers, _ConvertContext) ); break;
+						case 1: writer.Write( DLConvertBitFieldFormat( *(uint8*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
+						case 2: writer.Write( DLConvertBitFieldFormat(*(uint16*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
+						case 4: writer.Write( DLConvertBitFieldFormat(*(uint32*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
+						case 8: writer.Write( DLConvertBitFieldFormat(*(uint64*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
 						default:
 							DL_ASSERT(false && "Not supported pod-size or bitfield-size!");
 					}
 				}
 				else
-					_Writer.Write(pMemberData, Member.m_Size[_ConvertContext.m_SourcePtrSize]);
+					writer.Write(pMemberData, Member.m_Size[conv_ctx.m_SourcePtrSize]);
 
 				iMember = j - 1;
 			}
@@ -513,34 +513,34 @@ static dl_error_t DLInternalConvertWriteStruct( dl_ctx_t         _Context,
 	}
 
 	// we need to write our entire size with zeroes. Our entire size might be less than the sum of teh members.
-	pint PosDiff = _Writer.Tell() - Pos;
+	pint PosDiff = writer.Tell() - Pos;
 
-	if(PosDiff < _pType->m_Size[_ConvertContext.m_TargetPtrSize])
-		_Writer.WriteZero(_pType->m_Size[_ConvertContext.m_TargetPtrSize] - PosDiff);
+	if(PosDiff < type->m_Size[conv_ctx.m_TargetPtrSize])
+		writer.WriteZero(type->m_Size[conv_ctx.m_TargetPtrSize] - PosDiff);
 
-	DL_ASSERT(_Writer.Tell() - Pos == _pType->m_Size[_ConvertContext.m_TargetPtrSize]);
+	DL_ASSERT(writer.Tell() - Pos == type->m_Size[conv_ctx.m_TargetPtrSize]);
 
 	return DL_ERROR_OK;
 }
 
-static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
-												const SInstance& _Inst,
-												pint*            _pNewOffset,
-												SConvertContext& _ConvertContext,
-												CDLBinaryWriter& _Writer )
+static dl_error_t dl_internal_convert_write_instance( dl_ctx_t         dl_ctx,
+													  const SInstance& inst,
+													  pint*            new_offset,
+													  SConvertContext& conv_ctx,
+													  CDLBinaryWriter& writer )
 {
 	union { const uint8* m_u8; const uint16* m_u16; const uint32* m_u32; const uint64* m_u64; const char* m_str; } Data;
-	Data.m_u8 = _Inst.m_pAddress;
+	Data.m_u8 = inst.m_pAddress;
 
-	_Writer.SeekEnd(); // place instance at the end!
+	writer.SeekEnd(); // place instance at the end!
 
-	if(_Inst.m_pType != 0x0)
-		_Writer.Align(_Inst.m_pType->m_Alignment[_ConvertContext.m_TargetPtrSize]);
+	if(inst.m_pType != 0x0)
+		writer.Align(inst.m_pType->m_Alignment[conv_ctx.m_TargetPtrSize]);
 
-	*_pNewOffset = _Writer.Tell();
+	*new_offset = writer.Tell();
 
-	dl_type_t AtomType    = dl_type_t(_Inst.m_Type & DL_TYPE_ATOM_MASK);
-	dl_type_t StorageType = dl_type_t(_Inst.m_Type & DL_TYPE_STORAGE_MASK);
+	dl_type_t AtomType    = dl_type_t(inst.m_Type & DL_TYPE_ATOM_MASK);
+	dl_type_t StorageType = dl_type_t(inst.m_Type & DL_TYPE_STORAGE_MASK);
 
 	if(AtomType == DL_TYPE_ATOM_ARRAY)
 	{
@@ -548,36 +548,36 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 		{
 			case DL_TYPE_STORAGE_STRUCT:
 			{
-				pint TypeSize = _Inst.m_pType->m_Size[_ConvertContext.m_SourcePtrSize];
-	 			for (pint ElemOffset = 0; ElemOffset < _Inst.m_ArrayCount * TypeSize; ElemOffset += TypeSize)
+				pint TypeSize = inst.m_pType->m_Size[conv_ctx.m_SourcePtrSize];
+	 			for (pint ElemOffset = 0; ElemOffset < inst.m_ArrayCount * TypeSize; ElemOffset += TypeSize)
 	 			{
-	 				dl_error_t err = DLInternalConvertWriteStruct(_Context, Data.m_u8 + ElemOffset, _Inst.m_pType, _ConvertContext, _Writer);
+	 				dl_error_t err = dl_internal_convert_write_struct(dl_ctx, Data.m_u8 + ElemOffset, inst.m_pType, conv_ctx, writer);
 	 				if(err != DL_ERROR_OK) return err;
 	 			}
 			} break;
 
 			case DL_TYPE_STORAGE_STR:
 			{
-				pint TypeSize = dl_internal_ptr_size(_ConvertContext.m_SourcePtrSize);
-	 			for(pint ElemOffset = 0; ElemOffset < _Inst.m_ArrayCount * TypeSize; ElemOffset += TypeSize)
+				pint TypeSize = dl_internal_ptr_size(conv_ctx.m_SourcePtrSize);
+	 			for(pint ElemOffset = 0; ElemOffset < inst.m_ArrayCount * TypeSize; ElemOffset += TypeSize)
 	 			{
-	 				pint OrigOffset = DLInternalReadPtrData(Data.m_u8 + ElemOffset, _ConvertContext.m_SourceEndian, _ConvertContext.m_SourcePtrSize);
-	 				_ConvertContext.m_lPatchOffset.Add(SConvertContext::PatchPos(_Writer.Tell(), OrigOffset));
-	 				_Writer.WritePtr(OrigOffset);
+	 				pint OrigOffset = DLInternalReadPtrData(Data.m_u8 + ElemOffset, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
+	 				conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), OrigOffset));
+	 				writer.WritePtr(OrigOffset);
 	 			}
 			} break;
 
 			case DL_TYPE_STORAGE_INT8:
-			case DL_TYPE_STORAGE_UINT8:  _Writer.WriteArray(Data.m_u8, _Inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_UINT8:  writer.WriteArray(Data.m_u8, inst.m_ArrayCount ); break;
 			case DL_TYPE_STORAGE_INT16:
-			case DL_TYPE_STORAGE_UINT16: _Writer.WriteArray(Data.m_u16, _Inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_UINT16: writer.WriteArray(Data.m_u16, inst.m_ArrayCount ); break;
 			case DL_TYPE_STORAGE_INT32:
 			case DL_TYPE_STORAGE_UINT32:
 			case DL_TYPE_STORAGE_FP32:
-			case DL_TYPE_STORAGE_ENUM:   _Writer.WriteArray(Data.m_u32, _Inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_ENUM:   writer.WriteArray(Data.m_u32, inst.m_ArrayCount ); break;
 			case DL_TYPE_STORAGE_INT64:
 			case DL_TYPE_STORAGE_UINT64:
-			case DL_TYPE_STORAGE_FP64:   _Writer.WriteArray(Data.m_u64, _Inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_FP64:   writer.WriteArray(Data.m_u64, inst.m_ArrayCount ); break;
 
 			default:
 				DL_ASSERT(false && "Unknown storage type!");
@@ -588,13 +588,13 @@ static dl_error_t DLInternalConvertWriteInstance( dl_ctx_t       _Context,
 
 	if(AtomType == DL_TYPE_ATOM_POD && StorageType == DL_TYPE_STORAGE_STR)
 	{
-		_Writer.WriteArray(Data.m_u8, strlen(Data.m_str) + 1 );
+		writer.WriteArray(Data.m_u8, strlen(Data.m_str) + 1 );
 		return DL_ERROR_OK;
 	}
 
 	DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
 	DL_ASSERT(StorageType == DL_TYPE_STORAGE_STRUCT || StorageType == DL_TYPE_STORAGE_PTR);
-	return DLInternalConvertWriteStruct(_Context, Data.m_u8, _Inst.m_pType, _ConvertContext, _Writer);
+	return dl_internal_convert_write_struct(dl_ctx, Data.m_u8, inst.m_pType, conv_ctx, writer);
 }
 
 #include <algorithm>
@@ -623,7 +623,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 
 	for(unsigned int i = 0; i < ConvCtx.m_lInstances.Len(); ++i)
 	{
-		err = DLInternalConvertWriteInstance( dl_ctx, ConvCtx.m_lInstances[i], &ConvCtx.m_lInstances[i].m_OffsetAfterPatch, ConvCtx, Writer);
+		err = dl_internal_convert_write_instance( dl_ctx, ConvCtx.m_lInstances[i], &ConvCtx.m_lInstances[i].m_OffsetAfterPatch, ConvCtx, Writer);
 		if(err != DL_ERROR_OK) 
 			return err;
 	}

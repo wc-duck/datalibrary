@@ -12,6 +12,16 @@
 #include <dl/dl.h>
 
 /*
+	Struct: dl_type_context_info_t
+		Struct used to retrieve information about the dl_context
+*/
+typedef struct dl_type_context_info
+{
+	unsigned int num_types;
+	unsigned int num_enums;
+} dl_type_context_info_t;
+
+/*
 	Struct: dl_type_info_t
 		Struct used to retrieve information about a specific DL-type.
 */
@@ -35,36 +45,70 @@ typedef struct dl_member_info
 	unsigned int array_count;
 } dl_member_info_t;
 
+/*
+	Struct: dl_type_info_t
+		Struct used to retrieve information about a specific DL-enum.
+*/
+typedef struct dl_enum_info
+{
+	const char*  name;
+	unsigned int value_count;
+} dl_enum_info_t;
+
+/*
+	Struct: dl_member_info_t
+		Struct used to retrieve information about a specific DL-enum-value.
+*/
+typedef struct dl_enum_value_info
+{
+	const char*  name;
+	unsigned int value;
+} dl_enum_value_info_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
 /*
-	Function: dl_reflect_num_types_loaded
-		Get the number of loaded types in the context.
+	Function: dl_reflect_context_info
+		Get the info about the context and the typelibraries loaded into it.
 
 	Parameters:
-		dl_ctx              - The dl-context to check number of loaded types in.
-		out_num_loaded_type - Number of loaded types returned here.
+		dl_ctx - The dl-context to get info from.
+		info   - Struct to fill.
 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_reflect_num_types_loaded( dl_ctx_t dl_ctx, unsigned int* out_num_loaded_types );
+dl_error_t DL_DLL_EXPORT dl_reflect_context_info( dl_ctx_t dl_ctx, dl_type_context_info_t* info );
 
 /*
 	Function: dl_reflect_loaded_types
 		Get the typeid:s of all loaded types in the context.
 
 	Parameters:
-		dl_ctx        - The dl-context to fetch loaded types from.
-		out_types     - Buffer to return loaded types in.
-		out_types_out - Size of out_types.
+		dl_ctx         - The dl-context to fetch loaded types from.
+		out_types      - Buffer to return loaded types in.
+		out_types_size - Size of out_types.
 
 	Returns:
 		DL_ERROR_OK on success.
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_typeid_t* out_types, unsigned int out_types_size );
+
+/*
+	Function: dl_reflect_loaded_enums
+		Get the typeid:s of all loaded enums in the context.
+
+	Parameters:
+		dl_ctx         - The dl-context to fetch loaded enums from.
+		out_enums      - Buffer to return loaded enums in.
+		out_enums_size - Size of out_enums.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, unsigned int out_enums_size );
 
 /*
 	Function: dl_reflect_get_type_id
@@ -95,6 +139,20 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* ty
 dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_info_t* out_type_info );
 
 /*
+	Function: dl_reflect_get_enum_info
+		Retrieve information about a certain enum in a type-library.
+
+	Parameters:
+		dl_ctx        - A valid handle to a DLContext
+		type          - TypeID of the enum to get information about.
+		out_enum_info - Ptr to struct to fill with value-information.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_enum_info_t* out_enum_info );
+
+/*
 	Function: dl_reflect_get_type_members
 		Retrieve information about members of a type in a type-library.
 
@@ -108,6 +166,21 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t 
 		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if out_members do not fit all members, or other error if appropriate!
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid_t type, dl_member_info_t* out_members, unsigned int out_members_size );
+
+/*
+	Function: dl_reflect_get_enum_values
+		Retrieve values of a certain enum.
+
+	Parameters:
+		dl_ctx          - A valid handle to a DLContext
+		type            - TypeID of the enum to get values of.
+		out_values      - Ptr to array to fill with enum values.
+		out_values_size - Size of out_values.
+
+	Returns:
+		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if out_members do not fit all members, or other error if appropriate!
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_t type, dl_enum_value_info_t* out_values, unsigned int out_values_size );
 
 #ifdef __cplusplus
 }
