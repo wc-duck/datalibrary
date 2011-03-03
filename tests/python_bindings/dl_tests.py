@@ -10,11 +10,11 @@ g_DLLPath = None
 
 class DL(unittest.TestCase):
 	def setUp(self):
-		self.DLContext = DLContext( dll_path = g_DLLPath )
-		self.DLContext.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../../local/generated/unittest.bin')
+		self.dl_ctx = DLContext( dll_path = g_DLLPath )
+		self.dl_ctx.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../../local/generated/unittest.bin')
 		
 	def tearDown(self):
-		self.DLContext = None
+		self.dl_ctx = None
 
 class TestLibDL( DL ):
 	# helper asserts	
@@ -66,8 +66,7 @@ class TestLibDL( DL ):
 	
 	# functionality tests
 	def testCantAddExtraMember(self):
-		PodsType = self.DLContext.CreateType('Pods')
-		Pods     = PodsType()
+		Pods     = self.dl_ctx.types.Pods()
 		
 		'''def ShouldRaiseException():
 			Pods.m_Whooo = 1
@@ -81,17 +80,17 @@ class TestLibDL( DL ):
 	
 	# structure tests
 	def testHasCorrectMembersPod1(self):
-		Pods = self.DLContext.CreateInstance('Pods')
+		Pods = self.dl_ctx.types.Pods()
 		self.AssertDefaultPods(Pods)
 		
 	def testHasCorrectMembersMorePods(self):
-		Instance = self.DLContext.CreateInstance('MorePods')
+		Instance = self.dl_ctx.types.MorePods()
 		
 		self.AssertDefaultPods(Instance.Pods1)
 		self.AssertDefaultPods(Instance.Pods2)
 		
 	def testHasCorrectMembersPod2InStructInStruct(self):
-		Instance = self.DLContext.CreateInstance('Pod2InStructInStruct')
+		Instance = self.dl_ctx.types.Pod2InStructInStruct()
 		
 		self.assertEqual(Instance.p2struct.Pod1.__class__, Instance.p2struct.Pod2.__class__)
 		self.assertEqual(0, Instance.p2struct.Pod1.Int1)
@@ -100,29 +99,29 @@ class TestLibDL( DL ):
 		self.assertEqual(0, Instance.p2struct.Pod2.Int2)
 		
 	def testHasCorrectMembersPodArray1(self):
-		Instance = self.DLContext.CreateInstance('PodArray1')
+		Instance = self.dl_ctx.types.PodArray1()
 		self.assertEqual(0, len(Instance.u32_arr))
 	
 	def testHasCorrectMembersWithInlineArray(self):
-		Instance = self.DLContext.CreateInstance('WithInlineArray')
+		Instance = self.dl_ctx.types.WithInlineArray()
 		
 		self.assertEqual(3, len(Instance.Array))
 		self.AssertArrayHasSameType(Instance.Array)
 
 	def testHasCorrectMembersWithInlineStructArray(self):
-		Instance = self.DLContext.CreateInstance('WithInlineStructArray')
+		Instance = self.dl_ctx.types.WithInlineStructArray()
 		
 		self.assertEqual(3, len(Instance.Array))
 		self.AssertArrayHasSameType(Instance.Array)
 	
 	def testHasCorrectMembersWithInlineStructStructArray(self):
-		Instance = self.DLContext.CreateInstance('WithInlineStructStructArray')
+		Instance = self.dl_ctx.types.WithInlineStructStructArray()
 		
 		self.assertEqual(2, len(Instance.Array))
 		self.AssertArrayHasSameType(Instance.Array)
 		
 	def testHasCorrectMembersStrings(self):
-		Instance = self.DLContext.CreateInstance('Strings')
+		Instance = self.dl_ctx.types.Strings()
 		
 		self.assertEqual(str, type(Instance.Str1))
 		self.assertEqual(str, type(Instance.Str2))
@@ -130,14 +129,14 @@ class TestLibDL( DL ):
 		self.assertEqual('', Instance.Str2)
 		
 	def testHasCorrectMembersStringInlineArray(self):
-		Instance = self.DLContext.CreateInstance('StringInlineArray')
+		Instance = self.dl_ctx.types.StringInlineArray()
 		
 		self.assertEqual(3, len(Instance.Strings))
 		self.assertEqual(str, type(Instance.Strings[0]))
 		self.AssertArrayHasSameType(Instance.Strings)
 		
 	'''def testHasCorrectMembersSimplePtr(self):
-		Type     = self.DLContext.CreateType('SimplePtr')
+		Type     = self.dl_ctx.CreateType('SimplePtr')
 		Instance = Type()
 		
 		self.AssertNumMembers(2, Instance)
@@ -145,7 +144,7 @@ class TestLibDL( DL ):
 		self.assertEqual(None, Instance.m_Ptr2)
 		
 	def testHasCorrectMembersPtrChain(self):
-		Type     = self.DLContext.CreateType('PtrChain')
+		Type     = self.dl_ctx.CreateType('PtrChain')
 		Instance = Type()
 
 		self.AssertNumMembers(2, Instance)
@@ -153,7 +152,7 @@ class TestLibDL( DL ):
 		self.assertEqual(None, Instance.m_Next)
 		
 	def testHasCorrectMembersDoublePtrChain(self):
-		Type     = self.DLContext.CreateType('DoublePtrChain')
+		Type     = self.dl_ctx.CreateType('DoublePtrChain')
 		Instance = Type()
 
 		self.AssertNumMembers(3, Instance)
@@ -163,11 +162,11 @@ class TestLibDL( DL ):
 
 	# store/load tests
 	def do_the_round_about(self, typename, instance):
-		loaded = self.DLContext.LoadInstance( typename, self.DLContext.StoreInstance(instance) )
+		loaded = self.dl_ctx.LoadInstance( typename, self.dl_ctx.StoreInstance(instance) )
 		self.AssertInstanceEqual(instance, loaded)
 	
 	def testWritePods(self):
-		Instance = self.DLContext.CreateInstance('Pods')
+		Instance = self.dl_ctx.types.Pods()
 		
 		Instance.i8  = 1
 		Instance.i16 = 2
@@ -183,7 +182,7 @@ class TestLibDL( DL ):
 		self.do_the_round_about('Pods', Instance)
 		
 	def testWriteMorePods(self):
-		Instance = self.DLContext.CreateInstance('MorePods')
+		Instance = self.dl_ctx.types.MorePods()
 		
 		Instance.Pods1.i8  = 1
 		Instance.Pods1.i16 = 2
@@ -210,7 +209,7 @@ class TestLibDL( DL ):
 		self.do_the_round_about('MorePods', Instance)
 
 	def testWritePod2InStruct(self):
-		Instance = self.DLContext.CreateInstance('Pod2InStruct')
+		Instance = self.dl_ctx.types.Pod2InStruct()
 
 		Instance.Pod1.Int1 = 133
 		Instance.Pod1.Int2 = 7		
@@ -220,17 +219,16 @@ class TestLibDL( DL ):
 		self.do_the_round_about('Pod2InStruct', Instance)
 	
 	def testWritePodArray1(self):
-		Instance = self.DLContext.CreateInstance('PodArray1')
+		Instance = self.dl_ctx.types.PodArray1()
 		
 		Instance.u32_arr = [ 1337, 7331, 13, 37 ]
 		
 		self.do_the_round_about('PodArray1', Instance)
 		
 	def testWritePodArray2(self):
-		Instance = self.DLContext.CreateInstance('PodArray2')
-		SubType  = self.DLContext.CreateType('PodArray1')
+		Instance = self.dl_ctx.types.PodArray2()
 		
-		Instance.sub_arr = [ SubType() ] * 3
+		Instance.sub_arr = [ self.dl_ctx.types.PodArray1() ] * 3
 		Instance.sub_arr[0].u32_arr = [ 1, 2, 3 ]
 		Instance.sub_arr[1].u32_arr = [ 3, 4, 5 ]
 		Instance.sub_arr[2].u32_arr = [ 6, 7, 8 ]
@@ -238,14 +236,14 @@ class TestLibDL( DL ):
 		self.do_the_round_about('PodArray2', Instance)
 		
 	def testWriteWithInlineArray(self):
-		Instance = self.DLContext.CreateInstance('WithInlineArray')
+		Instance = self.dl_ctx.types.WithInlineArray()
 		
 		Instance.Array = [ i for i in range(1,len(Instance.Array) + 1) ]
 		
 		self.do_the_round_about('WithInlineArray', Instance)
 	
 	def testWriteWithInlineStructArray(self):
-		Instance = self.DLContext.CreateInstance('WithInlineStructArray')
+		Instance = self.dl_ctx.types.WithInlineStructArray()
 		
 		for i in range(0,len(Instance.Array)):
 			Instance.Array[i].Int1 = i + 1
@@ -254,7 +252,7 @@ class TestLibDL( DL ):
 		self.do_the_round_about('WithInlineStructArray', Instance)
 
 	def testWriteStrings(self):
-		Instance = self.DLContext.CreateInstance('Strings')
+		Instance = self.dl_ctx.types.Strings()
 		
 		Instance.Str1 = 'Cow'
 		Instance.Str2 = 'Bell'
@@ -262,21 +260,21 @@ class TestLibDL( DL ):
 		self.do_the_round_about('Strings', Instance)
 
 	def testWriteStringInlineArray(self):
-		Instance = self.DLContext.CreateInstance('StringInlineArray')
+		Instance = self.dl_ctx.types.StringInlineArray()
 		
 		Instance.Strings = [ 'Cow', 'bells', 'RULE!' ]
 		
 		self.do_the_round_about('StringInlineArray', Instance)
 		
 	def testWriteStringArray(self):
-		Instance = self.DLContext.CreateInstance('StringArray')
+		Instance = self.dl_ctx.types.StringArray()
 		
 		Instance.Strings = [ 'Cow', 'bells', 'RULE!', 'and', 'win the game!' ]
 		
 		self.do_the_round_about('StringArray', Instance)
 
 	def testWriteTestBits(self):
-		Instance = self.DLContext.CreateInstance('TestBits')
+		Instance = self.dl_ctx.types.TestBits()
 		
 		Instance.Bit1 = 1
 		Instance.Bit2 = 2
@@ -289,7 +287,7 @@ class TestLibDL( DL ):
 		self.do_the_round_about('TestBits', Instance)
 		
 	def testWriteMoreBits(self):
-		Instance = self.DLContext.CreateInstance('MoreBits')
+		Instance = self.dl_ctx.types.MoreBits()
 		
 		Instance.Bit1 = 512
 		Instance.Bit2 = 17
@@ -297,10 +295,10 @@ class TestLibDL( DL ):
 		self.do_the_round_about('MoreBits', Instance)
 		
 	'''def testWriteSimplePtr(self):
-		Type     = self.DLContext.CreateType('SimplePtr')
+		Type     = self.dl_ctx.CreateType('SimplePtr')
 		Instance = Type()
 		
-		Pointee = self.DLContext.CreateType('Pods')()
+		Pointee = self.dl_ctx.CreateType('Pods')()
 		Pointee.m_i32 = 1337
 		
 		Instance.m_Ptr1 = Pointee
@@ -308,15 +306,15 @@ class TestLibDL( DL ):
 		
 		self.assertEqual(id(Instance.m_Ptr1), id(Instance.m_Ptr2))
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('SimplePtr', res_buffer)
+		res_buffer = self.dl_ctx.StoreInstance(Instance)
+		LoadInstance = self.dl_ctx.LoadInstance('SimplePtr', res_buffer)
 		
 		self.assertEqual(1337, LoadInstance.m_Ptr1.m_i32)
 		self.assertEqual(1337, LoadInstance.m_Ptr2.m_i32)
 		self.assertEqual(id(LoadInstance.m_Ptr1), id(LoadInstance.m_Ptr2))
 		
 	def testWritePtrChain(self):
-		Type     = self.DLContext.CreateType('PtrChain')
+		Type     = self.dl_ctx.CreateType('PtrChain')
 		Instance = Type()
 		Instance2 = Type()
 		
@@ -325,15 +323,15 @@ class TestLibDL( DL ):
 		Instance2.m_Int = 7331
 		Instance2.m_Next = None
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('PtrChain', res_buffer)
+		res_buffer = self.dl_ctx.StoreInstance(Instance)
+		LoadInstance = self.dl_ctx.LoadInstance('PtrChain', res_buffer)
 		
 		self.assertEqual(Instance.m_Int,        LoadInstance.m_Int)
 		self.assertEqual(Instance.m_Next.m_Int, LoadInstance.m_Next.m_Int)
 		self.assertEqual(None, LoadInstance.m_Next.m_Next)
 	
 	def testWritePtrChain(self):
-		Type     = self.DLContext.CreateType('DoublePtrChain')
+		Type     = self.dl_ctx.CreateType('DoublePtrChain')
 		Instance  = Type()
 		Instance2 = Type()
 		Instance3 = Type()
@@ -350,8 +348,8 @@ class TestLibDL( DL ):
 		Instance3.m_Prev = Instance2
 		self.assertEqual(None, Instance3.m_Next)
 		
-		res_buffer = self.DLContext.StoreInstance(Instance)
-		LoadInstance = self.DLContext.LoadInstance('DoublePtrChain', res_buffer)
+		res_buffer = self.dl_ctx.StoreInstance(Instance)
+		LoadInstance = self.dl_ctx.LoadInstance('DoublePtrChain', res_buffer)
 		
 		self.assertEqual(None,    LoadInstance.m_Prev)
 		self.assertNotEqual(None, LoadInstance.m_Next)
@@ -366,26 +364,26 @@ class TestLibDL( DL ):
 		self.assertEqual(Instance.m_Next.m_Next.m_Int, LoadInstance.m_Next.m_Next.m_Int)'''
 		
 	def testWriteEnum(self):
-		Instance = self.DLContext.CreateInstance('TestingEnum')
-		Instance.TheEnum = self.DLContext.enums.TestEnum1.TESTENUM1_VALUE2
+		Instance = self.dl_ctx.types.TestingEnum()
+		Instance.TheEnum = self.dl_ctx.enums.TestEnum1.TESTENUM1_VALUE2
 		self.do_the_round_about('TestingEnum', Instance)
 		
 	def testWriteEnumInlineArray(self):
-		Instance = self.DLContext.CreateInstance('InlineArrayEnum')
-		Instance.EnumArr = [ self.DLContext.enums.TestEnum2.TESTENUM2_VALUE2,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE4,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE3,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE1 ]
+		Instance = self.dl_ctx.types.InlineArrayEnum()
+		Instance.EnumArr = [ self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE2,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE4,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE3,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE1 ]
 		self.do_the_round_about('InlineArrayEnum', Instance)
 		
 	def testWriteEnumArray(self):
-		Instance = self.DLContext.CreateInstance('ArrayEnum')
-		Instance.EnumArr = [ self.DLContext.enums.TestEnum2.TESTENUM2_VALUE2,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE4,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE3,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE1,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE3,
-						     self.DLContext.enums.TestEnum2.TESTENUM2_VALUE1 ]
+		Instance = self.dl_ctx.types.ArrayEnum()
+		Instance.EnumArr = [ self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE2,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE4,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE3,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE1,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE3,
+						     self.dl_ctx.enums.TestEnum2.TESTENUM2_VALUE1 ]
 		self.do_the_round_about('ArrayEnum', Instance)
 		
 if __name__ == '__main__':

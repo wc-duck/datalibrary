@@ -310,11 +310,12 @@ class DLContext:
         if err != 0:
             raise DLError('Could not create dl_ctx', err)
         
-        class enums( object ): pass
+        class dummy( object ): pass
         
         self.type_cache = {}
         self.type_info_cache = {}
-        self.enums = enums()
+        self.types = dummy()
+        self.enums = dummy()
         
         ''' bootstrap type cache '''
         self.type_cache['int8']   = self.dl_cache_entry( 0, [], c_int8,   type(c_int8().value)   )
@@ -404,6 +405,8 @@ class DLContext:
         # cache it!
         self.type_cache[type_info.name] = self.dl_cache_entry( typeid, members, c_type, py_type )
         
+        setattr( self.types, type_info.name, py_type )
+        
     def LoadTypeLibrary(self, _DataBuffer):
         '''
             Loads a binary typelibrary into the dl_ctx
@@ -454,23 +457,6 @@ class DLContext:
             _File -- filename of file to load typelibrary from.
         '''
         self.LoadTypeLibrary(open(_File, 'rb').read())
-    
-    def CreateType(self, typename):
-        '''
-            Get the a python type for a DL-type with the specified name.
-            
-            typename -- name of type.
-        '''
-        
-        return self.type_cache[ typename ].py_type
-    
-    def CreateInstance(self, _TypeName):
-        '''
-            Get an instance of a DL-type with the specified name.
-            
-            _TypeName -- name of type.
-        '''
-        return self.CreateType(_TypeName)()
     
     def LoadInstance(self, _TypeName, _DataBuffer):
         '''
