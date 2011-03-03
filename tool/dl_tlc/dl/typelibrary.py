@@ -400,18 +400,13 @@ class TypeLibrary( object ):
 
         data = json.loads( re.sub(pattern, replacer, lib ) )
         
-        self.name = data['module_name'] # TODO: rename to 'name' when all is converted to this codepath
+        self.name = data['module']
         
         for name, type in BUILTIN_TYPES.items():
             self.types[name] = type
         
-        # TODO: rename to 'enums' when all is converted to this codepath
-        if 'module_enums' in data:
-            self.__read_enums( data['module_enums'] )
-        
-        # TODO: rename to 'types' when all is converted to this codepath
-        if 'module_types' in data:
-            self.__read_types( data['module_types'] )
+        if 'enums' in data: self.__read_enums( data['enums'] )
+        if 'types' in data: self.__read_types( data['types'] )
         
         # remove builtin types again
         for name, type in BUILTIN_TYPES.items():

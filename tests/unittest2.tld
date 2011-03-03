@@ -1,7 +1,7 @@
 {
-	"module_name" : "unit_test_2",
+	"module" : "unit_test_2",
 	
-	"module_types" : {
+	"types" : {
 		"BugTest1_InArray" : { "members" : [ { "name" : "u64_1", "type" : "uint64" },
 											 { "name" : "u64_2", "type" : "uint64" },
 											 { "name" : "u16",   "type" : "uint16" } ] },

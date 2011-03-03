@@ -1,6 +1,6 @@
 {
-	"module_name" : "unit_test",
-	"module_enums" : {
+	"module" : "unit_test",
+	"enums" : {
 		"TestEnum1" : [ "TESTENUM1_VALUE1", "TESTENUM1_VALUE2", "TESTENUM1_VALUE3", "TESTENUM1_VALUE4" ],
 		"TestEnum2" : [ 
 			{ "TESTENUM2_VALUE1" : 7 }, 
@@ -10,7 +10,7 @@
 		]
 	},
 	
-	"module_types" : {
+	"types" : {
 		"unused" : { "members" : [ { "name" : "member",  "type" : "int32", "comment" : "only used in unittests to check for errors" } ] },
 		
 		"Pods" : {
