@@ -290,8 +290,7 @@ class DLContext:
             
         self.dl = CDLL( dll_path )
         self.dl.dl_error_to_string.restype = c_char_p
-    
-        self.DLContext = c_void_p(0)
+        self.dl_ctx = c_void_p(0)
         
         class dl_create_params(Structure):
             _fields_ = [ ('alloc_func',     c_void_p), 
@@ -306,10 +305,10 @@ class DLContext:
         params.alloc_ctx  = 0
         params.error_msg_func = 0
         params.error_msg_ctx  = 0
-        err = self.dl.dl_context_create( byref(self.DLContext), byref(params) )
+        err = self.dl.dl_context_create( byref(self.dl_ctx), byref(params) )
         
         if err != 0:
-            raise DLError('Could not create DLContext', err)
+            raise DLError('Could not create dl_ctx', err)
         
         class enums( object ): pass
         
@@ -334,14 +333,24 @@ class DLContext:
         if _TLFile   != None: self.LoadTypeLibraryFromFile(_TLFile)
         
     def dl_dll_call( self, func_name, *args ):
-        err = getattr( self.dl, func_name )( self.DLContext, *args )
+        err = getattr( self.dl, func_name )( self.dl_ctx, *args )
         if err != 0:
-            raise DLError( 'Call to %s faild with error %s' % ( func_name, self.dl.dl_error_to_string( err ) ), err )
+            raise DLError( 'Call to %s failed with error %s' % ( func_name, self.dl.dl_error_to_string( err ) ), err )
         
     def context_destroy( self ):                 self.dl_dll_call( 'dl_context_destroy' )
-    def reflect_context_info( self, *args):      self.dl_dll_call( 'dl_reflect_context_info', *args )
-    def reflect_loaded_types( self, *args ):     self.dl_dll_call( 'dl_reflect_loaded_types', *args )
-    def reflect_get_type_members( self, *args ): self.dl_dll_call( 'dl_reflect_get_type_members', *args )
+    def context_load_type_library(self, *args):  self.dl_dll_call( 'dl_context_load_type_library', *args )
+    def instance_load( self, *args ):            self.dl_dll_call( 'dl_instance_load',             *args )
+    def instance_store( self, *args ):           self.dl_dll_call( 'dl_instance_store',            *args )
+    def convert( self, *args ):                  self.dl_dll_call( 'dl_convert',                   *args )
+    def txt_pack( self, *args ):                 self.dl_dll_call( 'dl_txt_pack',                  *args )
+    def txt_unpack( self, *args ):               self.dl_dll_call( 'dl_txt_unpack',                *args )
+    def reflect_context_info( self, *args):      self.dl_dll_call( 'dl_reflect_context_info',      *args )
+    def reflect_loaded_types( self, *args ):     self.dl_dll_call( 'dl_reflect_loaded_types',      *args )
+    def reflect_loaded_enums( self, *args ):     self.dl_dll_call( 'dl_reflect_loaded_enums',      *args )
+    def reflect_get_type_info( self, *args ):    self.dl_dll_call( 'dl_reflect_get_type_info',     *args )
+    def reflect_get_type_members( self, *args ): self.dl_dll_call( 'dl_reflect_get_type_members',  *args )
+    def reflect_get_enum_info( self, *args ):    self.dl_dll_call( 'dl_reflect_get_enum_info',     *args )
+    def reflect_get_enum_values( self, *args ):  self.dl_dll_call( 'dl_reflect_get_enum_values',   *args )
         
     def __del__(self):
         self.context_destroy()
@@ -397,13 +406,12 @@ class DLContext:
         
     def LoadTypeLibrary(self, _DataBuffer):
         '''
-            Loads a binary typelibrary into the DLContext
+            Loads a binary typelibrary into the dl_ctx
             
             _DataBuffer -- string with the binary file loaded.
         '''
-        err = self.dl.dl_context_load_type_library(self.DLContext, _DataBuffer, len(_DataBuffer))    
-        if err != 0:
-            raise DLError('Could not load type library into context DLContext', err)
+        
+        self.context_load_type_library( _DataBuffer, len(_DataBuffer) )
         
         # load all types in type-library
         
@@ -411,40 +419,25 @@ class DLContext:
         self.reflect_context_info( byref(ctx_info) )
         
         loaded_types = (c_uint * ctx_info.num_types)()
-        self.reflect_loaded_types( byref(loaded_types), ctx_info.num_types );
+        self.reflect_loaded_types( byref(loaded_types), ctx_info.num_types )
                 
         loaded_enums = (c_uint * ctx_info.num_enums)()
-        err = self.dl.dl_reflect_loaded_enums( self.DLContext, byref(loaded_enums), ctx_info.num_enums );
-        if err != 0:
-            raise DLError('Could not get loaded enums!', err)
+        self.reflect_loaded_enums( byref(loaded_enums), ctx_info.num_enums )
         
         for typeid in loaded_types:
             type_info = self.dl_type_info()
-    
-            err = self.dl.dl_reflect_get_type_info(self.DLContext, typeid, byref(type_info))
-            if err != 0:
-                raise DLError( 'Could not create type!', err )
-            
+            self.reflect_get_type_info( typeid, byref(type_info) )            
             self.type_info_cache[ typeid ] = type_info
         
         for t in self.type_info_cache:
-            '''
-            1 ) if type not exist in type_cache, create it. ( recurse to create types used by types )
-            '''
             self.__cache_type( t )
         
         for typeid in loaded_enums:
             enum_info = self.dl_enum_info()
-            
-            err = self.dl.dl_reflect_get_enum_info(self.DLContext, typeid, byref(enum_info))
-            if err != 0:
-                raise DLError( 'Could not get enum!', err )
+            self.reflect_get_enum_info( typeid, byref(enum_info) )
             
             enum_values = ( enum_info.value_count * self.dl_enum_value_info )()
-            
-            err = self.dl.dl_reflect_get_enum_values( self.DLContext, typeid, enum_values, enum_info.value_count );
-            if err != 0:
-                raise DLError( 'Could not fetch members!', err )
+            self.reflect_get_enum_values( typeid, enum_values, enum_info.value_count );
             
             values = {}
             for value in enum_values:
@@ -456,7 +449,7 @@ class DLContext:
     
     def LoadTypeLibraryFromFile(self, _File):
         '''
-            Loads a binary typelibrary into the DLContext
+            Loads a binary typelibrary into the dl_ctx
             
             _File -- filename of file to load typelibrary from.
         '''
@@ -470,11 +463,6 @@ class DLContext:
         '''
         
         return self.type_cache[ typename ].py_type
-    
-        '''if self.type_cache.has_key(_TypeName):
-            return self.type_cache[_TypeName].py_type
-        
-        return self.__GetPythonType(self.__TypeIDOf(_TypeName))'''
     
     def CreateInstance(self, _TypeName):
         '''
@@ -496,13 +484,8 @@ class DLContext:
         UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
         consumed = c_uint(0)
         
-        err = self.dl.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer), byref(consumed));
-        if err != 0:
-            raise DLError('Could not store instance!', err)
-        
-        c_instance = cast(UnpackedData, POINTER(type_info.c_type)).contents
-        
-        return self.__ctype_to_py_type( c_instance )
+        self.instance_load( type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer), byref(consumed) );
+        return self.__ctype_to_py_type( cast( UnpackedData, POINTER(type_info.c_type) ).contents )
     
     def LoadInstanceFromFile(self, _TypeName, _File):
         '''
@@ -522,54 +505,32 @@ class DLContext:
         '''
         return self.LoadInstance(_TypeName, self.PackText(open(_File, 'rb').read()))
     
-    def StoreInstance(self, _Instance, _Endian = sys.byteorder, _PtrSize = 4 if platform.architecture()[0] == '32bit' else 8):
+    def StoreInstance( self, _Instance, endian = sys.byteorder, ptr_size = 4 if platform.architecture()[0] == '32bit' else 8 ):
         '''
             Store a DL-instance to buffer that is returned as a string.
             
             _Instance -- instance to store.
-            _Endian   -- endian to store it in
-            _PtrSize  -- pointer size to store it with
+            endian   -- endian to store it in
+            ptr_size  -- pointer size to store it with
         '''   
              
-        TypeID     = _Instance._dl_type
+        type_id    = _Instance._dl_type
         c_instance = self.__py_type_to_ctype( _Instance ) # _Instance.AsCType()    
         
-        DataSize = c_uint(0)
-        err = self.dl.dl_instance_calc_size(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
-        if err != 0:
-            raise DLError('Could not calculate size!', err)
-            
-        PackedData = (c_ubyte * DataSize.value)()
+        store_size = c_uint(0)
+        self.instance_store( type_id, byref(c_instance), 0, 0, byref(store_size) )            
+        packed_data = ( c_ubyte * store_size.value )()
+        self.instance_store( type_id, byref(c_instance), packed_data, store_size, c_void_p(0) )
         
-        ProducedBytes = c_uint(0)
-        err = self.dl.dl_instance_store(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize, byref(ProducedBytes))
-        if err != 0:
-            raise DLError('Could not store instance!', err)
+        endian = 0 if endian == 'big' else 1
         
-        ConvertedSize = c_uint(0)
+        converted_size = c_uint(0)
+        self.convert( type_id, packed_data, len(packed_data), 0, 0, endian, ptr_size, byref( converted_size ) )
         
-        err = self.dl.dl_convert_calc_size(self.DLContext, TypeID, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
-        if err != 0:
-            raise DLError('Could not calc convert instance size!', err)
+        converted_data = ( c_ubyte * converted_size.value )() 
+        self.convert( type_id, packed_data, len(packed_data), converted_data, len(converted_data), endian, ptr_size, c_void_p(0) )
 
-        endian = 0 if _Endian == 'big' else 1
-        
-        if DataSize == ConvertedSize:
-            # can convert inplace
-            produced_bytes = c_uint(0)
-            err = self.dl.dl_convert_inplace(self.DLContext, TypeID, PackedData, len(PackedData), endian, _PtrSize, byref(produced_bytes));
-            if err != 0:
-                raise DLError('Could not convert instance!', err)
-        else:
-            # need new memory
-            ConvertedData = (c_ubyte * ConvertedSize.value)()
-            produced_bytes = c_uint(0)
-            err = self.dl.dl_convert(self.DLContext, TypeID, PackedData, len(PackedData), ConvertedData, len(ConvertedData), endian, _PtrSize, byref(produced_bytes));
-            
-            PackedData = ConvertedData
-            
-
-        return string_at(PackedData, sizeof(PackedData))
+        return string_at( converted_data, sizeof(converted_data) )
     
     def StoreInstanceToFile(self, _Instance, _File, _Endian = sys.byteorder, _PtrSize = 4 if platform.architecture()[0] == '32bit' else 8):
         '''
@@ -582,35 +543,27 @@ class DLContext:
         '''
         open(_File, 'wb').write(self.StoreInstance(_Instance, _Endian, _PtrSize))
 
-    def StoreInstanceToString(self, _Instance):
-        Packed = self.StoreInstance(_Instance)
+    def StoreInstanceToString( self, _Instance ):
+        packed_instance = self.StoreInstance(_Instance)
         
-        DataSize = c_uint(0)
+        text_size = c_uint(0)
+        self.txt_unpack( packed_instance, len(packed_instance), c_void_p(0), 0, byref( text_size ) )
         
-        if self.dl.dl_txt_unpack_calc_size(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
-            raise DLError('Could not calculate txt-unpack-size', err)
-        
-        PackedData = create_string_buffer(DataSize.value)
-        
-        produced_bytes = c_uint(0)
-        if self.dl.dl_txt_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize, byref(produced_bytes)) != 0:
-            raise DLError('Could not calculate txt-unpack-size', err)
+        text_instance = create_string_buffer( text_size.value )
+        self.txt_unpack( packed_instance, len(packed_instance), text_instance, text_size, c_void_p(0) )
             
-        return PackedData.raw
+        return text_instance.raw
         
     def StoreInstanceToTextFile(self, _Instance, _File):
         open(_File, 'w').write(self.StoreInstanceToString(_Instance))
     
-    def PackText(self, _Text):
-        InstanceData = create_string_buffer(_Text)
-        DataSize = c_uint(0)
-
-        if self.dl.dl_txt_pack_calc_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
-            raise DLError('Could not calculate txt-pack-size', err)
-
-        produced_bytes = c_uint(0)
-        PackedData = create_string_buffer(DataSize.value)
-        if self.dl.dl_txt_pack(self.DLContext, InstanceData, PackedData, DataSize, byref(produced_bytes)) != 0:
-            raise DLError('Could not pack txt', err)
+    def PackText( self, text ):
+        instance_data = create_string_buffer(text)
+        
+        packed_size = c_uint(0)
+        self.txt_pack( instance_data, c_void_p(0), 0, byref(packed_size) )
+        
+        packed_data = create_string_buffer(packed_size.value)
+        self.txt_pack( instance_data, packed_data, packed_size, c_void_p(0) )
     
-        return PackedData.raw
+        return packed_data.raw
