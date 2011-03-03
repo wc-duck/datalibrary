@@ -372,9 +372,7 @@ class DLContext:
         member_info = ( self.dl_member_info * type_info.member_count )()
         self.reflect_get_type_members( typeid, member_info, type_info.member_count )
         
-        members    = []
-        c_members  = []
-        py_members = []
+        members, c_members, py_members = [], [], []
         
         for member in member_info:
             members.append( member.name )
@@ -392,8 +390,7 @@ class DLContext:
                 complete = False
                 break;
 
-        c_type  = None
-        py_type = None
+        c_type, py_type = None, None
     
         # build py-type
         if complete:
@@ -450,46 +447,44 @@ class DLContext:
         
         # Add ability to read all arrays of numbers to numpy-arrays, even read normal numbers to numpy?
     
-    def LoadTypeLibraryFromFile(self, _File):
+    def LoadTypeLibraryFromFile(self, lib_file):
         '''
             Loads a binary typelibrary into the dl_ctx
             
-            _File -- filename of file to load typelibrary from.
+            lib_file -- filename of file to load typelibrary from.
         '''
-        self.LoadTypeLibrary(open(_File, 'rb').read())
+        self.LoadTypeLibrary(open(lib_file, 'rb').read())
     
-    def LoadInstance(self, _TypeName, _DataBuffer):
+    def LoadInstance(self, type_name, data_buffer):
         '''
             Load an instance of a DL-type from a buffer.
             
-            _TypeName   -- name of type.
-            _DataBuffer -- string containing buffer to load from.
+            type_name   -- name of type.
+            data_buffer -- string containing buffer to load from.
         '''
-        type_info = self.type_cache[_TypeName]
+        type_info = self.type_cache[type_name]
         
-        UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
-        consumed = c_uint(0)
-        
-        self.instance_load( type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer), byref(consumed) );
-        return self.__ctype_to_py_type( cast( UnpackedData, POINTER(type_info.c_type) ).contents )
+        unpacked_data = ( c_ubyte * len(data_buffer) )() # guessing that sizeof buffer will suffice to load data. (it should)        
+        self.instance_load( type_info.type_id, byref(unpacked_data), sizeof(unpacked_data), data_buffer, len(data_buffer), c_void_p(0) )
+        return self.__ctype_to_py_type( cast( unpacked_data, POINTER(type_info.c_type) ).contents )
     
-    def LoadInstanceFromFile(self, _TypeName, _File):
+    def LoadInstanceFromFile(self, type_name, in_file):
         '''
             Load an instance of a DL-type from a file.
             
-            _TypeName -- name of type.
-            _File     -- path to file to read.
+            type_name -- name of type.
+            in_file     -- path to file to read.
         '''
-        return self.LoadInstance(_TypeName, open(_File, 'rb').read())
+        return self.LoadInstance(type_name, open(in_file, 'rb').read())
         
-    def LoadInstanceFromTextFile(self, _TypeName, _File):
+    def LoadInstanceFromTextFile(self, type_name, in_file):
         '''
             Load an instance of a DL-type from a text file.
             
-            _TypeName -- name of type.
-            _File     -- path to file to read.
+            type_name -- name of type.
+            in_file     -- path to file to read.
         '''
-        return self.LoadInstance(_TypeName, self.PackText(open(_File, 'rb').read()))
+        return self.LoadInstance(type_name, self.PackText(open(in_file, 'rb').read()))
     
     def StoreInstance( self, _Instance, endian = sys.byteorder, ptr_size = 4 if platform.architecture()[0] == '32bit' else 8 ):
         '''
