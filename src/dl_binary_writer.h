@@ -3,7 +3,6 @@
 #ifndef DL_DL_BINARY_WRITER_H_INCLUDED
 #define DL_DL_BINARY_WRITER_H_INCLUDED
 
-#include "dl_temp.h"
 #include "container/dl_stack.h"
 
 #include <stdio.h>
@@ -126,7 +125,7 @@ public:
 	void Reserve(pint _Bytes)
 	{
 		DL_LOG_BIN_WRITER_VERBOSE("Reserve: %lu + %lu", m_Pos, _Bytes);
-		m_NeededSize = Max(m_NeededSize, m_Pos + _Bytes);
+		m_NeededSize = m_NeededSize >= m_Pos + _Bytes ? m_NeededSize : m_Pos + _Bytes;
 	}
 
 	pint PushBackAlloc( pint bytes )
@@ -218,7 +217,7 @@ public:
 
 	void Align(pint _Alignment)
 	{
-		pint Alignment = AlignUp(m_Pos, _Alignment);
+		pint Alignment = dl_internal_align_up(m_Pos, _Alignment);
 		if(!m_Dummy && Alignment != m_Pos) 
 		{
 			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu (%lu)", m_Pos, Alignment - m_Pos, _Alignment);
@@ -232,7 +231,7 @@ private:
 	void UpdateNeededSize()
 	{
 		if( m_BackAllocStack.Empty() || m_Pos <= m_BackAllocStack.Top() )
-			m_NeededSize = Max(m_NeededSize, m_Pos);
+			m_NeededSize = m_NeededSize >= m_Pos ? m_NeededSize : m_Pos;
 	}
 
 	bool          m_Dummy;

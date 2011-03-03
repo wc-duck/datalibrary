@@ -4,10 +4,22 @@
 
 #include "dl_types.h"
 #include "dl_swap.h"
-#include "dl_temp.h"
 #include "container/dl_array.h"
 
+#include <stdarg.h> // for va_list
+#include <stdio.h>  // for vsnprintf
+
 #include <yajl/yajl_gen.h>
+
+static inline int dl_internal_str_format(char* DL_RESTRICT buf, pint buf_size, const char* DL_RESTRICT fmt, ...)
+{
+	va_list args;
+	va_start( args, fmt );
+	int res = vsnprintf( buf, buf_size, fmt, args );
+	buf[buf_size - 1] = '\0';
+	va_end( args );
+	return res;
+}
 
 struct SDLUnpackContext
 {
@@ -76,7 +88,7 @@ static void DLWritePodMember(yajl_gen _Gen, dl_type_t _PodType, const uint8* _pD
 	}
 
 	char Buffer64[128];
-	int Chars = StrFormat(Buffer64, 128, Fmt, Val.m_Unsigned);
+	int Chars = dl_internal_str_format(Buffer64, 128, Fmt, Val.m_Unsigned);
 	yajl_gen_number(_Gen, Buffer64, Chars);
 }
 
@@ -222,7 +234,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, Member.m_TypeID);
 						if(pSubType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", Member.m_Name); return; }
 
-						pint Size = AlignUp(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
+						pint Size = dl_internal_align_up(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 						for(pint iElem = 0; iElem < Count; ++iElem)
 							DLWriteInstance(_Ctx, pSubType, pArrayData + (iElem * Size), _pData);
 					}
@@ -278,7 +290,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
  				}
  
 				char Buffer[128];
-				yajl_gen_number(_Ctx->m_JsonGen, Buffer, StrFormat(Buffer, DL_ARRAY_LENGTH(Buffer), "%llu", WriteMe));
+				yajl_gen_number(_Ctx->m_JsonGen, Buffer, dl_internal_str_format(Buffer, DL_ARRAY_LENGTH(Buffer), "%llu", WriteMe));
 			}
 			break;
 
@@ -311,7 +323,7 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 			for (unsigned int iSubData = 1; iSubData < _Ctx->m_lSubdataMembers.Len(); ++iSubData)
 			{
 				unsigned char Num[16];
-				int Len = StrFormat((char*)Num, 16, "%u", iSubData);
+				int Len = dl_internal_str_format((char*)Num, 16, "%u", iSubData);
 				yajl_gen_string(_Ctx->m_JsonGen, Num, Len);
 
 				const SDLMember* pMember = _Ctx->m_lSubdataMembers[iSubData].m_pMember;

@@ -139,7 +139,7 @@ struct SDLPackContext
 		if( m_StateStack.Top().m_State == DL_PACK_STATE_ARRAY && m_StateStack.Top().m_IsBackArray )
 			struct_start_pos = m_Writer->PushBackAlloc( _pType->m_Size[DL_PTR_SIZE_HOST] );
 		else
-			struct_start_pos = AlignUp(m_Writer->Tell(), _pType->m_Alignment[DL_PTR_SIZE_HOST]);
+			struct_start_pos = dl_internal_align_up(m_Writer->Tell(), _pType->m_Alignment[DL_PTR_SIZE_HOST]);
 
 		m_StateStack.Push( SDLPackState(DL_PACK_STATE_STRUCT, _pType, struct_start_pos) );
 	}
@@ -483,7 +483,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			// seek to position for member! ( members can come in any order in the text-file so we need to seek )
 			pint MemberPos = pCtx->m_StateStack.Top().m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
 			pCtx->m_Writer->SeekSet(MemberPos);
-			DL_ASSERT(pCtx->m_Writer->InBackAllocArea() || IsAlign((void*)MemberPos, pMember->m_Alignment[DL_PTR_SIZE_HOST]));
+			DL_ASSERT(pCtx->m_Writer->InBackAllocArea() || dl_internal_is_align((void*)MemberPos, pMember->m_Alignment[DL_PTR_SIZE_HOST]));
 
 			pint array_count_patch_pos = 0; // for inline array, keep as 0.
 			bool array_has_sub_ptrs = false;

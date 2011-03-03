@@ -3,7 +3,6 @@
 #include "dl_types.h"
 #include "dl_swap.h"
 
-#include "dl_temp.h"
 #include "container/dl_array.h"
 
 #include <stdio.h> // printf
@@ -165,7 +164,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 						{
 							// patch sub-ptrs!
 							const SDLType* pSubType = DLFindType(dl_ctx, Member.m_TypeID);
-							uint32 Size = AlignUp(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
+							uint32 Size = dl_internal_align_up(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 
 							for(uint32 iElemOffset = 0; iElemOffset < Count * Size; iElemOffset += Size)
 								dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, pArrayData + iElemOffset, pSubType, base_data, true );
@@ -248,7 +247,7 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 			if(pMember->m_DefaultValueOffset == DL_UINT32_MAX)
 				continue;
 
-			pDst                          = AlignUp( pDst, pMember->m_Alignment[DL_PTR_SIZE_HOST] );
+			pDst                          = dl_internal_align_up( pDst, pMember->m_Alignment[DL_PTR_SIZE_HOST] );
 			uint8* pSrc                   = (uint8*)default_data + pMember->m_DefaultValueOffset;
 			pint BaseOffset               = pint( pDst ) - pint( dl_ctx->default_data );
 			pMember->m_DefaultValueOffset = uint32( BaseOffset );
@@ -412,7 +411,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t t
 
 	// TODO: Temporary disabled due to CL doing some magic stuff!!! 
 	// Structs allocated on qstack seems to be unaligned!!!
-	// if( !IsAlign( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
+	// if( !dl_internal_is_align( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
 	//	return DL_ERROR_BAD_ALIGNMENT;
 
 	memcpy(instance, packed_instance + sizeof(SDLDataHeader), header->m_InstanceSize);
@@ -452,15 +451,15 @@ public:
 			memcpy(m_OutData + m_WritePtr, _pData, _DataSize);
 		}
 		m_WritePtr += _DataSize;
-		m_WriteEnd = Max(m_WriteEnd, m_WritePtr);
+		m_WriteEnd = m_WriteEnd >= m_WritePtr ? m_WriteEnd : m_WritePtr;
 	};
 
 	void Align(pint _Alignment)
 	{
-		if(IsAlign((void*)m_WritePtr, _Alignment))
+		if(dl_internal_is_align((void*)m_WritePtr, _Alignment))
 			return;
 
-		pint MoveMe = AlignUp(m_WritePtr, _Alignment) - m_WritePtr;
+		pint MoveMe = dl_internal_align_up(m_WritePtr, _Alignment) - m_WritePtr;
 
 		if( !m_Dummy && ( m_WritePtr + MoveMe <= m_OutDataSize ) )
 		{
@@ -468,7 +467,7 @@ public:
 			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu", m_WritePtr, MoveMe);
 		}
 		m_WritePtr += MoveMe;
-		m_WriteEnd = Max(m_WriteEnd, m_WritePtr);
+		m_WriteEnd = m_WriteEnd >= m_WritePtr ? m_WriteEnd : m_WritePtr;
 	}
 
 	pint Tell()              { return m_WritePtr; }
@@ -561,7 +560,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 						_pStoreContext->SeekEnd();
 
 						const SDLType* pSubType = DLFindType(_Context, _pMember->m_TypeID);
-						pint Size = AlignUp(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
+						pint Size = dl_internal_align_up(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 						_pStoreContext->Align(pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 
 						Offset = _pStoreContext->Tell();
@@ -631,7 +630,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 						pSubType = DLFindType(_Context, _pMember->m_TypeID);
-						Size = AlignUp(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
+						Size = dl_internal_align_up(pSubType->m_Size[DL_PTR_SIZE_HOST], pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 						_pStoreContext->Align(pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
 						break;
 					case DL_TYPE_STORAGE_STR:

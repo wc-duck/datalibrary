@@ -246,6 +246,10 @@ inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
 	dl_ctx->error_msg_func( buffer, dl_ctx->error_msg_ctx );
 }
 
+template<typename T>
+DL_FORCEINLINE T    dl_internal_align_up( const T value,   pint alignment ) { return T( (pint(value) + alignment - 1) & ~(alignment - 1) ); }
+DL_FORCEINLINE bool dl_internal_is_align( const void* ptr, pint alignment ) { return ((pint)ptr & (alignment - 1)) == 0; }
+
 /*
 	return a bitfield offset on a particular platform (currently endian-ness is used to set them apart, that might break ;) )
 	the bitfield offset are counted from least significant bit or most significant bit on different platforms.
