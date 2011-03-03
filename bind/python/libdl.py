@@ -79,22 +79,14 @@ DL_STORAGE_TO_NAME = { DL_TYPE_STORAGE_INT8   : 'int8',
                        DL_TYPE_STORAGE_ENUM   : 'uint32',
                  
                        DL_TYPE_STORAGE_STR    : 'string' }
-    
-global g_DLDll
-g_DLDll = None
 
 # TODO: should there be a subclass each for correct dl-errors?
 class DLError(Exception):
     def __init__(self, err, value):
         self.err   = err
-        self.value = g_DLDll.dl_error_to_string(value) if g_DLDll != None else 'Unknown error'
+        self.value = value
     def __str__(self):
-        return self.err + ' Error-code: ' + self.value
-            
-def libdl_init( dll_path ):
-    global g_DLDll
-    g_DLDll = CDLL( dll_path )
-    g_DLDll.dl_error_to_string.restype = c_char_p
+        return '%s(0x%08X)' % ( self.err, self.value )
          
 def try_default_dl_dll():
     '''
@@ -131,9 +123,11 @@ def try_default_dl_dll():
         
         if( os.path.exists( path ) ):
             logging.debug( 'loading dl-shared library from: %s' % path )
-            libdl_init( path )
+            return path
+            
+    return None
 
-try_default_dl_dll()
+# try_default_dl_dll()
 
 class DLContext:
     class dl_cache_entry:
@@ -287,7 +281,16 @@ class DLContext:
         
         return py_instance
         
-    def __init__(self, _TLBuffer = None, _TLFile = None):
+    def __init__( self, _TLBuffer = None, _TLFile = None, dll_path = None ):
+        if not dll_path:
+            dll_path = try_default_dl_dll()
+        
+        if not dll_path:
+            raise DLError # fix me!
+            
+        self.dl = CDLL( dll_path )
+        self.dl.dl_error_to_string.restype = c_char_p
+    
         self.DLContext = c_void_p(0)
         
         class dl_create_params(Structure):
@@ -303,7 +306,7 @@ class DLContext:
         params.alloc_ctx  = 0
         params.error_msg_func = 0
         params.error_msg_ctx  = 0
-        err = g_DLDll.dl_context_create( byref(self.DLContext), byref(params) )
+        err = self.dl.dl_context_create( byref(self.DLContext), byref(params) )
         
         if err != 0:
             raise DLError('Could not create DLContext', err)
@@ -330,11 +333,19 @@ class DLContext:
         if _TLBuffer != None: self.LoadTypeLibrary(_TLBuffer)
         if _TLFile   != None: self.LoadTypeLibraryFromFile(_TLFile)
         
-    def __del__(self):
-        err = g_DLDll.dl_context_destroy(self.DLContext)
-        
+    def dl_dll_call( self, func_name, *args ):
+        err = getattr( self.dl, func_name )( self.DLContext, *args )
         if err != 0:
-            raise DLError('Could not destroy DLContext', err)
+            raise DLError( 'Call to %s faild with error %s' % ( func_name, self.dl.dl_error_to_string( err ) ), err )
+        
+    def context_destroy( self ):                 self.dl_dll_call( 'dl_context_destroy' )
+    def reflect_context_info( self, *args):      self.dl_dll_call( 'dl_reflect_context_info', *args )
+    def reflect_loaded_types( self, *args ):     self.dl_dll_call( 'dl_reflect_loaded_types', *args )
+    def reflect_get_type_members( self, *args ): self.dl_dll_call( 'dl_reflect_get_type_members', *args )
+        
+    def __del__(self):
+        self.context_destroy()
+        self.dl = None
     
     def __get_type_name( self, storage_type, typeid ):
         if storage_type in DL_STORAGE_TO_NAME:
@@ -349,9 +360,7 @@ class DLContext:
             return
                 
         member_info = ( self.dl_member_info * type_info.member_count )()
-        err = g_DLDll.dl_reflect_get_type_members( self.DLContext, typeid, member_info, type_info.member_count )
-        if err != 0:
-            raise DLError( 'Could not fetch members!', err )
+        self.reflect_get_type_members( typeid, member_info, type_info.member_count )
         
         members    = []
         c_members  = []
@@ -392,31 +401,27 @@ class DLContext:
             
             _DataBuffer -- string with the binary file loaded.
         '''
-        err = g_DLDll.dl_context_load_type_library(self.DLContext, _DataBuffer, len(_DataBuffer))    
+        err = self.dl.dl_context_load_type_library(self.DLContext, _DataBuffer, len(_DataBuffer))    
         if err != 0:
             raise DLError('Could not load type library into context DLContext', err)
         
         # load all types in type-library
         
         ctx_info = self.dl_type_context_info()
-        err = g_DLDll.dl_reflect_context_info( self.DLContext, byref(ctx_info) )
-        if err != 0:
-            raise DLError('Could not get loaded types!', err)
+        self.reflect_context_info( byref(ctx_info) )
         
         loaded_types = (c_uint * ctx_info.num_types)()
-        err = g_DLDll.dl_reflect_loaded_types( self.DLContext, byref(loaded_types), ctx_info.num_types );
-        if err != 0:
-            raise DLError('Could not get loaded types!', err)
-        
+        self.reflect_loaded_types( byref(loaded_types), ctx_info.num_types );
+                
         loaded_enums = (c_uint * ctx_info.num_enums)()
-        err = g_DLDll.dl_reflect_loaded_enums( self.DLContext, byref(loaded_enums), ctx_info.num_enums );
+        err = self.dl.dl_reflect_loaded_enums( self.DLContext, byref(loaded_enums), ctx_info.num_enums );
         if err != 0:
             raise DLError('Could not get loaded enums!', err)
         
         for typeid in loaded_types:
             type_info = self.dl_type_info()
     
-            err = g_DLDll.dl_reflect_get_type_info(self.DLContext, typeid, byref(type_info))
+            err = self.dl.dl_reflect_get_type_info(self.DLContext, typeid, byref(type_info))
             if err != 0:
                 raise DLError( 'Could not create type!', err )
             
@@ -431,13 +436,13 @@ class DLContext:
         for typeid in loaded_enums:
             enum_info = self.dl_enum_info()
             
-            err = g_DLDll.dl_reflect_get_enum_info(self.DLContext, typeid, byref(enum_info))
+            err = self.dl.dl_reflect_get_enum_info(self.DLContext, typeid, byref(enum_info))
             if err != 0:
                 raise DLError( 'Could not get enum!', err )
             
             enum_values = ( enum_info.value_count * self.dl_enum_value_info )()
             
-            err = g_DLDll.dl_reflect_get_enum_values( self.DLContext, typeid, enum_values, enum_info.value_count );
+            err = self.dl.dl_reflect_get_enum_values( self.DLContext, typeid, enum_values, enum_info.value_count );
             if err != 0:
                 raise DLError( 'Could not fetch members!', err )
             
@@ -491,7 +496,7 @@ class DLContext:
         UnpackedData = (c_ubyte * len(_DataBuffer))() # guessing that sizeof buffer will suffice to load data. (it should)
         consumed = c_uint(0)
         
-        err = g_DLDll.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer), byref(consumed));
+        err = self.dl.dl_instance_load(self.DLContext, type_info.type_id, byref(UnpackedData), sizeof(UnpackedData), _DataBuffer, len(_DataBuffer), byref(consumed));
         if err != 0:
             raise DLError('Could not store instance!', err)
         
@@ -530,36 +535,36 @@ class DLContext:
         c_instance = self.__py_type_to_ctype( _Instance ) # _Instance.AsCType()    
         
         DataSize = c_uint(0)
-        err = g_DLDll.dl_instance_calc_size(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
+        err = self.dl.dl_instance_calc_size(self.DLContext, TypeID, byref(c_instance), byref(DataSize))
         if err != 0:
             raise DLError('Could not calculate size!', err)
             
         PackedData = (c_ubyte * DataSize.value)()
         
         ProducedBytes = c_uint(0)
-        err = g_DLDll.dl_instance_store(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize, byref(ProducedBytes))
+        err = self.dl.dl_instance_store(self.DLContext, TypeID, byref(c_instance), PackedData, DataSize, byref(ProducedBytes))
         if err != 0:
             raise DLError('Could not store instance!', err)
         
         ConvertedSize = c_uint(0)
         
-        err = g_DLDll.dl_convert_calc_size(self.DLContext, TypeID, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
+        err = self.dl.dl_convert_calc_size(self.DLContext, TypeID, PackedData, len(PackedData), _PtrSize, byref(ConvertedSize));
         if err != 0:
             raise DLError('Could not calc convert instance size!', err)
-        
+
         endian = 0 if _Endian == 'big' else 1
         
         if DataSize == ConvertedSize:
             # can convert inplace
             produced_bytes = c_uint(0)
-            err = g_DLDll.dl_convert_inplace(self.DLContext, TypeID, PackedData, len(PackedData), endian, _PtrSize, byref(produced_bytes));
+            err = self.dl.dl_convert_inplace(self.DLContext, TypeID, PackedData, len(PackedData), endian, _PtrSize, byref(produced_bytes));
             if err != 0:
                 raise DLError('Could not convert instance!', err)
         else:
             # need new memory
             ConvertedData = (c_ubyte * ConvertedSize.value)()
             produced_bytes = c_uint(0)
-            err = g_DLDll.dl_convert(self.DLContext, TypeID, PackedData, len(PackedData), ConvertedData, len(ConvertedData), endian, _PtrSize, byref(produced_bytes));
+            err = self.dl.dl_convert(self.DLContext, TypeID, PackedData, len(PackedData), ConvertedData, len(ConvertedData), endian, _PtrSize, byref(produced_bytes));
             
             PackedData = ConvertedData
             
@@ -582,13 +587,13 @@ class DLContext:
         
         DataSize = c_uint(0)
         
-        if g_DLDll.dl_txt_unpack_calc_size(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
+        if self.dl.dl_txt_unpack_calc_size(self.DLContext, Packed, len(Packed), byref(DataSize)) != 0:
             raise DLError('Could not calculate txt-unpack-size', err)
         
         PackedData = create_string_buffer(DataSize.value)
         
         produced_bytes = c_uint(0)
-        if g_DLDll.dl_txt_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize, byref(produced_bytes)) != 0:
+        if self.dl.dl_txt_unpack(self.DLContext, Packed, len(Packed), PackedData, DataSize, byref(produced_bytes)) != 0:
             raise DLError('Could not calculate txt-unpack-size', err)
             
         return PackedData.raw
@@ -600,12 +605,12 @@ class DLContext:
         InstanceData = create_string_buffer(_Text)
         DataSize = c_uint(0)
 
-        if g_DLDll.dl_txt_pack_calc_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
+        if self.dl.dl_txt_pack_calc_size(self.DLContext, InstanceData, byref(DataSize)) != 0:
             raise DLError('Could not calculate txt-pack-size', err)
 
         produced_bytes = c_uint(0)
         PackedData = create_string_buffer(DataSize.value)
-        if g_DLDll.dl_txt_pack(self.DLContext, InstanceData, PackedData, DataSize, byref(produced_bytes)) != 0:
+        if self.dl.dl_txt_pack(self.DLContext, InstanceData, PackedData, DataSize, byref(produced_bytes)) != 0:
             raise DLError('Could not pack txt', err)
     
         return PackedData.raw

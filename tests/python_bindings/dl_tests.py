@@ -4,11 +4,13 @@ import unittest
 
 import sys, os
 sys.path.append(os.path.dirname(__file__) + '/../../bind/python/')
-from libdl import DLContext, libdl_init
+from libdl import DLContext
+
+g_DLLPath = None
 
 class DL(unittest.TestCase):
 	def setUp(self):
-		self.DLContext = DLContext()
+		self.DLContext = DLContext( dll_path = g_DLLPath )
 		self.DLContext.LoadTypeLibraryFromFile(os.path.dirname(__file__) + '/../../local/generated/unittest.bin')
 		
 	def tearDown(self):
@@ -387,6 +389,6 @@ class TestLibDL( DL ):
 		self.do_the_round_about('ArrayEnum', Instance)
 		
 if __name__ == '__main__':
-    libdl_init( sys.argv[1] )
+    g_DLLPath = sys.argv[1]
     del sys.argv[1]
     unittest.main()
