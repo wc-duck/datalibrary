@@ -137,9 +137,9 @@ struct SDLPackContext
 		pint struct_start_pos = 0;
 
 		if( m_StateStack.Top().m_State == DL_PACK_STATE_ARRAY && m_StateStack.Top().m_IsBackArray )
-			struct_start_pos = m_Writer->PushBackAlloc( _pType->m_Size[DL_PTR_SIZE_HOST] );
+			struct_start_pos = m_Writer->PushBackAlloc( _pType->size[DL_PTR_SIZE_HOST] );
 		else
-			struct_start_pos = dl_internal_align_up(m_Writer->Tell(), _pType->m_Alignment[DL_PTR_SIZE_HOST]);
+			struct_start_pos = dl_internal_align_up(m_Writer->Tell(), _pType->alignment[DL_PTR_SIZE_HOST]);
 
 		m_StateStack.Push( SDLPackState(DL_PACK_STATE_STRUCT, _pType, struct_start_pos) );
 	}
@@ -172,7 +172,7 @@ struct SDLPackContext
 		{
 			// end should be just after the current struct. but we might not be there since
 			// members could have been written in an order that is not according to type.
-			m_Writer->SeekSet(OldState.m_StructStartPos + OldState.m_pType->m_Size[DL_PTR_SIZE_HOST]);
+			m_Writer->SeekSet(OldState.m_StructStartPos + OldState.m_pType->size[DL_PTR_SIZE_HOST]);
 		}
 
 		if( m_StateStack.Top().m_State == DL_PACK_STATE_ARRAY )
@@ -328,7 +328,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 			pCtx->AddPatchPosition( (unsigned int)ID );
 
 			// this is the pos that will be patched, but we need to make room for the array now!
-			pCtx->m_Writer->WriteZero(pCtx->m_PatchPosition[pCtx->m_PatchPosition.Len() - 1].m_pMember->m_Size[DL_PTR_SIZE_HOST]);
+			pCtx->m_Writer->WriteZero(pCtx->m_PatchPosition[pCtx->m_PatchPosition.Len() - 1].m_pMember->size[DL_PTR_SIZE_HOST]);
 
 			pCtx->PopState();
 		}
@@ -425,8 +425,8 @@ static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
 	if(le_type == 0) // not sturct
 		return false;
 
-	for(unsigned int i = 0; i < le_type->m_nMembers; ++i)
-		if( le_type->m_lMembers[i].AtomType() == DL_TYPE_ATOM_ARRAY )
+	for(unsigned int i = 0; i < le_type->member_count; ++i)
+		if( le_type->members[i].AtomType() == DL_TYPE_ATOM_ARRAY )
 			return true;
 
 	return false;
@@ -468,10 +468,10 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 
 			unsigned int MemberID = DLFindMember( State.m_pType, DLHashBuffer(_pStringVal, _StringLen, 0) );
 
-			if(MemberID > State.m_pType->m_nMembers) 
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_MEMBER_NOT_FOUND, "Type \"%s\" has no member named \"%.*s\"!", State.m_pType->m_Name, _StringLen, _pStringVal);
+			if(MemberID > State.m_pType->member_count) 
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_MEMBER_NOT_FOUND, "Type \"%s\" has no member named \"%.*s\"!", State.m_pType->name, _StringLen, _pStringVal);
 
-			const SDLMember* pMember = State.m_pType->m_lMembers + MemberID;
+			const SDLMember* pMember = State.m_pType->members + MemberID;
 
 			// printf("packing member: %s->%s\n", State.m_pType->m_Name, pMember->m_Name);
 
@@ -481,9 +481,9 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			State.m_MembersSet.SetBit(MemberID);
 
 			// seek to position for member! ( members can come in any order in the text-file so we need to seek )
-			pint MemberPos = pCtx->m_StateStack.Top().m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
+			pint MemberPos = pCtx->m_StateStack.Top().m_StructStartPos + pMember->offset[DL_PTR_SIZE_HOST];
 			pCtx->m_Writer->SeekSet(MemberPos);
-			DL_ASSERT(pCtx->m_Writer->InBackAllocArea() || dl_internal_is_align((void*)MemberPos, pMember->m_Alignment[DL_PTR_SIZE_HOST]));
+			DL_ASSERT(pCtx->m_Writer->InBackAllocArea() || dl_internal_is_align((void*)MemberPos, pMember->alignment[DL_PTR_SIZE_HOST]));
 
 			pint array_count_patch_pos = 0; // for inline array, keep as 0.
 			bool array_has_sub_ptrs = false;
@@ -499,14 +499,14 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->m_TypeID);
+							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->type_id);
 							if(pSubType == 0x0)
-								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->m_Name);
+								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->name);
 							pCtx->PushStructState(pSubType); 
 						}
 						break;
 						case DL_TYPE_STORAGE_PTR:  pCtx->PushMemberState(DL_PACK_STATE_SUBDATA_ID, pMember); break;
-						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState(DLFindEnum(pCtx->m_DLContext, pMember->m_TypeID)); break;
+						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState(DLFindEnum(pCtx->m_DLContext, pMember->type_id)); break;
 						default:
 							DL_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
 							pCtx->PushState(EDLPackState(StorageType));
@@ -521,7 +521,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					pCtx->m_Writer->Write(uint32(0)); // count need to be patched later!
 					pCtx->m_Writer->SeekEnd();
 
-					array_has_sub_ptrs = dl_internal_has_sub_ptr(pCtx->m_DLContext, pMember->m_TypeID); // TODO: Optimize this, store info in type-data
+					array_has_sub_ptrs = dl_internal_has_sub_ptr(pCtx->m_DLContext, pMember->type_id); // TODO: Optimize this, store info in type-data
 				case DL_TYPE_ATOM_INLINE_ARRAY: // FALLTHROUGH
 				{
 					pCtx->PushState(DL_PACK_STATE_ARRAY);
@@ -532,17 +532,17 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->m_TypeID);
+							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->type_id);
 							if(pSubType == 0x0)
-								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->m_Name );
+								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->name );
 							pCtx->PushStructState(pSubType);
 						}
 						break;
 						case DL_TYPE_STORAGE_ENUM:
 						{
-							const SDLEnum* pEnum = DLFindEnum(pCtx->m_DLContext, pMember->m_TypeID);
+							const SDLEnum* pEnum = DLFindEnum(pCtx->m_DLContext, pMember->type_id);
 							if(pEnum == 0x0) 
-								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->m_Name);
+								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->name);
 							pCtx->PushEnumState(pEnum);
 						}
 						break;
@@ -554,7 +554,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 				}
 				break;
 				case DL_TYPE_ATOM_BITFIELD:
-					pCtx->PushMemberState(EDLPackState(pMember->m_Type), 0x0);
+					pCtx->PushMemberState(EDLPackState(pMember->type), 0x0);
 				break;
 				default:
 					DL_ASSERT(false && "Invalid ATOM-type!");
@@ -588,10 +588,10 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 
 			DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
 			DL_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
-			const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->m_TypeID);
+			const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->type_id);
 			if(pSubType == 0x0)
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->m_Name);
-			pCtx->m_Writer->Align(pSubType->m_Alignment[DL_PTR_SIZE_HOST]);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->name);
+			pCtx->m_Writer->Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
 			pCtx->PushStructState(pSubType);
 
 			// register this element as it will be written here!
@@ -620,7 +620,7 @@ static int DLOnMapStart(void* _pCtx)
 			if( pCtx->m_Writer->InBackAllocArea() )
 				pCtx->m_Writer->SeekEnd();
 			else
-				pCtx->m_Writer->Reserve(pCtx->m_StateStack.Top().m_pType->m_Size[DL_PTR_SIZE_HOST]);
+				pCtx->m_Writer->Reserve(pCtx->m_StateStack.Top().m_pType->size[DL_PTR_SIZE_HOST]);
 			break;
 		default:
 			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
@@ -677,17 +677,17 @@ static int DLOnMapEnd(void* _pCtx)
 			SDLPackState& PackState = pCtx->m_StateStack.Top();
 
 			// Check that all members are set!
-			for (uint32 iMember = 0; iMember < PackState.m_pType->m_nMembers; ++iMember)
+			for (uint32 iMember = 0; iMember < PackState.m_pType->member_count; ++iMember)
 			{
-				const SDLMember* pMember = PackState.m_pType->m_lMembers + iMember;
+				const SDLMember* pMember = PackState.m_pType->members + iMember;
 
 				if(!PackState.m_MembersSet.IsSet(iMember))
 				{
-					if(pMember->m_DefaultValueOffset == DL_UINT32_MAX) // no default-value available for this!
-						DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->m_Name, PackState.m_pType->m_Name );
+					if(pMember->default_value_offset == DL_UINT32_MAX) // no default-value available for this!
+						DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->name, PackState.m_pType->name );
 
-					pint   MemberPos  = PackState.m_StructStartPos + pMember->m_Offset[DL_PTR_SIZE_HOST];
-					uint8* pDefMember = pCtx->m_DLContext->default_data + pMember->m_DefaultValueOffset;
+					pint   MemberPos  = PackState.m_StructStartPos + pMember->offset[DL_PTR_SIZE_HOST];
+					uint8* pDefMember = pCtx->m_DLContext->default_data + pMember->default_value_offset;
 
 					pCtx->m_Writer->SeekSet(MemberPos);
 
@@ -704,7 +704,7 @@ static int DLOnMapEnd(void* _pCtx)
 								case DL_TYPE_STORAGE_PTR: pCtx->m_Writer->Write(pint(-1)); break; // can only default to null!
 								default:
 									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-									pCtx->m_Writer->Write(pDefMember, pMember->m_Size[DL_PTR_SIZE_HOST]);
+									pCtx->m_Writer->Write(pDefMember, pMember->size[DL_PTR_SIZE_HOST]);
 							}
 						}
 						break;
@@ -716,14 +716,14 @@ static int DLOnMapEnd(void* _pCtx)
 								{
 									char** pArray = (char**)pDefMember;
 
-									uint32 Count = pMember->m_Size[DL_PTR_SIZE_HOST] / sizeof(char*);
+									uint32 Count = pMember->size[DL_PTR_SIZE_HOST] / sizeof(char*);
 									for(uint32 iElem = 0; iElem < Count; ++iElem)
 										pCtx->m_lStrings.Add(SDLPackContext::SStringItem(MemberPos + sizeof(char*) * iElem, pArray[iElem], strlen(pArray[iElem])));
 								}
 								break;
 								default:
 									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-									pCtx->m_Writer->Write(pDefMember, pMember->m_Size[DL_PTR_SIZE_HOST]);
+									pCtx->m_Writer->Write(pDefMember, pMember->size[DL_PTR_SIZE_HOST]);
 							}
 						}
 						break;
@@ -749,7 +749,7 @@ static int DLOnMapEnd(void* _pCtx)
 								break;
 								default:
 									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-									pCtx->m_Writer->Write(*(uint8**)pDefMember, Count * DLPodSize(pMember->m_Type));
+									pCtx->m_Writer->Write(*(uint8**)pDefMember, Count * DLPodSize(pMember->type));
 							}
 						}
 						break;
@@ -789,7 +789,7 @@ static int DLOnArrayEnd(void* _pCtx)
 	{
 		if(is_back_array)
 		{
-			pint array_pos = pCtx->m_Writer->PopBackAlloc(array_count, pType->m_Size[DL_PTR_SIZE_HOST], pType->m_Alignment[DL_PTR_SIZE_HOST]);
+			pint array_pos = pCtx->m_Writer->PopBackAlloc(array_count, pType->size[DL_PTR_SIZE_HOST], pType->alignment[DL_PTR_SIZE_HOST]);
 			pCtx->m_Writer->SeekSet(patch_pos - sizeof(pint));
 			pCtx->m_Writer->Write(array_pos);
 		}
@@ -914,11 +914,11 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	if( out_buffer_size > 0 )
 	{
 		SDLDataHeader Header;
-		Header.m_Id = DL_INSTANCE_ID;
-		Header.m_Version = DL_INSTANCE_VERSION;
-		Header.m_RootInstanceType = DLHashString(PackContext.m_pRootType->m_Name);
-		Header.m_InstanceSize = (uint32)Writer.NeededSize();
-		Header.m_64BitPtr = sizeof(void*) == 8 ? 1 : 0;
+		Header.id = DL_INSTANCE_ID;
+		Header.version = DL_INSTANCE_VERSION;
+		Header.root_instance_type = DLHashString(PackContext.m_pRootType->name);
+		Header.instance_size = (uint32)Writer.NeededSize();
+		Header.is_64_bit_ptr = sizeof(void*) == 8 ? 1 : 0;
 		memcpy(out_buffer, &Header, sizeof(SDLDataHeader));
 	}
 
