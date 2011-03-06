@@ -114,49 +114,26 @@ class Member( object ):
 class PodMember( Member ):
     def __init__(self, name, data, typelibrary):
         Member.__init__( self, name, data )
-        
-        type = data['type']
-        
-        # TEMP!!!
-        if type in typelibrary.enums:
-            self.type = typelibrary.enums[ type ]
-        else:
-            self.type = typelibrary.types[ type ]
+        self.type = typelibrary.find_type( data['type'] )
             
     def calc_size_and_align(self, typelibrary):
-        # type = typelibrary.find_type(self.type)
         self.size  = self.type.size
         self.align = self.type.align
     
 class ArrayMember( Member ):
     def __init__(self, name, data, typelibrary):
         Member.__init__( self, name, data )
-        
-        type = data['subtype']
-        # TEMP!!!
-        if type in typelibrary.enums:
-            self.type = typelibrary.enums[ type ]
-        else:
-            self.type = typelibrary.types[ type ]
-            
+        self.type = typelibrary.find_type( data['subtype'] )    
         self.size  = PlatformValue( (8, 12) )
         self.align = PlatformValue( (4, 8) )
     
 class InlineArrayMember( Member ):
     def __init__(self, name, data, typelibrary):
         Member.__init__( self, name, data )
-        
-        type = data['subtype']
-        # TEMP!!!
-        if type in typelibrary.enums:
-            self.type = typelibrary.enums[ type ]
-        else:
-            self.type = typelibrary.types[ type ]
-        
+        self.type = typelibrary.find_type( data['subtype'] )
         self.count = data['count']
     
     def calc_size_and_align(self, typelibrary):
-        #subtype = typelibrary.find_type(self.type)
         self.size  = self.type.size * self.count
         self.align = self.type.align
 
@@ -179,14 +156,7 @@ class PointerMember( Member ):
         if hasattr( self, 'default' ) and self.default != None:
             raise  'only null is supported as default for ptrs!'
         
-        
-        type = data['subtype']
-        # TEMP!!!
-        if type in typelibrary.enums:
-            self.type = typelibrary.enums[ type ]
-        else:
-            self.type = typelibrary.types[ type ]
-        
+        self.type = typelibrary.find_type( data['subtype'] )
         self.size  = PlatformValue( (4, 8) )
         self.align = PlatformValue( (4, 8) )
     
@@ -305,15 +275,10 @@ class Type( object ):
 class TypeLibrary( object ):
     def __init__( self, lib = None ):        
         if lib != None:
-            self.enums = {} # same map as types?
-            self.types = {}
-            self.type_order = []
-            
+            self.enums, self.types, self.type_order = {}, {}, []
             self.read( open(lib, 'r').read() )
         else:
-            self.enums = None
-            self.types = None
-            self.type_order = None
+            self.enums, self.types, self.type_order = None, None, None
     
     def read( self, lib ):
         ''' 
@@ -334,11 +299,8 @@ class TypeLibrary( object ):
         raise DLTypeLibraryError( "Not supported right now, will it ever be?" )
         
     def find_type(self, name):
-        if name in self.types:
-            return self.types[name]
-        if name in self.enums:
-            return self.enums[name]
-        
+        if name in self.types: return self.types[name]
+        if name in self.enums: return self.enums[name]
         return None
     
     def __read_enums( self, enum_data ):
@@ -352,7 +314,6 @@ class TypeLibrary( object ):
             self.types[name] = Type( name, values, self )
         
         for type in self.types.values():
-            # temp!!!
             if type.name in type_data:
                 type.read_members( type_data[type.name], self )
                 
