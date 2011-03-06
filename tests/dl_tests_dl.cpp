@@ -63,6 +63,31 @@ struct pack_text_test
 	}
 };
 
+struct inplace_load_test
+{
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
+					   unsigned char* store_buffer, unsigned int  store_size,
+					   unsigned char* out_buffer,   unsigned int* out_size )
+	{
+		// copy stored instance into temp-buffer
+		unsigned char inplace_buffer[4096];
+		memset( inplace_buffer, 0xFE, DL_ARRAY_LENGTH(inplace_buffer) );
+		memcpy( inplace_buffer, store_buffer, store_size );
+
+		// load inplace
+		void* loaded_instance = 0x0;
+		unsigned int consumed = 0;
+		EXPECT_DL_ERR_OK( dl_instance_load_inplace( dl_ctx, type, inplace_buffer, store_size, &loaded_instance, &consumed ));
+
+		EXPECT_EQ( store_size, consumed );
+		EXPECT_EQ( (unsigned char)0xFE, (unsigned char)inplace_buffer[store_size + 1] ); // no overwrite by inplace load!
+
+		// store to out-buffer
+		EXPECT_DL_ERR_OK( dl_instance_calc_size( dl_ctx, type, loaded_instance, out_size ) );
+		EXPECT_DL_ERR_OK( dl_instance_store( dl_ctx, type, loaded_instance, out_buffer, *out_size, 0x0 ) );
+	}
+};
+
 template<unsigned int conv_ptr_size, dl_endian_t conv_endian>
 struct convert_test
 {
@@ -191,6 +216,7 @@ struct DLBase : public DL
 // tests to run!
 typedef ::testing::Types<
 	 pack_text_test
+	,inplace_load_test
 	,convert_test<4, DL_ENDIAN_LITTLE>
 	,convert_test<8, DL_ENDIAN_LITTLE>
 	,convert_test<4, DL_ENDIAN_BIG>

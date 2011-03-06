@@ -248,6 +248,27 @@ dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             dl_ctx,         
                                            unsigned int*        consumed );
 
 /*
+	Function: dl_instance_load_inplace
+		Loads an instance inplace from packed data. This mean that the instance will be loaded in the same
+		memory area where the packed instance is stored.
+		Packed memory-area will need to be valid memory until loaded instance is no longer used.
+
+	Parameters:
+		dl_ctx               - DL-context to use when loading instance.
+		dl_typeid            - Type of instance in the packed data.
+		packed_instance      - Packed instance-data to load.
+		packed_instance_size - Size of buffer pointed to by packed_instance.
+		loaded_instance      - Loaded instance will be returned here.
+		consumed             - Number of bytes consumed to load an instance is returned here, 0x0 to ignore.
+
+	Note:
+		Some small memory-waste will be incurred by this function since some header-data will be left in memory.
+*/
+dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t   type,
+												   unsigned char* packed_instance, unsigned int  packed_instance_size,
+												   void**         loaded_instance, unsigned int* consumed);
+
+/*
 	Group: Store
 */
 /*
