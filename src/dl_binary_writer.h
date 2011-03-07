@@ -36,9 +36,9 @@ public:
 
 	void Write(const void* _pData, pint _Size)
 	{
-		if(!m_Dummy)
+		if( !m_Dummy && ( m_Pos + _Size <= m_DataSize ) )
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", m_Pos, _Size, uint32(*(pint*)_pData) );
+			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", pos, _Size, uint32(*(pint*)_pData) );
 			DL_ASSERT(m_Pos + _Size <= m_DataSize && "To small buffer!");
 			memmove(m_Data + m_Pos, _pData, _Size);
 		}
@@ -70,7 +70,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write Array: %lu + %lu (%lu)", m_Pos, sizeof(T), _Count);
+			DL_LOG_BIN_WRITER_VERBOSE("Write Array: %lu + %lu (%lu)", pos, sizeof(T), _Count);
 			for (pint i = 0; i < _Count; ++i)
 				DL_LOG_BIN_WRITER_VERBOSE("%lu = %u", i, (uint32)_pArray[i]);
 		}
@@ -113,7 +113,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write zero: %lu + %lu", m_Pos, _Bytes);
+			DL_LOG_BIN_WRITER_VERBOSE("Write zero: %lu + %lu", pos, _Bytes);
 			DL_ASSERT(m_Pos + _Bytes <= m_DataSize && "To small buffer!");
 			memset(m_Data + m_Pos, 0x0, _Bytes);
 		}
@@ -124,7 +124,7 @@ public:
 
 	void Reserve(pint _Bytes)
 	{
-		DL_LOG_BIN_WRITER_VERBOSE("Reserve: %lu + %lu", m_Pos, _Bytes);
+		DL_LOG_BIN_WRITER_VERBOSE("Reserve: %lu + %lu", pos, _Bytes);
 		m_NeededSize = m_NeededSize >= m_Pos + _Bytes ? m_NeededSize : m_Pos + _Bytes;
 	}
 
@@ -220,7 +220,7 @@ public:
 		pint Alignment = dl_internal_align_up(m_Pos, _Alignment);
 		if(!m_Dummy && Alignment != m_Pos) 
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu (%lu)", m_Pos, Alignment - m_Pos, _Alignment);
+			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu (%lu)", pos, Alignment - pos, _Alignment);
 			memset(m_Data + m_Pos, 0x0, Alignment - m_Pos);
 		}
 		m_Pos = Alignment;

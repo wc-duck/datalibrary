@@ -2,6 +2,7 @@
 
 #include "dl_types.h"
 #include "dl_swap.h"
+#include "dl_binary_writer.h"
 
 #include "container/dl_array.h"
 
@@ -278,14 +279,14 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 
 	if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 	{
-		header->id          = DLSwapEndian(header->id);
-		header->version     = DLSwapEndian(header->version);
+		header->id           = DLSwapEndian(header->id);
+		header->version      = DLSwapEndian(header->version);
 
-		header->type_count      = DLSwapEndian(header->type_count);
+		header->type_count   = DLSwapEndian(header->type_count);
 		header->types_offset = DLSwapEndian(header->types_offset);
 		header->types_size   = DLSwapEndian(header->types_size);
 
-		header->enum_count      = DLSwapEndian(header->enum_count);
+		header->enum_count   = DLSwapEndian(header->enum_count);
 		header->enums_offset = DLSwapEndian(header->enums_offset);
 		header->enums_size   = DLSwapEndian(header->enums_size);
 
@@ -350,7 +351,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		++_pFromData;
 	}
 
-	dl_ctx->type_count           += Header.type_count;
+	dl_ctx->type_count          += Header.type_count;
 	dl_ctx->type_info_data_size += Header.types_size;
 
 	// store enum-info data.
@@ -451,101 +452,51 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	return DL_ERROR_OK;
 }
 
-#if 1 // BinaryWriterVerbose
-	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...)
-#else
-	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...) printf("DL:" _Fmt, ##__VA_ARGS__)
-#endif
-
-// TODO: This should use the CDLBinaryWriter!
-class CDLBinStoreContext
+struct CDLBinStoreContext
 {
-public:
 	CDLBinStoreContext(uint8* _OutData, pint _OutDataSize, bool _Dummy)
-		: m_OutData(_OutData)
-		, m_OutDataSize(_OutDataSize)
-		, m_Dummy(_Dummy)
-		, m_WritePtr(0)
-		, m_WriteEnd(0) {}
-
-	void Write(void* _pData, pint _DataSize)
-	{
-		if( !m_Dummy && ( m_WritePtr + _DataSize <= m_OutDataSize ) )
-		{
-			DL_ASSERT(m_WritePtr < m_OutDataSize);
-			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%lu)", m_WritePtr, _DataSize, *(pint*)_pData);
-			memcpy(m_OutData + m_WritePtr, _pData, _DataSize);
-		}
-		m_WritePtr += _DataSize;
-		m_WriteEnd = m_WriteEnd >= m_WritePtr ? m_WriteEnd : m_WritePtr;
-	};
-
-	void Align(pint _Alignment)
-	{
-		if(dl_internal_is_align((void*)m_WritePtr, _Alignment))
-			return;
-
-		pint MoveMe = dl_internal_align_up(m_WritePtr, _Alignment) - m_WritePtr;
-
-		if( !m_Dummy && ( m_WritePtr + MoveMe <= m_OutDataSize ) )
-		{
-			memset(m_OutData + m_WritePtr, 0x0, MoveMe);
-			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu", m_WritePtr, MoveMe);
-		}
-		m_WritePtr += MoveMe;
-		m_WriteEnd = m_WriteEnd >= m_WritePtr ? m_WriteEnd : m_WritePtr;
-	}
-
-	pint Tell()              { return m_WritePtr; }
-	void SeekSet(pint Pos)   { DL_LOG_BIN_WRITER_VERBOSE("Seek set: %lu", Pos);                       m_WritePtr = Pos;  }
-	void SeekEnd()           { DL_LOG_BIN_WRITER_VERBOSE("Seek end: %lu", m_WriteEnd);                m_WritePtr = m_WriteEnd; }
-	void Reserve(pint Bytes) { DL_LOG_BIN_WRITER_VERBOSE("Reserve: end %lu + %lu", m_WriteEnd, Bytes); m_WriteEnd += Bytes; }
+		: writer( _OutData, _OutDataSize, _Dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST ) {}
 
 	pint FindWrittenPtr(void* _Ptr)
 	{
 		for (unsigned int iPtr = 0; iPtr < m_WrittenPtrs.Len(); ++iPtr)
-			if(m_WrittenPtrs[iPtr].m_pPtr == _Ptr)
-				return m_WrittenPtrs[iPtr].m_Pos;
+			if(m_WrittenPtrs[iPtr].ptr == _Ptr)
+				return m_WrittenPtrs[iPtr].pos;
 
 		return pint(-1);
 	}
 
 	void AddWrittenPtr(void* _Ptr, pint _Pos) { m_WrittenPtrs.Add(SWrittenPtr(_Pos, _Ptr)); }
 
-private:
+	CDLBinaryWriter writer;
+
 	struct SWrittenPtr
 	{
  		SWrittenPtr() {}
- 		SWrittenPtr(pint _Pos, void* _pPtr) : m_Pos(_Pos), m_pPtr(_pPtr) {}
-		pint  m_Pos;
-		void* m_pPtr;
+ 		SWrittenPtr(pint _Pos, void* _pPtr) : pos(_Pos), ptr(_pPtr) {}
+		pint  pos;
+		void* ptr;
 	};
 
 	CArrayStatic<SWrittenPtr, 128> m_WrittenPtrs;
-
-	uint8* m_OutData;
-	pint   m_OutDataSize;
-	bool   m_Dummy;
-	pint   m_WritePtr;
-	pint   m_WriteEnd;
 };
 
 static void DLInternalStoreString(const uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
 {
 	char* pTheString = *(char**)_pInstance;
-	pint Pos = _pStoreContext->Tell();
-	_pStoreContext->SeekEnd();
-	pint Offset = _pStoreContext->Tell();
-	_pStoreContext->Write(pTheString, strlen(pTheString) + 1);
-	_pStoreContext->SeekSet(Pos);
-	_pStoreContext->Write(&Offset, sizeof(pint));	
+	pint Pos = _pStoreContext->writer.Tell();
+	_pStoreContext->writer.SeekEnd();
+	pint Offset = _pStoreContext->writer.Tell();
+	_pStoreContext->writer.Write(pTheString, strlen(pTheString) + 1);
+	_pStoreContext->writer.SeekSet(Pos);
+	_pStoreContext->writer.Write(&Offset, sizeof(pint));
 }
 
 static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_type, uint8* instance, CDLBinStoreContext* store_ctx);
 
 static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMember, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
 {
-	_pStoreContext->Align(_pMember->alignment[DL_PTR_SIZE_HOST]);
+	_pStoreContext->writer.Align(_pMember->alignment[DL_PTR_SIZE_HOST]);
 
 	dl_type_t AtomType    = dl_type_t(_pMember->type & DL_TYPE_ATOM_MASK);
 	dl_type_t StorageType = dl_type_t(_pMember->type & DL_TYPE_STORAGE_MASK);
@@ -582,31 +533,31 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 					}
 					else if(Offset == pint(-1)) // has not been written yet!
 					{
-						pint Pos = _pStoreContext->Tell();
-						_pStoreContext->SeekEnd();
+						pint Pos = _pStoreContext->writer.Tell();
+						_pStoreContext->writer.SeekEnd();
 
 						const SDLType* pSubType = DLFindType(_Context, _pMember->type_id);
 						pint Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
-						_pStoreContext->Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
+						_pStoreContext->writer.Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
 
-						Offset = _pStoreContext->Tell();
+						Offset = _pStoreContext->writer.Tell();
 
 						// write data!
-						_pStoreContext->Reserve(Size); // reserve space for ptr so subdata is placed correctly
+						_pStoreContext->writer.Reserve(Size); // reserve space for ptr so subdata is placed correctly
 
 						_pStoreContext->AddWrittenPtr(pData, Offset);
 
 						dl_internal_instance_store(_Context, pSubType, pData, _pStoreContext);
 
-						_pStoreContext->SeekSet(Pos);
+						_pStoreContext->writer.SeekSet(Pos);
 					}
 
-					_pStoreContext->Write(&Offset, sizeof(pint));
+					_pStoreContext->writer.Write(&Offset, sizeof(pint));
 				}
 				break;
 				default: // default is a standard pod-type
 					DL_ASSERT(_pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
-					_pStoreContext->Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]);
+					_pStoreContext->writer.Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]);
 					break;
 			}
 		}
@@ -617,7 +568,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 			switch(StorageType)
 			{
 				case DL_TYPE_STORAGE_STRUCT:
-					_pStoreContext->Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]); // TODO: I Guess that this is a bug! Will it fix ptrs well?
+					_pStoreContext->writer.Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]); // TODO: I Guess that this is a bug! Will it fix ptrs well?
 					break;
 				case DL_TYPE_STORAGE_STR:
 				{
@@ -629,7 +580,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				break;
 				default: // default is a standard pod-type
 					DL_ASSERT(_pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
-					_pStoreContext->Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]);
+					_pStoreContext->writer.Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]);
 					break;
 			}
 		}
@@ -649,29 +600,29 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				Offset = DL_NULL_PTR_OFFSET[ DL_PTR_SIZE_HOST ];
 			else
 			{
-				pint Pos = _pStoreContext->Tell();
-				_pStoreContext->SeekEnd();
+				pint Pos = _pStoreContext->writer.Tell();
+				_pStoreContext->writer.SeekEnd();
 
 				switch(StorageType)
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 						pSubType = DLFindType(_Context, _pMember->type_id);
 						Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
-						_pStoreContext->Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
+						_pStoreContext->writer.Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
 						break;
 					case DL_TYPE_STORAGE_STR:
 						Size = sizeof(void*);
-						_pStoreContext->Align(Size);
+						_pStoreContext->writer.Align(Size);
 						break;
 					default:
 						Size = DLPodSize(_pMember->type);
-						_pStoreContext->Align(Size);
+						_pStoreContext->writer.Align(Size);
 				}
 
-				Offset = _pStoreContext->Tell();
+				Offset = _pStoreContext->writer.Tell();
 
 				// write data!
-				_pStoreContext->Reserve(Count * Size); // reserve space for array so subdata is placed correctly
+				_pStoreContext->writer.Reserve(Count * Size); // reserve space for array so subdata is placed correctly
 
 				uint8* pData = *(uint8**)pDataPtr;
 
@@ -687,22 +638,22 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 						break;
 					default:
 						for (unsigned int iElem = 0; iElem < Count; ++iElem)
-							_pStoreContext->Write(pData + (iElem * Size), Size); break;
+							_pStoreContext->writer.Write(pData + (iElem * Size), Size); break;
 				}
 
-				_pStoreContext->SeekSet(Pos);
+				_pStoreContext->writer.SeekSet(Pos);
 			}
 
 			// make room for ptr
-			_pStoreContext->Write(&Offset, sizeof(pint));
+			_pStoreContext->writer.Write(&Offset, sizeof(pint));
 
 			// write count
-			_pStoreContext->Write(&Count, sizeof(uint32));
+			_pStoreContext->writer.Write(&Count, sizeof(uint32));
 		}
 		return DL_ERROR_OK;
 
 		case DL_TYPE_ATOM_BITFIELD:
-			_pStoreContext->Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]);
+			_pStoreContext->writer.Write(_pInstance, _pMember->size[DL_PTR_SIZE_HOST]);
 		break;
 
 		default:
@@ -764,19 +715,19 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type,     
 
 	CDLBinStoreContext StoreContext( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy );
 
-	StoreContext.Reserve(pType->size[DL_PTR_SIZE_HOST]);
+	StoreContext.writer.Reserve(pType->size[DL_PTR_SIZE_HOST]);
 	StoreContext.AddWrittenPtr(instance, 0); // if pointer refere to root-node, it can be found at offset 0
 
 	dl_error_t err = dl_internal_instance_store(dl_ctx, pType, (uint8*)instance, &StoreContext);
 
 	// write instance size!
 	SDLDataHeader* pHeader = (SDLDataHeader*)out_buffer;
-	StoreContext.SeekEnd();
+	StoreContext.writer.SeekEnd();
 	if( out_buffer )
-		pHeader->instance_size = (uint32)StoreContext.Tell();
+		pHeader->instance_size = (uint32)StoreContext.writer.Tell();
 
 	if( produced_bytes )
-		*produced_bytes = (uint32)StoreContext.Tell() + sizeof(SDLDataHeader);
+		*produced_bytes = (uint32)StoreContext.writer.Tell() + sizeof(SDLDataHeader);
 
 	if( out_buffer_size > 0 && pHeader->instance_size > out_buffer_size )
 		return DL_ERROR_BUFFER_TO_SMALL;
