@@ -294,12 +294,6 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 	}
 }
 
-typedef struct
-{
-	dl_typeid_t type_id;
-	uint32      offset;
-} dl_type_lookup_t;
-
 dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size )
 {
 	if(lib_data_size < sizeof(SDLTypeLibraryHeader))
@@ -318,7 +312,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_type_lookup_t* _pFromData = (dl_type_lookup_t*)(lib_data + sizeof(SDLTypeLibraryHeader));
 	for(uint32 i = dl_ctx->type_count; i < dl_ctx->type_count + Header.type_count; ++i)
 	{
-		dl_context::STypeLookUp* look = dl_ctx->type_lookup + i;
+		dl_type_lookup_t* look = dl_ctx->type_lookup + i;
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
@@ -330,21 +324,21 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			pType->size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(pType->size[DL_PTR_SIZE_64BIT]);
 			pType->alignment[DL_PTR_SIZE_32BIT] = DLSwapEndian(pType->alignment[DL_PTR_SIZE_32BIT]);
 			pType->alignment[DL_PTR_SIZE_64BIT] = DLSwapEndian(pType->alignment[DL_PTR_SIZE_64BIT]);
-			pType->member_count                     = DLSwapEndian(pType->member_count);
+			pType->member_count                 = DLSwapEndian(pType->member_count);
 
 			for(uint32 i = 0; i < pType->member_count; ++i)
 			{
 				SDLMember* pMember = pType->members + i;
 
 				pMember->type                         = DLSwapEndian(pMember->type);
-				pMember->type_id	                    = DLSwapEndian(pMember->type_id);
+				pMember->type_id	                  = DLSwapEndian(pMember->type_id);
 				pMember->size[DL_PTR_SIZE_32BIT]      = DLSwapEndian(pMember->size[DL_PTR_SIZE_32BIT]);
 				pMember->size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(pMember->size[DL_PTR_SIZE_64BIT]);
 				pMember->offset[DL_PTR_SIZE_32BIT]    = DLSwapEndian(pMember->offset[DL_PTR_SIZE_32BIT]);
 				pMember->offset[DL_PTR_SIZE_64BIT]    = DLSwapEndian(pMember->offset[DL_PTR_SIZE_64BIT]);
 				pMember->alignment[DL_PTR_SIZE_32BIT] = DLSwapEndian(pMember->alignment[DL_PTR_SIZE_32BIT]);
 				pMember->alignment[DL_PTR_SIZE_64BIT] = DLSwapEndian(pMember->alignment[DL_PTR_SIZE_64BIT]);
-				pMember->default_value_offset           = DLSwapEndian(pMember->default_value_offset);
+				pMember->default_value_offset         = DLSwapEndian(pMember->default_value_offset);
 			}
 		}
 		else
@@ -366,7 +360,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_type_lookup_t* _pEnumFromData = (dl_type_lookup_t*)(lib_data + Header.types_offset + Header.types_size);
 	for(uint32 i = dl_ctx->enum_count; i < dl_ctx->enum_count + Header.enum_count; ++i)
 	{
-		dl_context::SEnumLookUp* look = dl_ctx->enum_lookup + i;
+		dl_type_lookup_t* look = dl_ctx->enum_lookup + i;
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
@@ -388,7 +382,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		++_pEnumFromData;
 	}
 
-	dl_ctx->enum_count           += Header.enum_count;
+	dl_ctx->enum_count          += Header.enum_count;
 	dl_ctx->enum_info_data_size += Header.enums_size;
 
 	return dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->type_count - Header.type_count, lib_data + Header.default_value_offset, Header.default_value_size );

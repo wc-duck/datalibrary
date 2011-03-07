@@ -193,6 +193,12 @@ struct SDLEnum
 #pragma warning(pop)
 #endif // defined( _MSC_VER )
 
+typedef struct
+{
+	dl_typeid_t type_id;
+	uint32      offset;
+} dl_type_lookup_t;
+
 struct dl_context
 {
 	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
@@ -202,8 +208,8 @@ struct dl_context
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
 
-	struct STypeLookUp { dl_typeid_t type_id; unsigned int offset; } type_lookup[128]; // dynamic alloc?
-	struct SEnumLookUp { dl_typeid_t type_id; unsigned int offset; } enum_lookup[128]; // dynamic alloc?
+	dl_type_lookup_t type_lookup[128]; // dynamic alloc?
+	dl_type_lookup_t enum_lookup[128]; // dynamic alloc?
 
 	unsigned int type_count;
 	uint8*       type_info_data;
