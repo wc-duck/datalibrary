@@ -26,9 +26,7 @@ class PlatformValue( object ):
     @staticmethod
     def align(val, align_value):
         def align(val, alignment):
-            if alignment == 0:
-                return val;
-            return (val + alignment - 1) & ~(alignment - 1)
+            return val if alignment == 0 else (val + alignment - 1) & ~(alignment - 1)
         return PlatformValue( ( align(val.ptr32, align_value.ptr32), align(val.ptr64, align_value.ptr64) ) )
 
 class DLTypeLibraryError(Exception):
@@ -513,7 +511,7 @@ def compile( typelibrary, stream ):
         DL_INSTANCE_HEADER_SIZE = 20
         
         # create typelibrary without defaults used to build default-structs
-        dl_ctx = libdl.DLContext( _TLBuffer = typelib_data )
+        dl_ctx = libdl.DLContext( typelib_buffer = typelib_data )
         
         default_data = ''
         for member in def_values.keys():

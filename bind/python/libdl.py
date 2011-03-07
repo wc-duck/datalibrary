@@ -87,47 +87,6 @@ class DLError(Exception):
         self.value = value
     def __str__(self):
         return '%s(0x%08X)' % ( self.err, self.value )
-         
-def try_default_dl_dll():
-    '''
-        load .so/.dll
-        
-        search order:
-        1) check for "--dl-dll"-flag in argv for path
-        2) check cwd
-        3) check same path as libdl.py
-        4) system paths ( on linux? )
-    '''
-    
-    def find_dldll_in_argv():
-        for arg in sys.argv: 
-            if arg.startswith( "--dldll" ): 
-                return arg.split('=')[1]
-        return ""
-    
-    DLL_NAME = 'dl'
-    if sys.platform in [ 'win32', 'win64' ]:
-        DLL_NAME += '.dll'
-    else:
-        DLL_NAME += '.so'
-
-    dl_path_generators = [ 
-        find_dldll_in_argv, 
-        lambda: os.path.join( os.path.dirname(__file__), DLL_NAME ),
-        lambda: os.path.join( os.getcwd(), DLL_NAME ) ]
-    
-    for dl_path in dl_path_generators:
-        path = dl_path()
-        
-        logging.debug( 'trying to load dl-shared library from: %s' % path )
-        
-        if( os.path.exists( path ) ):
-            logging.debug( 'loading dl-shared library from: %s' % path )
-            return path
-            
-    return None
-
-# try_default_dl_dll()
 
 class DLContext:
     class dl_cache_entry:
@@ -137,16 +96,10 @@ class DLContext:
             self.c_type  = c_type
             self.py_type = py_type
             
-    class dl_type_context_info(Structure):
-        _fields_ = [ ('num_types', c_uint), 
-                     ('num_enums', c_uint) ]
-
-    class dl_type_info(Structure):
-        _fields_ = [ ('name',         c_char_p), 
-                     ('size',         c_uint), 
-                     ('alignment',    c_uint), 
-                     ('member_count', c_uint) ]
-             
+    class dl_type_context_info(Structure): _fields_ = [ ('num_types', c_uint),   ('num_enums',   c_uint) ]
+    class dl_type_info(Structure):         _fields_ = [ ('name',      c_char_p), ('size',        c_uint), ('alignment', c_uint), ('member_count', c_uint) ]
+    class dl_enum_info(Structure):         _fields_ = [ ('name',      c_char_p), ('value_count', c_uint) ]
+    class dl_enum_value_info(Structure):   _fields_ = [ ('name',      c_char_p), ('value',       c_uint) ]
     class dl_member_info(Structure):
         _fields_ = [ ('name',        c_char_p),
                      ('type',        c_uint32), 
@@ -157,14 +110,6 @@ class DLContext:
         def StorageType(self):    return self.type & DL_TYPE_STORAGE_MASK
         def BitFieldBits(self):   return M_EXTRACT_BITS(self.type, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED)
         def BitFieldOffset(self): return M_EXTRACT_BITS(self.type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED)
-        
-    class dl_enum_info(Structure):
-        _fields_ = [ ('name', c_char_p), 
-                     ('value_count', c_uint) ]
-
-    class dl_enum_value_info(Structure):
-        _fields_ = [ ('name',  c_char_p),
-                     ('value', c_uint) ]
     
     class dl_type(object):
         def __init__(self):
@@ -280,11 +225,49 @@ class DLContext:
                 
         
         return py_instance
+    
+    def try_default_dl_dll( self ):
+        '''
+            load .so/.dll
+            
+            search order:
+            1) check for "--dl-dll"-flag in argv for path
+            2) check cwd
+            3) check same path as libdl.py
+            4) system paths ( on linux? )
+        '''
         
-    def __init__( self, _TLBuffer = None, _TLFile = None, dll_path = None ):
+        def find_dldll_in_argv():
+            for arg in sys.argv: 
+                if arg.startswith( "--dldll" ): 
+                    return arg.split('=')[1]
+            return ""
+        
+        DLL_NAME = 'dl'
+        if sys.platform in [ 'win32', 'win64' ]:
+            DLL_NAME += '.dll'
+        else:
+            DLL_NAME += '.so'
+    
+        dl_path_generators = [ 
+            find_dldll_in_argv, 
+            lambda: os.path.join( os.path.dirname(__file__), DLL_NAME ),
+            lambda: os.path.join( os.getcwd(), DLL_NAME ) ]
+        
+        for dl_path in dl_path_generators:
+            path = dl_path()
+            
+            logging.debug( 'trying to load dl-shared library from: %s' % path )
+            
+            if( os.path.exists( path ) ):
+                logging.debug( 'loading dl-shared library from: %s' % path )
+                return path
+                
+        return None
+        
+    def __init__( self, typelib_buffer = None, typelib_file = None, dll_path = None ):
         if not dll_path:
-            dll_path = try_default_dl_dll()
-        
+            dll_path = self.try_default_dl_dll() 
         if not dll_path:
             raise DLError # fix me!
             
@@ -330,8 +313,8 @@ class DLContext:
         self.type_cache['fp64']   = self.dl_cache_entry( 0, [], c_double, type(c_double().value) )
         self.type_cache['string'] = self.dl_cache_entry( 0, [], c_char_p, str )
         
-        if _TLBuffer != None: self.LoadTypeLibrary(_TLBuffer)
-        if _TLFile   != None: self.LoadTypeLibraryFromFile(_TLFile)
+        if typelib_buffer != None: self.LoadTypeLibrary(typelib_buffer)
+        if typelib_file   != None: self.LoadTypeLibraryFromFile(typelib_file)
         
     def dl_dll_call( self, func_name, *args ):
         err = getattr( self.dl, func_name )( self.dl_ctx, *args )
