@@ -70,98 +70,40 @@ TEST_F(DLReflect, pods)
 }
 #endif // DL_UNITTEST_ALL
 
+#define CHECK_TYPE_INFO_CORRECT( TYPE_NAME, MEM_COUNT ) { \
+	dl_type_info_t ti; \
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, TYPE_NAME::TYPE_ID, &ti ) ); \
+	EXPECT_STREQ( #TYPE_NAME,            ti.name ); \
+	EXPECT_EQ(sizeof(TYPE_NAME),         ti.size); \
+	EXPECT_EQ(DL_ALIGNMENTOF(TYPE_NAME), ti.alignment); \
+	EXPECT_EQ(MEM_COUNT,                 ti.member_count); \
+}
+
 #ifdef DL_UNITTEST_ALL
-TEST_F(DLReflect, size_and_alignment)
+TEST_F(DLReflect, get_type_info)
 {
-	dl_type_info_t   ti;
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, Pods2::TYPE_ID, &ti));
-	EXPECT_EQ(sizeof(Pods2),                               ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(Pods2),                       ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, PtrChain::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(PtrChain),                            ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(PtrChain),                    ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, Pods::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(Pods),                                ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(Pods),                        ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, MoreBits::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(MoreBits),                            ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(MoreBits),                    ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, MorePods::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(MorePods),                            ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(MorePods),                    ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, Strings::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(Strings),                             ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(Strings),                     ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, TestBits::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(TestBits),                            ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(TestBits),                    ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, PodArray1::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(PodArray1),                           ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(PodArray1),                   ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, PodArray2::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(PodArray2),                           ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(PodArray2),                   ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, SimplePtr::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(SimplePtr),                           ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(SimplePtr),                   ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, StringArray::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(StringArray),                         ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(StringArray),                 ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, StructArray1::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(StructArray1),                        ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(StructArray1),                ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, Pod2InStruct::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(Pod2InStruct),                        ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(Pod2InStruct),                ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, WithInlineArray::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(WithInlineArray),                     ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(WithInlineArray),             ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, StringInlineArray::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(StringInlineArray),                   ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(StringInlineArray),           ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, Pod2InStructInStruct::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(Pod2InStructInStruct),                ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(Pod2InStructInStruct),        ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, WithInlineStructArray::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(WithInlineStructArray),               ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(WithInlineStructArray),       ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, WithInlineStructStructArray::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(WithInlineStructStructArray),         ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(WithInlineStructStructArray), ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, DoublePtrChain::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(DoublePtrChain),                      ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(DoublePtrChain),              ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, A128BitAlignedType::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(A128BitAlignedType),                  ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(A128BitAlignedType),          ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, BugTest1::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(BugTest1),                            ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(BugTest1),                    ti.alignment);
-
-	EXPECT_DL_ERR_OK(                                      dl_reflect_get_type_info(Ctx, BugTest1_InArray::TYPE_ID, &ti ));
-	EXPECT_EQ(sizeof(BugTest1_InArray),                    ti.size);
-	EXPECT_EQ(DL_ALIGNMENTOF(BugTest1_InArray),            ti.alignment);
+	CHECK_TYPE_INFO_CORRECT( Pods, 10 );
+	CHECK_TYPE_INFO_CORRECT( Pods2, 2 );
+	CHECK_TYPE_INFO_CORRECT( Strings, 2 );
+	CHECK_TYPE_INFO_CORRECT( PtrChain, 2 );
+	CHECK_TYPE_INFO_CORRECT( MoreBits, 2 );
+	CHECK_TYPE_INFO_CORRECT( MorePods, 2 );
+	CHECK_TYPE_INFO_CORRECT( TestBits, 7 );
+	CHECK_TYPE_INFO_CORRECT( PodArray1, 1 );
+	CHECK_TYPE_INFO_CORRECT( PodArray2, 1 );
+	CHECK_TYPE_INFO_CORRECT( SimplePtr, 2 );
+	CHECK_TYPE_INFO_CORRECT( StringArray, 1 );
+	CHECK_TYPE_INFO_CORRECT( StructArray1, 1 );
+	CHECK_TYPE_INFO_CORRECT( Pod2InStruct, 2 );
+	CHECK_TYPE_INFO_CORRECT( WithInlineArray, 1 );
+	CHECK_TYPE_INFO_CORRECT( StringInlineArray, 1 );
+	CHECK_TYPE_INFO_CORRECT( Pod2InStructInStruct, 1 );
+	CHECK_TYPE_INFO_CORRECT( WithInlineStructArray, 1 );
+	CHECK_TYPE_INFO_CORRECT( WithInlineStructStructArray, 1 );
+	CHECK_TYPE_INFO_CORRECT( DoublePtrChain, 3 );
+	CHECK_TYPE_INFO_CORRECT( A128BitAlignedType, 1 );
+	CHECK_TYPE_INFO_CORRECT( BugTest1, 1 );
+	CHECK_TYPE_INFO_CORRECT( BugTest1_InArray, 3 );
 }
 #endif // DL_UNITTEST_ALL
 
