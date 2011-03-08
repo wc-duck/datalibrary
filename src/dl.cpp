@@ -138,10 +138,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 						dl_internal_patch_ptr(pMemberData, base_data);
 
 						if(*ppPtr != 0x0)
-						{
-							const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
-							dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, *ppPtr, pSubType, base_data, false );
-						}
+							dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, *ppPtr, DLFindType(dl_ctx, Member.type_id), base_data, false );
 					}
 					break;
 					default:
@@ -207,22 +204,22 @@ struct SOneMemberType
 {
 	SOneMemberType(const SDLMember* _pMember)
 	{
-		m_Size[0] = _pMember->size[0];
-		m_Size[1] = _pMember->size[1];
-		m_Alignment[0] = _pMember->alignment[0];
-		m_Alignment[1] = _pMember->alignment[1];
-		m_nMembers = 1;
+		size[0] = _pMember->size[0];
+		size[1] = _pMember->size[1];
+		alignment[0] = _pMember->alignment[0];
+		alignment[1] = _pMember->alignment[1];
+		member_count = 1;
 
-		memcpy(&m_Member, _pMember, sizeof(SDLMember));
-		m_Member.offset[0] = 0;
-		m_Member.offset[0] = 0;
+		memcpy(&members, _pMember, sizeof(SDLMember));
+		members.offset[0] = 0;
+		members.offset[0] = 0;
 	}
 
 	char      m_Name[DL_TYPE_NAME_MAX_LEN];
-	uint32    m_Size[2];
-	uint32    m_Alignment[2];
-	uint32    m_nMembers;
-	SDLMember m_Member;
+	uint32    size[2];
+	uint32    alignment[2];
+	uint32    member_count;
+	SDLMember members;
 };
 
 DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
@@ -481,20 +478,20 @@ struct CDLBinStoreContext
 	CArrayStatic<SWrittenPtr, 128> m_WrittenPtrs;
 };
 
-static void DLInternalStoreString(const uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
+static void dl_internal_store_string( const uint8* instance, CDLBinStoreContext* store_ctx )
 {
-	char* pTheString = *(char**)_pInstance;
-	pint Pos = _pStoreContext->writer.Tell();
-	_pStoreContext->writer.SeekEnd();
-	pint Offset = _pStoreContext->writer.Tell();
-	_pStoreContext->writer.Write(pTheString, strlen(pTheString) + 1);
-	_pStoreContext->writer.SeekSet(Pos);
-	_pStoreContext->writer.Write(&Offset, sizeof(pint));
+	char* pTheString = *(char**)instance;
+	pint Pos = store_ctx->writer.Tell();
+	store_ctx->writer.SeekEnd();
+	pint Offset = store_ctx->writer.Tell();
+	store_ctx->writer.Write(pTheString, strlen(pTheString) + 1);
+	store_ctx->writer.SeekSet(Pos);
+	store_ctx->writer.Write(&Offset, sizeof(pint));
 }
 
 static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_type, uint8* instance, CDLBinStoreContext* store_ctx);
 
-static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMember, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
+static dl_error_t dl_internal_store_member(dl_ctx_t _Context, const SDLMember* _pMember, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
 {
 	_pStoreContext->writer.Align(_pMember->alignment[DL_PTR_SIZE_HOST]);
 
@@ -519,7 +516,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 				}
 				break;
 				case DL_TYPE_STORAGE_STR:
-					DLInternalStoreString(_pInstance, _pStoreContext);
+					dl_internal_store_string(_pInstance, _pStoreContext);
 					break;
 				case DL_TYPE_STORAGE_PTR:
 				{
@@ -575,7 +572,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 					uint32 Count = _pMember->size[DL_PTR_SIZE_HOST] / sizeof(char*);
 
 					for(uint32 iElem = 0; iElem < Count; ++iElem)
-						DLInternalStoreString(_pInstance + (iElem * sizeof(char*)), _pStoreContext);
+						dl_internal_store_string(_pInstance + (iElem * sizeof(char*)), _pStoreContext);
 				}
 				break;
 				default: // default is a standard pod-type
@@ -634,7 +631,7 @@ static dl_error_t DLInternalStoreMember(dl_ctx_t _Context, const SDLMember* _pMe
 						break;
 					case DL_TYPE_STORAGE_STR:
 						for (unsigned int iElem = 0; iElem < Count; ++iElem)
-							DLInternalStoreString(pData + (iElem * Size), _pStoreContext);
+							dl_internal_store_string(pData + (iElem * Size), _pStoreContext);
 						break;
 					default:
 						for (unsigned int iElem = 0; iElem < Count; ++iElem)
@@ -673,7 +670,7 @@ static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_
 
 		if(!bLastWasBF || Member.AtomType() != DL_TYPE_ATOM_BITFIELD)
 		{
-			dl_error_t Err = DLInternalStoreMember(dl_ctx, &Member, instance + Member.offset[DL_PTR_SIZE_HOST], store_ctx);
+			dl_error_t Err = dl_internal_store_member(dl_ctx, &Member, instance + Member.offset[DL_PTR_SIZE_HOST], store_ctx);
 			if(Err != DL_ERROR_OK)
 				return Err;
 		}
