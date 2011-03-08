@@ -238,10 +238,16 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 	// ptr-patch and convert to native
 	for(uint32 iType = first_new_type; iType < dl_ctx->type_count; ++iType)
 	{
-		const SDLType* pType = (SDLType*)(dl_ctx->type_info_data + dl_ctx->type_lookup[iType].offset);
-		for(uint32 iMember = 0; iMember < pType->member_count; ++iMember)
+		union
 		{
-			SDLMember* pMember = (SDLMember*)pType->members + iMember;
+			const uint8*   data_ptr;
+			const SDLType* type_ptr;
+		} ptr_conv;
+		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[iType].offset;
+
+		for(uint32 iMember = 0; iMember < ptr_conv.type_ptr->member_count; ++iMember)
+		{
+			SDLMember* pMember = (SDLMember*)ptr_conv.type_ptr->members + iMember;
 			if(pMember->default_value_offset == DL_UINT32_MAX)
 				continue;
 
@@ -316,7 +322,13 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		{
 			look->type_id  = DLSwapEndian(_pFromData->type_id);
 			look->offset   = dl_ctx->type_info_data_size + DLSwapEndian(_pFromData->offset);
-			SDLType* pType = (SDLType*)(dl_ctx->type_info_data + look->offset );
+			union
+			{
+				const uint8* data_ptr;
+				SDLType*     type_ptr;
+			} ptr_conv;
+			ptr_conv.data_ptr = dl_ctx->type_info_data + look->offset;
+			SDLType* pType = ptr_conv.type_ptr;
 
 			pType->size[DL_PTR_SIZE_32BIT]      = DLSwapEndian(pType->size[DL_PTR_SIZE_32BIT]);
 			pType->size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(pType->size[DL_PTR_SIZE_64BIT]);
@@ -364,7 +376,13 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		{
 			look->type_id  = DLSwapEndian(_pEnumFromData->type_id);
 			look->offset   = dl_ctx->enum_info_data_size + DLSwapEndian(_pEnumFromData->offset);
-			SDLEnum* e = (SDLEnum*)(dl_ctx->enum_info_data + look->offset);
+			union
+			{
+				const uint8* data_ptr;
+				SDLEnum*     enum_ptr;
+			} ptr_conv;
+			ptr_conv.data_ptr = dl_ctx->enum_info_data + look->offset;
+			SDLEnum* e = ptr_conv.enum_ptr;
 
 			e->type_id     = DLSwapEndian(e->type_id);
 			e->value_count = DLSwapEndian(e->value_count);

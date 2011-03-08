@@ -281,7 +281,15 @@ static inline const SDLType* DLFindType(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 	// linear search right now!
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 		if(dl_ctx->type_lookup[i].type_id == type_id)
-			return (SDLType*)(dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset);
+		{
+			union
+			{
+				const uint8*   data_ptr;
+				const SDLType* type_ptr;
+			} ptr_conv;
+			ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
+			return ptr_conv.type_ptr;
+		}
 
 	return 0x0;
 }
@@ -290,7 +298,15 @@ static inline const SDLEnum* DLFindEnum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
 	for (unsigned int i = 0; i < dl_ctx->enum_count; ++i)
 		if( dl_ctx->enum_lookup[i].type_id == type_id )
-			return (SDLEnum*)( dl_ctx->enum_info_data + dl_ctx->enum_lookup[i].offset );
+		{
+			union
+			{
+				const uint8*   data_ptr;
+				const SDLEnum* enum_ptr;
+			} ptr_conv;
+			ptr_conv.data_ptr = dl_ctx->enum_info_data + dl_ctx->enum_lookup[i].offset;
+			return ptr_conv.enum_ptr;
+		}
 
 	return 0x0;
 }
