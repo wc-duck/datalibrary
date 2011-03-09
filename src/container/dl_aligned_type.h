@@ -4,6 +4,7 @@
 #define CONTAINER_ALIGNED_TYPE_H_INCLUDED
 
 #include <dl/dl_defines.h>
+#include "../dl_types.h"
 
 template<unsigned int N> struct TAlignedType
 {
