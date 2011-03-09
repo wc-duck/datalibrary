@@ -97,7 +97,7 @@ enum
 
 #include "dl_swap.h"
 
-static const uint32 DL_TYPELIB_VERSION    = 1; // format version for type-libraries.
+static const uint32 DL_TYPELIB_VERSION    = 2; // format version for type-libraries.
 static const uint32 DL_INSTANCE_VERSION   = 1; // format version for instances.
 static const uint32 DL_INSTANCE_VERSION_SWAPED = DLSwapEndian(DL_INSTANCE_VERSION);
 static const uint32 DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
@@ -117,14 +117,11 @@ struct SDLTypeLibraryHeader
 	uint32 version;
 
 	uint32 type_count;		// number of types in typelibrary
-	uint32 types_offset;	// offset from start of data where types are stored
 	uint32 types_size;		// number of bytes that are types
 
 	uint32 enum_count;		// number of enums in typelibrary
-	uint32 enums_offset;   // offset from start of data where enums are stored
 	uint32 enums_size;		// number of bytes that are enums
 
-	uint32 default_value_offset;
 	uint32 default_value_size;
 };
 

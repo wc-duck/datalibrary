@@ -393,20 +393,16 @@ def read( stream ):
 def compile( typelibrary, stream ):
     ''' create binary lib '''
     
-    HEADER_FMT  = '<ccccIIIIIIIII'
+    HEADER_FMT  = '<ccccIIIIII'
     HEADER_SIZE = struct.calcsize(HEADER_FMT)
     
     def build_header( typelibrary, type_lookup, type_data, enum_lookup, enum_data, default_data ):
-        # TODO: offsets here seem unneeded!
-        header =  ''.join( [ struct.pack('<4sI', 'LTLD', 1) ] ) # typelibrary identifier and version
+        header = struct.pack('<4sI', 'LTLD', 2) # typelibrary identifier and version
         
         # TODO: using type_order here due to builtins present in .types... fix me that!
-        curr_offset = HEADER_SIZE + len(type_lookup)
-        header = ''.join( [ header, struct.pack('<III', len(typelibrary.type_order), curr_offset, len(type_data) ) ] ) # type info
-        curr_offset += len(type_data) + len(enum_lookup)
-        header = ''.join( [ header, struct.pack('<III', len(typelibrary.enums),      curr_offset, len(enum_data) ) ] ) # type info
-        curr_offset += len(enum_data)
-        header = ''.join( [ header, struct.pack('<II',                               curr_offset, len(default_data) ) ] ) # default data
+        header = ''.join( [ header, struct.pack('<II', len(typelibrary.type_order), len(type_data) ) ] ) # type info
+        header = ''.join( [ header, struct.pack('<II', len(typelibrary.enums),      len(enum_data) ) ] ) # enum info
+        header = ''.join( [ header, struct.pack('<I',                               len(default_data) ) ] ) # default data
         
         assert HEADER_SIZE == len(header)
         

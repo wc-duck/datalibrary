@@ -286,14 +286,11 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 		header->version      = DLSwapEndian(header->version);
 
 		header->type_count   = DLSwapEndian(header->type_count);
-		header->types_offset = DLSwapEndian(header->types_offset);
 		header->types_size   = DLSwapEndian(header->types_size);
 
 		header->enum_count   = DLSwapEndian(header->enum_count);
-		header->enums_offset = DLSwapEndian(header->enums_offset);
 		header->enums_size   = DLSwapEndian(header->enums_size);
 
-		header->default_value_offset = DLSwapEndian(header->default_value_offset);
 		header->default_value_size   = DLSwapEndian(header->default_value_size);
 	}
 }
@@ -309,8 +306,16 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	if( Header.id      != DL_TYPELIB_ID )      return DL_ERROR_MALFORMED_DATA;
 	if( Header.version != DL_TYPELIB_VERSION ) return DL_ERROR_VERSION_MISMATCH;
 
+	unsigned int types_offset    = sizeof(SDLTypeLibraryHeader) + Header.type_count * sizeof(dl_type_lookup_t);
+	unsigned int enums_offset    = types_offset + Header.types_size + Header.enum_count * sizeof(dl_type_lookup_t);
+	unsigned int defaults_offset = enums_offset + Header.enums_size;
+
+	const unsigned char* types_data    = lib_data + types_offset;
+	const unsigned char* enums_data    = lib_data + enums_offset;
+	const unsigned char* defaults_data = lib_data + defaults_offset;
+
 	// store type-info data.
-	dl_ctx->type_info_data = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->type_info_data, dl_ctx->type_info_data_size, lib_data + Header.types_offset, Header.types_size );
+	dl_ctx->type_info_data = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->type_info_data, dl_ctx->type_info_data_size, types_data, Header.types_size );
 
 	// read type-lookup table
 	dl_type_lookup_t* _pFromData = (dl_type_lookup_t*)(lib_data + sizeof(SDLTypeLibraryHeader));
@@ -364,10 +369,10 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->type_info_data_size += Header.types_size;
 
 	// store enum-info data.
-	dl_ctx->enum_info_data = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->enum_info_data, dl_ctx->enum_info_data_size, lib_data + Header.enums_offset, Header.enums_size );
+	dl_ctx->enum_info_data = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->enum_info_data, dl_ctx->enum_info_data_size, enums_data, Header.enums_size );
 
 	// read enum-lookup table
-	dl_type_lookup_t* _pEnumFromData = (dl_type_lookup_t*)(lib_data + Header.types_offset + Header.types_size);
+	dl_type_lookup_t* _pEnumFromData = (dl_type_lookup_t*)(lib_data + types_offset + Header.types_size);
 	for(uint32 i = dl_ctx->enum_count; i < dl_ctx->enum_count + Header.enum_count; ++i)
 	{
 		dl_type_lookup_t* look = dl_ctx->enum_lookup + i;
@@ -401,7 +406,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->enum_count          += Header.enum_count;
 	dl_ctx->enum_info_data_size += Header.enums_size;
 
-	return dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->type_count - Header.type_count, lib_data + Header.default_value_offset, Header.default_value_size );
+	return dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->type_count - Header.type_count, defaults_data, Header.default_value_size );
 }
 
 dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  type,
