@@ -242,6 +242,17 @@ int main(int argc, char** argv)
 	{
 		dl_instance_info_t info;
 		dl_instance_get_info( InData, Size, &info );
+
+		/*
+		dl_error_t err;
+		void* instance = 0;
+		err = dl_util_load_from_stream( Ctx, info.root_type, pInFile, DL_UTIL_FILE_TYPE_AUTO, &instance );
+		if( err != DL_ERROR_OK ) M_ERROR_AND_QUIT( "DL error reading stream: %s", dl_error_to_string(err));
+		err = dl_util_store_to_stream( Ctx, info.root_type, pOutFile, DL_UTIL_FILE_TYPE_TEXT, DL_ENDIAN_HOST, sizeof(void*), instance );
+		if( err != DL_ERROR_OK ) M_ERROR_AND_QUIT( "DL error writing stream: %s", dl_error_to_string(err));
+		free( instance );
+		*/
+
 		if(sizeof(void*) <= info.ptrsize)
 		{
 			// we are converting ptr-size down and can use the faster inplace load.
@@ -281,6 +292,13 @@ int main(int argc, char** argv)
 	}
 	else
 	{
+		/*
+		void* instance = 0;
+		dl_util_load_from_stream( Ctx, SOME_TYPE_ID, pInFile, DL_UTIL_FILE_TYPE_AUTO, &instance );
+		dl_util_store_to_stream( Ctx, SOME_TYPE_ID, pOutFile, DL_UTIL_FILE_TYPE_BINARY, Endian, PtrSize, instance );
+		free( instance );
+		*/
+
 		dl_error_t err = dl_txt_pack_calc_size(Ctx, (char*)InData, &OutDataSize);
 		if(err != DL_ERROR_OK)
 			M_ERROR_AND_QUIT("DL error while calculating pack size: %s", dl_error_to_string(err));

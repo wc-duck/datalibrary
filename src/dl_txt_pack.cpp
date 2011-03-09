@@ -63,7 +63,7 @@ class CFlagField
 
 	enum
 	{
-		BITS_PER_STORAGE = DL_BITS_IN_TYPE(uint32),
+		BITS_PER_STORAGE = sizeof(uint32) * 8,
 		BITS_FOR_FIELD   = 5
 	};
 
@@ -391,7 +391,7 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 		case DL_PACK_STATE_INSTANCE_TYPE:
 			DL_ASSERT(pCtx->m_pRootType == 0x0);
 			// we are packing an instance, get the type plox!
-			pCtx->m_pRootType = DLFindType(pCtx->m_DLContext, DLHashBuffer(_pStringVal, _StringLen, 0));
+			pCtx->m_pRootType = dl_internal_find_type(pCtx->m_DLContext, dl_internal_hash_buffer(_pStringVal, _StringLen, 0));
 
 			if(pCtx->m_pRootType == 0x0) 
 				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", _StringLen, _pStringVal);
@@ -405,7 +405,7 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 		break;
 		case DL_PACK_STATE_ENUM:
 		{
-			uint32 EnumValue = DLFindEnumValue(pCtx->m_StateStack.Top().m_pEnum, (const char*)_pStringVal, _StringLen);
+			uint32 EnumValue = dl_internal_find_enum_value(pCtx->m_StateStack.Top().m_pEnum, (const char*)_pStringVal, _StringLen);
 			pCtx->m_Writer->Write(EnumValue);
 			pCtx->ArrayItemPop();
 		}
@@ -420,7 +420,7 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 // TODO: This function is not optimal on any part and should be removed, store this info in the member as one bit!
 static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
 {
-	const SDLType* le_type = DLFindType( dl_ctx, type );
+	const SDLType* le_type = dl_internal_find_type( dl_ctx, type );
 
 	if(le_type == 0) // not sturct
 		return false;
@@ -466,7 +466,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 		{
 			SDLPackState& State = pCtx->m_StateStack.Top();
 
-			unsigned int MemberID = DLFindMember( State.m_pType, DLHashBuffer(_pStringVal, _StringLen, 0) );
+			unsigned int MemberID = dl_internal_find_member( State.m_pType, dl_internal_hash_buffer(_pStringVal, _StringLen, 0) );
 
 			if(MemberID > State.m_pType->member_count) 
 				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_MEMBER_NOT_FOUND, "Type \"%s\" has no member named \"%.*s\"!", State.m_pType->name, _StringLen, _pStringVal);
@@ -499,14 +499,14 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->type_id);
+							const SDLType* pSubType = dl_internal_find_type(pCtx->m_DLContext, pMember->type_id);
 							if(pSubType == 0x0)
 								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->name);
 							pCtx->PushStructState(pSubType); 
 						}
 						break;
 						case DL_TYPE_STORAGE_PTR:  pCtx->PushMemberState(DL_PACK_STATE_SUBDATA_ID, pMember); break;
-						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState(DLFindEnum(pCtx->m_DLContext, pMember->type_id)); break;
+						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState(dl_internal_find_enum(pCtx->m_DLContext, pMember->type_id)); break;
 						default:
 							DL_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
 							pCtx->PushState(EDLPackState(StorageType));
@@ -532,7 +532,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->type_id);
+							const SDLType* pSubType = dl_internal_find_type(pCtx->m_DLContext, pMember->type_id);
 							if(pSubType == 0x0)
 								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->name );
 							pCtx->PushStructState(pSubType);
@@ -540,7 +540,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 						break;
 						case DL_TYPE_STORAGE_ENUM:
 						{
-							const SDLEnum* pEnum = DLFindEnum(pCtx->m_DLContext, pMember->type_id);
+							const SDLEnum* pEnum = dl_internal_find_enum(pCtx->m_DLContext, pMember->type_id);
 							if(pEnum == 0x0) 
 								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->name);
 							pCtx->PushEnumState(pEnum);
@@ -588,7 +588,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 
 			DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
 			DL_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
-			const SDLType* pSubType = DLFindType(pCtx->m_DLContext, pMember->type_id);
+			const SDLType* pSubType = dl_internal_find_type(pCtx->m_DLContext, pMember->type_id);
 			if(pSubType == 0x0)
 				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->name);
 			pCtx->m_Writer->Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
@@ -916,7 +916,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 		SDLDataHeader Header;
 		Header.id = DL_INSTANCE_ID;
 		Header.version = DL_INSTANCE_VERSION;
-		Header.root_instance_type = DLHashString(PackContext.m_pRootType->name);
+		Header.root_instance_type = dl_internal_hash_string(PackContext.m_pRootType->name); // TODO: Read typeid from somewhere, instance-id-generation might change!
 		Header.instance_size = (uint32)Writer.NeededSize();
 		Header.is_64_bit_ptr = sizeof(void*) == 8 ? 1 : 0;
 		memcpy(out_buffer, &Header, sizeof(SDLDataHeader));

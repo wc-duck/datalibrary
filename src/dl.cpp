@@ -131,14 +131,14 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 				switch(StorageType)
 				{
 					case DL_TYPE_STORAGE_STR:    dl_internal_patch_ptr(pMemberData, base_data); break;
-					case DL_TYPE_STORAGE_STRUCT: dl_internal_patch_loaded_ptrs(dl_ctx, patched_instances, pMemberData, DLFindType( dl_ctx, Member.type_id), base_data, true ); break;
+					case DL_TYPE_STORAGE_STRUCT: dl_internal_patch_loaded_ptrs(dl_ctx, patched_instances, pMemberData, dl_internal_find_type( dl_ctx, Member.type_id), base_data, true ); break;
 					case DL_TYPE_STORAGE_PTR:
 					{
 						uint8** ppPtr = (uint8**)pMemberData;
 						dl_internal_patch_ptr(pMemberData, base_data);
 
 						if(*ppPtr != 0x0)
-							dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, *ppPtr, DLFindType(dl_ctx, Member.type_id), base_data, false );
+							dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, *ppPtr, dl_internal_find_type(dl_ctx, Member.type_id), base_data, false );
 					}
 					break;
 					default:
@@ -161,7 +161,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 						if(StorageType == DL_TYPE_STORAGE_STRUCT)
 						{
 							// patch sub-ptrs!
-							const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
+							const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 							uint32 Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
 
 							for(uint32 iElemOffset = 0; iElemOffset < Count * Size; iElemOffset += Size)
@@ -430,7 +430,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
 	if( header->instance_size > instance_size )        return DL_ERROR_BUFFER_TO_SMALL;
 
-	const SDLType* pType = DLFindType(dl_ctx, header->root_instance_type);
+	const SDLType* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -462,7 +462,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	if( header->version != DL_INSTANCE_VERSION )       return DL_ERROR_VERSION_MISMATCH;
 	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
 
-	const SDLType* pType = DLFindType(dl_ctx, header->root_instance_type);
+	const SDLType* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -536,7 +536,7 @@ static dl_error_t dl_internal_store_member(dl_ctx_t _Context, const SDLMember* _
 			{
 				case DL_TYPE_STORAGE_STRUCT:
 				{
-					const SDLType* pSubType = DLFindType(_Context, _pMember->type_id);
+					const SDLType* pSubType = dl_internal_find_type(_Context, _pMember->type_id);
 					if(pSubType == 0x0)
 					{
 						dl_log_error( _Context, "Could not find subtype for member %s", _pMember->name );
@@ -563,7 +563,7 @@ static dl_error_t dl_internal_store_member(dl_ctx_t _Context, const SDLMember* _
 						pint Pos = _pStoreContext->writer.Tell();
 						_pStoreContext->writer.SeekEnd();
 
-						const SDLType* pSubType = DLFindType(_Context, _pMember->type_id);
+						const SDLType* pSubType = dl_internal_find_type(_Context, _pMember->type_id);
 						pint Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
 						_pStoreContext->writer.Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
 
@@ -633,7 +633,7 @@ static dl_error_t dl_internal_store_member(dl_ctx_t _Context, const SDLMember* _
 				switch(StorageType)
 				{
 					case DL_TYPE_STORAGE_STRUCT:
-						pSubType = DLFindType(_Context, _pMember->type_id);
+						pSubType = dl_internal_find_type(_Context, _pMember->type_id);
 						Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
 						_pStoreContext->writer.Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
 						break;
@@ -717,7 +717,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type,     
 	if( out_buffer_size > 0 && out_buffer_size <= sizeof(SDLDataHeader) )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	const SDLType* pType = DLFindType(dl_ctx, type);
+	const SDLType* pType = dl_internal_find_type(dl_ctx, type);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 

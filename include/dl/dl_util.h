@@ -10,6 +10,8 @@
 
 #include <dl/dl.h>
 
+#include <stdio.h>
+
 /*
 	Enum: dl_util_file_type_t
 		Enumeration of possible file types that can be read by util-functions.
@@ -26,6 +28,12 @@ enum dl_util_file_type_t
 };
 
 /*
+	Function: dl_util_load_from_stream
+		bopp
+*/
+dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx, dl_typeid_t type, FILE* stream, dl_util_file_type_t filetype, void** out_instance, dl_typeid_t* out_type );
+
+/*
 	Function: dl_util_load_from_file
 		Utility function that loads an dl-instance from file.
 
@@ -37,16 +45,25 @@ enum dl_util_file_type_t
 
 	Parameters:
 		dl_ctx       - Context to use for operations.
-		type         - Type expected to be found in file.
+		type         - Type expected to be found in file, set to 0 if not known.
 		filename     - Path to file to load from.
 		filetype     - Type of file to read, see EDLUtilFileType.
 		out_instance - Pointer to fill with read instance.
+		out_type     - TypeID of instance found in file, can be set to 0x0.
 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, void** out_instance );
+dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, void** out_instance, dl_typeid_t* out_type );
 
+/*
+	Function: dl_util_load_from_stream_inplace
+		bopp
+*/
+dl_error_t dl_util_load_from_stream_inplace( dl_ctx_t     dl_ctx,       dl_typeid_t         type,
+											 FILE*        stream,       dl_util_file_type_t filetype,
+											 void*        out_instance, unsigned int        out_instance_size,
+											 dl_typeid_t* out_type );
 /*
 	Function: dl_util_load_from_file_inplace
 		Utility function that loads an dl-instance from file to a specified memory-area.
@@ -66,7 +83,19 @@ dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file_inplace( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, void* out_instance, unsigned int out_instance_size );
+dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_t         type,
+										   const char*  filename,     dl_util_file_type_t filetype,
+										   void*        out_instance, unsigned int        out_instance_size,
+										   dl_typeid_t* out_type );
+
+/*
+	Function: dl_util_store_to_stream
+		bopp
+*/
+dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
+									FILE*       stream,     dl_util_file_type_t filetype,
+									dl_endian_t out_endian, unsigned int        out_ptr_size,
+									void*       out_instance );
 
 /*
 	Function: dl_util_store_to_file
@@ -88,6 +117,9 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t dl_ctx, dl_typeid_t type, co
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_store_to_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, dl_endian_t out_endian, unsigned int out_ptr_size, void* out_instance );
+dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
+								  const char* filename,   dl_util_file_type_t filetype,
+								  dl_endian_t out_endian, unsigned int        out_ptr_size,
+								  void*       out_instance );
 
 #endif // DL_DL_UTIL_H_INCLUDED

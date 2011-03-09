@@ -273,7 +273,7 @@ static inline pint DLPodSize(dl_type_t _Type)
 	}
 }
 
-static inline const SDLType* DLFindType(dl_ctx_t dl_ctx, dl_typeid_t type_id)
+static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
 	// linear search right now!
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
@@ -291,7 +291,7 @@ static inline const SDLType* DLFindType(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 	return 0x0;
 }
 
-static inline const SDLEnum* DLFindEnum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
+static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
 	for (unsigned int i = 0; i < dl_ctx->enum_count; ++i)
 		if( dl_ctx->enum_lookup[i].type_id == type_id )
@@ -308,7 +308,7 @@ static inline const SDLEnum* DLFindEnum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 	return 0x0;
 }
 
-static inline uint32 DLFindEnumValue( const SDLEnum* e, const char* name, unsigned int name_len )
+static inline uint32 dl_internal_find_enum_value( const SDLEnum* e, const char* name, unsigned int name_len )
 {
 	for( unsigned int j = 0; j < e->value_count; ++j )
 		if( strncmp( e->values[j].name, name, name_len ) == 0 )
@@ -316,9 +316,9 @@ static inline uint32 DLFindEnumValue( const SDLEnum* e, const char* name, unsign
 	return 0;
 }
 
-static inline const char* DLFindEnumName( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32 value )
+static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32 value )
 {
-	const SDLEnum* e = DLFindEnum( dl_ctx, type_id );
+	const SDLEnum* e = dl_internal_find_enum( dl_ctx, type_id );
 
 	if( e == 0x0 )
 		return "UnknownEnum!";
@@ -330,37 +330,31 @@ static inline const char* DLFindEnumName( dl_ctx_t dl_ctx, dl_typeid_t type_id, 
 	return "UnknownEnum!";
 }
 
-DL_FORCEINLINE static uint32_t DLHashBuffer(const uint8* _pBuffer, unsigned int _Bytes, uint32_t _BaseHash)
+DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8* buffer, unsigned int bytes, uint32_t base_hash )
 {
-	DL_ASSERT(_pBuffer != 0x0 && "You made wrong!");
-	uint32 Hash = _BaseHash + 5381;
-	for (unsigned int i = 0; i < _Bytes; i++)
-		Hash = (Hash * uint32(33)) + *((uint8*)_pBuffer + i);
-	return Hash - 5381;
+	uint32 hash = base_hash + 5381;
+	for (unsigned int i = 0; i < bytes; i++)
+		hash = (hash * uint32(33)) + *((uint8*)buffer + i);
+	return hash - 5381;
 }
 
-DL_FORCEINLINE static uint32_t DLHashString(const char* _pStr, uint32_t _BaseHash = 0)
+DL_FORCEINLINE static uint32_t dl_internal_hash_string( const char* str, uint32_t base_hash = 0 )
 {
-	DL_ASSERT(_pStr != 0x0 && "You made wrong!");
-	uint32 Hash = _BaseHash + 5381;
-	for (unsigned int i = 0; _pStr[i] != 0; i++)
-		Hash = (Hash * uint32(33)) + _pStr[i];
-	return Hash - 5381; // So empty string == 0
+	uint32 hash = base_hash + 5381;
+	for (unsigned int i = 0; str[i] != 0; i++)
+		hash = (hash * uint32(33)) + str[i];
+	return hash - 5381; // So empty string == 0
 }
 
-static inline unsigned int DLFindMember(const SDLType* _pType, dl_typeid_t _NameHash)
+static inline unsigned int dl_internal_find_member( const SDLType* type, dl_typeid_t name_hash )
 {
 	// TODO: currently members only hold name, but they should hold a hash!
 
-	for(unsigned int i = 0; i < _pType->member_count; ++i)
-	{
-		const SDLMember* pMember = _pType->members + i;
-
-		if(DLHashString(pMember->name) == _NameHash)
+	for(unsigned int i = 0; i < type->member_count; ++i)
+		if(dl_internal_hash_string(type->members[i].name) == name_hash)
 			return i;
-	}
 
-	return _pType->member_count + 1;
+	return type->member_count + 1;
 }
 
 #endif // DL_DL_TYPES_H_INCLUDED

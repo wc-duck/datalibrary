@@ -115,7 +115,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pStructType = DLFindType(_Ctx->m_Ctx, Member.type_id);
+						const SDLType* pStructType = dl_internal_find_type(_Ctx->m_Ctx, Member.type_id);
 						if(pStructType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Subtype for member %s not found!", Member.name); return; }
 
 						DLWriteInstance(_Ctx, pStructType, pMemberData, _pDataBase);
@@ -145,7 +145,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					break;
 					case DL_TYPE_STORAGE_ENUM:
 					{
-						const char* pEnumName = DLFindEnumName(_Ctx->m_Ctx, Member.type_id, *(uint32*)pMemberData);
+						const char* pEnumName = dl_internal_find_enum_name(_Ctx->m_Ctx, Member.type_id, *(uint32*)pMemberData);
 						yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, (unsigned int)strlen(pEnumName));
 					}
 					break;
@@ -167,7 +167,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(_Ctx->m_Ctx, Member.type_id);
 						if(pSubType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", Member.name); return; }
 
 						pint Size  = pSubType->size[DL_PTR_SIZE_HOST];
@@ -201,7 +201,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 						{
 							uint32* pEnumData = (uint32*)pMemberData;
 
-							const char* pEnumName = DLFindEnumName(_Ctx->m_Ctx, Member.type_id, pEnumData[iElem]);
+							const char* pEnumName = dl_internal_find_enum_name(_Ctx->m_Ctx, Member.type_id, pEnumData[iElem]);
 							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, (unsigned int)strlen(pEnumName));
 						}
 					}
@@ -231,7 +231,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(_Ctx->m_Ctx, Member.type_id);
 						if(pSubType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", Member.name); return; }
 
 						pint Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
@@ -255,7 +255,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 
 						for(pint iElem = 0; iElem < Count; ++iElem)
 						{
-							const char* pEnumName = DLFindEnumName(_Ctx->m_Ctx, Member.type_id, pEnumData[iElem]);
+							const char* pEnumName = dl_internal_find_enum_name(_Ctx->m_Ctx, Member.type_id, pEnumData[iElem]);
 							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pEnumName, (unsigned int)strlen(pEnumName));
 						}
 					}
@@ -332,7 +332,7 @@ static void DLWriteRoot(SDLUnpackContext* _Ctx, const SDLType* _pType, const uns
 				DL_ASSERT(pMember->AtomType() == DL_TYPE_ATOM_POD);
 				DL_ASSERT(pMember->StorageType() == DL_TYPE_STORAGE_PTR);
 
-				const SDLType* pSubType = DLFindType(_Ctx->m_Ctx, pMember->type_id);
+				const SDLType* pSubType = dl_internal_find_type(_Ctx->m_Ctx, pMember->type_id);
 				if(pSubType == 0x0)
 				{
 					dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", pMember->name);
@@ -395,12 +395,12 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  ty
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
 	if( packed_instance_size < sizeof(SDLDataHeader) ) return DL_ERROR_MALFORMED_DATA;
-	if( header->id == DL_INSTANCE_ID_SWAPED )        return DL_ERROR_ENDIAN_MISMATCH;
-	if( header->id != DL_INSTANCE_ID )               return DL_ERROR_MALFORMED_DATA;
-	if( header->version != DL_INSTANCE_VERSION)      return DL_ERROR_VERSION_MISMATCH;
+	if( header->id == DL_INSTANCE_ID_SWAPED )          return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->id != DL_INSTANCE_ID )                 return DL_ERROR_MALFORMED_DATA;
+	if( header->version != DL_INSTANCE_VERSION)        return DL_ERROR_VERSION_MISMATCH;
 	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
 
-	const SDLType* pType = DLFindType(dl_ctx, header->root_instance_type);
+	const SDLType* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND; // could not find root-type!
 

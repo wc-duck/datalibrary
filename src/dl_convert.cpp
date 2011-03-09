@@ -193,7 +193,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t       dl_ctx,
 					break;
 					case DL_TYPE_STORAGE_PTR:
 					{
-						const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -210,7 +210,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t       dl_ctx,
 					break;
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 						dl_internal_convert_collect_instances(dl_ctx, pSubType, pMemberData, base_data, convert_ctx);
@@ -225,7 +225,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t       dl_ctx,
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -292,7 +292,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t       dl_ctx,
 
 						const uint8* pArrayData = base_data + Offset;
 
-						const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -381,7 +381,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 						dl_internal_convert_write_struct(dl_ctx, pMemberData, pSubType, conv_ctx, writer);
@@ -417,7 +417,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pSubType = DLFindType(dl_ctx, Member.type_id);
+						const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -705,7 +705,7 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 
 	dl_typeid_t root_type_id = src_endian != DL_ENDIAN_HOST ? DLSwapEndian(header->root_instance_type) : header->root_instance_type;
 
-	const SDLType* root_type = DLFindType(dl_ctx, root_type_id);
+	const SDLType* root_type = dl_internal_find_type(dl_ctx, root_type_id);
 	if(root_type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
