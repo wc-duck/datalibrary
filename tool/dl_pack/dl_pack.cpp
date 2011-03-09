@@ -5,7 +5,6 @@
 #include <dl/dl_reflect.h>
 
 #include "getopt/getopt.h"
-#include "../../src/container/dl_array.h"  // this includes are horrific!
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +21,37 @@
 int g_Verbose = 0;
 int g_Unpack  = 0;
 int g_Info    = 0;
+
+enum
+{
+	MAX_LIB_PATHS = 128,
+	MAX_LIBS      = 128
+};
+
+unsigned int g_num_lib_paths = 0;
+const char*  g_lib_paths[MAX_LIB_PATHS];
+
+unsigned int g_num_libs = 0;
+const char*  g_libs[MAX_LIBS];
+
+bool add_lib_path( const char* path )
+{
+	if( g_num_lib_paths > MAX_LIB_PATHS )
+		return false;
+	// TODO: handle to many paths here!
+	g_lib_paths[g_num_lib_paths++] = path;
+	return true;
+}
+
+bool add_lib( const char* lib )
+{
+	if( g_num_lib_paths > MAX_LIBS )
+		return false;
+
+	// TODO: handle to many paths here!
+	g_libs[g_num_libs++] = lib;
+	return true;
+}
 
 void error_report_function( const char* msg, void* ctx )
 {
@@ -55,7 +85,7 @@ unsigned char* read_file(FILE* file, unsigned int* out_size)
 	return out_buffer;
 }
 
-dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<const char*, 128>& _lLibs)
+dl_ctx_t CreateContext()
 {
 	dl_ctx_t Ctx;
 	dl_create_params_t p;
@@ -66,18 +96,18 @@ dl_ctx_t CreateContext(CArrayStatic<const char*, 128>& _lLibPaths, CArrayStatic<
 		M_ERROR_AND_FAIL( "DL error while creating context: %s", dl_error_to_string(err));
 
 	// load all type-libs.
-	for(unsigned int iLib = 0; iLib < _lLibs.Len(); iLib++)
+	for( unsigned int iLib = 0; iLib < g_num_libs; iLib++ )
 	{
 		// search for lib!
-		for (unsigned int iPath = 0; iPath < _lLibPaths.Len(); ++iPath)
+		for (unsigned int iPath = 0; iPath < g_num_lib_paths; ++iPath)
 		{
 			// build testpath.
 			char Path[2048];
-			size_t PathLen = strlen(_lLibPaths[iPath]);
-			strcpy(Path, _lLibPaths[iPath]);
+			size_t PathLen = strlen(g_lib_paths[iPath]);
+			strcpy(Path, g_lib_paths[iPath]);
 			if(PathLen != 0 && Path[PathLen - 1] != '/')
 				Path[PathLen++] = '/';
-			strcpy(Path + PathLen, _lLibs[iLib]);
+			strcpy(Path + PathLen, g_libs[iLib]);
 
 			FILE* File = fopen(Path, "rb");
 
@@ -120,31 +150,22 @@ int main(int argc, char** argv)
 	SGetOptContext GOCtx;
 	GetOptCreateContext(&GOCtx, argc, argv, OptionList);
 
-	CArrayStatic<const char*, 128> lLibPaths; lLibPaths.Add("");
-	CArrayStatic<const char*, 128> lLibs;
+	// CArrayStatic<const char*, 128> lLibPaths; lLibPaths.Add("");
+	// CArrayStatic<const char*, 128> lLibs;
+	add_lib_path("");
 	const char*  pOutput  = "";
 	const char*  pInput   = "";
 	dl_endian_t   Endian  = DL_ENDIAN_HOST;
 	unsigned int PtrSize = sizeof(void*);
 
-	int32 opt;
+	int opt;
 	while((opt = GetOpt(&GOCtx)) != -1)
 	{
 		switch(opt)
 		{
 			case 'h': print_help(&GOCtx); return 0;
-			case 'L':
-				if(lLibPaths.Full())
-					M_ERROR_AND_QUIT("dl_pack only supports %u libpaths!", (unsigned int)lLibPaths.Capacity());
-
-				lLibPaths.Add(GOCtx.m_CurrentOptArg);
-				break;
-			case 'l':
-				if(lLibs.Full())
-					M_ERROR_AND_QUIT("dl_pack only supports %u type libraries libs!", (unsigned int)lLibs.Capacity());
-
-				lLibs.Add(GOCtx.m_CurrentOptArg);
-				break;
+			case 'L': if( !add_lib_path( GOCtx.m_CurrentOptArg ) ) M_ERROR_AND_QUIT( "dl_pack only supports %u libpaths!", MAX_LIB_PATHS );       break;
+			case 'l': if( !add_lib( GOCtx.m_CurrentOptArg ) )      M_ERROR_AND_QUIT( "dl_pack only supports %u type libraries libs!", MAX_LIBS ); break;
 			case 'o':
 				if(pOutput[0] != '\0')
 					M_ERROR_AND_QUIT("output-file already set to: \"%s\", trying to set it to \"%s\"", pOutput, GOCtx.m_CurrentOptArg);
@@ -174,8 +195,6 @@ int main(int argc, char** argv)
 				pInput = GOCtx.m_CurrentOptArg;
 				break;
 			case 0: break; // ignore, flag was set!
-			default:
-				DL_ASSERT(false && "This should not happen!");
 		}
 	}
 
@@ -199,7 +218,7 @@ int main(int argc, char** argv)
 	unsigned int Size;
 	unsigned char* InData = read_file(pInFile, &Size);
 
-	dl_ctx_t Ctx = CreateContext(lLibPaths, lLibs);
+	dl_ctx_t Ctx = CreateContext();
 	if(Ctx == 0x0)
 		return 1;
 
