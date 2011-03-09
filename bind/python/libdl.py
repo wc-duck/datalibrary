@@ -173,7 +173,7 @@ class DLContext:
             return None
                 
     def __py_type_to_ctype( self, instance ):
-        typename = self.type_info_cache[ instance._dl_type ].name
+        typename = self.type_info_cache[ instance.TYPE_ID ].name
         typeinfo = self.type_cache[typename]
         
         c_instance = typeinfo.c_type() 
@@ -203,7 +203,7 @@ class DLContext:
         return c_instance
     
     def __ctype_to_py_type( self, instance ):
-        typename = self.type_info_cache[ instance._dl_type ].name
+        typename = self.type_info_cache[ instance.TYPE_ID ].name
         typeinfo = self.type_cache[typename]
         
         py_instance = typeinfo.py_type() 
@@ -213,17 +213,17 @@ class DLContext:
             member_val = None
             
             if type(member).__name__ == 'dl_array': # TODO: cache type to look for!
-                if hasattr( member.data[0], '_dl_type' ): # TODO: Ugly check for convertable!
+                if hasattr( member.data[0], 'TYPE_ID' ): # TODO: Ugly check for convertable!
                     member_val = [ self.__ctype_to_py_type(member.data[i]) for i in range(0, member.count) ] # todo can this be dene better?
                 else:
                     member_val = [ member.data[i] for i in range(0, member.count) ] # todo can this be dene better?
             elif hasattr(member, '_length_'): # TODO: bad check here!
-                if hasattr( member[0], '_dl_type' ): # TODO: Ugly check for convertable!
+                if hasattr( member[0], 'TYPE_ID' ): # TODO: Ugly check for convertable!
                     member_val = [ self.__ctype_to_py_type( member[i] ) for i in range(0, len(member)) ] # todo can this be dene better?
                 else:
                     member_val = [ member[i] for i in range(0, len(member)) ] # todo can this be dene better?
             else:
-                if hasattr( member, '_dl_type' ): # TODO: Ugly check for convertable!
+                if hasattr( member, 'TYPE_ID' ): # TODO: Ugly check for convertable!
                     member_val = self.__ctype_to_py_type( member )
                 else:
                     member_val = member
@@ -383,10 +383,8 @@ class DLContext:
     
         # build py-type
         if complete:
-            c_type  = type( 'c.'  + type_info.name, (Structure, ),    { '_dl_type' : typeid, 
-                                                                        '_fields_' : c_members } )
-            py_type = type( 'py.' + type_info.name, (self.dl_type, ), { '_dl_type'    : typeid, 
-                                                                        '_dl_members' : py_members } )
+            c_type  = type( 'c.'  + type_info.name, (Structure, ),    { 'TYPE_ID' : typeid, '_fields_'    : c_members } )
+            py_type = type( 'py.' + type_info.name, (self.dl_type, ), { 'TYPE_ID' : typeid, '_dl_members' : py_members } )
         
         # cache it!
         self.type_cache[type_info.name] = self.dl_cache_entry( typeid, members, c_type, py_type )
@@ -495,7 +493,7 @@ class DLContext:
             ptr_size  -- pointer size to store it with
         '''   
              
-        type_id    = instance._dl_type
+        type_id    = instance.TYPE_ID
         c_instance = self.__py_type_to_ctype( instance )    
         
         store_size = c_uint(0)

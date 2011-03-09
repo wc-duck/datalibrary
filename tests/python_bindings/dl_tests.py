@@ -33,7 +33,7 @@ class TestLibDL( DL ):
 	def AssertInstanceEqual(self, I1, I2):
 		self.assertEqual(type(I1),      type(I2))
 		self.assertEqual(dir(I1),       dir(I2))
-		self.assertEqual(I1._dl_type,   I2._dl_type)
+		self.assertEqual(I1.TYPE_ID,    I2.TYPE_ID)
 		self.assertEqual(I1.__class__,  I2.__class__)
 		self.assertEqual(I1.__dict__,   I2.__dict__)
 		
