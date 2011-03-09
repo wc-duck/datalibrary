@@ -82,7 +82,7 @@ function DefaultGCC( platform, config )
 	local settings = DefaultSettings( platform, config )
 	SetDriversGCC(settings)
 	
-	settings.cc.flags:Add("-Werror", "-ansi")
+	settings.cc.flags:Add("-Werror", "-ansi", "-Wstrict-aliasing=2")
 	if config == "debug" then
 		settings.cc.flags:Add("-O0", "-g")
 	else

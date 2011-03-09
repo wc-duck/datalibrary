@@ -493,16 +493,16 @@ TYPED_TEST(DLBase, array_pod1)
 {
 	uint32_t Data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
 	PodArray1 Orig = { { Data, 8 } };
-	PodArray1* New;
+	union
+	{
+		PodArray1 New;
+		uint32_t  Loaded[1024]; // this is so ugly!
+	} load;
 
-	uint32_t Loaded[1024]; // this is so ugly!
+	this->do_the_round_about( PodArray1::TYPE_ID, &Orig, load.Loaded, sizeof(load.Loaded) );
 
-	this->do_the_round_about( PodArray1::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
-
-	New = (PodArray1*)&Loaded[0];
-
-	EXPECT_EQ(Orig.u32_arr.count, New->u32_arr.count);
-	EXPECT_ARRAY_EQ(Orig.u32_arr.count, Orig.u32_arr.data, New->u32_arr.data);
+	EXPECT_EQ(Orig.u32_arr.count, load.New.u32_arr.count);
+	EXPECT_ARRAY_EQ(Orig.u32_arr.count, Orig.u32_arr.data, load.New.u32_arr.data);
 }
 #endif // DL_UNITTEST_ALL
 
@@ -517,17 +517,18 @@ TYPED_TEST(DLBase, array_with_sub_array)
 	PodArray2 Orig;
 	Orig.sub_arr.data  = OrigArray;
 	Orig.sub_arr.count = DL_ARRAY_LENGTH(OrigArray);
-	PodArray2* New;
 
-	uint32_t Loaded[1024]; // this is so ugly!
+	union
+	{
+		PodArray2 New;
+		uint32_t  Loaded[1024]; // this is so ugly!
+	} load;
 
-	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, load.Loaded, sizeof(load.Loaded) );
 
-	New = (PodArray2*)&Loaded[0];
-
-	EXPECT_EQ(Orig.sub_arr.count, New->sub_arr.count);
-	EXPECT_EQ(Orig.sub_arr[0].u32_arr.count, New->sub_arr[0].u32_arr.count);
-	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, New->sub_arr[0].u32_arr.data);
+	EXPECT_EQ(Orig.sub_arr.count, load.New.sub_arr.count);
+	EXPECT_EQ(Orig.sub_arr[0].u32_arr.count, load.New.sub_arr[0].u32_arr.count);
+	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, load.New.sub_arr[0].u32_arr.data);
 }
 #endif // DL_UNITTEST_ALL
 
@@ -539,19 +540,20 @@ TYPED_TEST(DLBase, array_with_sub_array2)
 
 	PodArray1 OrigArray[] = { { Data1, DL_ARRAY_LENGTH(Data1) }, { Data2, DL_ARRAY_LENGTH(Data2) } } ;
 	PodArray2 Orig = { { OrigArray, DL_ARRAY_LENGTH(OrigArray) } };
-	PodArray2* New;
 
-	uint32_t Loaded[1024]; // this is so ugly!
+	union
+	{
+		PodArray2 New;
+		uint32_t  Loaded[1024]; // this is so ugly!
+	} load;
 
-	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+	this->do_the_round_about( PodArray2::TYPE_ID, &Orig, load.Loaded, sizeof(load.Loaded) );
 
-	New = (PodArray2*)&Loaded[0];
-
-	EXPECT_EQ(Orig.sub_arr.count, New->sub_arr.count);
-	EXPECT_EQ(Orig.sub_arr[0].u32_arr.count, New->sub_arr[0].u32_arr.count);
-	EXPECT_EQ(Orig.sub_arr[1].u32_arr.count, New->sub_arr[1].u32_arr.count);
-	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, New->sub_arr[0].u32_arr.data);
-	EXPECT_ARRAY_EQ(Orig.sub_arr[1].u32_arr.count, Orig.sub_arr[1].u32_arr.data, New->sub_arr[1].u32_arr.data);
+	EXPECT_EQ(Orig.sub_arr.count, load.New.sub_arr.count);
+	EXPECT_EQ(Orig.sub_arr[0].u32_arr.count, load.New.sub_arr[0].u32_arr.count);
+	EXPECT_EQ(Orig.sub_arr[1].u32_arr.count, load.New.sub_arr[1].u32_arr.count);
+	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, load.New.sub_arr[0].u32_arr.data);
+	EXPECT_ARRAY_EQ(Orig.sub_arr[1].u32_arr.count, Orig.sub_arr[1].u32_arr.data, load.New.sub_arr[1].u32_arr.data);
 }
 #endif // DL_UNITTEST_ALL
 
@@ -560,18 +562,14 @@ TYPED_TEST(DLBase, array_string)
 {
 	const char* TheStringArray[] = { "I like", "the", "1337 ", "cowbells of doom!" };
 	StringArray Orig = { { TheStringArray, 4 } };
-	StringArray* New;
-
 	StringArray Loaded[10]; // this is so ugly!
 
 	this->do_the_round_about( StringArray::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
 
-	New = Loaded;
-
-	EXPECT_STREQ(Orig.Strings[0], New->Strings[0]);
-	EXPECT_STREQ(Orig.Strings[1], New->Strings[1]);
-	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
-	EXPECT_STREQ(Orig.Strings[3], New->Strings[3]);
+	EXPECT_STREQ(Orig.Strings[0], Loaded[0].Strings[0]);
+	EXPECT_STREQ(Orig.Strings[1], Loaded[0].Strings[1]);
+	EXPECT_STREQ(Orig.Strings[2], Loaded[0].Strings[2]);
+	EXPECT_STREQ(Orig.Strings[3], Loaded[0].Strings[3]);
 }
 #endif // DL_UNITTEST_ALL
 
@@ -580,23 +578,24 @@ TYPED_TEST(DLBase, array_struct)
 {
 	Pods2 Data[4] = { { 1, 2}, { 3, 4 }, { 5, 6 }, { 7, 8 } } ;
 	StructArray1 Inst = { { Data, 4 } };
-	StructArray1* New;
 
-	uint32_t Loaded[1024]; // this is so ugly!
+	union
+	{
+		StructArray1 New;
+		uint32_t Loaded[1024]; // this is so ugly!
+	} load;
 
-	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
+	this->do_the_round_about( StructArray1::TYPE_ID, &Inst, load.Loaded, sizeof(load.Loaded) );
 
-	New = (StructArray1*)&Loaded[0];
-
-	EXPECT_EQ(Inst.Array.count, New->Array.count);
-	EXPECT_EQ(Inst.Array[0].Int1, New->Array[0].Int1);
-	EXPECT_EQ(Inst.Array[0].Int2, New->Array[0].Int2);
-	EXPECT_EQ(Inst.Array[1].Int1, New->Array[1].Int1);
-	EXPECT_EQ(Inst.Array[1].Int2, New->Array[1].Int2);
-	EXPECT_EQ(Inst.Array[2].Int1, New->Array[2].Int1);
-	EXPECT_EQ(Inst.Array[2].Int2, New->Array[2].Int2);
-	EXPECT_EQ(Inst.Array[3].Int1, New->Array[3].Int1);
-	EXPECT_EQ(Inst.Array[3].Int2, New->Array[3].Int2);
+	EXPECT_EQ(Inst.Array.count,   load.New.Array.count);
+	EXPECT_EQ(Inst.Array[0].Int1, load.New.Array[0].Int1);
+	EXPECT_EQ(Inst.Array[0].Int2, load.New.Array[0].Int2);
+	EXPECT_EQ(Inst.Array[1].Int1, load.New.Array[1].Int1);
+	EXPECT_EQ(Inst.Array[1].Int2, load.New.Array[1].Int2);
+	EXPECT_EQ(Inst.Array[2].Int1, load.New.Array[2].Int1);
+	EXPECT_EQ(Inst.Array[2].Int2, load.New.Array[2].Int2);
+	EXPECT_EQ(Inst.Array[3].Int1, load.New.Array[3].Int1);
+	EXPECT_EQ(Inst.Array[3].Int2, load.New.Array[3].Int2);
 
 }
 #endif // DL_UNITTEST_ALL
@@ -606,23 +605,24 @@ TYPED_TEST(DLBase, array_enum)
 {
 	TestEnum2 Data[8] = { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4, TESTENUM2_VALUE4, TESTENUM2_VALUE3, TESTENUM2_VALUE2, TESTENUM2_VALUE1 } ;
 	ArrayEnum Inst = { { Data, 8 } };
-	ArrayEnum* New;
 
-	uint32_t Loaded[1024]; // this is so ugly!
+	union
+	{
+		ArrayEnum New;
+		uint32_t Loaded[1024]; // this is so ugly!
+	} load;
 
-	this->do_the_round_about( ArrayEnum::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
+	this->do_the_round_about( ArrayEnum::TYPE_ID, &Inst, load.Loaded, sizeof(load.Loaded) );
 
-	New = (ArrayEnum*)&Loaded[0];
-
-	EXPECT_EQ(Inst.EnumArr.count, New->EnumArr.count);
-	EXPECT_EQ(Inst.EnumArr[0],    New->EnumArr[0]);
-	EXPECT_EQ(Inst.EnumArr[1],    New->EnumArr[1]);
-	EXPECT_EQ(Inst.EnumArr[2],    New->EnumArr[2]);
-	EXPECT_EQ(Inst.EnumArr[3],    New->EnumArr[3]);
-	EXPECT_EQ(Inst.EnumArr[4],    New->EnumArr[4]);
-	EXPECT_EQ(Inst.EnumArr[5],    New->EnumArr[5]);
-	EXPECT_EQ(Inst.EnumArr[6],    New->EnumArr[6]);
-	EXPECT_EQ(Inst.EnumArr[7],    New->EnumArr[7]);
+	EXPECT_EQ(Inst.EnumArr.count, load.New.EnumArr.count);
+	EXPECT_EQ(Inst.EnumArr[0],    load.New.EnumArr[0]);
+	EXPECT_EQ(Inst.EnumArr[1],    load.New.EnumArr[1]);
+	EXPECT_EQ(Inst.EnumArr[2],    load.New.EnumArr[2]);
+	EXPECT_EQ(Inst.EnumArr[3],    load.New.EnumArr[3]);
+	EXPECT_EQ(Inst.EnumArr[4],    load.New.EnumArr[4]);
+	EXPECT_EQ(Inst.EnumArr[5],    load.New.EnumArr[5]);
+	EXPECT_EQ(Inst.EnumArr[6],    load.New.EnumArr[6]);
+	EXPECT_EQ(Inst.EnumArr[7],    load.New.EnumArr[7]);
 }
 #endif // DL_UNITTEST_ALL
 

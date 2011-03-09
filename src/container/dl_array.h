@@ -153,7 +153,7 @@ public:
 	Returns:
 	Returns array base pointer.
 	*/
-	inline T* GetBasePtr(){return (T*)m_Storage.m_pStorage;}
+	inline T* GetBasePtr() { return m_Storage.Base(); }
 };
 
 

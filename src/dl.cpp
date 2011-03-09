@@ -258,16 +258,23 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 
 			SOneMemberType Dummy(pMember);
 			unsigned int NeededSize;
+
+			union
+			{
+				SOneMemberType* one_mem_ptr;
+				SDLType*        type_ptr;
+			} conv;
+			conv.one_mem_ptr = &Dummy;
 			dl_internal_convert_no_header( dl_ctx,
 										   pSrc, (unsigned char*)default_data,
 										   pDst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
 										   &NeededSize,
 										   DL_ENDIAN_LITTLE,  DL_ENDIAN_HOST,
 										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
-										   (const SDLType*)&Dummy, (unsigned int)BaseOffset ); // TODO: Ugly cast, remove plox!
+										   conv.type_ptr, (unsigned int)BaseOffset ); // TODO: Ugly cast, remove plox!
 
 			SPatchedInstances PI;
-			dl_internal_patch_loaded_ptrs( dl_ctx, &PI, pDst, (const SDLType*)&Dummy, dl_ctx->default_data, false );
+			dl_internal_patch_loaded_ptrs( dl_ctx, &PI, pDst, conv.type_ptr, dl_ctx->default_data, false );
 
 			pDst += NeededSize;
 		}

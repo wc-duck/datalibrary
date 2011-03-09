@@ -85,8 +85,14 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 
 	EXPECT_EQ(4, sizeof(unsigned int));
 
+	union
+	{
+		unsigned char* lib;
+		unsigned int*  version;
+	} conv;
+	conv.lib = modded_type_lib;
 	// testing that errors are returned correctly by modding data.
-	unsigned int* lib_version = ((unsigned int*)modded_type_lib) + 1;
+	unsigned int* lib_version = conv.version + 1;
 
 	EXPECT_EQ(2, *lib_version);
 
@@ -118,11 +124,18 @@ TEST_F(DLError, version_mismatch_returned)
 	EXPECT_DL_ERR_OK( dl_convert( Ctx, unused::TYPE_ID, packed, DL_ARRAY_LENGTH(packed), swaped, DL_ARRAY_LENGTH(swaped), other_endian, sizeof(void*), 0x0 ) );
 
 	// testing that errors are returned correctly by modding data.
+	union
+	{
+		unsigned int*  instance_version;
+		unsigned char* instance;
+	} conv;
+	conv.instance = packed;
 	unsigned int* instance_version;
-	instance_version = ((unsigned int*)packed) + 1;
+	instance_version = conv.instance_version + 1;
 	EXPECT_EQ(1, *instance_version);
 	*instance_version = 0xFFFFFFFF;
-	instance_version = ((unsigned int*)swaped) + 1;
+	conv.instance = swaped;
+	instance_version = conv.instance_version + 1;
 	EXPECT_EQ(0x01000000, *instance_version);
 	*instance_version = 0xFFFFFFFF;
 
