@@ -7,7 +7,6 @@
 	File: dl.h
 */
 
-#include <dl/dl_bit.h>
 #include <dl/dl_defines.h>
 
 #ifdef __cplusplus
