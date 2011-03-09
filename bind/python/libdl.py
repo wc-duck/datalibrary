@@ -88,6 +88,9 @@ class DLError(Exception):
     def __str__(self):
         return '%s(0x%08X)' % ( self.err, self.value )
 
+def host_ptr_size():
+    return 4 if platform.architecture()[0] == '32bit' else 8
+
 class DLContext:
     class dl_cache_entry:
         def __init__( self, type_id, members, c_type, py_type ):
@@ -97,7 +100,8 @@ class DLContext:
             self.py_type = py_type
             
     class dl_type_context_info(Structure): _fields_ = [ ('num_types', c_uint),   ('num_enums',   c_uint) ]
-    class dl_type_info(Structure):         _fields_ = [ ('name',      c_char_p), ('size',        c_uint), ('alignment', c_uint), ('member_count', c_uint) ]
+    class dl_instance_info(Structure):     _fields_ = [ ('load_size', c_uint),   ('ptrsize',     c_uint), ('endian',     c_uint), ('root_type',    c_uint32) ]
+    class dl_type_info(Structure):         _fields_ = [ ('name',      c_char_p), ('size',        c_uint),  ('alignment', c_uint), ('member_count', c_uint) ]
     class dl_enum_info(Structure):         _fields_ = [ ('name',      c_char_p), ('value_count', c_uint) ]
     class dl_enum_value_info(Structure):   _fields_ = [ ('name',      c_char_p), ('value',       c_uint) ]
     class dl_member_info(Structure):
@@ -206,23 +210,25 @@ class DLContext:
         
         for member_name in typeinfo.members:
             member = getattr( instance, member_name )
+            member_val = None
             
             if type(member).__name__ == 'dl_array': # TODO: cache type to look for!
                 if hasattr( member.data[0], '_dl_type' ): # TODO: Ugly check for convertable!
-                    setattr( py_instance, member_name, [ self.__ctype_to_py_type(member.data[i]) for i in range(0, member.count) ] ) # todo can this be dene better?
+                    member_val = [ self.__ctype_to_py_type(member.data[i]) for i in range(0, member.count) ] # todo can this be dene better?
                 else:
-                    setattr( py_instance, member_name, [ member.data[i] for i in range(0, member.count) ] ) # todo can this be dene better?
+                    member_val = [ member.data[i] for i in range(0, member.count) ] # todo can this be dene better?
             elif hasattr(member, '_length_'): # TODO: bad check here!
                 if hasattr( member[0], '_dl_type' ): # TODO: Ugly check for convertable!
-                    setattr( py_instance, member_name, [ self.__ctype_to_py_type( member[i] ) for i in range(0, len(member)) ] ) # todo can this be dene better?
+                    member_val = [ self.__ctype_to_py_type( member[i] ) for i in range(0, len(member)) ] # todo can this be dene better?
                 else:
-                    setattr( py_instance, member_name, [ member[i] for i in range(0, len(member)) ] ) # todo can this be dene better?
+                    member_val = [ member[i] for i in range(0, len(member)) ] # todo can this be dene better?
             else:
                 if hasattr( member, '_dl_type' ): # TODO: Ugly check for convertable!
-                    setattr( py_instance, member_name, self.__ctype_to_py_type( member ) )
+                    member_val = self.__ctype_to_py_type( member )
                 else:
-                    setattr( py_instance, member_name, member )
+                    member_val = member
                 
+            setattr( py_instance, member_name, member_val )
         
         return py_instance
     
@@ -469,7 +475,18 @@ class DLContext:
         '''
         return self.LoadInstance(type_name, self.PackText(open(in_file, 'rb').read()))
     
-    def StoreInstance( self, _Instance, endian = sys.byteorder, ptr_size = 4 if platform.architecture()[0] == '32bit' else 8 ):
+    def ConvertInstance( self, type_id, instance, endian = sys.byteorder, ptr_size = host_ptr_size() ):
+        endian = 0 if endian == 'big' else 1
+        
+        converted_size = c_uint(0)
+        self.convert( type_id, instance, len(instance), 0, 0, endian, ptr_size, byref( converted_size ) )
+        
+        converted_data = ( c_ubyte * converted_size.value )() 
+        self.convert( type_id, instance, len(instance), converted_data, len(converted_data), endian, ptr_size, c_void_p(0) )
+
+        return string_at( converted_data, sizeof(converted_data) )
+    
+    def StoreInstance( self, instance, endian = sys.byteorder, ptr_size = host_ptr_size() ):
         '''
             Store a DL-instance to buffer that is returned as a string.
             
@@ -478,37 +495,29 @@ class DLContext:
             ptr_size  -- pointer size to store it with
         '''   
              
-        type_id    = _Instance._dl_type
-        c_instance = self.__py_type_to_ctype( _Instance ) # _Instance.AsCType()    
+        type_id    = instance._dl_type
+        c_instance = self.__py_type_to_ctype( instance )    
         
         store_size = c_uint(0)
         self.instance_store( type_id, byref(c_instance), 0, 0, byref(store_size) )            
         packed_data = ( c_ubyte * store_size.value )()
         self.instance_store( type_id, byref(c_instance), packed_data, store_size, c_void_p(0) )
         
-        endian = 0 if endian == 'big' else 1
-        
-        converted_size = c_uint(0)
-        self.convert( type_id, packed_data, len(packed_data), 0, 0, endian, ptr_size, byref( converted_size ) )
-        
-        converted_data = ( c_ubyte * converted_size.value )() 
-        self.convert( type_id, packed_data, len(packed_data), converted_data, len(converted_data), endian, ptr_size, c_void_p(0) )
-
-        return string_at( converted_data, sizeof(converted_data) )
+        return self.ConvertInstance( type_id, packed_data, endian, ptr_size )
     
-    def StoreInstanceToFile(self, _Instance, _File, _Endian = sys.byteorder, _PtrSize = 4 if platform.architecture()[0] == '32bit' else 8):
+    def StoreInstanceToFile(self, instance, file_name, endian = sys.byteorder, ptr_size = host_ptr_size() ):
         '''
             Store a DL-instance to file.
             
-            _Instance -- instance to store.
-            _File     -- path to file to write to.
-            _Endian   -- endian to store it in
-            _PtrSize  -- pointer size to store it with
+            instance -- instance to store.
+            file_name     -- path to file to write to.
+            endian   -- endian to store it in
+            ptr_size  -- pointer size to store it with
         '''
-        open(_File, 'wb').write(self.StoreInstance(_Instance, _Endian, _PtrSize))
+        open(file_name, 'wb').write(self.StoreInstance(instance, endian, ptr_size))
 
-    def StoreInstanceToString( self, _Instance ):
-        packed_instance = self.StoreInstance(_Instance)
+    def StoreInstanceToString( self, instance ):
+        packed_instance = self.StoreInstance(instance)
         
         text_size = c_uint(0)
         self.txt_unpack( packed_instance, len(packed_instance), c_void_p(0), 0, byref( text_size ) )
@@ -518,10 +527,10 @@ class DLContext:
             
         return text_instance.raw
         
-    def StoreInstanceToTextFile(self, _Instance, _File):
-        open(_File, 'w').write(self.StoreInstanceToString(_Instance))
+    def StoreInstanceToTextFile( self, instance, file_name ):
+        open(file_name, 'w').write(self.StoreInstanceToString(instance))
     
-    def PackText( self, text ):
+    def PackText( self, text, endian = sys.byteorder, ptr_size = host_ptr_size() ):
         instance_data = create_string_buffer(text)
         
         packed_size = c_uint(0)
@@ -529,5 +538,9 @@ class DLContext:
         
         packed_data = create_string_buffer(packed_size.value)
         self.txt_pack( instance_data, packed_data, packed_size, c_void_p(0) )
-    
-        return packed_data.raw
+            
+        info = self.dl_instance_info()
+        err = self.dl.dl_instance_get_info( packed_data, packed_size, byref(info) )
+        if err != 0:
+            raise DLError( 'Call to %s failed with error %s' % ( func_name, self.dl.dl_error_to_string( err ) ), err )        
+        return self.ConvertInstance( info.root_type, packed_data, endian, ptr_size )

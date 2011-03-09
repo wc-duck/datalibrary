@@ -319,7 +319,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid
 	Function: dl_error_to_string
 		Converts EDLError to string.
 */
-DL_DLL_EXPORT const char* dl_error_to_string( dl_error_t error );
+const char* DL_DLL_EXPORT dl_error_to_string( dl_error_t error );
 
 typedef struct dl_instance_info
 {
@@ -341,7 +341,7 @@ typedef struct dl_instance_info
 	Return:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned int packed_instance_size, dl_instance_info_t* out_info );
+dl_error_t DL_DLL_EXPORT dl_instance_get_info( const unsigned char* packed_instance, unsigned int packed_instance_size, dl_instance_info_t* out_info );
 
 #ifdef __cplusplus
 }

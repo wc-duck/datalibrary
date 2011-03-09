@@ -398,8 +398,7 @@ def compile( typelibrary, stream ):
     
     def build_header( typelibrary, type_lookup, type_data, enum_lookup, enum_data, default_data ):
         # TODO: offsets here seem unneeded!
-        header =  ''.join( [ struct.pack('<cccc', 'L', 'T', 'L', 'D'), # typelibrary identifier  
-                             struct.pack('<I', 1) ] )                  # typelibrary version
+        header =  ''.join( [ struct.pack('<4sI', 'LTLD', 1) ] ) # typelibrary identifier and version
         
         # TODO: using type_order here due to builtins present in .types... fix me that!
         curr_offset = HEADER_SIZE + len(type_lookup)
@@ -511,6 +510,7 @@ def compile( typelibrary, stream ):
         DL_INSTANCE_HEADER_SIZE = 20
         
         # create typelibrary without defaults used to build default-structs
+        # TODO: this should maybe use raw dl-dll calls to get rid of the dependency on the python-bindings.
         dl_ctx = libdl.DLContext( typelib_buffer = typelib_data )
         
         default_data = ''
