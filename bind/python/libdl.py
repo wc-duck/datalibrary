@@ -276,7 +276,7 @@ class DLContext:
             dll_path = self.try_default_dl_dll() 
         if not dll_path:
             raise DLError # fix me!
-            
+
         self.dl = CDLL( dll_path )
         self.dl.dl_error_to_string.restype = c_char_p
         self.dl_ctx = c_void_p(0)
@@ -357,7 +357,7 @@ class DLContext:
         
         if type_info.name in self.type_cache:
             return
-                
+
         member_info = ( self.dl_member_info * type_info.member_count )()
         self.reflect_get_type_members( typeid, member_info, type_info.member_count )
         

@@ -929,6 +929,32 @@ TEST(DLMisc, endian_is_correct)
 }
 #endif // DL_UNITTEST_ALL
 
+TEST(DLMisc, built_in_tl_eq_bin_file)
+{
+	const unsigned char TypeLib1[] =
+	{
+		#include "generated/unittest.bin.h"
+	};
+	const char* test_file = "local/generated/unittest.bin";
+	
+	FILE* f = fopen( test_file, "rb" );
+	fseek( f, 0, SEEK_END );
+	size_t size = ftell(f);
+	fseek( f, 0, SEEK_SET );
+	printf("size %u\n", size);
+	
+	unsigned char* buff = new unsigned char[size];
+	
+	fread( buff, size, 1, f );
+	
+	fclose( f );
+	
+	EXPECT_EQ( DL_ARRAY_LENGTH(TypeLib1), size );
+	EXPECT_EQ( 0, memcmp( buff, TypeLib1, size ) );
+	
+	delete [] buff;
+}
+
 int main(int argc, char **argv)
 {
 	::testing::InitGoogleTest(&argc, argv);

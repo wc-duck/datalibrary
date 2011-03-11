@@ -17,7 +17,7 @@ class DL(unittest.TestCase):
 		self.dl_ctx = None
 
 class TestLibDL( DL ):
-	# helper asserts	
+	# helper asserts
 	def AssertTypeEqual(self, name, val1, val2):
 		t1 = type(val1)
 		t2 = type(val2)

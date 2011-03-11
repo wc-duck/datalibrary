@@ -39,6 +39,7 @@ dl_error_t dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_ty
 {
 	*out_type_id = DLHashString( type_name );
 	const SDLType* pType = DLFindType(dl_ctx, *out_type_id);
+    DL_ASSERT( dl_internal_is_align( pType, DL_ALIGNMENTOF(SDLType) ) );
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
