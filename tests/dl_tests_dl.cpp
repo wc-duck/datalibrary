@@ -228,7 +228,6 @@ typedef ::testing::Types<
 > DLBaseTypes;
 TYPED_TEST_CASE(DLBase, DLBaseTypes);
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, pods)
 {
 	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
@@ -247,9 +246,7 @@ TYPED_TEST(DLBase, pods)
 	EXPECT_EQ(P1Original.f32, P1.f32);
 	EXPECT_EQ(P1Original.f64, P1.f64);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, pods_max)
 {
 	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
@@ -269,9 +266,7 @@ TYPED_TEST(DLBase, pods_max)
 	// EXPECT_FLOAT_EQ(P1Original.f32,   P1.f32);
 	// EXPECT_DOUBLE_EQ(P1Original.f64,   P1.f64);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, pods_min)
 {
 	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
@@ -290,9 +285,7 @@ TYPED_TEST(DLBase, pods_min)
 	EXPECT_NEAR(P1Original.f32, P1.f32, 0.0000001f);
 	EXPECT_NEAR(P1Original.f64, P1.f64, 0.0000001f);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, struct_in_struct)
 {
 	MorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
@@ -322,9 +315,7 @@ TYPED_TEST(DLBase, struct_in_struct)
 	EXPECT_NEAR(P1Original.Pods2.f32, P1.Pods2.f32, 0.0000001f);
 	EXPECT_NEAR(P1Original.Pods2.f64, P1.Pods2.f64, 0.0000001f);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, struct_in_struct_in_struct)
 {
 	Pod2InStructInStruct Orig;
@@ -342,9 +333,7 @@ TYPED_TEST(DLBase, struct_in_struct_in_struct)
 	EXPECT_EQ(Orig.p2struct.Pod2.Int1, New.p2struct.Pod2.Int1);
 	EXPECT_EQ(Orig.p2struct.Pod2.Int2, New.p2struct.Pod2.Int2);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, string)
 {
 	Strings Orig = { "cow", "bell" } ;
@@ -359,9 +348,7 @@ TYPED_TEST(DLBase, string)
 	EXPECT_STREQ(Orig.Str1, New->Str1);
 	EXPECT_STREQ(Orig.Str2, New->Str2);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, enum)
 {
 	EXPECT_EQ(TESTENUM2_VALUE2 + 1, TESTENUM2_VALUE3); // value3 is after value2 but has no value. It sohuld automticallay be one bigger!
@@ -375,9 +362,7 @@ TYPED_TEST(DLBase, enum)
 
 	EXPECT_EQ(Inst.TheEnum, Loaded.TheEnum);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, inline_array_pod)
 {
 	WithInlineArray Orig;
@@ -393,9 +378,7 @@ TYPED_TEST(DLBase, inline_array_pod)
 	EXPECT_EQ(Orig.Array[1], New.Array[1]);
 	EXPECT_EQ(Orig.Array[2], New.Array[2]);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, inline_array_struct)
 {
 	WithInlineStructArray Orig;
@@ -417,9 +400,7 @@ TYPED_TEST(DLBase, inline_array_struct)
 	EXPECT_EQ(Orig.Array[2].Int1, New.Array[2].Int1);
 	EXPECT_EQ(Orig.Array[2].Int2, New.Array[2].Int2);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, inline_array_struct_in_struct)
 {
 	WithInlineStructStructArray Orig;
@@ -453,9 +434,7 @@ TYPED_TEST(DLBase, inline_array_struct_in_struct)
 	EXPECT_EQ(Orig.Array[1].Array[2].Int1, New.Array[1].Array[2].Int1);
 	EXPECT_EQ(Orig.Array[1].Array[2].Int2, New.Array[1].Array[2].Int2);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, inline_array_string)
 {
 	StringInlineArray Orig = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
@@ -471,9 +450,7 @@ TYPED_TEST(DLBase, inline_array_string)
 	EXPECT_STREQ(Orig.Strings[1], New->Strings[1]);
 	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, inline_array_enum)
 {
 	InlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };
@@ -486,9 +463,7 @@ TYPED_TEST(DLBase, inline_array_enum)
 	EXPECT_EQ(Inst.EnumArr[2], Loaded.EnumArr[2]);
 	EXPECT_EQ(Inst.EnumArr[3], Loaded.EnumArr[3]);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_pod1)
 {
 	uint32_t Data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
@@ -504,9 +479,7 @@ TYPED_TEST(DLBase, array_pod1)
 	EXPECT_EQ(Orig.u32_arr.count, load.New.u32_arr.count);
 	EXPECT_ARRAY_EQ(Orig.u32_arr.count, Orig.u32_arr.data, load.New.u32_arr.data);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_with_sub_array)
 {
 	uint32_t Data[] = { 1337, 7331 } ;
@@ -530,9 +503,7 @@ TYPED_TEST(DLBase, array_with_sub_array)
 	EXPECT_EQ(Orig.sub_arr[0].u32_arr.count, load.New.sub_arr[0].u32_arr.count);
 	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, load.New.sub_arr[0].u32_arr.data);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_with_sub_array2)
 {
 	uint32_t Data1[] = { 1337, 7331,  13, 37, 133 } ;
@@ -555,9 +526,7 @@ TYPED_TEST(DLBase, array_with_sub_array2)
 	EXPECT_ARRAY_EQ(Orig.sub_arr[0].u32_arr.count, Orig.sub_arr[0].u32_arr.data, load.New.sub_arr[0].u32_arr.data);
 	EXPECT_ARRAY_EQ(Orig.sub_arr[1].u32_arr.count, Orig.sub_arr[1].u32_arr.data, load.New.sub_arr[1].u32_arr.data);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_string)
 {
 	const char* TheStringArray[] = { "I like", "the", "1337 ", "cowbells of doom!" };
@@ -571,9 +540,7 @@ TYPED_TEST(DLBase, array_string)
 	EXPECT_STREQ(Orig.Strings[2], Loaded[0].Strings[2]);
 	EXPECT_STREQ(Orig.Strings[3], Loaded[0].Strings[3]);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_struct)
 {
 	Pods2 Data[4] = { { 1, 2}, { 3, 4 }, { 5, 6 }, { 7, 8 } } ;
@@ -598,9 +565,7 @@ TYPED_TEST(DLBase, array_struct)
 	EXPECT_EQ(Inst.Array[3].Int2, load.New.Array[3].Int2);
 
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_enum)
 {
 	TestEnum2 Data[8] = { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4, TESTENUM2_VALUE4, TESTENUM2_VALUE3, TESTENUM2_VALUE2, TESTENUM2_VALUE1 } ;
@@ -624,9 +589,7 @@ TYPED_TEST(DLBase, array_enum)
 	EXPECT_EQ(Inst.EnumArr[6],    load.New.EnumArr[6]);
 	EXPECT_EQ(Inst.EnumArr[7],    load.New.EnumArr[7]);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, bitfield)
 {
 	TestBits Orig;
@@ -650,9 +613,7 @@ TYPED_TEST(DLBase, bitfield)
 	EXPECT_EQ(Orig.Bit5, New.Bit5);
 	EXPECT_EQ(Orig.Bit6, New.Bit6);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, bitfield2)
 {
 	MoreBits Orig;
@@ -666,9 +627,7 @@ TYPED_TEST(DLBase, bitfield2)
 	EXPECT_EQ(Orig.Bit1, New.Bit1);
 	EXPECT_EQ(Orig.Bit2, New.Bit2);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, bitfield_64bit)
 {
 	BitBitfield64 Orig;
@@ -686,9 +645,7 @@ TYPED_TEST(DLBase, bitfield_64bit)
 	EXPECT_EQ(Orig.PathHash, New.PathHash);
 	EXPECT_EQ(Orig.FileHash, New.FileHash);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, ptr)
 {
 	Pods Pods = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
@@ -714,9 +671,7 @@ TYPED_TEST(DLBase, ptr)
 	EXPECT_EQ(Orig.Ptr1->f32, New->Ptr1->f32);
 	EXPECT_EQ(Orig.Ptr1->f64, New->Ptr1->f64);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, ptr_chain)
 {
 	PtrChain Ptr1 = { 1337,   0x0 };
@@ -741,9 +696,7 @@ TYPED_TEST(DLBase, ptr_chain)
 	EXPECT_EQ(Ptr2.Int, New->Next->Next->Int);
 	EXPECT_EQ(Ptr1.Int, New->Next->Next->Next->Int);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, ptr_chain_circle)
 {
 	// tests both circualar ptrs and reference to root-node!
@@ -787,9 +740,7 @@ TYPED_TEST(DLBase, ptr_chain_circle)
 	EXPECT_EQ(Ptr4.Next->Next->Next->Int,  New->Next->Next->Next->Int);
 	EXPECT_EQ(New->Next->Next,             New->Next->Next->Next->Prev);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_pod_empty)
 {
 	PodArray1 Inst = { { NULL, 0 } };
@@ -800,9 +751,7 @@ TYPED_TEST(DLBase, array_pod_empty)
 	EXPECT_EQ(0u,  Loaded.u32_arr.count);
 	EXPECT_EQ(0x0, Loaded.u32_arr.data);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_struct_empty)
 {
 	StructArray1 Inst = { { NULL, 0 } };
@@ -813,9 +762,7 @@ TYPED_TEST(DLBase, array_struct_empty)
 	EXPECT_EQ(0u,  Loaded.Array.count);
 	EXPECT_EQ(0x0, Loaded.Array.data);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, array_string_empty)
 {
 	StringArray Inst = { { NULL, 0 } };
@@ -826,9 +773,7 @@ TYPED_TEST(DLBase, array_string_empty)
 	EXPECT_EQ(0u,  Loaded.Strings.count);
 	EXPECT_EQ(0x0, Loaded.Strings.data);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, bug1)
 {
 	// There was some error packing arrays ;)
@@ -852,9 +797,7 @@ TYPED_TEST(DLBase, bug1)
 	EXPECT_EQ(Arr[2].u64_2, Loaded[0].Arr[2].u64_2);
 	EXPECT_EQ(Arr[2].u16,   Loaded[0].Arr[2].u16);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, bug2)
 {
 	// some error converting from 32-bit-data to 64-bit.
@@ -881,9 +824,7 @@ TYPED_TEST(DLBase, bug2)
  	EXPECT_ARRAY_EQ(16, Arr[0].Transform, Loaded[0].Instances[0].Transform);
  	EXPECT_ARRAY_EQ(16, Arr[1].Transform, Loaded[0].Instances[1].Transform);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TYPED_TEST(DLBase, bug3)
 {
 	// testing bug where struct first in struct with ptr in substruct will not get patched on load.
@@ -899,9 +840,7 @@ TYPED_TEST(DLBase, bug3)
 
 	EXPECT_ARRAY_EQ( Inst.sub.arr.count,  Inst.sub.arr.data, Loaded[0].sub.arr.data);
 }
-#endif // DL_UNITTEST_ALL
 
-#ifdef DL_UNITTEST_ALL
 TEST(DLMisc, endian_is_correct)
 {
 	// Test that DL_ENDIAN_HOST is set correctly
@@ -927,7 +866,6 @@ TEST(DLMisc, endian_is_correct)
 		EXPECT_EQ(4, test.c[3]);
 	}
 }
-#endif // DL_UNITTEST_ALL
 
 TEST(DLMisc, built_in_tl_eq_bin_file)
 {
