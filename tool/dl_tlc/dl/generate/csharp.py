@@ -14,7 +14,7 @@ CLASS_TEMPLATE = '''
 [StructLayout(LayoutKind.Sequential, Size=%(size32)u, CharSet=CharSet.Ansi)]
 public class %(name)s
 {
-    public static const UInt32 TYPE_ID = 0x%(typeid)08X;
+    public const UInt32 TYPE_ID = 0x%(typeid)08X;
     
     %(members)s
 }'''
@@ -22,22 +22,12 @@ public class %(name)s
 verbose = False # TODO: not global plox!!!
 
 # TODO: read this config from user!!!
-a_config_here = { 'int8'   : 'sbyte', 
-                  'int16'  : 'short', 
-                  'int32'  : 'int', 
-                  'int64'  : 'long', 
-                  'uint8'  : 'byte', 
-                  'uint16' : 'ushort', 
-                  'uint32' : 'uint', 
-                  'uint64' : 'ulong', 
-                  'fp32'   : 'float', 
-                  'fp64'   : 'double', 
-                  'string' : 'string' }
+a_config_here = { 'int8'  : 'sbyte', 'int16'  : 'short',  'int32'  : 'int',  'int64'  : 'long', 
+                  'uint8' : 'byte',  'uint16' : 'ushort', 'uint32' : 'uint', 'uint64' : 'ulong', 
+                  'fp32'  : 'float', 'fp64'   : 'double', 'string' : 'string' }
 
 def to_csharp_name( typename ):
-    if typename in a_config_here:
-        return a_config_here[typename]
-    return typename
+    return a_config_here.get( typename, typename )
 
 def emit_member( member, mem_ctx ):
     import dl.typelibrary as tl
@@ -46,20 +36,20 @@ def emit_member( member, mem_ctx ):
     if member.comment:
         lines.append( '// %s' % member.comment )
     
-    cs_name = to_csharp_name( member.type )
+    cs_name = to_csharp_name( member.type.name )
     
     if   isinstance( member, tl.PodMember ):
         lines.append( 'public %s %s;' % ( cs_name, member.name ) )
     elif isinstance( member, tl.ArrayMember ):
         lines.append( 'public %s[] %s;' % ( cs_name, member.name ) ) 
-        lines.append( 'private uint %sArraySize;' % member.name )
+        lines.append( 'public uint %sArraySize;' % member.name )
     elif isinstance( member, tl.InlineArrayMember ):
         lines.append( '[MarshalAsAttribute(UnmanagedType.ByVal%s, SizeConst=%u)]' % ( 'TStr' if member.type == 'string' else 'Array', member.count ) ) 
         lines.append( 'public %s[] %s;' % ( cs_name, member.name) )
     elif isinstance( member, tl.PointerMember ):
         lines.append( 'public %s %s = null;' % ( cs_name, member.name ) )
     elif isinstance( member, tl.BitfieldMember ):
-        lines.extend( [ 'public %s %s' % ( member.type, member.name ),
+        lines.extend( [ 'public %s %s' % ( to_csharp_name( member.type.name ), member.name ),
                         '{',
                         '    get',
                         '    {',

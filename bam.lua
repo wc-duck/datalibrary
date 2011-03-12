@@ -40,6 +40,11 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 	AddDependency( tlc_file, dl_shared_lib )
 end
 
+function CSharpLibrary( cs_file )
+	local output_path  = PathJoin( BUILD_PATH, 'csharp' )
+	local compiled_dll = PathJoin( output_path, PathFilename( PathBase( cs_file ) ) ) .. ".dll"
+	AddJob( compiled_dll, "C# " .. compiled_dll, "gmcs /target:library /warnaserror /out:" .. compiled_dll .. " " .. cs_file, cs_file )
+end 
 
 function DefaultSettings( platform, config )
 	local settings = {}
@@ -242,6 +247,9 @@ if family == "windows" then
 else
 	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests, "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
+
+	-- build c-sharp lib from generated unittest file, only implemented for mono on linux right now.
+	CSharpLibrary( "local/generated/unittest.cs" )
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
