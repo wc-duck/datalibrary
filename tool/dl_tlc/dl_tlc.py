@@ -81,42 +81,47 @@ def parse_options():
 	return options
 
 if __name__ == "__main__":
-	import dl.typelibrary
-	import dl.generate
-	
-	options = parse_options()
+    import StringIO
+    import dl.typelibrary
+    import dl.generate
+    
+    options = parse_options()
+    
+    tl = dl.typelibrary.TypeLibrary( options.input )
+    
+    # write headers
+    if options.cheader:   dl.generate.c.generate( tl, None, open( options.cheader, 'w' ) )
+    if options.csheader:  dl.generate.csharp.generate( tl, None, open( options.csheader, 'w' ) )
+    if options.cppheader: dl.generate.cplusplus.generate( tl, None, open( options.cppheader, 'w' ) )
 
-	tl = dl.typelibrary.TypeLibrary( options.input )
-	
-	# write headers
-	if options.cheader:   dl.generate.c.generate( tl, None, open( options.cheader, 'w' ) )
-	if options.csheader:  dl.generate.csharp.generate( tl, None, open( options.csheader, 'w' ) )
-	if options.cppheader: dl.generate.cplusplus.generate( tl, None, open( options.cppheader, 'w' ) )
-
-	if options.output:
-		dl.typelibrary.compile( tl, open( options.output, 'wb' ) )
+    compiled_tl = None
+    
+    if options.output or options.hexarray:
+        tl_str = StringIO.StringIO()
+        dl.typelibrary.compile( tl, tl_str )
+        compiled_tl = tl_str.getvalue()
+        
+    if options.output:
+    	open( options.output, 'wb' ).write(compiled_tl)
+    	
+    if options.hexarray:
+    	import array
 		
-	if options.hexarray:
-		from StringIO import StringIO
-		import array
-		output = StringIO()
-		dl.typelibrary.compile( tl, output )
-		
-		hex_file = open(options.hexarray, 'wb')
-		tl_data = array.array( 'B' )
-		tl_data.fromstring( output.getvalue() )
-		
-		count = 1
-		
-		hex_file.write( '0x%02X' % tl_data[0] )
-		
-		for c in tl_data[1:]:
-			if count > 15:
-				hex_file.write( ',\n0x%02X' % c )
-				count = 0
-			else:
-				hex_file.write( ', 0x%02X ' % c )
-		
-			count += 1
-			
-		hex_file.close()
+    	hex_file = open(options.hexarray, 'wb')
+    	tl_data = array.array( 'B' )
+    	tl_data.fromstring(compiled_tl )
+    	
+    	count = 1
+    	
+    	hex_file.write( '0x%02X' % tl_data[0] )
+    	
+    	for c in tl_data[1:]:
+    		if count > 15:
+    			hex_file.write( ',\n0x%02X' % c )
+    			count = 0
+    		else:
+    			hex_file.write( ', 0x%02X ' % c )
+    	
+    		count += 1
+    		
+    	hex_file.close()
