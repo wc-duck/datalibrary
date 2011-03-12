@@ -71,7 +71,7 @@ TEST_F(DLReflect, pods)
 #endif // DL_UNITTEST_ALL
 
 #define CHECK_TYPE_INFO_CORRECT( TYPE_NAME, MEM_COUNT ) { \
-	dl_type_info_t ti; \
+	dl_type_info_t ti = {}; \
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, TYPE_NAME::TYPE_ID, &ti ) ); \
 	EXPECT_STREQ( #TYPE_NAME,            ti.name ); \
 	EXPECT_EQ(sizeof(TYPE_NAME),         ti.size); \

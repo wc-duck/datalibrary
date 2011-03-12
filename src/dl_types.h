@@ -275,6 +275,7 @@ static inline pint DLPodSize(dl_type_t _Type)
 
 static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
+    DL_ASSERT( dl_internal_is_align( dl_ctx->type_lookup, DL_ALIGNMENTOF(dl_type_lookup_t) ) );
 	// linear search right now!
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 		if(dl_ctx->type_lookup[i].type_id == type_id)

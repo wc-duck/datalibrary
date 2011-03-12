@@ -94,13 +94,12 @@ if __name__ == "__main__":
 	if options.cppheader: dl.generate.cplusplus.generate( tl, None, open( options.cppheader, 'w' ) )
 
 	if options.output:
-		dl.typelibrary.compile( tl, open( options.output, 'w' ) )
+		dl.typelibrary.compile( tl, open( options.output, 'wb' ) )
 		
 	if options.hexarray:
 		from StringIO import StringIO
 		import array
 		output = StringIO()
-		logging.debug('NEW!!!')
 		dl.typelibrary.compile( tl, output )
 		
 		hex_file = open(options.hexarray, 'wb')
