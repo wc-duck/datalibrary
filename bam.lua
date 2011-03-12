@@ -238,10 +238,10 @@ if ScriptArgs["test_filter"] then
 end
 
 if family == "windows" then
-	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests )
+	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests, "local/generated/unittest.bin" )
 else
-	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests )
-	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests ) -- valgrind c unittests
+	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests, "local/generated/unittest.bin" )
+	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
