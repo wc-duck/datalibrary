@@ -931,7 +931,7 @@ TEST(DLMisc, endian_is_correct)
 
 TEST(DLMisc, built_in_tl_eq_bin_file)
 {
-	const unsigned char TypeLib1[] =
+	const unsigned char built_in_tl[] =
 	{
 		#include "generated/unittest.bin.h"
 	};
@@ -939,20 +939,19 @@ TEST(DLMisc, built_in_tl_eq_bin_file)
 	
 	FILE* f = fopen( test_file, "rb" );
 	fseek( f, 0, SEEK_END );
-	size_t size = ftell(f);
+	unsigned int read_tl_size = ftell(f);
 	fseek( f, 0, SEEK_SET );
-	printf("size %u\n", size);
 	
-	unsigned char* buff = new unsigned char[size];
+	unsigned char* read_tl = (unsigned char*)malloc(read_tl_size);
 	
-	fread( buff, size, 1, f );
+	fread( read_tl, read_tl_size, 1, f );
 	
 	fclose( f );
 	
-	EXPECT_EQ( DL_ARRAY_LENGTH(TypeLib1), size );
-	EXPECT_EQ( 0, memcmp( buff, TypeLib1, size ) );
+	EXPECT_EQ( DL_ARRAY_LENGTH(built_in_tl), read_tl_size );
+	EXPECT_EQ( 0, memcmp( read_tl, built_in_tl, read_tl_size ) );
 	
-	delete [] buff;
+	free(read_tl);
 }
 
 int main(int argc, char **argv)

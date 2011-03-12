@@ -397,12 +397,10 @@ def compile( typelibrary, stream ):
     HEADER_SIZE = struct.calcsize(HEADER_FMT)
     
     def build_header( typelibrary, type_lookup, type_data, enum_lookup, enum_data, default_data ):
-        header = struct.pack('<4sI', 'LTLD', 2) # typelibrary identifier and version
-        
-        # TODO: using type_order here due to builtins present in .types... fix me that!
-        header = ''.join( [ header, struct.pack('<II', len(typelibrary.type_order), len(type_data) ) ] ) # type info
-        header = ''.join( [ header, struct.pack('<II', len(typelibrary.enums),      len(enum_data) ) ] ) # enum info
-        header = ''.join( [ header, struct.pack('<I',                               len(default_data) ) ] ) # default data
+        header = ''.join( [ struct.pack( '<4sI', 'LTLD', 2 ), # typelibrary identifier and version
+                            struct.pack( '<II', len(typelibrary.type_order), len(type_data) ), # type info
+                            struct.pack( '<II', len(typelibrary.enums),      len(enum_data) ), # enum info
+                            struct.pack( '<I',                               len(default_data) ) ] ) # default data
         
         assert HEADER_SIZE == len(header)
         
@@ -492,10 +490,10 @@ def compile( typelibrary, stream ):
                                                  member.size.ptr32,    member.size.ptr64,
                                                  member.align.ptr32,   member.align.ptr64,
                                                  member.offset.ptr32,  member.offset.ptr64,
-                                                 def_values.get( member, 0xFFFFFFFF ) )
+                                                 def_values.get( type.name + '.' + member.name, ( None, 0xFFFFFFFF) )[1] )
                 
                 if hasattr( member, 'default' ):
-                    def_values_out[member] = 0xFFFFFFFF
+                    def_values_out[type.name + '.' + member.name] = ( member, 0xFFFFFFFF )
                 
         return lookup, data, def_values_out
     
@@ -510,25 +508,20 @@ def compile( typelibrary, stream ):
         dl_ctx = libdl.DLContext( typelib_buffer = typelib_data )
         
         default_data = ''
-        for member in def_values.keys():
+        for key_name in def_values.keys():
             ''' pack them values '''            
-            POD_PACK_FMT = { 'int8'   : '<b', 
-                             'int16'  : '<h', 
-                             'int32'  : '<i', 
-                             'int64'  : '<q',
-                             'uint8'  : '<B', 
-                             'uint16' : '<H', 
-                             'uint32' : '<I', 
-                             'uint64' : '<Q',
-                             'fp32'   : '<f', 
-                             'fp64'   : '<d' }
+            POD_PACK_FMT = { 'int8'   : '<b', 'int16'  : '<h', 'int32'  : '<i', 'int64'  : '<q',
+                             'uint8'  : '<B', 'uint16' : '<H', 'uint32' : '<I', 'uint64' : '<Q',
+                             'fp32'   : '<f', 'fp64'   : '<d' }
             
-            def_values[ member ] = len(default_data)
+            member, offset = def_values[ key_name ] 
+            def_values[ key_name ] = ( member, len(default_data) )
             if isinstance( member, PodMember ):
                 if   member.type.name == 'string':           default_data += struct.pack( '<I%us' % ( len( member.default ) + 1 ), len(default_data) + 4, str(member.default) )
                 elif isinstance( member.type, BuiltinType ): default_data += struct.pack( POD_PACK_FMT[member.type.name], member.default )
                 elif isinstance( member.type, Enum ):        default_data += struct.pack( '<I', member.type.get_value( member.default ) )
-                elif isinstance( member.type, Type ): 
+                elif isinstance( member.type, Type ):
+                    pass 
                     instance_str =  '{ "type" : "%s", "data" : %s }' % ( member.type.name, str( json.dumps(member.default) ) )
                     default_data += dl_ctx.PackText( instance_str )[DL_INSTANCE_HEADER_SIZE:]
                 else:
