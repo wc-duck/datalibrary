@@ -46,6 +46,12 @@ function CSharpLibrary( cs_file )
 	AddJob( compiled_dll, "C# " .. compiled_dll, "gmcs /target:library /warnaserror /out:" .. compiled_dll .. " " .. cs_file, cs_file )
 end 
 
+function CSharpExe( cs_file )
+	local output_path  = PathJoin( BUILD_PATH, 'csharp' )
+	local compiled_dll = PathJoin( output_path, PathFilename( PathBase( cs_file ) ) ) .. ".exe"
+	AddJob( compiled_dll, "C# " .. compiled_dll, "gmcs /warnaserror /lib:\"local/csharp\" /reference:libdl /out:" .. compiled_dll .. " " .. cs_file, cs_file, "local/csharp/libdl.dll" )
+end 
+
 function DefaultSettings( platform, config )
 	local settings = {}
 	
@@ -245,11 +251,14 @@ end
 if family == "windows" then
 	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests, "local/generated/unittest.bin" )
 else
-	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests, "local/generated/unittest.bin" )
-	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
-
 	-- build c-sharp lib from generated unittest file, only implemented for mono on linux right now.
 	CSharpLibrary( "local/generated/unittest.cs" )
+	CSharpLibrary( "bind/cs/libdl.cs" )
+	CSharpExe( "tests/csharp_bindings/dl_tests.cs" )
+
+	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests, "local/generated/unittest.bin" )
+	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
+	AddJob( "test_cs",       "unittest c#",       "LD_LIBRARY_PATH=local/linux_x86_64/debug/ ./local/csharp/dl_tests.exe", "local/csharp/dl_tests.exe", "local/generated/unittest.bin" ) -- valgrind c unittests
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"

@@ -5,34 +5,56 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-public class CDLContext
+public class DLContext
 {
-    public CDLContext()
+    [StructLayout(LayoutKind.Sequential, Size=48, CharSet=CharSet.Ansi)]
+    private class dl_create_params
     {
-        IntPtr ptr = Marshal.AllocHGlobal(8);
-        CheckDLErrors(DLContextCreate(ptr, (IntPtr)0, (IntPtr)0));
-        m_Context = Marshal.ReadIntPtr(ptr);
-        Marshal.FreeHGlobal(ptr);
-    }
-
-    ~CDLContext()
-    {
-        CheckDLErrors(DLContextDestroy(m_Context));
-    }
-
-    public void LoadTypeLibrary(byte[] _DataBuffer)
-    {
-        CheckDLErrors(DLLoadTypeLibrary(m_Context, _DataBuffer, _DataBuffer.Length));
-    }
-	
-	public void LoadTypeLibraryFromFile(string _File)
-    {
-        if (!File.Exists(_File))
-            throw new System.ApplicationException(string.Format("Cant open file: {0}", _File));
-        LoadTypeLibrary(File.ReadAllBytes(_File));
+    	public dl_create_params()
+    	{
+    		alloc_func     = (IntPtr)0;
+    		free_func      = (IntPtr)0;
+    		alloc_ctx      = (IntPtr)0;
+    		error_msg_func = (IntPtr)0;
+    		error_msg_ctx  = (IntPtr)0;
+    	}
+    	
+        public IntPtr alloc_func;
+	    public IntPtr free_func;
+	    public IntPtr alloc_ctx;
+	    public IntPtr error_msg_func;
+	    public IntPtr error_msg_ctx;
     }
     
-    public object LoadInstance(Type _Type, byte[] _DataBuffer)
+    private void CheckDLErrors( int error_code )
+    {
+        if (error_code > 0)
+            throw new System.ApplicationException( string.Format( "DLError: {0}({1})", dl_error_to_string( error_code ), error_code ) );
+    }
+
+    public DLContext()
+    {    
+        IntPtr ptr = Marshal.AllocHGlobal(8);
+        
+        DLContext.dl_create_params p = new DLContext.dl_create_params();
+        
+        IntPtr params_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(p));
+        Marshal.StructureToPtr( p, params_ptr, false );
+        
+        CheckDLErrors( dl_context_create( ptr, params_ptr ) );
+        ctx = Marshal.ReadIntPtr(ptr);
+        
+        Marshal.FreeHGlobal(params_ptr);
+    }
+
+    ~DLContext() { CheckDLErrors( dl_context_destroy(ctx) ); }
+    
+    public void LoadTypeLibrary( byte[] tl_buffer )    { CheckDLErrors( dl_context_load_type_library( ctx, tl_buffer, tl_buffer.Length ) ); }
+	public void LoadTypeLibraryFromFile( string file ) { LoadTypeLibrary( File.ReadAllBytes( file ) ); }
+    
+    /*
+    
+    public object LoadInstance( Type _Type, byte[] _DataBuffer )
     {
         IntPtr buffer = Marshal.AllocHGlobal(_DataBuffer.Length);
 
@@ -134,24 +156,16 @@ public class CDLContext
 
         return size;
     }
+    */
 
-    private void CheckDLErrors(int _Err)
-    {
-        if (_Err > 0)
-            throw new System.ApplicationException(string.Format("DLError: {0}", DLErrorToString(_Err)));
-    }
+    public IntPtr ctx;
 
-    public IntPtr m_Context;
+    [DllImport("dl.dll")] private extern static string dl_error_to_string( int error_code );
+    [DllImport("dl.dll")] private extern static int    dl_context_create( IntPtr dl_ctx, IntPtr create_params );
+    [DllImport("dl.dll")] private extern static int    dl_context_destroy( IntPtr dl_ctx );
+    [DllImport("dl.dll")] private extern static int    dl_context_load_type_library( IntPtr dl_ctx, byte[] tl_data, int tl_data_size );
 
-    [DllImport("dldyn.dll", EntryPoint = "dl_context_load_lype_library", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLLoadTypeLibrary(IntPtr _Context, byte[] _pData, int _DataSize);
-
-    [DllImport("dldyn.dll", EntryPoint = "dl_context_destroy", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLContextDestroy(IntPtr _Context);
-
-    [DllImport("dldyn.dll", EntryPoint = "dl_context_create", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLContextCreate(IntPtr _pContext, IntPtr _pDLAllocFuncs);
-
+    /*
     [DllImport("dldyn.dll", EntryPoint = "dl_instance_load", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLLoadInstanceInplace(IntPtr _Context, IntPtr _pInstance, int _InstanceSize, byte[] _pData, int _DataSize);
 
@@ -159,9 +173,7 @@ public class CDLContext
     private extern static int DLInstaceSizeStored(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pDataSize);
 
     [DllImport("dldyn.dll", EntryPoint = "dl_instace_store", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLStoreInstace(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pData, int _DataSize);
-
-    
+    private extern static int DLStoreInstace(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pData, int _DataSize);    
     
     [DllImport("dldyn.dll", EntryPoint = "dl_txt_pack", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLPackText(IntPtr _Context, string _pTxtData, byte[] _pPackedData, int _pPackedDataSize);
@@ -174,9 +186,5 @@ public class CDLContext
 
     [DllImport("dldyn.dll", EntryPoint = "dl_txt_unpack_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     private extern static int DLRequiredUnpackSize(IntPtr _Context, byte[] _pPackedData, int _PackedDataSize, IntPtr _TxtDataSize);
-
-
-    
-    [DllImport("dldyn.dll", EntryPoint = "dl_error_to_string", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static string DLErrorToString(int _Err);
+    */
 }
