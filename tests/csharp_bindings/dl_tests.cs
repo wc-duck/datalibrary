@@ -1,13 +1,60 @@
 // replace me with real tests later!
 
-using System.IO;
+using NUnit.Framework; 
 
+[TestFixture]
 public class DLTest
 {
+	private DLContext ctx;
+	
+	[SetUp]
+    public void Init()
+    {
+    	ctx = new DLContext();
+        ctx.LoadTypeLibraryFromFile("../../local/generated/unittest.bin");
+    }
+    
+    [TearDown] public void Dispose() { ctx = null; }
+
+    [Test]
+    public void testPods()
+    {
+    	Pods p1 = new Pods();
+    	p1.i8  = 1;
+    	p1.i16 = 2;
+    	p1.i32 = 3;
+    	p1.i64 = 4;
+    	p1.u8  = 5;
+    	p1.u16 = 6;
+    	p1.u32 = 7;
+    	p1.u64 = 8;
+    	p1.f32 = 9.0f;
+    	p1.f64 = 1337.0;
+    	
+    	// full round-about here plox!
+    	byte[] buffer = ctx.StoreInstance( p1 );
+    	Pods p2 = (Pods)ctx.LoadInstance( typeof(Pods), buffer );
+    	
+    	Assert.AreEqual( p1.i8,  p2.i8 );
+    	Assert.AreEqual( p1.i16, p2.i16 );
+    	Assert.AreEqual( p1.i32, p2.i32 );
+    	Assert.AreEqual( p1.i64, p2.i64 );
+    	Assert.AreEqual( p1.u8,  p2.u8 );
+    	Assert.AreEqual( p1.u16, p2.u16 );
+    	Assert.AreEqual( p1.u32, p2.u32 );
+    	Assert.AreEqual( p1.u64, p2.u64 );
+    	Assert.AreEqual( p1.f32, p2.f32 );
+    	Assert.AreEqual( p1.f64, p2.f64 );
+    }
+    
+    /*
     public static void Main()
     {
     	DLContext dl_ctx = new DLContext();
         
         dl_ctx.LoadTypeLibraryFromFile("local/generated/unittest.bin");
     }
+    */
 }
+
+// NUnit.ConsoleRunner.Runner.Main( new string[] { Assembly.GetExecutingAssembly().Location, } );

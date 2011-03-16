@@ -33,10 +33,10 @@ public class DLContext
     }
 
     public DLContext()
-    {    
+    {
         IntPtr ptr = Marshal.AllocHGlobal(8);
         
-        DLContext.dl_create_params p = new DLContext.dl_create_params();
+        dl_create_params p = new dl_create_params();
         
         IntPtr params_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(p));
         Marshal.StructureToPtr( p, params_ptr, false );
@@ -52,27 +52,20 @@ public class DLContext
     public void LoadTypeLibrary( byte[] tl_buffer )    { CheckDLErrors( dl_context_load_type_library( ctx, tl_buffer, tl_buffer.Length ) ); }
 	public void LoadTypeLibraryFromFile( string file ) { LoadTypeLibrary( File.ReadAllBytes( file ) ); }
     
-    /*
-    
-    public object LoadInstance( Type _Type, byte[] _DataBuffer )
+    public object LoadInstance( Type type, byte[] packed_instance )
     {
-        IntPtr buffer = Marshal.AllocHGlobal(_DataBuffer.Length);
+        IntPtr buffer = Marshal.AllocHGlobal( packed_instance.Length );
 
-        CheckDLErrors(DLLoadInstanceInplace(m_Context, buffer, _DataBuffer, _DataBuffer.Length, _DataBuffer.Length));
-        object obj = Marshal.PtrToStructure(buffer, _Type);
+		CheckDLErrors( dl_instance_load( ctx, TypeIDOf( type ), buffer, (uint)packed_instance.Length, packed_instance, (uint)packed_instance.Length, (IntPtr)0 ) );
+        object obj = Marshal.PtrToStructure( buffer, type );
 
-        Marshal.FreeHGlobal(buffer);
-
+        Marshal.FreeHGlobal( buffer );
         return obj;
     }
 
-    public object LoadInstanceFromFile(Type _Type, string _File)
-    {
-        if (!File.Exists(_File))
-            throw new System.ApplicationException(string.Format("Cant open file: {0}", _File));
-        return LoadInstance(_Type, File.ReadAllBytes(_File));
-    }
+    public object LoadInstanceFromFile( Type type, string file ) { return LoadInstance( type, File.ReadAllBytes( file ) ); }
 	
+	/*
 	public object LoadInstanceFromTextFile(Type _Type, string _File)
 	{
  		if (!File.Exists(_File))
@@ -90,32 +83,23 @@ public class DLContext
  		
  		return LoadInstance(_Type, Packed);
 	}
+	*/
 	
-	public byte[] StoreInstace(object _Instance)
+	public byte[] StoreInstance( object instance )
     {
-        byte[] buffer = new byte[InstaceSizeStored(_Instance)];
+        byte[] buffer = new byte[ InstaceSizeStored( instance ) ];
 
-        FieldInfo info = _Instance.GetType().GetField("TYPE_ID");
-        UInt32 hash = (UInt32)info.GetValue(_Instance);
-
-        IntPtr inst_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(_Instance));
-        Marshal.StructureToPtr(_Instance, inst_ptr, false);
-
-        IntPtr size_ptr = Marshal.AllocHGlobal(8);
-        CheckDLErrors(DLInstaceSizeStored(m_Context, hash, inst_ptr, size_ptr));
-        int size = Marshal.ReadInt32(size_ptr);
-
-        GCHandle pinned_array = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-        IntPtr data_ptr = pinned_array.AddrOfPinnedObject();
-        CheckDLErrors(DLStoreInstace(m_Context, hash, inst_ptr, data_ptr, (int)size));
-
-        pinned_array.Free();
+        IntPtr inst_ptr = Marshal.AllocHGlobal( Marshal.SizeOf( instance ) );
+        Marshal.StructureToPtr( instance, inst_ptr, false );
+        
+        CheckDLErrors( dl_instance_store( ctx, TypeIDOf( instance ), inst_ptr, buffer, (uint)buffer.Length, (IntPtr)0 ) );
+        
         Marshal.FreeHGlobal(inst_ptr);
-        Marshal.FreeHGlobal(size_ptr);
 
         return buffer;
     }
 
+	/*
     public string StoreInstanceToString(object _Instance)
     {
         byte[] PackedData = StoreInstace(_Instance);
@@ -135,28 +119,28 @@ public class DLContext
     }
 
     public void StoreInstaceToFile(object _Instance, string _File)     { File.WriteAllBytes(_File, StoreInstace(_Instance)); }
-    public void StoreInstaceToTextFile(object _Instance, string _File) { File.WriteAllText(_File, StoreInstanceToString(_Instance)); }
+    public void StoreInstaceToTextFile(object _Instance, string _File) { File.WriteAllText(_File, StoreInstanceToString(_Instance)); }*/
 
     // private
+    
+    private uint TypeIDOf( Type type )       { return (uint)type.GetField("TYPE_ID").GetValue(null); }
+    private uint TypeIDOf( object instance ) { return TypeIDOf( instance.GetType() ); }
 
-    private int InstaceSizeStored(object _Instance)
+    private uint InstaceSizeStored( object instance )
     {
-        FieldInfo info = _Instance.GetType().GetField("TYPE_ID");
-        UInt32 hash = (UInt32)info.GetValue(_Instance);
-
-        IntPtr inst_ptr = Marshal.AllocHGlobal(Marshal.SizeOf(_Instance));
-        Marshal.StructureToPtr(_Instance, inst_ptr, false);
+        IntPtr inst_ptr = Marshal.AllocHGlobal( Marshal.SizeOf( instance ) );
+        Marshal.StructureToPtr( instance, inst_ptr, false );
 
         IntPtr size_ptr = Marshal.AllocHGlobal(8);
-        CheckDLErrors(DLInstaceSizeStored(m_Context, hash, inst_ptr, size_ptr));
-        int size = Marshal.ReadInt32(size_ptr);
+        CheckDLErrors( dl_instance_store( ctx, TypeIDOf( instance ), inst_ptr, new byte[0], 0, size_ptr ) );
+        
+        uint size = (uint)Marshal.ReadInt32(size_ptr);
 
         Marshal.FreeHGlobal(inst_ptr);
         Marshal.FreeHGlobal(size_ptr);
 
         return size;
     }
-    */
 
     public IntPtr ctx;
 
@@ -164,27 +148,14 @@ public class DLContext
     [DllImport("dl.dll")] private extern static int    dl_context_create( IntPtr dl_ctx, IntPtr create_params );
     [DllImport("dl.dll")] private extern static int    dl_context_destroy( IntPtr dl_ctx );
     [DllImport("dl.dll")] private extern static int    dl_context_load_type_library( IntPtr dl_ctx, byte[] tl_data, int tl_data_size );
-
-    /*
-    [DllImport("dldyn.dll", EntryPoint = "dl_instance_load", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLLoadInstanceInplace(IntPtr _Context, IntPtr _pInstance, int _InstanceSize, byte[] _pData, int _DataSize);
-
-    [DllImport("dldyn.dll", EntryPoint = "dl_Instace_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLInstaceSizeStored(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pDataSize);
-
-    [DllImport("dldyn.dll", EntryPoint = "dl_instace_store", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLStoreInstace(IntPtr _Context, UInt32 _TypeHash, IntPtr _pInstance, IntPtr _pData, int _DataSize);    
     
-    [DllImport("dldyn.dll", EntryPoint = "dl_txt_pack", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLPackText(IntPtr _Context, string _pTxtData, byte[] _pPackedData, int _pPackedDataSize);
-
-    [DllImport("dldyn.dll", EntryPoint = "dl_txt_pack_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLRequiredTextPackSize(IntPtr _Context, string _pTxtData, IntPtr _pPackedDataSize);
-
-    [DllImport("dldyn.dll", EntryPoint = "dl_txt_unpack", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLUnpack(IntPtr _Context, byte[] _pPackedData, int _PackedDataSize, byte[] _pTxtData, int _TxtDataSize);
-
-    [DllImport("dldyn.dll", EntryPoint = "dl_txt_unpack_calc_size", ExactSpelling = false, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    private extern static int DLRequiredUnpackSize(IntPtr _Context, byte[] _pPackedData, int _PackedDataSize, IntPtr _TxtDataSize);
-    */
+    [DllImport("dl.dll")] private extern static int    dl_instance_load( IntPtr dl_ctx,          uint type_id,
+                                           								 IntPtr instance,        uint instance_size,
+                                           								 byte[] packed_instance, uint packed_instance_size,
+                                           								 IntPtr consumed );
+                                           								 
+	[DllImport("dl.dll")] private extern static int    dl_instance_store( IntPtr dl_ctx,        uint type_id, 
+																		  IntPtr instance,
+																		  byte[] out_buffer,    uint out_buffer_size, 
+																		  IntPtr produced_bytes );
 }
