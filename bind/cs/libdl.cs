@@ -63,27 +63,20 @@ public class DLContext
         return obj;
     }
 
-    public object LoadInstanceFromFile( Type type, string file ) { return LoadInstance( type, File.ReadAllBytes( file ) ); }
-	
-	/*
-	public object LoadInstanceFromTextFile(Type _Type, string _File)
-	{
- 		if (!File.Exists(_File))
-             throw new System.ApplicationException(string.Format("Cant open file: {0}", _File));
- 
-        string Text = File.ReadAllText(_File);
- 
- 		IntPtr size_ptr = Marshal.AllocHGlobal(8);
-        CheckDLErrors(DLRequiredTextPackSize(m_Context, Text, size_ptr));
-        int size = Marshal.ReadInt32(size_ptr);
+	public object LoadInstanceFromString( Type type, string text_instance )
+    {
+    	IntPtr size_ptr = Marshal.AllocHGlobal(8);
+    	CheckDLErrors( dl_txt_pack( ctx, text_instance, new byte[0], 0, size_ptr ) );																	
+		byte[] packed = new byte[ Marshal.ReadInt32(size_ptr) ];
  		Marshal.FreeHGlobal(size_ptr);
  		
- 		byte[] Packed = new byte[size];
- 		CheckDLErrors(DLPackText(m_Context, Text, Packed, size));
+ 		CheckDLErrors( dl_txt_pack( ctx, text_instance, packed, (uint)packed.Length, (IntPtr)0 ) );
  		
- 		return LoadInstance(_Type, Packed);
-	}
-	*/
+    	return LoadInstance( type, packed );
+    }
+    
+    public object LoadInstanceFromFile( Type type, string file )    { return LoadInstance( type, File.ReadAllBytes( file ) ); }
+	public object LoadInstanceFromTextFile( Type type, string file) { return LoadInstanceFromString( type, File.ReadAllText( file ) ); }
 	
 	public byte[] StoreInstance( object instance )
     {
@@ -99,27 +92,25 @@ public class DLContext
         return buffer;
     }
 
-	/*
-    public string StoreInstanceToString(object _Instance)
+	public void StoreInstaceToFile( object instance, string file) { File.WriteAllBytes( file, StoreInstance(instance) ); }
+	
+    public string StoreInstanceToString( object instance )
     {
-        byte[] PackedData = StoreInstace(_Instance);
+        byte[] packed_instance = StoreInstance( instance );
 
         IntPtr size_ptr = Marshal.AllocHGlobal(8);
-        CheckDLErrors(DLRequiredUnpackSize(m_Context, PackedData, PackedData.Length, size_ptr));
-        int size = Marshal.ReadInt32(size_ptr);
+        CheckDLErrors( dl_txt_unpack( ctx, TypeIDOf( instance ), packed_instance, (uint)packed_instance.Length, new byte[0], 0, size_ptr ) );
 
-        byte[] TextData = new byte[size];
-
-        CheckDLErrors(DLUnpack(m_Context, PackedData, PackedData.Length, TextData, TextData.Length));
-
+        byte[] text_data = new byte[ (uint)Marshal.ReadInt32(size_ptr) ];
         Marshal.FreeHGlobal(size_ptr);
 
+		CheckDLErrors( dl_txt_unpack( ctx, TypeIDOf( instance ), packed_instance, (uint)packed_instance.Length, text_data, (uint)text_data.Length, (IntPtr)0 ) );
+		
         System.Text.ASCIIEncoding enc = new System.Text.ASCIIEncoding();
-        return enc.GetString(TextData);
+        return enc.GetString( text_data );
     }
 
-    public void StoreInstaceToFile(object _Instance, string _File)     { File.WriteAllBytes(_File, StoreInstace(_Instance)); }
-    public void StoreInstaceToTextFile(object _Instance, string _File) { File.WriteAllText(_File, StoreInstanceToString(_Instance)); }*/
+    public void StoreInstaceToTextFile( object instance, string file ) { File.WriteAllText( file, StoreInstanceToString( instance ) ); }
 
     // private
     
@@ -142,7 +133,7 @@ public class DLContext
         return size;
     }
 
-    public IntPtr ctx;
+    private IntPtr ctx;
 
     [DllImport("dl.dll")] private extern static string dl_error_to_string( int error_code );
     [DllImport("dl.dll")] private extern static int    dl_context_create( IntPtr dl_ctx, IntPtr create_params );
@@ -158,4 +149,13 @@ public class DLContext
 																		  IntPtr instance,
 																		  byte[] out_buffer,    uint out_buffer_size, 
 																		  IntPtr produced_bytes );
+																		  
+	[DllImport("dl.dll")] private extern static int    dl_txt_pack( IntPtr dl_ctx,     string txt_instance, 
+																	byte[] out_buffer, uint out_buffer_size, 
+																	IntPtr produced_bytes );
+																	
+	[DllImport("dl.dll")] private extern static int    dl_txt_unpack( IntPtr dl_ctx,            uint type,
+                                        							  byte[] packed_instance,   uint packed_instance_size,
+                                        							  byte[] out_txt_instance,  uint out_txt_instance_size,
+                                        							  IntPtr produced_bytes );
 }

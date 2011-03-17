@@ -1,11 +1,20 @@
 // replace me with real tests later!
 
+using System;
 using NUnit.Framework; 
 
 [TestFixture]
 public class DLTest
 {
 	private DLContext ctx;
+	
+	private object DoTheRoundAbout( Type type, object obj )
+	{
+		string str_from_obj = ctx.StoreInstanceToString( obj );
+		object obj_from_str = ctx.LoadInstanceFromString( type, str_from_obj ); 
+		byte[] buf_from_obj = ctx.StoreInstance( obj_from_str );
+    	return ctx.LoadInstance( type, buf_from_obj );
+	}
 	
 	[SetUp]
     public void Init()
@@ -31,9 +40,7 @@ public class DLTest
     	p1.f32 = 9.0f;
     	p1.f64 = 1337.0;
     	
-    	// full round-about here plox!
-    	byte[] buffer = ctx.StoreInstance( p1 );
-    	Pods p2 = (Pods)ctx.LoadInstance( typeof(Pods), buffer );
+    	Pods p2 = (Pods)DoTheRoundAbout( typeof( Pods ), p1 );
     	
     	Assert.AreEqual( p1.i8,  p2.i8 );
     	Assert.AreEqual( p1.i16, p2.i16 );
@@ -46,15 +53,4 @@ public class DLTest
     	Assert.AreEqual( p1.f32, p2.f32 );
     	Assert.AreEqual( p1.f64, p2.f64 );
     }
-    
-    /*
-    public static void Main()
-    {
-    	DLContext dl_ctx = new DLContext();
-        
-        dl_ctx.LoadTypeLibraryFromFile("local/generated/unittest.bin");
-    }
-    */
 }
-
-// NUnit.ConsoleRunner.Runner.Main( new string[] { Assembly.GetExecutingAssembly().Location, } );
