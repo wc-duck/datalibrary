@@ -40,17 +40,53 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 	AddDependency( tlc_file, dl_shared_lib )
 end
 
-function CSharpLibrary( cs_file )
-	local output_path  = PathJoin( BUILD_PATH, 'csharp' )
-	local compiled_dll = PathJoin( output_path, PathFilename( PathBase( cs_file ) ) ) .. ".dll"
-	AddJob( compiled_dll, "C# " .. compiled_dll, "gmcs /target:library /warnaserror /lib:\"local/csharp\" /lib:\"/usr/lib/cli/nunit.framework-2.4\" /reference:nunit.framework /reference:libdl /reference:unittest /out:" .. compiled_dll .. " " .. cs_file, cs_file )
-end 
+function CSharpSettings()
+	local settings = {}
+	settings.exe = {}
+	settings.lib = {}
 
-function CSharpExe( cs_file )
-	local output_path  = PathJoin( BUILD_PATH, 'csharp' )
-	local compiled_dll = PathJoin( output_path, PathFilename( PathBase( cs_file ) ) ) .. ".exe"
-	AddJob( compiled_dll, "C# " .. compiled_dll, "gmcs /warnaserror /lib:\"local/csharp\" /lib:\"/usr/lib/cli/nunit.framework-2.4\" /reference:nunit.framework /reference:libdl /reference:unittest /out:" .. compiled_dll .. " " .. cs_file, cs_file, "local/csharp/libdl.dll" )
-end 
+	if family == "linux" then
+		settings.exe.exe = "gmcs "
+		settings.exe.fix_path = function( path ) return path end
+	else
+		settings.exe.exe = "c:/WINDOWS/Microsoft.NET/Framework/v3.5/csc /nologo " -- path here need to be fetched from system!
+		settings.exe.fix_path = function( path ) return string.gsub( path, "/", "\\" ) end
+	end
+
+	settings.lib.exe      = settings.exe.exe .. "/target:library "
+	settings.lib.fix_path = settings.exe.fix_path
+
+	settings.exe.flags      = NewFlagTable()
+	settings.exe.libpaths   = NewTable()
+	settings.exe.references = NewTable()
+	settings.exe.outpath    = PathJoin( BUILD_PATH, 'csharp' )
+	settings.exe.output     = function( settings, path ) return PathJoin( settings.outpath, PathFilename( PathBase( path ) ) .. ".exe" ) end
+	settings.lib.flags      = NewFlagTable()
+	settings.lib.libpaths   = NewTable()
+	settings.lib.references = NewTable()
+	settings.lib.outpath    = PathJoin( BUILD_PATH, 'csharp' )
+	settings.lib.output     = function( settings, path ) return PathJoin( settings.outpath, PathFilename( PathBase( path ) ) .. ".dll" ) end
+
+	-- these settings might go in a separate function
+	settings.exe.flags:Add( "/warnaserror" )
+	settings.lib.flags:Add( "/warnaserror" )
+
+	return settings
+end
+
+function CSharpCompile( settings, src )
+	local compiled = settings.output( settings, src )
+
+	AddJob( compiled,
+			"C# " .. compiled,
+			settings.exe .. settings.flags:ToString() .. " /out:" .. settings.fix_path( compiled ) .. " " .. settings.fix_path( src ),
+			src )
+
+	return compiled
+end
+
+function CSharpExe( settings, src ) return CSharpCompile( settings.exe, src ) end 
+function CSharpLibrary( settings, src ) return CSharpCompile( settings.lib, src ) end 
 
 function DefaultSettings( platform, config )
 	local settings = {}
@@ -105,7 +141,7 @@ function DefaultGCC( platform, config )
 		settings.cc.flags:Add( "-m32" )
 		settings.dll.flags:Add( "-m32" )
 		settings.link.flags:Add( "-m32" )
-	else
+	elseif platform == "linux_x86_64" then
 		settings.cc.flags:Add( "-m64" )
 		settings.dll.flags:Add( "-m64" )
 		settings.link.flags:Add( "-m64" )
@@ -189,16 +225,16 @@ end
 
 settings = 
 {
-	linux_x86    = { debug = DefaultGCC( "linux_x86",    "debug" ), release = DefaultGCC( "linux_x86",    "release" ) },
-	linux_x86_64 = { debug = DefaultGCC( "linux_x86_64", "debug" ), release = DefaultGCC( "linux_x86_64", "release" ) },
-	win32        = { debug = DefaultMSVC( "win32",       "debug" ), release = DefaultMSVC( "win32",       "release" ) },
-	winx64       = { debug = DefaultMSVC( "winx64",      "debug" ), release = DefaultMSVC( "winx64",      "release" ) }
+	linux_x86    = { debug = DefaultGCC(  "linux_x86",    "debug" ), release = DefaultGCC(  "linux_x86",    "release" ) },
+	linux_x86_64 = { debug = DefaultGCC(  "linux_x86_64", "debug" ), release = DefaultGCC(  "linux_x86_64", "release" ) },
+	win32        = { debug = DefaultMSVC( "win32",        "debug" ), release = DefaultMSVC( "win32",        "release" ) },
+	winx64       = { debug = DefaultMSVC( "winx64",       "debug" ), release = DefaultMSVC( "winx64",       "release" ) }
 }
 
 build_platform = ScriptArgs["platform"]
 config   = ScriptArgs["config"]
 
-if not build_platform then error( "platform need to be set. example \"platform=linux32\"" ) end
+if not build_platform then error( "platform need to be set. example \"platform=linux_x86\"" ) end
 if not config then         error( "config need to be set. example \"config=debug\"" )       end
 
 platform_settings = settings[build_platform]
@@ -248,15 +284,16 @@ if ScriptArgs["test_filter"] then
 	test_args =  " --gtest_filter=" .. ScriptArgs["test_filter"]
 end
 
+cs_settings     = CSharpSettings()
+cs_libdl_lib    = CSharpLibrary( cs_settings, "bind/cs/libdl.cs" )
+cs_unittest_lib = CSharpLibrary( cs_settings, "local/generated/unittest.cs" )
+
 if family == "windows" then
 	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests, "local/generated/unittest.bin" )
 else
 	-- build c-sharp lib from generated unittest file, only implemented for mono on linux right now.
-	CSharpLibrary( "local/generated/unittest.cs" )
-	CSharpLibrary( "bind/cs/libdl.cs" )
-	CSharpLibrary( "tests/csharp_bindings/dl_tests.cs" )
+	CSharpExe( cs_settings, "tests/csharp_bindings/dl_tests.cs" )
 
-	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests, "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
 	--AddJob( "test_cs",       "unittest c#",       "LD_LIBRARY_PATH=local/linux_x86_64/debug/ ./local/csharp/dl_tests.dll", "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) -- valgrind c unittests
 	AddJob( "test_cs",       "unittest c#",       "nunit-console local/csharp/dl_tests.dll", "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) -- valgrind c unittests
