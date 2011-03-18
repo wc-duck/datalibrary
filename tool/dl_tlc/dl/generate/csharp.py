@@ -39,7 +39,10 @@ def emit_member( member, mem_ctx ):
     cs_name = to_csharp_name( member.type.name )
     
     if   isinstance( member, tl.PodMember ):
-        lines.append( 'public %s %s;' % ( cs_name, member.name ) )
+        if cs_name in a_config_here:
+            lines.append( 'public %s %s;' % ( cs_name, member.name ) )
+        else:
+            lines.append( 'public %s %s = new %s();' % ( cs_name, member.name, cs_name ) )
     elif isinstance( member, tl.ArrayMember ):
         lines.append( 'public %s[] %s;' % ( cs_name, member.name ) ) 
         lines.append( 'public uint %sArraySize;' % member.name )

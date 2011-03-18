@@ -45,7 +45,7 @@ function CSharpSettings()
 	settings.exe = {}
 	settings.lib = {}
 
-	if family == "linux" then
+	if family == "unix" then
 		settings.exe.exe = "gmcs "
 		settings.exe.fix_path = function( path ) return path end
 	else
@@ -57,13 +57,13 @@ function CSharpSettings()
 	settings.lib.fix_path = settings.exe.fix_path
 
 	settings.exe.flags      = NewFlagTable()
-	settings.exe.libpaths   = NewTable()
-	settings.exe.references = NewTable()
+	settings.exe.libpaths   = NewFlagTable()
+	settings.exe.references = NewFlagTable()
 	settings.exe.outpath    = PathJoin( BUILD_PATH, 'csharp' )
 	settings.exe.output     = function( settings, path ) return PathJoin( settings.outpath, PathFilename( PathBase( path ) ) .. ".exe" ) end
 	settings.lib.flags      = NewFlagTable()
-	settings.lib.libpaths   = NewTable()
-	settings.lib.references = NewTable()
+	settings.lib.libpaths   = NewFlagTable()
+	settings.lib.references = NewFlagTable()
 	settings.lib.outpath    = PathJoin( BUILD_PATH, 'csharp' )
 	settings.lib.output     = function( settings, path ) return PathJoin( settings.outpath, PathFilename( PathBase( path ) ) .. ".dll" ) end
 
@@ -79,7 +79,7 @@ function CSharpCompile( settings, src )
 
 	AddJob( compiled,
 			"C# " .. compiled,
-			settings.exe .. settings.flags:ToString() .. " /out:" .. settings.fix_path( compiled ) .. " " .. settings.fix_path( src ),
+			settings.exe .. settings.flags:ToString() .. settings.references:ToString() .. settings.libpaths:ToString() .. " /out:" .. settings.fix_path( compiled ) .. " " .. settings.fix_path( src ),
 			src )
 
 	return compiled
@@ -288,6 +288,15 @@ cs_settings     = CSharpSettings()
 cs_libdl_lib    = CSharpLibrary( cs_settings, "bind/cs/libdl.cs" )
 cs_unittest_lib = CSharpLibrary( cs_settings, "local/generated/unittest.cs" )
 
+cs_settings.lib.references:Add("/reference:libdl")
+cs_settings.lib.references:Add("/reference:unittest")
+cs_settings.lib.references:Add("/reference:nunit.framework")
+cs_settings.lib.libpaths:Add("/lib:local/csharp")
+cs_settings.lib.libpaths:Add("/lib:/usr/lib/cli/nunit.framework-2.4")
+
+cs_test_lib     = CSharpLibrary( cs_settings, "tests/csharp_bindings/dl_tests.cs", "local/generated/unittest.cs" )
+AddDependency( cs_test_lib, cs_libdl_lib, cs_unittest_lib )
+
 if family == "windows" then
 	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests, "local/generated/unittest.bin" )
 else
@@ -295,7 +304,6 @@ else
 	CSharpExe( cs_settings, "tests/csharp_bindings/dl_tests.cs" )
 
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
-	--AddJob( "test_cs",       "unittest c#",       "LD_LIBRARY_PATH=local/linux_x86_64/debug/ ./local/csharp/dl_tests.dll", "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) -- valgrind c unittests
 	AddJob( "test_cs",       "unittest c#",       "nunit-console local/csharp/dl_tests.dll", "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) -- valgrind c unittests
 end
 
