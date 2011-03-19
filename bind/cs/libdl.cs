@@ -52,18 +52,18 @@ public class DLContext
     public void LoadTypeLibrary( byte[] tl_buffer )    { CheckDLErrors( dl_context_load_type_library( ctx, tl_buffer, tl_buffer.Length ) ); }
 	public void LoadTypeLibraryFromFile( string file ) { LoadTypeLibrary( File.ReadAllBytes( file ) ); }
     
-    public object LoadInstance( Type type, byte[] packed_instance )
+    public T LoadInstance<T>( byte[] packed_instance )
     {
         IntPtr buffer = Marshal.AllocHGlobal( packed_instance.Length );
 
-		CheckDLErrors( dl_instance_load( ctx, TypeIDOf( type ), buffer, (uint)packed_instance.Length, packed_instance, (uint)packed_instance.Length, (IntPtr)0 ) );
-        object obj = Marshal.PtrToStructure( buffer, type );
+		CheckDLErrors( dl_instance_load( ctx, TypeIDOf( typeof(T) ), buffer, (uint)packed_instance.Length, packed_instance, (uint)packed_instance.Length, (IntPtr)0 ) );
+        object obj = Marshal.PtrToStructure( buffer, typeof(T) );
 
         Marshal.FreeHGlobal( buffer );
-        return obj;
+        return (T)obj;
     }
 
-	public object LoadInstanceFromString( Type type, string text_instance )
+	public T LoadInstanceFromString<T>( string text_instance )
     {
     	IntPtr size_ptr = Marshal.AllocHGlobal(8);
     	CheckDLErrors( dl_txt_pack( ctx, text_instance, new byte[0], 0, size_ptr ) );																	
@@ -72,13 +72,13 @@ public class DLContext
  		
  		CheckDLErrors( dl_txt_pack( ctx, text_instance, packed, (uint)packed.Length, (IntPtr)0 ) );
  		
-    	return LoadInstance( type, packed );
+    	return LoadInstance<T>( packed );
     }
     
-    public object LoadInstanceFromFile( Type type, string file )    { return LoadInstance( type, File.ReadAllBytes( file ) ); }
-	public object LoadInstanceFromTextFile( Type type, string file) { return LoadInstanceFromString( type, File.ReadAllText( file ) ); }
+    public T LoadInstanceFromFile<T>( string file )    { return LoadInstance<T>( File.ReadAllBytes( file ) ); }
+	public T LoadInstanceFromTextFile<T>( string file) { return LoadInstanceFromString<T>( File.ReadAllText( file ) ); }
 	
-	public byte[] StoreInstance( object instance )
+	public byte[] StoreInstance<T>( T instance )
     {
         byte[] buffer = new byte[ InstaceSizeStored( instance ) ];
 
@@ -92,9 +92,9 @@ public class DLContext
         return buffer;
     }
 
-	public void StoreInstaceToFile( object instance, string file) { File.WriteAllBytes( file, StoreInstance(instance) ); }
+	public void StoreInstaceToFile<T>( T instance, string file) { File.WriteAllBytes( file, StoreInstance(instance) ); }
 	
-    public string StoreInstanceToString( object instance )
+    public string StoreInstanceToString<T>( T instance )
     {
         byte[] packed_instance = StoreInstance( instance );
 
@@ -110,14 +110,14 @@ public class DLContext
         return enc.GetString( text_data );
     }
 
-    public void StoreInstaceToTextFile( object instance, string file ) { File.WriteAllText( file, StoreInstanceToString( instance ) ); }
+    public void StoreInstaceToTextFile<T>( T instance, string file ) { File.WriteAllText( file, StoreInstanceToString( instance ) ); }
 
     // private
     
     private uint TypeIDOf( Type type )       { return (uint)type.GetField("TYPE_ID").GetValue(null); }
     private uint TypeIDOf( object instance ) { return TypeIDOf( instance.GetType() ); }
 
-    private uint InstaceSizeStored( object instance )
+    private uint InstaceSizeStored<T>( T instance )
     {
         IntPtr inst_ptr = Marshal.AllocHGlobal( Marshal.SizeOf( instance ) );
         Marshal.StructureToPtr( instance, inst_ptr, false );
