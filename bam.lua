@@ -280,9 +280,11 @@ end
 dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
 local    test_args = ""
+local py_test_args = ""
 local cs_test_args = ""
 if ScriptArgs["test_filter"] then
 	   test_args = " --gtest_filter=" .. ScriptArgs["test_filter"]
+	py_test_args = " " .. ScriptArgs["test_filter"]
 	cs_test_args = " -run=" .. ScriptArgs["test_filter"]
 end
 
@@ -311,7 +313,7 @@ else
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
-AddJob( "test_py",       "unittest python bindings", PYTHON .. " " .. dl_tests_py .. " " .. shared_library, dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
+AddJob( "test_py",       "unittest python bindings", PYTHON .. " " .. dl_tests_py .. " " .. shared_library .. " " .. py_test_args, dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
 
 -- do not run unittest as default, only run
 PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
