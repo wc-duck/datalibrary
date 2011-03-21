@@ -279,9 +279,11 @@ end
 
 dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
 
-local test_args = ""
+local    test_args = ""
+local cs_test_args = ""
 if ScriptArgs["test_filter"] then
-	test_args =  " --gtest_filter=" .. ScriptArgs["test_filter"]
+	   test_args = " --gtest_filter=" .. ScriptArgs["test_filter"]
+	cs_test_args = " -run=" .. ScriptArgs["test_filter"]
 end
 
 cs_settings     = CSharpSettings()
@@ -303,8 +305,9 @@ else
 	-- build c-sharp lib from generated unittest file, only implemented for mono on linux right now.
 	CSharpExe( cs_settings, "tests/csharp_bindings/dl_tests.cs" )
 
+	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests, "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
-	AddJob( "test_cs",       "unittest c#",       "nunit-console local/csharp/dl_tests.dll", "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) -- valgrind c unittests
+	AddJob( "test_cs",       "unittest c#",       "nunit-console local/csharp/dl_tests.dll" .. cs_test_args, "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) -- valgrind c unittests
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
