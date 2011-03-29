@@ -109,6 +109,12 @@ public:
 		}
 	}
 
+	void WriteString( const void* str, pint len )
+	{
+		Write( str, len );
+		Write( char('\0') );
+	}
+
 	void WriteZero(pint _Bytes)
 	{
 		if(!m_Dummy)

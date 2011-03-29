@@ -234,7 +234,6 @@ struct SDLPackContext
 		pint        m_Len;
 	};
 
-	CArrayStatic<SStringItem, 1024> m_lStrings;
 	CStackStatic<SDLPackState, 128> m_StateStack;
 
 private:
@@ -407,9 +406,7 @@ static int dl_internal_pack_on_string( void* _pCtx, const unsigned char* str_val
 
 			pint offset = pCtx->m_Writer->Tell();
 
-			// write string
-			pCtx->m_Writer->Write( str_value, str_len );
-			pCtx->m_Writer->Write( (char)'\0' );
+			pCtx->m_Writer->WriteString( str_value, str_len );
 
 			pint array_elem_pos = pCtx->m_Writer->PushBackAlloc( sizeof( char* ) );
 			pCtx->m_Writer->SeekSet( array_elem_pos );
@@ -423,11 +420,9 @@ static int dl_internal_pack_on_string( void* _pCtx, const unsigned char* str_val
 			pint curr = pCtx->m_Writer->Tell();
 			pCtx->m_Writer->SeekEnd();
 			pint offset = pCtx->m_Writer->Tell();
-			pCtx->m_Writer->Write( str_value, str_len );
-			pCtx->m_Writer->Write( (char)'\0' );
+			pCtx->m_Writer->WriteString( str_value, str_len );
 			pCtx->m_Writer->SeekSet( curr );
 
-			// pCtx->m_lStrings.Add(SDLPackContext::SStringItem(pCtx->m_Writer->Tell(), (char*)str_value, str_len));
 			pCtx->m_Writer->Write( offset ); // make room for ptr!
 			pCtx->ArrayItemPop(); // back to last state plox!
 		}
@@ -676,22 +671,6 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 		pack_ctx->m_Writer->SeekSet(member_pos);
 		pack_ctx->m_Writer->Write(pack_ctx->SubdataElementPos(id));
 	}
-
-	// write strings!
-	for(unsigned int str_id = 0; str_id < pack_ctx->m_lStrings.Len(); ++str_id)
-	{
-		pack_ctx->m_Writer->SeekEnd();
-
-		pint offset = pack_ctx->m_Writer->Tell();
-
-		SDLPackContext::SStringItem& item = pack_ctx->m_lStrings[str_id];
-
-		pack_ctx->m_Writer->Write((void*)item.m_pStr, item.m_Len);
-		pack_ctx->m_Writer->Write(uint8(0));
-
-		pack_ctx->m_Writer->SeekSet(item.m_Pos);
-		pack_ctx->m_Writer->Write((void*)offset);
-	}
 }
 
 static int dl_internal_pack_on_map_end( void* _pCtx )
@@ -737,7 +716,16 @@ static int dl_internal_pack_on_map_end( void* _pCtx )
 						{
 							switch(StorageType)
 							{
-								case DL_TYPE_STORAGE_STR: pCtx->m_lStrings.Add(SDLPackContext::SStringItem(MemberPos, *(char**)pDefMember, strlen(*(char**)pDefMember))); break;
+								case DL_TYPE_STORAGE_STR:
+								{
+									pCtx->m_Writer->SeekEnd();
+									pint str_pos = pCtx->m_Writer->Tell();
+									char* str = *(char**)pDefMember;
+									pCtx->m_Writer->WriteString( str, strlen( str ) );
+									pCtx->m_Writer->SeekSet( MemberPos );
+									pCtx->m_Writer->Write( str_pos );
+								}
+								break;
 								case DL_TYPE_STORAGE_PTR: pCtx->m_Writer->Write(pint(-1)); break; // can only default to null!
 								default:
 									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
@@ -755,7 +743,13 @@ static int dl_internal_pack_on_map_end( void* _pCtx )
 
 									uint32 Count = pMember->size[DL_PTR_SIZE_HOST] / sizeof(char*);
 									for(uint32 iElem = 0; iElem < Count; ++iElem)
-										pCtx->m_lStrings.Add(SDLPackContext::SStringItem(MemberPos + sizeof(char*) * iElem, pArray[iElem], strlen(pArray[iElem])));
+									{
+										pCtx->m_Writer->SeekEnd();
+										pint str_pos = pCtx->m_Writer->Tell();
+										pCtx->m_Writer->WriteString( pArray[iElem], strlen( pArray[iElem] ) );
+										pCtx->m_Writer->SeekSet( MemberPos + sizeof(char*) * iElem );
+										pCtx->m_Writer->Write( str_pos );
+									}
 								}
 								break;
 								default:
@@ -781,7 +775,13 @@ static int dl_internal_pack_on_map_end( void* _pCtx )
 
 									char** pArray = *(char***)pDefMember;
 									for(uint32 iElem = 0; iElem < Count; ++iElem)
-										pCtx->m_lStrings.Add(SDLPackContext::SStringItem(ArrayPos + sizeof(char*) * iElem, pArray[iElem], strlen(pArray[iElem])));
+									{
+										pCtx->m_Writer->SeekEnd();
+										pint str_pos = pCtx->m_Writer->Tell();
+										pCtx->m_Writer->WriteString( pArray[iElem], strlen( pArray[iElem] ) );
+										pCtx->m_Writer->SeekSet( ArrayPos + sizeof(char*) * iElem );
+										pCtx->m_Writer->Write( str_pos );
+									}
 								}
 								break;
 								default:
