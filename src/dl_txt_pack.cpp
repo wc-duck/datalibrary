@@ -45,6 +45,8 @@ enum EDLPackState
 	DL_PACK_STATE_ARRAY  = 0xFF000000,
 	DL_PACK_STATE_ENUM,
 
+	DL_PACK_STATE_STRING_ARRAY = DL_PACK_STATE_STRING | DL_PACK_STATE_ARRAY,
+
 	DL_PACK_STATE_SUBDATA_ID,
 	DL_PACK_STATE_SUBDATA,
 
@@ -245,7 +247,7 @@ private:
 	} m_SubdataElements[128];
 };
 
-static int DLOnNull(void* _pCtx)
+static int dl_internal_pack_on_null( void* _pCtx )
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 	DL_ASSERT(pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID);
@@ -254,16 +256,16 @@ static int DLOnNull(void* _pCtx)
 	return 1;
 }
 
-static int DLOnBool(void* _pCtx, int _Boolean)
+static int dl_internal_pack_on_bool( void* pack_ctx, int value )
 {
-	DL_UNUSED(_pCtx); DL_UNUSED(_Boolean);
+	DL_UNUSED(pack_ctx); DL_UNUSED(value);
 	DL_ASSERT(false && "No support for bool yet!");
 	return 1;
 }
 
 template<typename T> DL_FORCEINLINE bool Between(T _Val, T _Min, T _Max) { return _Val <= _Max && _Val >= _Min; }
 
-static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _StringLen)
+static int dl_internal_pack_on_number(void* _pCtx, const char* _pStringVal, unsigned int _StringLen)
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 
@@ -381,7 +383,7 @@ static int DLOnNumber(void* _pCtx, const char* _pStringVal, unsigned int _String
 	return 1;
 }
 
-static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned int _StringLen)
+static int dl_internal_pack_on_string( void* _pCtx, const unsigned char* str_value, unsigned int str_len )
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 
@@ -391,27 +393,54 @@ static int DLOnString(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 		case DL_PACK_STATE_INSTANCE_TYPE:
 			DL_ASSERT(pCtx->m_pRootType == 0x0);
 			// we are packing an instance, get the type plox!
-			pCtx->m_pRootType = dl_internal_find_type(pCtx->m_DLContext, dl_internal_hash_buffer(_pStringVal, _StringLen, 0));
+			pCtx->m_pRootType = dl_internal_find_type(pCtx->m_DLContext, dl_internal_hash_buffer(str_value, str_len, 0));
 
 			if(pCtx->m_pRootType == 0x0) 
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", _StringLen, _pStringVal);
+				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", str_len, str_value);
 
 			pCtx->PopState(); // back to last state plox!
 		break;
-		case DL_PACK_STATE_STRING:
-			pCtx->m_lStrings.Add(SDLPackContext::SStringItem(pCtx->m_Writer->Tell(), (char*)_pStringVal, _StringLen));
-			pCtx->m_Writer->Write((void*)0); // make room for ptr!
+		case DL_PACK_STATE_STRING_ARRAY:
+		{
+			// seek end
+			pCtx->m_Writer->SeekEnd();
+
+			pint offset = pCtx->m_Writer->Tell();
+
+			// write string
+			pCtx->m_Writer->Write( str_value, str_len );
+			pCtx->m_Writer->Write( (char)'\0' );
+
+			pint array_elem_pos = pCtx->m_Writer->PushBackAlloc( sizeof( char* ) );
+			pCtx->m_Writer->SeekSet( array_elem_pos );
+			pCtx->m_Writer->Write( offset );
+
 			pCtx->ArrayItemPop(); // back to last state plox!
+		}
+		break;
+		case DL_PACK_STATE_STRING:
+		{
+			pint curr = pCtx->m_Writer->Tell();
+			pCtx->m_Writer->SeekEnd();
+			pint offset = pCtx->m_Writer->Tell();
+			pCtx->m_Writer->Write( str_value, str_len );
+			pCtx->m_Writer->Write( (char)'\0' );
+			pCtx->m_Writer->SeekSet( curr );
+
+			// pCtx->m_lStrings.Add(SDLPackContext::SStringItem(pCtx->m_Writer->Tell(), (char*)str_value, str_len));
+			pCtx->m_Writer->Write( offset ); // make room for ptr!
+			pCtx->ArrayItemPop(); // back to last state plox!
+		}
 		break;
 		case DL_PACK_STATE_ENUM:
 		{
-			uint32 EnumValue = dl_internal_find_enum_value(pCtx->m_StateStack.Top().m_pEnum, (const char*)_pStringVal, _StringLen);
+			uint32 EnumValue = dl_internal_find_enum_value(pCtx->m_StateStack.Top().m_pEnum, (const char*)str_value, str_len);
 			pCtx->m_Writer->Write(EnumValue);
 			pCtx->ArrayItemPop();
 		}
 		break;
 		default:
-			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Unexpected string \"%.*s\"!", _StringLen, _pStringVal);
+			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Unexpected string \"%.*s\"!", str_len, str_value);
 	}
 
 	return 1;
@@ -432,7 +461,7 @@ static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
 	return false;
 }
 
-static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned int _StringLen)  
+static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStringVal, unsigned int _StringLen)  
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 
@@ -473,8 +502,6 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 
 			const SDLMember* pMember = State.m_pType->members + MemberID;
 
-			// printf("packing member: %s->%s\n", State.m_pType->m_Name, pMember->m_Name);
-
 			if(State.m_MembersSet.IsSet(MemberID)) 
 				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_SET_TWICE, "Trying to set Member \"%.*s\" twice!", _StringLen, _pStringVal );
 
@@ -486,7 +513,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 			DL_ASSERT(pCtx->m_Writer->InBackAllocArea() || dl_internal_is_align((void*)MemberPos, pMember->alignment[DL_PTR_SIZE_HOST]));
 
 			pint array_count_patch_pos = 0; // for inline array, keep as 0.
-			bool array_has_sub_ptrs = false;
+			bool array_has_sub_ptrs    = false;
 
 			dl_type_t AtomType    = pMember->AtomType();
 			dl_type_t StorageType = pMember->StorageType();
@@ -520,6 +547,16 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 					array_count_patch_pos = pCtx->m_Writer->Tell();
 					pCtx->m_Writer->Write(uint32(0)); // count need to be patched later!
 					pCtx->m_Writer->SeekEnd();
+
+					if( StorageType == DL_TYPE_STORAGE_STR )
+					{
+						pCtx->PushState(DL_PACK_STATE_ARRAY);
+						pCtx->m_StateStack.Top().m_ArrayCountPatchPos = array_count_patch_pos;
+						pCtx->m_StateStack.Top().m_IsBackArray        = true;
+
+						pCtx->PushState( DL_PACK_STATE_STRING_ARRAY );
+						break;
+					}
 
 					array_has_sub_ptrs = dl_internal_has_sub_ptr(pCtx->m_DLContext, pMember->type_id); // TODO: Optimize this, store info in type-data
 				case DL_TYPE_ATOM_INLINE_ARRAY: // FALLTHROUGH
@@ -606,7 +643,7 @@ static int DLOnMapKey(void* _pCtx, const unsigned char* _pStringVal, unsigned in
 	return 1;
 }
 
-static int DLOnMapStart(void* _pCtx)
+static int dl_internal_pack_on_map_start(void* _pCtx)
 {
 	// check that we are in a correct state here!
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
@@ -657,7 +694,7 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 	}
 }
 
-static int DLOnMapEnd(void* _pCtx)
+static int dl_internal_pack_on_map_end( void* _pCtx )
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 
@@ -768,17 +805,18 @@ static int DLOnMapEnd(void* _pCtx)
 	return 1;
 }
 
-static int DLOnArrayStart(void* _pCtx)
+static int dl_internal_pack_on_array_start( void* pack_ctx )
 {
-	DL_UNUSED(_pCtx);
+	DL_UNUSED(pack_ctx);
 	return 1;
 }
 
-static int DLOnArrayEnd(void* _pCtx)
+static int dl_internal_pack_on_array_end( void* _pCtx )
 {
 	SDLPackContext* pCtx = (SDLPackContext*)_pCtx;
 
-	const SDLType* pType = pCtx->m_StateStack.Top().m_pType;
+	const SDLType* pType    = pCtx->m_StateStack.Top().m_pType;
+	EDLPackState pack_state = pCtx->m_StateStack.Top().m_State;
 
 	pCtx->PopState(); // pop of pack state for sub-type
 	uint32 array_count   = pCtx->m_StateStack.Top().m_ArrayCount;
@@ -787,18 +825,31 @@ static int DLOnArrayEnd(void* _pCtx)
 	pCtx->PopState(); // pop of pack state for array
 	if( patch_pos != 0 ) // not inline array
 	{
-		if(is_back_array)
-		{
-			pint array_pos = pCtx->m_Writer->PopBackAlloc(array_count, pType->size[DL_PTR_SIZE_HOST], pType->alignment[DL_PTR_SIZE_HOST]);
-			pCtx->m_Writer->SeekSet(patch_pos - sizeof(pint));
-			pCtx->m_Writer->Write(array_pos);
-		}
-
 		if( array_count == 0 )
 		{
 			// empty array should be null!
 			pCtx->m_Writer->SeekSet(patch_pos - sizeof(pint));
 			pCtx->m_Writer->Write(pint(-1));
+		}
+		else if(is_back_array)
+		{
+			pint size  = sizeof( char* );
+			pint align = sizeof( char* );
+
+			if( pType != 0x0 )
+			{
+				size  = pType->size[DL_PTR_SIZE_HOST];
+				align = pType->alignment[DL_PTR_SIZE_HOST];
+			}
+
+			// TODO: HACKZOR!
+			// When packing arrays of structs one element to much in pushed in the back-alloc.
+			if( pack_state != DL_PACK_STATE_STRING_ARRAY )
+				pCtx->m_Writer->m_BackAllocStack.Pop();
+
+			pint array_pos = pCtx->m_Writer->PopBackAlloc( array_count, size, align );
+			pCtx->m_Writer->SeekSet(patch_pos - sizeof(pint));
+			pCtx->m_Writer->Write(array_pos);
 		}
 		else
 			pCtx->m_Writer->SeekSet(patch_pos);
@@ -809,24 +860,10 @@ static int DLOnArrayEnd(void* _pCtx)
 	return 1;
 }
 
-static yajl_callbacks g_YAJLParseCallbacks = {
-	DLOnNull,
-	DLOnBool,
-	NULL, // integer,
-	NULL, // double,
-	DLOnNumber,
-	DLOnString,
-	DLOnMapStart,
-	DLOnMapKey,
-	DLOnMapEnd,
-	DLOnArrayStart,
-	DLOnArrayEnd
-};
-
 // TODO: These allocs need to be controllable!!!
-void* DLPackAlloc(void* _pCtx, unsigned int _Sz)                { DL_UNUSED(_pCtx); return malloc(_Sz); }
-void* DLPackRealloc(void* _pCtx, void* _pPtr, unsigned int _Sz) { DL_UNUSED(_pCtx); return realloc(_pPtr, _Sz); }
-void  DLPackFree(void* _pCtx, void* _pPtr)                      { DL_UNUSED(_pCtx); free(_pPtr); }
+void* dl_internal_pack_alloc  ( void* ctx, unsigned int sz )            { DL_UNUSED(ctx); return malloc(sz); }
+void* dl_internal_pack_realloc( void* ctx, void* ptr, unsigned int sz ) { DL_UNUSED(ctx); return realloc(ptr, sz); }
+void  dl_internal_pack_free   ( void* ctx, void* ptr )                  { DL_UNUSED(ctx); free(ptr); }
 
 static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* text_data )
 {
@@ -835,21 +872,44 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 	pint TxtLen = strlen(text_data);
 	const unsigned char* TxtData = (const unsigned char*)text_data;
 
-	yajl_handle YAJLHandle;
-	yajl_status YAJLStat;
+	static const int ALLOW_COMMENTS_IN_JSON = 1;
+	static const int CAUSE_ERROR_ON_INVALID_UTF8 = 1;
 
-	yajl_parser_config YAJLCfg = { 1, 1 };
-	yajl_alloc_funcs YAJLAlloc = { DLPackAlloc, DLPackRealloc, DLPackFree, 0x0 };
+	yajl_parser_config my_yajl_config = {
+		ALLOW_COMMENTS_IN_JSON,
+		CAUSE_ERROR_ON_INVALID_UTF8
+	};
 
-	YAJLHandle = yajl_alloc(&g_YAJLParseCallbacks, &YAJLCfg, &YAJLAlloc, (void*)pack_ctx);
+	yajl_alloc_funcs my_yajl_alloc = {
+		dl_internal_pack_alloc,
+		dl_internal_pack_realloc,
+		dl_internal_pack_free,
+		0x0
+	};
 
-	YAJLStat = yajl_parse(YAJLHandle, TxtData, (unsigned int)TxtLen); // read file data, pass to parser
+	yajl_callbacks callbacks = {
+		dl_internal_pack_on_null,
+		dl_internal_pack_on_bool,
+		NULL, // integer,
+		NULL, // double,
+		dl_internal_pack_on_number,
+		dl_internal_pack_on_string,
+		dl_internal_pack_on_map_start,
+		dl_internal_pack_on_map_key,
+		dl_internal_pack_on_map_end,
+		dl_internal_pack_on_array_start,
+		dl_internal_pack_on_array_end
+	};
 
-	unsigned int BytesConsumed = yajl_get_bytes_consumed(YAJLHandle);
+	yajl_handle my_yajl_handle = yajl_alloc( &callbacks, &my_yajl_config, &my_yajl_alloc, (void*)pack_ctx );
 
-	YAJLStat = yajl_parse_complete(YAJLHandle); // parse any remaining buffered data
+	yajl_status my_yajl_status = yajl_parse( my_yajl_handle, TxtData, (unsigned int)TxtLen ); // read file data, pass to parser
 
-	if (YAJLStat != yajl_status_ok && YAJLStat != yajl_status_insufficient_data)
+	unsigned int BytesConsumed = yajl_get_bytes_consumed( my_yajl_handle );
+
+	my_yajl_status = yajl_parse_complete( my_yajl_handle ); // parse any remaining buffered data
+
+	if (my_yajl_status != yajl_status_ok && my_yajl_status != yajl_status_insufficient_data)
 	{
 		if(BytesConsumed != 0) // error occured!
 		{
@@ -875,13 +935,13 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 			dl_log_error( pack_ctx->m_DLContext, "At line %u, column %u", Line, Column);
 		}
 
-		char* pStr = (char*)yajl_get_error(YAJLHandle, 1 /* verbose */, TxtData, (unsigned int)TxtLen);
+		char* pStr = (char*)yajl_get_error(my_yajl_handle, 1 /* verbose */, TxtData, (unsigned int)TxtLen);
 		dl_log_error( pack_ctx->m_DLContext, "%s", pStr );
-		yajl_free_error(YAJLHandle, (unsigned char*)pStr);
+		yajl_free_error(my_yajl_handle, (unsigned char*)pStr);
 
 		if(pack_ctx->m_ErrorCode == DL_ERROR_OK)
 		{
-			yajl_free(YAJLHandle);
+			yajl_free(my_yajl_handle);
 			return DL_ERROR_TXT_PARSE_ERROR;
 		}
 	}
@@ -892,7 +952,7 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 		pack_ctx->m_ErrorCode = DL_ERROR_TXT_PARSE_ERROR;
 	}
 
-	yajl_free(YAJLHandle);
+	yajl_free(my_yajl_handle);
 	return pack_ctx->m_ErrorCode;
 }
 

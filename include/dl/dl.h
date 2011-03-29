@@ -265,7 +265,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             dl_ctx,         
 */
 dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t   type,
 												   unsigned char* packed_instance, unsigned int  packed_instance_size,
-												   void**         loaded_instance, unsigned int* consumed);
+												   void**         loaded_instance, unsigned int* consumed );
 
 /*
 	Group: Store
