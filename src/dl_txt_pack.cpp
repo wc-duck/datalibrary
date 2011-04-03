@@ -55,7 +55,8 @@ enum EDLPackState
 	DL_PACK_STATE_STRUCT,
 };
 
-#define DL_PACK_ERROR_AND_FAIL(dl_ctx, err, fmt, ...) { dl_log_error( dl_ctx, fmt, ##__VA_ARGS__ ); pCtx->m_ErrorCode = err; return 0x0; }
+#define DL_PACK_ERROR_AND_FAIL( dl_ctx, err, fmt, ... ) { dl_log_error( dl_ctx, fmt, ##__VA_ARGS__ ); pCtx->m_ErrorCode = err; return 0x0; }
+#define DL_PACK_ERROR_AND_FAIL_IF( cond, dl_ctx, err, fmt, ... ) if( cond ) DL_PACK_ERROR_AND_FAIL( dl_ctx, err, fmt, ##__VA_ARGS__ )
 
 template<unsigned int TBits>
 class CFlagField
@@ -277,15 +278,13 @@ static int dl_internal_pack_on_number(void* _pCtx, const char* _pStringVal, unsi
 	if((State & DL_TYPE_ATOM_MASK) == DL_TYPE_ATOM_BITFIELD)
 	{
 		uint64 Val;
-		if(sscanf(_pStringVal, DL_UINT64_FMT_STR, &Val) != 1)
-			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as bitfield member!", _StringLen, _pStringVal);
+		DL_PACK_ERROR_AND_FAIL_IF( sscanf(_pStringVal, DL_UINT64_FMT_STR, &Val) != 1, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as bitfield member!", _StringLen, _pStringVal);
 
 		unsigned int BFBits   = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED);
 		unsigned int BFOffset = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED);
 
 		uint64 MaxVal = (uint64(1) << BFBits) - uint64(1);
-		if(Val > MaxVal)
-			DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", Val, BFBits);
+		DL_PACK_ERROR_AND_FAIL_IF( Val > MaxVal, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", Val, BFBits);
 
 		dl_type_t StorageType = dl_type_t(State & DL_TYPE_STORAGE_MASK);
 
@@ -323,8 +322,7 @@ static int dl_internal_pack_on_number(void* _pCtx, const char* _pStringVal, unsi
 		case DL_PACK_STATE_SUBDATA_ID:
 		{
 			uint32 ID;
-			if(sscanf(_pStringVal, "%u", &ID) != 1)
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
+			DL_PACK_ERROR_AND_FAIL_IF( sscanf(_pStringVal, "%u", &ID) != 1, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
 
 			pCtx->AddPatchPosition( (unsigned int)ID );
 
@@ -341,8 +339,7 @@ static int dl_internal_pack_on_number(void* _pCtx, const char* _pStringVal, unsi
 	}
 
 	union { int64 m_Signed; uint64 m_Unsigned; } Val;
-	if(sscanf(_pStringVal, pFmt, &Val.m_Signed) != 1)
-		DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct integer type!", _StringLen, _pStringVal);
+	DL_PACK_ERROR_AND_FAIL_IF( sscanf(_pStringVal, pFmt, &Val.m_Signed) != 1, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct integer type!", _StringLen, _pStringVal);
 
 	switch(State)
 	{
@@ -350,15 +347,13 @@ static int dl_internal_pack_on_number(void* _pCtx, const char* _pStringVal, unsi
 		case DL_PACK_STATE_POD_INT16:
 		case DL_PACK_STATE_POD_INT32:
 		case DL_PACK_STATE_POD_INT64:
-			if(!Between(Val.m_Signed, Min.m_Signed, Max.m_Signed))
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, DL_INT64_FMT_STR " will not fit in type", Val.m_Signed);
+			DL_PACK_ERROR_AND_FAIL_IF( !Between(Val.m_Signed, Min.m_Signed, Max.m_Signed), pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, DL_INT64_FMT_STR " will not fit in type", Val.m_Signed);
 			break;
 		case DL_PACK_STATE_POD_UINT8:
 		case DL_PACK_STATE_POD_UINT16:
 		case DL_PACK_STATE_POD_UINT32:
 		case DL_PACK_STATE_POD_UINT64:
-			if(!Between(Val.m_Unsigned, Min.m_Unsigned, Max.m_Unsigned))
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, DL_UINT64_FMT_STR " will not fit in type", Val.m_Unsigned);
+			DL_PACK_ERROR_AND_FAIL_IF( !Between(Val.m_Unsigned, Min.m_Unsigned, Max.m_Unsigned), pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, DL_UINT64_FMT_STR " will not fit in type", Val.m_Unsigned);
 			break;
 		default:
 			break;
@@ -394,20 +389,15 @@ static int dl_internal_pack_on_string( void* _pCtx, const unsigned char* str_val
 			// we are packing an instance, get the type plox!
 			pCtx->m_pRootType = dl_internal_find_type(pCtx->m_DLContext, dl_internal_hash_buffer(str_value, str_len, 0));
 
-			if(pCtx->m_pRootType == 0x0) 
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", str_len, str_value);
+			DL_PACK_ERROR_AND_FAIL_IF( pCtx->m_pRootType == 0x0, pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", str_len, str_value);
 
 			pCtx->PopState(); // back to last state plox!
 		break;
 		case DL_PACK_STATE_STRING_ARRAY:
 		{
-			// seek end
 			pCtx->m_Writer->SeekEnd();
-
 			pint offset = pCtx->m_Writer->Tell();
-
 			pCtx->m_Writer->WriteString( str_value, str_len );
-
 			pint array_elem_pos = pCtx->m_Writer->PushBackAlloc( sizeof( char* ) );
 			pCtx->m_Writer->SeekSet( array_elem_pos );
 			pCtx->m_Writer->Write( offset );
@@ -422,8 +412,7 @@ static int dl_internal_pack_on_string( void* _pCtx, const unsigned char* str_val
 			pint offset = pCtx->m_Writer->Tell();
 			pCtx->m_Writer->WriteString( str_value, str_len );
 			pCtx->m_Writer->SeekSet( curr );
-
-			pCtx->m_Writer->Write( offset ); // make room for ptr!
+			pCtx->m_Writer->Write( offset );
 			pCtx->ArrayItemPop(); // back to last state plox!
 		}
 		break;
@@ -463,19 +452,16 @@ static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStrin
 	switch(pCtx->CurrentPackState())
 	{
 		case DL_PACK_STATE_INSTANCE:
-			if(_StringLen != 4 && _StringLen != 7) 
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\" or \"data\"!", _StringLen, _pStringVal);
+			DL_PACK_ERROR_AND_FAIL_IF( _StringLen != 4 && _StringLen != 7, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\" or \"data\"!", _StringLen, _pStringVal);
 
 			if(strncmp((const char*)_pStringVal, "type", _StringLen) == 0)
 			{
-				if(pCtx->m_pRootType != 0x0) 
-					DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance set two times!");
+				DL_PACK_ERROR_AND_FAIL_IF( pCtx->m_pRootType != 0x0, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance set two times!");
 				pCtx->PushState(DL_PACK_STATE_INSTANCE_TYPE);
 			}
 			else if (strncmp((const char*)_pStringVal, "data", _StringLen) == 0)
 			{
-				if(pCtx->m_pRootType == 0x0) 
-					DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance not set or after data-segment!");
+				DL_PACK_ERROR_AND_FAIL_IF( pCtx->m_pRootType == 0x0, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance not set or after data-segment!");
 				pCtx->PushStructState(pCtx->m_pRootType);
 			}
 			else if (strncmp((const char*)_pStringVal, "subdata", _StringLen) == 0)
@@ -492,13 +478,11 @@ static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStrin
 
 			unsigned int MemberID = dl_internal_find_member( State.m_pType, dl_internal_hash_buffer(_pStringVal, _StringLen, 0) );
 
-			if(MemberID > State.m_pType->member_count) 
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_MEMBER_NOT_FOUND, "Type \"%s\" has no member named \"%.*s\"!", State.m_pType->name, _StringLen, _pStringVal);
+			DL_PACK_ERROR_AND_FAIL_IF( MemberID > State.m_pType->member_count, pCtx->m_DLContext, DL_ERROR_MEMBER_NOT_FOUND, "Type \"%s\" has no member named \"%.*s\"!", State.m_pType->name, _StringLen, _pStringVal);
 
 			const SDLMember* pMember = State.m_pType->members + MemberID;
 
-			if(State.m_MembersSet.IsSet(MemberID)) 
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_SET_TWICE, "Trying to set Member \"%.*s\" twice!", _StringLen, _pStringVal );
+			DL_PACK_ERROR_AND_FAIL_IF( State.m_MembersSet.IsSet(MemberID), pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_SET_TWICE, "Trying to set Member \"%.*s\" twice!", _StringLen, _pStringVal );
 
 			State.m_MembersSet.SetBit(MemberID);
 
@@ -522,8 +506,7 @@ static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStrin
 						case DL_TYPE_STORAGE_STRUCT:
 						{
 							const SDLType* pSubType = dl_internal_find_type(pCtx->m_DLContext, pMember->type_id);
-							if(pSubType == 0x0)
-								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->name);
+							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->name);
 							pCtx->PushStructState(pSubType); 
 						}
 						break;
@@ -565,16 +548,14 @@ static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStrin
 						case DL_TYPE_STORAGE_STRUCT:
 						{
 							const SDLType* pSubType = dl_internal_find_type(pCtx->m_DLContext, pMember->type_id);
-							if(pSubType == 0x0)
-								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->name );
+							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->name );
 							pCtx->PushStructState(pSubType);
 						}
 						break;
 						case DL_TYPE_STORAGE_ENUM:
 						{
 							const SDLEnum* pEnum = dl_internal_find_enum(pCtx->m_DLContext, pMember->type_id);
-							if(pEnum == 0x0) 
-								DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->name);
+							DL_PACK_ERROR_AND_FAIL_IF( pEnum == 0x0, pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->name);
 							pCtx->PushEnumState(pEnum);
 						}
 						break;
@@ -599,8 +580,7 @@ static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStrin
 			// found a subdata item! the map-key need to be a id!
 
 			uint32 ID;
-			if(sscanf((char*)_pStringVal, "%u", &ID) != 1)
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
+			DL_PACK_ERROR_AND_FAIL_IF( sscanf((char*)_pStringVal, "%u", &ID) != 1, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", _StringLen, _pStringVal);
 
 			const SDLMember* pMember = 0x0;
 
@@ -612,8 +592,7 @@ static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStrin
 					break;
 				}
 
-			if(pMember == 0)
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "An item with id %u has not been encountered in the earlier part of the document, hence the type could not be deduced!", ID);
+			DL_PACK_ERROR_AND_FAIL_IF( pMember == 0, pCtx->m_DLContext, DL_ERROR_TXT_PARSE_ERROR, "An item with id %u has not been encountered in the earlier part of the document, hence the type could not be deduced!", ID);
 
 			dl_type_t AtomType = pMember->AtomType();
 			dl_type_t StorageType = pMember->StorageType();
@@ -621,8 +600,7 @@ static int dl_internal_pack_on_map_key(void* _pCtx, const unsigned char* _pStrin
 			DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
 			DL_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
 			const SDLType* pSubType = dl_internal_find_type(pCtx->m_DLContext, pMember->type_id);
-			if(pSubType == 0x0)
-				DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->name);
+			DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, pCtx->m_DLContext, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->name);
 			pCtx->m_Writer->Align(pSubType->alignment[DL_PTR_SIZE_HOST]);
 			pCtx->PushStructState(pSubType);
 
@@ -699,8 +677,7 @@ static int dl_internal_pack_on_map_end( void* _pCtx )
 
 				if(!PackState.m_MembersSet.IsSet(iMember))
 				{
-					if(pMember->default_value_offset == DL_UINT32_MAX) // no default-value available for this!
-						DL_PACK_ERROR_AND_FAIL( pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->name, PackState.m_pType->name );
+					DL_PACK_ERROR_AND_FAIL_IF( pMember->default_value_offset == DL_UINT32_MAX, pCtx->m_DLContext, DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->name, PackState.m_pType->name );
 
 					pint   MemberPos  = PackState.m_StructStartPos + pMember->offset[DL_PTR_SIZE_HOST];
 					uint8* pDefMember = pCtx->m_DLContext->default_data + pMember->default_value_offset;
