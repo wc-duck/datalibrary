@@ -25,9 +25,10 @@ public:
 		, m_NeededSize(0)
 		, m_Data(_pOutData)
 		, m_DataSize(_OutDataSize)
+		, m_BackAllocPos(_OutDataSize)
 		{}
 
-	~CDLBinaryWriter() { DL_ASSERT( m_BackAllocStack.Empty() ); }
+	~CDLBinaryWriter() { DL_ASSERT( m_BackAllocPos == m_DataSize ); }
 
 	void SeekSet (pint _pPos) { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); m_Pos  = _pPos; }
 	void SeekEnd ()           { DL_LOG_BIN_WRITER_VERBOSE("Seek End: %lu", m_NeededSize); m_Pos  = m_NeededSize; }
@@ -38,7 +39,7 @@ public:
 	{
 		if( !m_Dummy && ( m_Pos + _Size <= m_DataSize ) )
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", m_Pos, _Size, uint32(*(pint*)_pData) );
+			DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", pos, _Size, uint32(*(pint*)_pData) );
 			DL_ASSERT(m_Pos + _Size <= m_DataSize && "To small buffer!");
 			memmove(m_Data + m_Pos, _pData, _Size);
 		}
@@ -70,7 +71,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write Array: %lu + %lu (%lu)", m_Pos, sizeof(T), _Count);
+			DL_LOG_BIN_WRITER_VERBOSE("Write Array: %lu + %lu (%lu)", pos, sizeof(T), _Count);
 			for (pint i = 0; i < _Count; ++i)
 				DL_LOG_BIN_WRITER_VERBOSE("%lu = %u", i, (uint32)_pArray[i]);
 		}
@@ -119,7 +120,7 @@ public:
 	{
 		if(!m_Dummy)
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Write zero: %lu + %lu", m_Pos, _Bytes);
+			DL_LOG_BIN_WRITER_VERBOSE("Write zero: %lu + %lu", pos, _Bytes);
 			DL_ASSERT(m_Pos + _Bytes <= m_DataSize && "To small buffer!");
 			memset(m_Data + m_Pos, 0x0, _Bytes);
 		}
@@ -130,45 +131,34 @@ public:
 
 	void Reserve(pint _Bytes)
 	{
-		DL_LOG_BIN_WRITER_VERBOSE("Reserve: %lu + %lu", m_Pos, _Bytes);
+		DL_LOG_BIN_WRITER_VERBOSE("Reserve: %lu + %lu", pos, _Bytes);
 		m_NeededSize = m_NeededSize >= m_Pos + _Bytes ? m_NeededSize : m_Pos + _Bytes;
 	}
 
 	pint PushBackAlloc( pint bytes )
 	{
 		// allocates a chunk of "bytes" bytes from the back of the buffer and return the
-		// offset to it. Chunk-addresses will be kept in a stack to be able to "pop" of.
-		// function ignores alignment and tries to pack data as tightly as possible
+		// offset to it. function ignores alignment and tries to pack data as tightly as possible
 		// since data that will be stored here is only temporary.
 
-		// TODO: there should only need to be one element in the BackAllocStack per array.
-
-		pint new_elem = 0;
-
-		if(m_BackAllocStack.Empty())
-			new_elem = m_DataSize - bytes;
-		else
-			new_elem = m_BackAllocStack.Top() - bytes;
-
-		DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu (%lu)\n", new_elem, bytes);
-		m_BackAllocStack.Push( new_elem );
-
-		return new_elem;
+		m_BackAllocPos -= bytes;
+		DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu (%lu)\n", m_BackAllocPos, bytes);
+		return m_BackAllocPos;
 	}
 
 	// return start of new array!
 	pint PopBackAlloc(uint32 num_elem, uint32 elem_size, uint32 elem_align)
 	{
-		DL_ASSERT( !m_BackAllocStack.Empty() );
-		DL_ASSERT( m_BackAllocStack.Top() >= m_NeededSize && "back-alloc and front-alloc overlap!" );
+		DL_ASSERT( m_BackAllocPos != m_DataSize );
+		DL_ASSERT( m_BackAllocPos >= m_NeededSize && "back-alloc and front-alloc overlap!" );
 
 		SeekEnd();
 		Align( elem_align );
 		Reserve( elem_size * num_elem );
 		pint arr_pos = Tell();
 
-		pint first_elem = m_BackAllocStack.Top();
-		pint last_elem  = m_BackAllocStack.Top() + elem_size * ( num_elem - 1 );
+		pint first_elem = m_BackAllocPos;
+		pint last_elem  = first_elem + elem_size * ( num_elem - 1 );
 
 		DL_LOG_BIN_WRITER_VERBOSE("First: %lu last %lu", first_elem, last_elem);
 
@@ -203,8 +193,7 @@ public:
 			}
 		}
 
-		for( uint32 elem = 0; elem < num_elem; ++elem )
-			m_BackAllocStack.Pop(); // TODO: Is this stack really needed?
+		m_BackAllocPos += elem_size * ( num_elem );
 
 		return arr_pos;
 	}
@@ -223,19 +212,19 @@ public:
 		pint Alignment = dl_internal_align_up(m_Pos, _Alignment);
 		if(!m_Dummy && Alignment != m_Pos) 
 		{
-			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu (%lu)", m_Pos, Alignment - m_Pos, _Alignment);
+			DL_LOG_BIN_WRITER_VERBOSE("Align: %lu + %lu (%lu)", pos, Alignment - pos, _Alignment);
 			memset(m_Data + m_Pos, 0x0, Alignment - m_Pos);
 		}
 		m_Pos = Alignment;
 		UpdateNeededSize();
 	};
 
-	CStackStatic<pint, 128> m_BackAllocStack; // offsets to chunks allocated from back
+	pint m_BackAllocPos;
 
 private:
 	void UpdateNeededSize()
 	{
-		if( m_BackAllocStack.Empty() || m_Pos <= m_BackAllocStack.Top() )
+		if( m_BackAllocPos == m_DataSize || m_Pos <= m_BackAllocPos )
 			m_NeededSize = m_NeededSize >= m_Pos ? m_NeededSize : m_Pos;
 	}
 
