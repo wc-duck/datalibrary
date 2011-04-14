@@ -15,25 +15,10 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 
 	local DL_TLC = PYTHON .. " tool/dl_tlc/dl_tlc.py --dldll=" .. dl_shared_lib
 
-	AddJob( out_lib, 
-		"tlc " .. out_lib,
-		DL_TLC .. " -o " .. out_lib .. " " .. tlc_file, 
-		tlc_file )
-
-	AddJob( out_lib_h, 
-		"tlc " .. out_lib_h,
-		DL_TLC .. " -x " .. out_lib_h .. " " .. tlc_file, 
-		tlc_file )
-
-	AddJob( out_cs_header, 
-		"tlc " .. out_cs_header,
-		DL_TLC .. " -s " .. out_cs_header .. " " .. tlc_file, 
-		tlc_file )
-
-	AddJob( out_header, 
-		"tlc " .. out_header,
-		DL_TLC .. " -c " .. out_header .. " " .. tlc_file, 
-		tlc_file )
+	AddJob( out_lib,       "tlc " .. out_lib,       DL_TLC .. " -o " .. out_lib .. " " .. tlc_file,       tlc_file )
+	AddJob( out_lib_h,     "tlc " .. out_lib_h,	DL_TLC .. " -x " .. out_lib_h .. " " .. tlc_file,     tlc_file )
+	AddJob( out_cs_header, "tlc " .. out_cs_header,	DL_TLC .. " -s " .. out_cs_header .. " " .. tlc_file, tlc_file )
+	AddJob( out_header,    "tlc " .. out_header,    DL_TLC .. " -c " .. out_header .. " " .. tlc_file,    tlc_file )
 
 	AddDependency( tlc_file, CollectRecursive( "tool/dl_tlc/*.py" ) )
 	AddDependency( tlc_file, CollectRecursive( "bind/python/*.py" ) )
@@ -76,12 +61,8 @@ end
 
 function CSharpCompile( settings, src )
 	local compiled = settings.output( settings, src )
-
-	AddJob( compiled,
-			"C# " .. compiled,
-			settings.exe .. settings.flags:ToString() .. settings.references:ToString() .. settings.libpaths:ToString() .. " /out:" .. settings.fix_path( compiled ) .. " " .. settings.fix_path( src ),
-			src )
-
+	local flags = settings.flags:ToString() .. settings.references:ToString() .. settings.libpaths:ToString()
+	AddJob( compiled, "C# " .. compiled, settings.exe .. flags .. " /out:" .. settings.fix_path( compiled ) .. " " .. settings.fix_path( src ), src )
 	return compiled
 end
 
@@ -110,10 +91,14 @@ function DefaultSettings( platform, config )
 	TableLock(settings)	
 
 	settings.cc.includes:Add("include")
+	settings.cc.includes:Add("extern/include")
 	settings.cc.includes:Add("local")
 	
 	settings.dll.libs:Add("yajl")
 	settings.link.libs:Add("yajl")
+
+	settings.dll.libpath:Add("extern/libs/" .. platform .. "/" .. config)
+	settings.link.libpath:Add("extern/libs/" .. platform .. "/" .. config)
 	
 	local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
 	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
@@ -214,10 +199,6 @@ function DefaultMSVC( build_platform, config )
 		settings.cc.flags:Add("/Ox", "/Ot", "/MT", "/D \"NDEBUG\"")
 	end
 	
-	settings.cc.includes:Add("extern/include")
-	settings.dll.libpath:Add("extern/libs/" .. build_platform .. "/" .. config)
-	settings.link.libpath:Add("extern/libs/" .. build_platform .. "/" .. config)
-	
 	SetupMSVCBinaries( settings, build_platform )
 
 	return settings
@@ -232,7 +213,7 @@ settings =
 }
 
 build_platform = ScriptArgs["platform"]
-config   = ScriptArgs["config"]
+config         = ScriptArgs["config"]
 
 if not build_platform then error( "platform need to be set. example \"platform=linux_x86\"" ) end
 if not config then         error( "config need to be set. example \"config=debug\"" )       end
@@ -302,18 +283,15 @@ cs_test_lib     = CSharpLibrary( cs_settings, "tests/csharp_bindings/dl_tests.cs
 AddDependency( cs_test_lib, cs_libdl_lib, cs_unittest_lib )
 
 if family == "windows" then
-	AddJob( "test", "unittest c", string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests, "local/generated/unittest.bin" )
+	AddJob( "test",          "unittest c",        string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests,    "local/generated/unittest.bin" )
 else
-	-- build c-sharp lib from generated unittest file, only implemented for mono on linux right now.
-	CSharpExe( cs_settings, "tests/csharp_bindings/dl_tests.cs" )
-
-	AddJob( "test",          "unittest c",        dl_tests .. test_args, dl_tests, "local/generated/unittest.bin" )
-	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests, dl_tests, "local/generated/unittest.bin" ) -- valgrind c unittests
-	AddJob( "test_cs",       "unittest c#",       "nunit-console local/csharp/dl_tests.dll" .. cs_test_args, "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) -- valgrind c unittests
+	AddJob( "test",          "unittest c",        dl_tests .. test_args,                           dl_tests,    "local/generated/unittest.bin" )
+	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests,    dl_tests,    "local/generated/unittest.bin" )
+	AddJob( "test_cs",       "unittest c#",       "nunit-console " .. cs_test_lib .. cs_test_args, cs_test_lib, "local/generated/unittest.bin" )
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
-AddJob( "test_py",       "unittest python bindings", PYTHON .. " " .. dl_tests_py .. " " .. shared_library .. " " .. py_test_args, dl_tests_py, shared_library, "local/generated/unittest.bin" ) -- python bindings unittests
+AddJob( "test_py", "unittest python", PYTHON .. " " .. dl_tests_py .. " " .. shared_library .. " " .. py_test_args, dl_tests_py, shared_library, "local/generated/unittest.bin" )
 
 -- do not run unittest as default, only run
 PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
