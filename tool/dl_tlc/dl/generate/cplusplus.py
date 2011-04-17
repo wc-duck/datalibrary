@@ -143,7 +143,7 @@ def emit_struct( type, stream ):
     
 def emit_enum( enum, stream ):
     stream.write( 'enum %s\n{' % enum.name )
-    stream.write( ','.join( '\n\t%s = %u' % ( e.name, e.value ) for e in enum.values ) )
+    stream.write( ','.join( '\n\t%s = %u' % ( e.header_name, e.value ) for e in enum.values ) )
     stream.write( '\n};\n\n' )
 
 def generate( typelibrary, config, stream ):
