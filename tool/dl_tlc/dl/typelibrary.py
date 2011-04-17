@@ -57,9 +57,10 @@ BUILTIN_TYPES = { 'int8'   : BuiltinType('int8',   (1, 1), (1, 1)),
 
 class Enum( object ):
     class EnumValue( object ):
-        def __init__(self, name, value):
-            self.name  = name
-            self.value = value
+        def __init__(self, name, header_name, value):
+            self.name        = name
+            self.header_name = header_name
+            self.value       = value
         
     def __init__(self, name, values):
         self.name   = name
@@ -69,17 +70,22 @@ class Enum( object ):
         
         current_value = 0
         for val in values:
-            name, value = '', 0
+            name, header_name, value = '', '', 0
             
             if isinstance( val, basestring ):
-                name  = val
-                value = current_value
+                name, header_name, value = val, val, current_value
             else:
                 items = val.items()
                 assert len(items) == 1
+                
                 name, value = items[0]
+                header_name = name
+                    
+                if isinstance( value, dict ):
+                    header_name = value.get( 'header_name', name )
+                    value       = value.get( 'value', current_value )                    
             
-            self.values.append( self.EnumValue( name, value ) )
+            self.values.append( self.EnumValue( name, header_name, value ) )
             current_value = value + 1
             
         # calculate dl-type-id

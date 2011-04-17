@@ -889,7 +889,7 @@ TEST(DLMisc, built_in_tl_eq_bin_file)
 	
 	unsigned char* read_tl = (unsigned char*)malloc(read_tl_size);
 	
-	fread( read_tl, read_tl_size, 1, f );
+	EXPECT_EQ( read_tl_size, fread( read_tl, 1, read_tl_size, f ) );
 	
 	fclose( f );
 	

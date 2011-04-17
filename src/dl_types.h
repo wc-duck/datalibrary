@@ -309,12 +309,15 @@ static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t 
 	return 0x0;
 }
 
-static inline uint32 dl_internal_find_enum_value( const SDLEnum* e, const char* name, unsigned int name_len )
+static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* name, unsigned int name_len, uint32* value )
 {
 	for( unsigned int j = 0; j < e->value_count; ++j )
 		if( strncmp( e->values[j].name, name, name_len ) == 0 )
-			return e->values[j].value;
-	return 0;
+		{
+			*value = e->values[j].value;
+			return true;
+		}
+	return false;
 }
 
 static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32 value )

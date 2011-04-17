@@ -405,8 +405,11 @@ static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_
 		break;
 		case DL_PACK_STATE_ENUM:
 		{
-			uint32 EnumValue = dl_internal_find_enum_value(pCtx->state_stack.Top().enum_type, (const char*)str_value, str_len);
-			pCtx->writer->Write(EnumValue);
+			uint32 enum_value;
+			const SDLEnum* enum_type = pCtx->state_stack.Top().enum_type;
+			if( !dl_internal_find_enum_value( enum_type, (const char*)str_value, str_len, &enum_value ) )
+				DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_INVALID_ENUM_VALUE, "Enum \"%s\" do not have the value \"%.*s\"!", enum_type->name, str_len, str_value);
+			pCtx->writer->Write( enum_value );
 			pCtx->ArrayItemPop();
 		}
 		break;
