@@ -113,7 +113,8 @@ public:
 	void WriteString( const void* str, pint len )
 	{
 		Write( str, len );
-		Write( char('\0') );
+		char str_end = '\0';
+		Write( &str_end, sizeof(char) );
 	}
 
 	void WriteZero(pint _Bytes)
