@@ -273,17 +273,22 @@ cs_settings     = CSharpSettings()
 cs_libdl_lib    = CSharpLibrary( cs_settings, "bind/cs/libdl.cs" )
 cs_unittest_lib = CSharpLibrary( cs_settings, "local/generated/unittest.cs" )
 
-cs_settings.lib.references:Add("/reference:libdl")
-cs_settings.lib.references:Add("/reference:unittest")
-cs_settings.lib.references:Add("/reference:nunit.framework")
+cs_settings.lib.references:Add("/reference:libdl.dll")
+cs_settings.lib.references:Add("/reference:unittest.dll")
+cs_settings.lib.references:Add("/reference:nunit.framework.dll")
 cs_settings.lib.libpaths:Add("/lib:local/csharp")
-cs_settings.lib.libpaths:Add("/lib:/usr/lib/cli/nunit.framework-2.4")
+if family == "windows" then
+	cs_settings.lib.libpaths:Add("/lib:extern\\cs\\NUnit-2.5.9.10348\\bin\\net-2.0\\framework")
+else
+	cs_settings.lib.libpaths:Add("/lib:/usr/lib/cli/nunit.framework-2.4")
+end
 
 cs_test_lib     = CSharpLibrary( cs_settings, "tests/csharp_bindings/dl_tests.cs", "local/generated/unittest.cs" )
 AddDependency( cs_test_lib, cs_libdl_lib, cs_unittest_lib )
 
 if family == "windows" then
 	AddJob( "test",          "unittest c",        string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests,    "local/generated/unittest.bin" )
+	AddJob( "test_cs",       "unittest c#",       "extern\\cs\\NUnit-2.5.9.10348\\bin\\net-2.0\\nunit-console /nologo local\\csharp\\dl_tests.dll" .. cs_test_args, "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) 
 else
 	AddJob( "test",          "unittest c",        dl_tests .. test_args,                           dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests,    dl_tests,    "local/generated/unittest.bin" )
