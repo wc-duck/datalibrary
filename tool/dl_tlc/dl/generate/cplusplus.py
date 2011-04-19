@@ -143,7 +143,16 @@ def emit_struct( type, stream ):
     
 def emit_enum( enum, stream ):
     stream.write( 'enum %s\n{' % enum.name )
-    stream.write( ','.join( '\n\t%s = %u' % ( e.header_name, e.value ) for e in enum.values ) )
+    
+    values = []
+    
+    for e in enum.values:
+        if isinstance( e, EnumValue ):
+            values.append( '\n\t%s = %u' % ( e.header_name, e.value ) )
+        else:
+            values.append( 'counted here' )
+
+    stream.write( ','.join( values ) )
     stream.write( '\n};\n\n' )
 
 def generate( typelibrary, config, stream ):

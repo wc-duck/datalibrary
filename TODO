@@ -4,7 +4,6 @@ BEFORE 1.0 * get it to build on all platforms, again ;) ( linux i386, linux amd6
 
 LATER
 c-library:
-	* Add dl_instance_load_inplace ( how to handle alignment in this case? )
 	* EDLType should not need to be exposed by the lib in the way it is now!
 	* more platforms
 	* multi-dimensional arrays.

@@ -332,3 +332,111 @@ TEST_F( DLText, invalid_enum_value )
 
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_INVALID_ENUM_VALUE, dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
+
+TEST_F( DLText, basic_bool_all_true )
+{
+	const char* all_true_text =
+	"{"
+		"\"type\" : \"Pods\","
+		"\"data\" : {"
+			"\"u8\"  : true,"
+			"\"u16\" : true,"
+			"\"u32\" : true,"
+			"\"u64\" : true,"
+			"\"i8\"  : true,"
+			"\"i16\" : true,"
+			"\"i32\" : true,"
+			"\"i64\" : true,"
+			"\"f32\" : 0.0,"
+			"\"f64\" : 0.0"
+		"}"
+	"}";
+
+	Pods p1;
+
+	unsigned char out_text_data[1024];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, all_true_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, Pods::TYPE_ID, &p1, sizeof(Pods), out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+
+	EXPECT_EQ(1,    p1.i8);
+	EXPECT_EQ(1,    p1.i16);
+	EXPECT_EQ(1,    p1.i32);
+	EXPECT_EQ(1,    p1.i64);
+	EXPECT_EQ(1u,   p1.u8);
+	EXPECT_EQ(1u,   p1.u16);
+	EXPECT_EQ(1u,   p1.u32);
+	EXPECT_EQ(1u,   p1.u64);
+	EXPECT_EQ(0.0f, p1.f32);
+	EXPECT_EQ(0.0,  p1.f64);
+}
+
+TEST_F( DLText, basic_bool_all_false )
+{
+	const char* all_false_text =
+	"{"
+		"\"type\" : \"Pods\","
+		"\"data\" : {"
+			"\"u8\"  : false,"
+			"\"u16\" : false,"
+			"\"u32\" : false,"
+			"\"u64\" : false,"
+			"\"i8\"  : false,"
+			"\"i16\" : false,"
+			"\"i32\" : false,"
+			"\"i64\" : false,"
+			"\"f32\" : 0.0,"
+			"\"f64\" : 0.0"
+		"}"
+	"}";
+
+	Pods p1;
+
+	unsigned char out_text_data[1024];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, all_false_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, Pods::TYPE_ID, &p1, sizeof(Pods), out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+
+	EXPECT_EQ(0,    p1.i8);
+	EXPECT_EQ(0,    p1.i16);
+	EXPECT_EQ(0,    p1.i32);
+	EXPECT_EQ(0,    p1.i64);
+	EXPECT_EQ(0u,   p1.u8);
+	EXPECT_EQ(0u,   p1.u16);
+	EXPECT_EQ(0u,   p1.u32);
+	EXPECT_EQ(0u,   p1.u64);
+	EXPECT_EQ(0.0f, p1.f32);
+	EXPECT_EQ(0.0,  p1.f64);
+}
+
+TEST_F( DLText, basic_bool_in_bitfield )
+{
+	const char* test_bits_text =
+	"{"
+		"\"type\" : \"TestBits\","
+		"\"data\" : {"
+			"\"Bit1\" : false,"
+			"\"Bit2\" : true,"
+			"\"Bit3\" : false,"
+			"\"Bit4\" : true,"
+			"\"Bit5\" : false,"
+			"\"Bit6\" : true,"
+			"\"make_it_uneven\" : true"
+		"}"
+	"}";
+
+	TestBits p1 = { 0 };
+
+	unsigned char out_text_data[1024];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_bits_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, TestBits::TYPE_ID, &p1, sizeof(TestBits), out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+
+	EXPECT_EQ(0, p1.Bit1);
+	EXPECT_EQ(1, p1.Bit2);
+	EXPECT_EQ(0, p1.Bit3);
+	EXPECT_EQ(1, p1.Bit4);
+	EXPECT_EQ(0, p1.Bit5);
+	EXPECT_EQ(1, p1.Bit6);
+	EXPECT_EQ(1, p1.make_it_uneven);
+}

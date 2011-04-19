@@ -198,14 +198,11 @@ public class DLTest
     {
     	PodArray1 p1 = new PodArray1();
     	p1.u32_arr = new uint[] { 1337, 7331, 73, 31, 13, 37 };
+    	p1.u32_arrArraySize = (uint)p1.u32_arr.Length;
     	
-    	Assert.IsTrue( false );
-    	/* broken test!
-    		
     	PodArray1 p2 = DoTheRoundAbout( p1 );
     	
     	Assert.AreEqual( p1.u32_arr, p2.u32_arr );
-    	*/
     }
     
     [Test]

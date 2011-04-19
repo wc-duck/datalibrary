@@ -1,8 +1,47 @@
 THE DATA LIBRARY.
 
 About:
-The data library, or DL for short, is a library for serialization of data.
+	The data library, or DL for short, is a library for serialization of data.
+
+Goals:
+	load = memcpy + with plus-menu
+	guaratee complete data when built
+	error-checks
+	platform specific data ( convertion between platforms avaliable on all platforms )
+
+Parts:
+
+	generated headers:
+		c/c#
+
+	type library ( tlc ):
+		file used by dl itself to load/store/pack/unpack types.
+
+	c-library:
+		heart of the library.
+
+	dl_tlc:
+		type-library-compiler
+
+	dl_pack:
+		tool to pack/unpack/convert instances.
+
+	bindings:
+		python / C#
+
+TLD ( Type Library Definition ) format:
+	"module_name"-section
+	"module_enums"-section
+	"module_types"-section
+		"type"
+			"members"-array
+						
+
+Text data format:
+	"type"-section
+	"data"-section
+	"subdata"-section
 
 Licence:
-DL is distributed under the zlib license.
-See LICENSE-file for full details.
+	DL is distributed under the zlib license.
+	See LICENSE-file for full details.
