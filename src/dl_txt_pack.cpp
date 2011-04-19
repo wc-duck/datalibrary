@@ -245,8 +245,48 @@ static int dl_internal_pack_on_null( void* pack_ctx )
 
 static int dl_internal_pack_on_bool( void* pack_ctx, int value )
 {
-	DL_UNUSED(pack_ctx); DL_UNUSED(value);
-	DL_ASSERT(false && "No support for bool yet!");
+	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
+	EDLPackState state = pCtx->CurrentPackState();
+
+	if( ( state & DL_TYPE_ATOM_MASK ) == DL_TYPE_ATOM_BITFIELD )
+	{
+		unsigned int bf_bits   = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED );
+		unsigned int bf_offset = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
+
+		dl_type_t storage_type = dl_type_t( state & DL_TYPE_STORAGE_MASK );
+
+		switch( storage_type )
+		{
+			case DL_TYPE_STORAGE_UINT8:  pCtx->writer->Write( (uint8)DL_INSERT_BITS(pCtx->writer->Read<uint8>(),   uint8(value), DLBitFieldOffset( sizeof(uint8), bf_offset, bf_bits ), bf_bits)); break;
+			case DL_TYPE_STORAGE_UINT16: pCtx->writer->Write((uint16)DL_INSERT_BITS(pCtx->writer->Read<uint16>(), uint16(value), DLBitFieldOffset(sizeof(uint16), bf_offset, bf_bits ), bf_bits)); break;
+			case DL_TYPE_STORAGE_UINT32: pCtx->writer->Write((uint32)DL_INSERT_BITS(pCtx->writer->Read<uint32>(), uint32(value), DLBitFieldOffset(sizeof(uint32), bf_offset, bf_bits ), bf_bits)); break;
+			case DL_TYPE_STORAGE_UINT64: pCtx->writer->Write((uint64)DL_INSERT_BITS(pCtx->writer->Read<uint64>(), uint64(value), DLBitFieldOffset(sizeof(uint64), bf_offset, bf_bits ), bf_bits)); break;
+
+			default:
+				DL_ASSERT(false && "This should not happen!");
+				break;
+		}
+
+		pCtx->PopState();
+
+		return 1;
+	}
+
+	switch(state)
+	{
+		case DL_PACK_STATE_POD_INT8:   pCtx->writer->Write(   (int8)value ); break;
+		case DL_PACK_STATE_POD_INT16:  pCtx->writer->Write(  (int16)value ); break;
+		case DL_PACK_STATE_POD_INT32:  pCtx->writer->Write(  (int32)value ); break;
+		case DL_PACK_STATE_POD_INT64:  pCtx->writer->Write(  (int64)value ); break;
+		case DL_PACK_STATE_POD_UINT8:  pCtx->writer->Write(  (uint8)value ); break;
+		case DL_PACK_STATE_POD_UINT16: pCtx->writer->Write( (uint16)value ); break;
+		case DL_PACK_STATE_POD_UINT32: pCtx->writer->Write( (uint32)value ); break;
+		case DL_PACK_STATE_POD_UINT64: pCtx->writer->Write( (uint64)value ); break;
+		default:
+			DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "true/false only supported on int*, uint* or bitfield!" );
+	}
+
+	pCtx->ArrayItemPop();
 	return 1;
 }
 
