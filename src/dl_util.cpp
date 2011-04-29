@@ -38,7 +38,11 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 
 	dl_util_file_type_t in_file_type = DL_UTIL_FILE_TYPE_TEXT;
 	if( error == DL_ERROR_OK ) // could read it as binary!
+	{
 		in_file_type = DL_UTIL_FILE_TYPE_BINARY;
+		if( type == 0 ) // autodetect filetype
+			type = info.root_type;
+	}
 
 	if( (in_file_type & filetype) == 0 )
 		return DL_ERROR_UTIL_FILE_TYPE_MISMATCH;
@@ -90,6 +94,12 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 			free(file_content);
 
 			if(error != DL_ERROR_OK) { free(load_instance); return error; }
+
+			if( type == 0 ) // autodetect type
+			{
+				dl_instance_get_info( load_instance, packed_size, &info);
+				type = info.root_type;
+			}
 		}
 		break;
 		default:
@@ -101,7 +111,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 	*out_instance = load_instance;
 
 	if( out_type != 0x0 )
-		*out_type = type; // TODO: Fix me!
+		*out_type = type;
 
 	return error;
 }
