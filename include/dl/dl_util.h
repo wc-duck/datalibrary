@@ -28,12 +28,6 @@ enum dl_util_file_type_t
 };
 
 /*
-	Function: dl_util_load_from_stream
-		bopp
-*/
-dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx, dl_typeid_t type, FILE* stream, dl_util_file_type_t filetype, void** out_instance, dl_typeid_t* out_type );
-
-/*
 	Function: dl_util_load_from_file
 		Utility function that loads an dl-instance from file.
 
@@ -57,14 +51,6 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx, dl_typeid_t type, FILE* st
 dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, void** out_instance, dl_typeid_t* out_type );
 
 /*
-	Function: dl_util_load_from_stream_inplace
-		bopp
-*/
-dl_error_t dl_util_load_from_stream_inplace( dl_ctx_t     dl_ctx,       dl_typeid_t         type,
-											 FILE*        stream,       dl_util_file_type_t filetype,
-											 void*        out_instance, unsigned int        out_instance_size,
-											 dl_typeid_t* out_type );
-/*
 	Function: dl_util_load_from_file_inplace
 		Utility function that loads an dl-instance from file to a specified memory-area.
 
@@ -87,15 +73,6 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_
 										   const char*  filename,     dl_util_file_type_t filetype,
 										   void*        out_instance, unsigned int        out_instance_size,
 										   dl_typeid_t* out_type );
-
-/*
-	Function: dl_util_store_to_stream
-		bopp
-*/
-dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
-									FILE*       stream,     dl_util_file_type_t filetype,
-									dl_endian_t out_endian, unsigned int        out_ptr_size,
-									void*       out_instance );
 
 /*
 	Function: dl_util_store_to_file
