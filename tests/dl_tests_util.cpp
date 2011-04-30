@@ -7,6 +7,8 @@
 
 #include "dl_test_common.h"
 
+const char* TEMP_FILE_NAME = "temp_dl_file.packed";
+
 class DLUtil : public DL
 {
 public:
@@ -25,7 +27,7 @@ public:
 	{
 		DL::TearDown();
 
-		// remove temp-file.
+		remove( TEMP_FILE_NAME );
 	}
 
 	void check_loaded( Pods* p2 )
@@ -42,8 +44,6 @@ public:
 		EXPECT_EQ( p.f64, p2->f64 );
 	}
 };
-
-const char* TEMP_FILE_NAME = "temp_dl_file.packed"; // should be removed after each test!
 
 TEST_F( DLUtil, store_load_binary )
 {
@@ -67,7 +67,8 @@ TEST_F( DLUtil, store_load_binary )
 											  (void**)&p2,
 											  &stored_type ) );
 
-	EXPECT_EQ( Pods::TYPE_ID, stored_type );
+	dl_typeid_t expect = Pods::TYPE_ID;
+	EXPECT_EQ( expect, stored_type );
 	check_loaded( p2 );
 	free( p2 );
 }
@@ -94,7 +95,8 @@ TEST_F( DLUtil, store_load_text )
 											  (void**)&p2,
 											  &stored_type ) );
 
-	EXPECT_EQ( Pods::TYPE_ID, stored_type );
+	dl_typeid_t expect = Pods::TYPE_ID;
+	EXPECT_EQ( expect, stored_type );
 	check_loaded( p2 );
 	free( p2 );
 }
@@ -164,7 +166,8 @@ TEST_F( DLUtil, auto_detect_binary_file_format )
 											  (void**)&p2,
 											  &stored_type ) );
 
-	EXPECT_EQ( Pods::TYPE_ID, stored_type );
+	dl_typeid_t expect = Pods::TYPE_ID;
+	EXPECT_EQ( expect, stored_type );
 	check_loaded( p2 );
 
 	free( p2 );
@@ -190,7 +193,8 @@ TEST_F( DLUtil, auto_detect_text_file_format )
 											  (void**)&p2,
 											  &stored_type ) );
 
-	EXPECT_EQ( Pods::TYPE_ID, stored_type );
+	dl_typeid_t expect = Pods::TYPE_ID;
+	EXPECT_EQ( expect, stored_type );
 	check_loaded( p2 );
 
 	free( p2 );
