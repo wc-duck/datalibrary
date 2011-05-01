@@ -7,56 +7,67 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t         type,
-									 FILE*         stream,       dl_util_file_type_t filetype,
-									 void**        out_instance, dl_typeid_t*        out_type,
-									 unsigned int* consumed_bytes )
+static unsigned char* dl_read_entire_stream( FILE* file, unsigned int* out_size )
 {
-	return DL_ERROR_INTERNAL_ERROR;
+	const unsigned int CHUNK_SIZE = 1024;
+	size_t         total_size = 0;
+	size_t         chunk_size = 0;
+	unsigned char* out_buffer = 0;
+
+	do
+	{
+		out_buffer = (unsigned char*)realloc( out_buffer, CHUNK_SIZE + total_size );
+		chunk_size = fread( out_buffer + total_size, 1, CHUNK_SIZE, file );
+		total_size += chunk_size;
+	}
+	while( chunk_size >= CHUNK_SIZE );
+
+	*out_size = (unsigned int)total_size;
+	return out_buffer;
 }
 
 dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
                                    const char* filename,     dl_util_file_type_t filetype,
                                    void**      out_instance, dl_typeid_t*        out_type )
 {
+	dl_error_t error = DL_ERROR_UTIL_FILE_NOT_FOUND;
+
+	FILE* in_file = fopen( filename, "rb" );
+
+	if( in_file != 0x0 )
+		error = dl_util_load_from_stream( dl_ctx, type, in_file, filetype, out_instance, out_type, 0x0 );
+
+	fclose(in_file);
+
+	return error;
+}
+
+dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t         type,
+									 FILE*         stream,       dl_util_file_type_t filetype,
+									 void**        out_instance, dl_typeid_t*        out_type,
+									 unsigned int* consumed_bytes )
+{
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
 
-	FILE* in_file = fopen(filename, "rb");
-
-	if(in_file == 0x0) { fclose(in_file); return DL_ERROR_UTIL_FILE_NOT_FOUND; }
-
-	fseek(in_file, 0, SEEK_END);
-	unsigned int file_size = ftell(in_file);
-	fseek(in_file, 0, SEEK_SET);
-
-	unsigned char* file_content = (unsigned char*)malloc((unsigned int)(file_size) + 1);
-	size_t read_bytes = fread(file_content, sizeof(unsigned char), file_size, in_file);
-	fclose(in_file);
-
-	if( read_bytes != file_size )
-		return DL_ERROR_INTERNAL_ERROR;
+	unsigned int file_size;
+	unsigned char* file_content = dl_read_entire_stream( stream, &file_size );
 
 	file_content[file_size] = '\0';
 
 	dl_error_t error = DL_ERROR_OK;
 	dl_instance_info_t info;
 
-	error = dl_instance_get_info( file_content, file_size, &info);
+	error = dl_instance_get_info( file_content, file_size, &info );
 
 	dl_util_file_type_t in_file_type = error == DL_ERROR_OK ? DL_UTIL_FILE_TYPE_BINARY : DL_UTIL_FILE_TYPE_TEXT;
 
-
-	// if( error == DL_ERROR_OK ) // could read it as binary!
+	if( ( in_file_type & filetype ) == 0 )
 	{
-		// in_file_type = DL_UTIL_FILE_TYPE_BINARY;
-		if( type == 0 ) // autodetect filetype
-			type = info.root_type;
+		free( file_content );
+		return DL_ERROR_UTIL_FILE_TYPE_MISMATCH;
 	}
 
-	if( (in_file_type & filetype) == 0 )
-		return DL_ERROR_UTIL_FILE_TYPE_MISMATCH;
-	
 	unsigned char* load_instance = 0x0;
 	unsigned int   load_size = 0;
 
@@ -64,6 +75,9 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t        
 	{
 		case DL_UTIL_FILE_TYPE_BINARY:
 		{
+			if( type == 0 ) // autodetect filetype
+				type = info.root_type;
+
 			error = dl_convert( dl_ctx, type, file_content, file_size, 0x0, 0, DL_ENDIAN_HOST, sizeof(void*), &load_size );
 
 			if( error != DL_ERROR_OK ) { free( file_content ); return error; }
@@ -138,6 +152,23 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
                                   const char* filename,   dl_util_file_type_t filetype,
                                   dl_endian_t out_endian, unsigned int        out_ptr_size,
                                   void*       instance )
+{
+	FILE* out_file = fopen( filename, filetype == DL_UTIL_FILE_TYPE_BINARY ? "wb" : "w" );
+
+	dl_error_t error = DL_ERROR_UTIL_FILE_NOT_FOUND;
+
+	if( out_file != 0x0 )
+		error = dl_util_store_to_stream( dl_ctx, type, out_file, filetype, out_endian, out_ptr_size, instance );
+
+	fclose( out_file );
+
+	return error;
+}
+
+dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
+									FILE*       stream,     dl_util_file_type_t filetype,
+									dl_endian_t out_endian, unsigned int        out_ptr_size,
+									void*       instance )
 {
 	if( filetype == DL_UTIL_FILE_TYPE_AUTO )
 		return DL_ERROR_INVALID_PARAMETER;
@@ -214,19 +245,8 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 			return DL_ERROR_INTERNAL_ERROR;
 	}
 
-	FILE* out_file = fopen( filename, filetype == DL_UTIL_FILE_TYPE_BINARY ? "wb" : "w" );
-	if( out_file != 0x0 )
-	{
-		if( filetype == DL_UTIL_FILE_TYPE_BINARY )
-			fwrite( out_data, out_size, 1, out_file );
-		else
-			fprintf( out_file, "%s", out_data );
-	}
-	else
-		error = DL_ERROR_UTIL_FILE_NOT_FOUND;
-
+	fwrite( out_data, out_size, 1, stream );
 	free( out_data );
-	fclose( out_file );
 
 	return error;
 }
