@@ -290,16 +290,16 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 
 	if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 	{
-		header->id           = DLSwapEndian(header->id);
-		header->version      = DLSwapEndian(header->version);
+		header->id           = dl_swap_endian_uint32( header->id );
+		header->version      = dl_swap_endian_uint32( header->version );
 
-		header->type_count   = DLSwapEndian(header->type_count);
-		header->types_size   = DLSwapEndian(header->types_size);
+		header->type_count   = dl_swap_endian_uint32( header->type_count );
+		header->types_size   = dl_swap_endian_uint32( header->types_size );
 
-		header->enum_count   = DLSwapEndian(header->enum_count);
-		header->enums_size   = DLSwapEndian(header->enums_size);
+		header->enum_count   = dl_swap_endian_uint32( header->enum_count );
+		header->enums_size   = dl_swap_endian_uint32( header->enums_size );
 
-		header->default_value_size   = DLSwapEndian(header->default_value_size);
+		header->default_value_size   = dl_swap_endian_uint32( header->default_value_size );
 	}
 }
 
@@ -339,8 +339,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
-			look->type_id  = DLSwapEndian(_pFromData->type_id);
-			look->offset   = dl_ctx->type_info_data_size + DLSwapEndian(_pFromData->offset);
+			look->type_id  = dl_swap_endian_uint32( _pFromData->type_id );
+			look->offset   = dl_ctx->type_info_data_size + dl_swap_endian_uint32( _pFromData->offset );
 			union
 			{
 				const uint8* data_ptr;
@@ -349,25 +349,25 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			ptr_conv.data_ptr = dl_ctx->type_info_data + look->offset;
 			SDLType* pType = ptr_conv.type_ptr;
 
-			pType->size[DL_PTR_SIZE_32BIT]      = DLSwapEndian(pType->size[DL_PTR_SIZE_32BIT]);
-			pType->size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(pType->size[DL_PTR_SIZE_64BIT]);
-			pType->alignment[DL_PTR_SIZE_32BIT] = DLSwapEndian(pType->alignment[DL_PTR_SIZE_32BIT]);
-			pType->alignment[DL_PTR_SIZE_64BIT] = DLSwapEndian(pType->alignment[DL_PTR_SIZE_64BIT]);
-			pType->member_count                 = DLSwapEndian(pType->member_count);
+			pType->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( pType->size[DL_PTR_SIZE_32BIT] );
+			pType->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( pType->size[DL_PTR_SIZE_64BIT] );
+			pType->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( pType->alignment[DL_PTR_SIZE_32BIT] );
+			pType->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( pType->alignment[DL_PTR_SIZE_64BIT] );
+			pType->member_count                 = dl_swap_endian_uint32( pType->member_count );
 
 			for(uint32 i = 0; i < pType->member_count; ++i)
 			{
 				SDLMember* pMember = pType->members + i;
 
-				pMember->type                         = DLSwapEndian(pMember->type);
-				pMember->type_id	                  = DLSwapEndian(pMember->type_id);
-				pMember->size[DL_PTR_SIZE_32BIT]      = DLSwapEndian(pMember->size[DL_PTR_SIZE_32BIT]);
-				pMember->size[DL_PTR_SIZE_64BIT]      = DLSwapEndian(pMember->size[DL_PTR_SIZE_64BIT]);
-				pMember->offset[DL_PTR_SIZE_32BIT]    = DLSwapEndian(pMember->offset[DL_PTR_SIZE_32BIT]);
-				pMember->offset[DL_PTR_SIZE_64BIT]    = DLSwapEndian(pMember->offset[DL_PTR_SIZE_64BIT]);
-				pMember->alignment[DL_PTR_SIZE_32BIT] = DLSwapEndian(pMember->alignment[DL_PTR_SIZE_32BIT]);
-				pMember->alignment[DL_PTR_SIZE_64BIT] = DLSwapEndian(pMember->alignment[DL_PTR_SIZE_64BIT]);
-				pMember->default_value_offset         = DLSwapEndian(pMember->default_value_offset);
+				pMember->type                         = dl_swap_endian_dl_type( pMember->type );
+				pMember->type_id	                  = dl_swap_endian_uint32( pMember->type_id );
+				pMember->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( pMember->size[DL_PTR_SIZE_32BIT] );
+				pMember->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( pMember->size[DL_PTR_SIZE_64BIT] );
+				pMember->offset[DL_PTR_SIZE_32BIT]    = dl_swap_endian_uint32( pMember->offset[DL_PTR_SIZE_32BIT] );
+				pMember->offset[DL_PTR_SIZE_64BIT]    = dl_swap_endian_uint32( pMember->offset[DL_PTR_SIZE_64BIT] );
+				pMember->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( pMember->alignment[DL_PTR_SIZE_32BIT] );
+				pMember->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( pMember->alignment[DL_PTR_SIZE_64BIT] );
+				pMember->default_value_offset         = dl_swap_endian_uint32( pMember->default_value_offset );
 			}
 		}
 		else
@@ -392,8 +392,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 
 		if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 		{
-			look->type_id  = DLSwapEndian(_pEnumFromData->type_id);
-			look->offset   = dl_ctx->enum_info_data_size + DLSwapEndian(_pEnumFromData->offset);
+			look->type_id  = dl_swap_endian_uint32( _pEnumFromData->type_id );
+			look->offset   = dl_ctx->enum_info_data_size + dl_swap_endian_uint32( _pEnumFromData->offset );
 			union
 			{
 				const uint8* data_ptr;
@@ -402,10 +402,10 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			ptr_conv.data_ptr = dl_ctx->enum_info_data + look->offset;
 			SDLEnum* e = ptr_conv.enum_ptr;
 
-			e->type_id     = DLSwapEndian(e->type_id);
-			e->value_count = DLSwapEndian(e->value_count);
+			e->type_id     = dl_swap_endian_uint32( e->type_id );
+			e->value_count = dl_swap_endian_uint32( e->value_count );
 			for(uint32 i = 0; i < e->value_count; ++i)
-				e->values[i].value = DLSwapEndian(e->values[i].value);
+				e->values[i].value = dl_swap_endian_uint32( e->values[i].value );
 		}
 		else
 		{
@@ -828,9 +828,9 @@ dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned 
 	}
 	else
 	{
-		out_info->load_size = DLSwapEndian( header->instance_size );
+		out_info->load_size = dl_swap_endian_uint32( header->instance_size );
 		out_info->endian    = DLOtherEndian( DL_ENDIAN_HOST );
-		out_info->root_type = DLSwapEndian( header->root_instance_type );
+		out_info->root_type = dl_swap_endian_uint32( header->root_instance_type );
 	}
 
 	return DL_ERROR_OK;

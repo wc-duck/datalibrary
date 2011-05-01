@@ -7,11 +7,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// TODO: DLType sent to these functions should be used for type-checks, make it possible to ignore in some way?
+dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t         type,
+									 FILE*         stream,       dl_util_file_type_t filetype,
+									 void**        out_instance, dl_typeid_t*        out_type,
+									 unsigned int* consumed_bytes )
+{
+	return DL_ERROR_INTERNAL_ERROR;
+}
 
-dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         type,
-                                   const char* filename, dl_util_file_type_t filetype,
-                                   void**      out_instance, dl_typeid_t* out_type )
+dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
+                                   const char* filename,     dl_util_file_type_t filetype,
+                                   void**      out_instance, dl_typeid_t*        out_type )
 {
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
@@ -27,8 +33,10 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 	unsigned char* file_content = (unsigned char*)malloc((unsigned int)(file_size) + 1);
 	size_t read_bytes = fread(file_content, sizeof(unsigned char), file_size, in_file);
 	fclose(in_file);
+
 	if( read_bytes != file_size )
 		return DL_ERROR_INTERNAL_ERROR;
+
 	file_content[file_size] = '\0';
 
 	dl_error_t error = DL_ERROR_OK;
@@ -36,10 +44,12 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,   dl_typeid_t         typ
 
 	error = dl_instance_get_info( file_content, file_size, &info);
 
-	dl_util_file_type_t in_file_type = DL_UTIL_FILE_TYPE_TEXT;
-	if( error == DL_ERROR_OK ) // could read it as binary!
+	dl_util_file_type_t in_file_type = error == DL_ERROR_OK ? DL_UTIL_FILE_TYPE_BINARY : DL_UTIL_FILE_TYPE_TEXT;
+
+
+	// if( error == DL_ERROR_OK ) // could read it as binary!
 	{
-		in_file_type = DL_UTIL_FILE_TYPE_BINARY;
+		// in_file_type = DL_UTIL_FILE_TYPE_BINARY;
 		if( type == 0 ) // autodetect filetype
 			type = info.root_type;
 	}

@@ -93,7 +93,7 @@ static void dl_binary_writer_write_2byte( dl_binary_writer* writer, const void* 
 	uint16 val = *conv.u16;
 
 	if( writer->source_endian != writer->target_endian )
-		val = DLSwapEndian( val );
+		val = dl_swap_endian_uint16( val );
 
 	dl_binary_writer_write( writer, &val, 2 );
 }
@@ -105,7 +105,7 @@ static void dl_binary_writer_write_4byte( dl_binary_writer* writer, const void* 
 	uint32 val = *conv.u32;
 
 	if( writer->source_endian != writer->target_endian )
-		val = DLSwapEndian( val );
+		val = dl_swap_endian_uint32( val );
 
 	dl_binary_writer_write( writer, &val, 4 );
 }
@@ -117,7 +117,7 @@ static void dl_binary_writer_write_8byte( dl_binary_writer* writer, const void* 
 	uint64 val = *conv.u64;
 
 	if( writer->source_endian != writer->target_endian )
-		val = DLSwapEndian( val );
+		val = dl_swap_endian_uint64( val );
 
 	dl_binary_writer_write( writer, &val, 8 );
 }

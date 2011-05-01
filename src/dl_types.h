@@ -99,11 +99,11 @@ enum
 
 static const uint32 DL_TYPELIB_VERSION    = 2; // format version for type-libraries.
 static const uint32 DL_INSTANCE_VERSION   = 1; // format version for instances.
-static const uint32 DL_INSTANCE_VERSION_SWAPED = DLSwapEndian(DL_INSTANCE_VERSION);
+static const uint32 DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
 static const uint32 DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
-static const uint32 DL_TYPELIB_ID_SWAPED       = DLSwapEndian(DL_TYPELIB_ID);
+static const uint32 DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
 static const uint32 DL_INSTANCE_ID             = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
-static const uint32 DL_INSTANCE_ID_SWAPED      = DLSwapEndian(DL_INSTANCE_ID);
+static const uint32 DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint32( DL_INSTANCE_ID );
 
 static const pint DL_NULL_PTR_OFFSET[2] =
 {
