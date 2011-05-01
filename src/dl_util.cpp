@@ -83,7 +83,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t    
 			if( error != DL_ERROR_OK ) { free( file_content ); return error; }
 
 			// convert if needed
-			if( load_size > file_size )
+			if( load_size > file_size || info.ptrsize < sizeof(void*) )
 			{
 				load_instance = (unsigned char*)malloc(load_size);
 
@@ -202,7 +202,7 @@ dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         
 			if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
 			// convert
-			if( out_size > packed_size )
+			if( out_size > packed_size || out_ptr_size > sizeof(void*) )
 			{
 				// new alloc
 				out_data = (unsigned char*)malloc(out_size);
