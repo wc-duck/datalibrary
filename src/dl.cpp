@@ -445,7 +445,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	// if( !dl_internal_is_align( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
 	//	return DL_ERROR_BAD_ALIGNMENT;
 
-	memcpy(instance, packed_instance + sizeof(SDLDataHeader), header->instance_size);
+	memmove(instance, packed_instance + sizeof(SDLDataHeader), header->instance_size);
 
 	SPatchedInstances PI;
 	dl_internal_patch_loaded_ptrs( dl_ctx, &PI, (uint8*)instance, pType, (uint8*)instance, false );
@@ -736,6 +736,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type,     
 	Header.root_instance_type = type;
 	Header.instance_size = 0;
 	Header.is_64_bit_ptr = sizeof(void*) == 8 ? 1 : 0;
+	Header.pad[0] = Header.pad[1] = Header.pad[2] = 0;
 
 	unsigned char* store_ctx_buffer      = 0x0;
 	unsigned int   store_ctx_buffer_size = 0;
