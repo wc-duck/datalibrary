@@ -16,7 +16,7 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 	local DL_TLC = PYTHON .. " tool/dl_tlc/dl_tlc.py --dldll=" .. dl_shared_lib
 
 	AddJob( out_lib,       "tlc " .. out_lib,       DL_TLC .. " -o " .. out_lib .. " " .. tlc_file,       tlc_file )
-	AddJob( out_lib_h,     "tlc " .. out_lib_h,	DL_TLC .. " -x " .. out_lib_h .. " " .. tlc_file,     tlc_file )
+	AddJob( out_lib_h,     "tlc " .. out_lib_h,	    DL_TLC .. " -x " .. out_lib_h .. " " .. tlc_file,     tlc_file )
 	AddJob( out_cs_header, "tlc " .. out_cs_header,	DL_TLC .. " -s " .. out_cs_header .. " " .. tlc_file, tlc_file )
 	AddJob( out_header,    "tlc " .. out_header,    DL_TLC .. " -c " .. out_header .. " " .. tlc_file,    tlc_file )
 
