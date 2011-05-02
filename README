@@ -11,40 +11,51 @@ platform specific data ( convertion between platforms avaliable on all platforms
 
 ## Parts:
 
-	generated headers:
-		c/c#
+generated headers:
+	c/c#
 
-	type library ( tlc ):
-		file used by dl itself to load/store/pack/unpack types.
+type library ( tlc ):
+	file used by dl itself to load/store/pack/unpack types.
 
-	c-library:
-		heart of the library.
+c-library:
+	heart of the library.
 
-	dl_tlc:
-		type-library-compiler
+dl_tlc:
+	type-library-compiler
 
-	dl_pack:
-		tool to pack/unpack/convert instances.
+dl_pack:
+	tool to pack/unpack/convert instances.
 
-	bindings:
-		python / C#
+bindings:
+	python / C#
+
+## Suported types:
+int8, int16, int32, int64     - signed integer 8 - 64 bits
+uint8, uint16, uint32, uint64 - unsigned integer 8 - 64 bits
+bitfield                      - unsigned integer with specified amount of bits ( uint32 example : 2; in c )
+fp32, fp64                    - 32 bit and 64 bit floating point value ( float/double in c )
+string                        - ascii string
+inline-array                  - fixed size array of any type ( defined by dl ( int/uint etc ) or userdefined )
+array                         - variable size array of any type ( defined by dl ( int/uint etc ) or userdefined )
+pointer                       - pointer to any user-defined type 
+
+planned for the future (maybe) :
+utf8                          - utf8 encoded unicode-string
+utf16                         - utf16 encoded unicode-string
+utf32                         - utf32 encoded unicode-string
 
 ## TLD ( Type Library Definition ) format:
-"module_name"-section
-"module_enums"-section
-"module_types"-section
+"module"-section
+"enums"-section
+"types"-section
 	"type"
 		"members"-array
-
+						
 
 ## Text data format:
 "type"-section
 "data"-section
 "subdata"-section
-
-## Licence:
-DL is distributed under the zlib license.
-See LICENSE-file for full details.
 
 ## Examples:
 

@@ -69,8 +69,8 @@ class Enum( object ):
         self.values = []
         
         current_value = 0
-        counted_enum_type = 1
-        counted_enum_max_count = 0
+        #counted_enum_type = 1
+        #counted_enum_max_count = 0
         
         for val in values:
             name, header_name, value = '', '', 0
@@ -95,16 +95,7 @@ class Enum( object ):
                     self.values.append( self.EnumValue( name, value.get( 'header_name', name ), current_value ) )
                     current_value = current_value + 1
                 else:
-                    assert False, 'bad type!'                    
-        
-        self.type_mask  = 0
-        self.count_mask = 0
-
-        if counted_enum_max_count > 0:
-            import math
-            hi_bit = math.floor( math.log( counted_enum_max_count, 2 ) )
-            self.count_mask = ( 1 << ( int(hi_bit) + 1 ) ) - 1
-            self.type_mask  = 0xFFFFFFFF - self.count_mask
+                    assert False, 'bad type!'
             
         # calculate dl-type-id
         # better typeid-generation plox!
