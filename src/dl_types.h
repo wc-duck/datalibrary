@@ -99,11 +99,11 @@ enum
 
 static const uint32 DL_TYPELIB_VERSION    = 2; // format version for type-libraries.
 static const uint32 DL_INSTANCE_VERSION   = 1; // format version for instances.
-static const uint32 DL_INSTANCE_VERSION_SWAPED = DLSwapEndian(DL_INSTANCE_VERSION);
+static const uint32 DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
 static const uint32 DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
-static const uint32 DL_TYPELIB_ID_SWAPED       = DLSwapEndian(DL_TYPELIB_ID);
+static const uint32 DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
 static const uint32 DL_INSTANCE_ID             = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
-static const uint32 DL_INSTANCE_ID_SWAPED      = DLSwapEndian(DL_INSTANCE_ID);
+static const uint32 DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint32( DL_INSTANCE_ID );
 
 static const pint DL_NULL_PTR_OFFSET[2] =
 {
@@ -309,12 +309,15 @@ static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t 
 	return 0x0;
 }
 
-static inline uint32 dl_internal_find_enum_value( const SDLEnum* e, const char* name, unsigned int name_len )
+static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* name, unsigned int name_len, uint32* value )
 {
 	for( unsigned int j = 0; j < e->value_count; ++j )
 		if( strncmp( e->values[j].name, name, name_len ) == 0 )
-			return e->values[j].value;
-	return 0;
+		{
+			*value = e->values[j].value;
+			return true;
+		}
+	return false;
 }
 
 static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32 value )

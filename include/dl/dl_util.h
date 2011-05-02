@@ -6,6 +6,10 @@
 /*
 	File: dl_reflect.h
 		Utility functions for DL. Mostly for making tools writing easier.
+
+	Note:
+		All functions in dl_util.h are implemented with core-dl functionality and
+		should not be using anything not available to the ordinary user of dl.
 */
 
 #include <dl/dl.h>
@@ -34,21 +38,50 @@ enum dl_util_file_type_t
 	Note:
 		This function allocates memory internally by use of malloc/free and should therefore
 		be used accordingly.
-		The pointer returned in _ppInstance need to be freed with free() when not needed any
+		The pointer returned in out_instance need to be freed with free() when not needed any
 		more.
 
 	Parameters:
 		dl_ctx       - Context to use for operations.
 		type         - Type expected to be found in file, set to 0 if not known.
 		filename     - Path to file to load from.
-		filetype     - Type of file to read, see EDLUtilFileType.
+		filetype     - Type of file to read, see dl_util_file_type_t.
 		out_instance - Pointer to fill with read instance.
 		out_type     - TypeID of instance found in file, can be set to 0x0.
 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx, dl_typeid_t type, const char* filename, dl_util_file_type_t filetype, void** out_instance, dl_typeid_t* out_type );
+dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
+								   const char* filename,     dl_util_file_type_t filetype,
+								   void**      out_instance, dl_typeid_t*        out_type );
+
+/*
+	Function: dl_util_load_from_stream
+		Utility function that loads an dl-instance from an open stream.
+
+	Note:
+		This function allocates memory internally by use of malloc/free and should therefore
+		be used accordingly.
+		The pointer returned in out_instance need to be freed with free() when not needed any
+		more.
+
+	Parameters:
+		dl_ctx         - Context to use for operations.
+		type           - Type expected to be found in file, set to 0 if not known.
+		stream         - Open stream to load from.
+		filetype       - Type of file to read, see dl_util_file_type_t.
+		out_instance   - Pointer to fill with read instance.
+		out_type       - TypeID of instance found in file, can be set to 0x0.
+		consumed_bytes - Number of bytes read from stream.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t         type,
+									 FILE*         stream,       dl_util_file_type_t filetype,
+									 void**        out_instance, dl_typeid_t*        out_type,
+									 unsigned int* consumed_bytes );
 
 /*
 	Function: dl_util_load_from_file_inplace
@@ -98,5 +131,30 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 								  const char* filename,   dl_util_file_type_t filetype,
 								  dl_endian_t out_endian, unsigned int        out_ptr_size,
 								  void*       out_instance );
+
+/*
+	Function: dl_util_store_to_stream
+		Utility function that writes an instance to an open stream.
+
+	Note:
+		This function allocates memory internally by use of malloc/free and should therefore
+		be used accordingly.
+
+	Parameters:
+		dl_ctx       - Context to use for operations.
+		type         - Type expected to be found in instance.
+		stream       - Open stream to write to.
+		filetype     - Type of file to write, see EDLUtilFileType.
+		out_endian   - Endian of stored instance if binary.
+		out_ptr_size - Pointer size of stored instance if binary.
+		out_instance - Pointer to instance to write
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
+									FILE*       stream,     dl_util_file_type_t filetype,
+									dl_endian_t out_endian, unsigned int        out_ptr_size,
+									void*       out_instance );
 
 #endif // DL_DL_UTIL_H_INCLUDED

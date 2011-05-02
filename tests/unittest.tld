@@ -2,11 +2,25 @@
 	"module" : "unit_test",
 	"enums" : {
 		"TestEnum1" : [ "TESTENUM1_VALUE1", "TESTENUM1_VALUE2", "TESTENUM1_VALUE3", "TESTENUM1_VALUE4" ],
+		
 		"TestEnum2" : [ 
 			{ "TESTENUM2_VALUE1" : 7 }, 
 			{ "TESTENUM2_VALUE2" : 1337 }, 
 			  "TESTENUM2_VALUE3", 
 			{ "TESTENUM2_VALUE4" : 1337 }
+		],
+		
+		"NamedValue" : [ 
+			{ "    " : { "value" : 7, "header_name" : "NAMED_VALUE_4SPACE" } }, 
+			{ "!?#!" : { "value" : 8, "header_name" : "NAMED_VALUE_MIXED" } }, 
+			  "NAMED_VALUE_NORMAL", 
+			{ "NAMED_VALUE_VALUE" : 1337 }
+		],
+		
+		"CountedValue" : [
+			{ "COUNTED_VALUE_X" : { "count" : 16 } },
+			{ "COUNTED_VALUE_Y" : { "count" : 52 } },
+			{ "COUNTED_VALUE_Z" : { "count" : 16 } }
 		]
 	},
 	
@@ -143,6 +157,15 @@
 		"DefaultArrayEnum" :    { "members" : [ { "name" : "Arr",  "type" : "array", "default" : [ "TESTENUM1_VALUE3",
 		                                                                                           "TESTENUM1_VALUE1",
 		                                                                                           "TESTENUM1_VALUE2", 
-		                                                                                           "TESTENUM1_VALUE4" ], "subtype" : "TestEnum1" } ] }
+		                                                                                           "TESTENUM1_VALUE4" ], "subtype" : "TestEnum1" } ] },
+		                                                                                           
+		"NamedEnums" : { 
+			"members" : [ 
+				{ "name" : "e1", "type" : "NamedValue" }, 
+				{ "name" : "e2", "type" : "NamedValue" }, 
+				{ "name" : "e3", "type" : "NamedValue" },
+				{ "name" : "e4", "type" : "NamedValue" } 
+			]
+		}
 	}
 }

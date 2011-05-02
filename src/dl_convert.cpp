@@ -62,12 +62,12 @@ public:
 	CArrayStatic<PatchPos, 256> m_lPatchOffset;
 };
 
-static inline void DLSwapHeader(SDLDataHeader* _pHeader)
+static inline void DLSwapHeader( SDLDataHeader* header )
 {
-	_pHeader->id               = DLSwapEndian(_pHeader->id);
-	_pHeader->version          = DLSwapEndian(_pHeader->version);
-	_pHeader->root_instance_type = DLSwapEndian(_pHeader->root_instance_type);
-	_pHeader->instance_size     = DLSwapEndian(_pHeader->instance_size);
+	header->id                 = dl_swap_endian_uint32( header->id );
+	header->version            = dl_swap_endian_uint32( header->version );
+	header->root_instance_type = dl_swap_endian_uint32( header->root_instance_type );
+	header->instance_size      = dl_swap_endian_uint32( header->instance_size );
 }
 
 static pint DLInternalReadPtrData( const uint8*  _pPtrData,
@@ -81,7 +81,7 @@ static pint DLInternalReadPtrData( const uint8*  _pPtrData,
 			uint32 Offset = *(uint32*)_pPtrData;
 
 			if(_SourceEndian != DL_ENDIAN_HOST)
-				return (pint)DLSwapEndian(Offset);
+				return (pint)dl_swap_endian_uint32( Offset );
 			else
 				return (pint)Offset;
 		}
@@ -91,7 +91,7 @@ static pint DLInternalReadPtrData( const uint8*  _pPtrData,
 			uint64 Offset = *(uint64*)_pPtrData;
 
 			if(_SourceEndian != DL_ENDIAN_HOST)
-				return (pint)DLSwapEndian(Offset);
+				return (pint)dl_swap_endian_uint64( Offset );
 			else
 				return (pint)Offset;
 		}
@@ -131,8 +131,8 @@ static void DLInternalReadArrayData( const uint8*  _pArrayData,
 
 			if(_SourceEndian != DL_ENDIAN_HOST)
 			{
-				*_pOffset = (pint)DLSwapEndian(Offset);
-				*_pCount  = DLSwapEndian(Count);
+				*_pOffset = (pint)dl_swap_endian_uint32(Offset);
+				*_pCount  =       dl_swap_endian_uint32(Count);
 			}
 			else
 			{
@@ -149,8 +149,8 @@ static void DLInternalReadArrayData( const uint8*  _pArrayData,
 
 			if(_SourceEndian != DL_ENDIAN_HOST)
 			{
-				*_pOffset = (pint)DLSwapEndian(Offset);
-				*_pCount  = DLSwapEndian(Count);
+				*_pOffset = (pint)dl_swap_endian_uint64( Offset );
+				*_pCount  =       dl_swap_endian_uint32(Count);
 			}
 			else
 			{
@@ -327,48 +327,74 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t       dl_ctx,
 }
 
 template<typename T>
-static T DLConvertBitFieldFormat(T _OldValue, const SDLMember* _plBFMember, uint32 _nBFMembers, SConvertContext& _ConvertContext)
+static T DLConvertBitFieldFormat( T _OldValue, const SDLMember* _plBFMember, uint32 _nBFMembers, SConvertContext* conv_ctx )
 {
-	if(_ConvertContext.m_SourceEndian != DL_ENDIAN_HOST)
-		_OldValue = DLSwapEndian(_OldValue);
-
 	T NewValue = 0;
 
-	for( uint32 iBFMember = 0; iBFMember < _nBFMembers; ++iBFMember)
+	for( uint32 i = 0; i < _nBFMembers; ++i )
 	{
-		const SDLMember& BFMember = _plBFMember[iBFMember];
+		const SDLMember& BFMember = _plBFMember[i];
 
-		uint32 BFBits   = BFMember.BitFieldBits();
-		uint32 BFOffset = BFMember.BitFieldOffset();
-		uint32 BFSourceOffset = DLBitFieldOffset(_ConvertContext.m_SourceEndian, sizeof(T), BFOffset, BFBits);
-		uint32 BFTargetOffset = DLBitFieldOffset(_ConvertContext.m_TargetEndian, sizeof(T), BFOffset, BFBits);
+		uint32 BFBits         = BFMember.BitFieldBits();
+		uint32 BFOffset       = BFMember.BitFieldOffset();
+		uint32 BFSourceOffset = DLBitFieldOffset( conv_ctx->m_SourceEndian, sizeof(T), BFOffset, BFBits );
+		uint32 BFTargetOffset = DLBitFieldOffset( conv_ctx->m_TargetEndian, sizeof(T), BFOffset, BFBits );
 
- 		T Extracted = DL_EXTRACT_BITS(_OldValue, T(BFSourceOffset), T(BFBits));
- 		NewValue    = (T)DL_INSERT_BITS(NewValue, Extracted, T(BFTargetOffset), T(BFBits));
+ 		T Extracted =    DL_EXTRACT_BITS( _OldValue, T(BFSourceOffset), T(BFBits) );
+ 		NewValue    = (T)DL_INSERT_BITS ( NewValue, Extracted, T(BFTargetOffset), T(BFBits) );
 	}
-
-	if(_ConvertContext.m_SourceEndian != DL_ENDIAN_HOST)
-		return DLSwapEndian(NewValue);
 
 	return NewValue;
 }
 
-static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
-													const uint8*     data,
-													const SDLType*   type,
-													SConvertContext& conv_ctx,
-													CDLBinaryWriter& writer )
+static uint8 dl_convert_bit_field_format_uint8( uint8 old_value, const SDLMember* first_bf_member, uint32 num_bf_member, SConvertContext* conv_ctx )
 {
-	writer.Align(type->alignment[conv_ctx.m_TargetPtrSize]);
-	pint Pos = writer.Tell();
-	writer.Reserve(type->size[conv_ctx.m_TargetPtrSize]);
+	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
+		return dl_swap_endian_uint8( DLConvertBitFieldFormat( dl_swap_endian_uint8( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
+
+	return DLConvertBitFieldFormat( old_value, first_bf_member, num_bf_member, conv_ctx );
+}
+
+static uint16 dl_convert_bit_field_format_uint16( uint16 old_value, const SDLMember* first_bf_member, uint32 num_bf_member, SConvertContext* conv_ctx )
+{
+	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
+		return dl_swap_endian_uint16( DLConvertBitFieldFormat( dl_swap_endian_uint16( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
+
+	return DLConvertBitFieldFormat( old_value, first_bf_member, num_bf_member, conv_ctx );
+}
+
+static uint32 dl_convert_bit_field_format_uint32( uint32 old_value, const SDLMember* first_bf_member, uint32 num_bf_member, SConvertContext* conv_ctx )
+{
+	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
+		return dl_swap_endian_uint32( DLConvertBitFieldFormat( dl_swap_endian_uint32( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
+
+	return DLConvertBitFieldFormat( old_value, first_bf_member, num_bf_member, conv_ctx );
+}
+
+static uint64 dl_convert_bit_field_format_uint64( uint64 old_value, const SDLMember* first_bf_member, uint32 num_bf_member, SConvertContext* conv_ctx )
+{
+	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
+		return dl_swap_endian_uint64( DLConvertBitFieldFormat( dl_swap_endian_uint64( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
+
+	return DLConvertBitFieldFormat( old_value, first_bf_member, num_bf_member, conv_ctx );
+}
+
+static dl_error_t dl_internal_convert_write_struct( dl_ctx_t          dl_ctx,
+													const uint8*      data,
+													const SDLType*    type,
+													SConvertContext&  conv_ctx,
+													dl_binary_writer* writer )
+{
+	dl_binary_writer_align( writer, type->alignment[conv_ctx.m_TargetPtrSize] );
+	pint Pos = dl_binary_writer_tell( writer );
+	dl_binary_writer_reserve( writer, type->size[conv_ctx.m_TargetPtrSize] );
 
 	for(uint32 iMember = 0; iMember < type->member_count; ++iMember)
 	{
 		const SDLMember& Member  = type->members[iMember];
 		const uint8* pMemberData = data + Member.offset[conv_ctx.m_SourcePtrSize];
 
-		writer.Align(Member.alignment[conv_ctx.m_TargetPtrSize]);
+		dl_binary_writer_align( writer, Member.alignment[conv_ctx.m_TargetPtrSize] );
 
 		dl_type_t AtomType    = Member.AtomType();
 		dl_type_t StorageType = Member.StorageType();
@@ -384,14 +410,14 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 						const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
-						dl_internal_convert_write_struct(dl_ctx, pMemberData, pSubType, conv_ctx, writer);
+						dl_internal_convert_write_struct( dl_ctx, pMemberData, pSubType, conv_ctx, writer );
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
 						pint Offset = DLInternalReadPtrData(pMemberData, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
-						conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), Offset));	
-						writer.WritePtr(0x0);
+						conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), Offset ) );
+						dl_binary_writer_write_ptr( writer, 0x0 );
 					}
 					break;
 					case DL_TYPE_STORAGE_PTR:
@@ -399,14 +425,14 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 						pint Offset = DLInternalReadPtrData(pMemberData, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
 
 						if (Offset != DL_NULL_PTR_OFFSET[conv_ctx.m_SourcePtrSize])
-							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), Offset));
+							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos( dl_binary_writer_tell( writer ), Offset ) );
 
-						writer.WritePtr(pint(-1));
+						dl_binary_writer_write_ptr( writer, pint(-1) );
 					}
 					break;
 					default:
 						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
-						writer.WriteSwap(pMemberData, Member.size[conv_ctx.m_SourcePtrSize]);
+						dl_binary_writer_write_swap( writer, pMemberData, Member.size[conv_ctx.m_SourcePtrSize] );
 						break;
 				}
 			}
@@ -424,7 +450,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 						pint MemberSize  = Member.size[conv_ctx.m_SourcePtrSize];
 						pint SubtypeSize = pSubType->size[conv_ctx.m_SourcePtrSize];
 						for (pint ElemOffset = 0; ElemOffset < MemberSize; ElemOffset += SubtypeSize)
-							dl_internal_convert_write_struct(dl_ctx, pMemberData + ElemOffset, pSubType, conv_ctx, writer);
+							dl_internal_convert_write_struct( dl_ctx, pMemberData + ElemOffset, pSubType, conv_ctx, writer );
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:
@@ -432,7 +458,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 						pint PtrSizeSource = dl_internal_ptr_size(conv_ctx.m_SourcePtrSize);
 						pint PtrSizeTarget = dl_internal_ptr_size(conv_ctx.m_TargetPtrSize);
 						uint32 Count = Member.size[conv_ctx.m_SourcePtrSize] / (uint32)PtrSizeSource;
-						pint Pos = writer.Tell();
+						pint Pos = dl_binary_writer_tell( writer );
 
 						for (pint iElem = 0; iElem < Count; ++iElem)
 						{
@@ -440,7 +466,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(Pos + (iElem * PtrSizeTarget), OldOffset));
 						}
 
-						writer.WriteZero(Member.size[conv_ctx.m_TargetPtrSize]);
+						dl_binary_writer_write_zero( writer, Member.size[conv_ctx.m_TargetPtrSize] );
 					}
 					break;
 					default:
@@ -452,10 +478,10 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 
 						switch(PodSize)
 						{
-							case 1: writer.WriteArray((uint8* )pMemberData, ArraySize / sizeof(uint8) );  break;
-							case 2: writer.WriteArray((uint16*)pMemberData, ArraySize / sizeof(uint16) ); break;
-							case 4: writer.WriteArray((uint32*)pMemberData, ArraySize / sizeof(uint32) ); break;
-							case 8: writer.WriteArray((uint64*)pMemberData, ArraySize / sizeof(uint64) ); break;
+							case 1: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof( uint8), sizeof( uint8) ); break;
+							case 2: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof(uint16), sizeof(uint16) ); break;
+							case 4: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof(uint32), sizeof(uint32) ); break;
+							case 8: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof(uint64), sizeof(uint64) ); break;
 							default:
 								DL_ASSERT(false && "Not supported pod-size!");
 						}
@@ -471,12 +497,12 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 				DLInternalReadArrayData( pMemberData, &Offset, &Count, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize );
 
 				if(Offset != DL_NULL_PTR_OFFSET[conv_ctx.m_SourcePtrSize])
-					conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), Offset));
+					conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos( dl_binary_writer_tell( writer ), Offset) );
 				else
 					Offset = DL_NULL_PTR_OFFSET[conv_ctx.m_TargetPtrSize];
 
-				writer.WritePtr(Offset);
-				writer.Write(*(uint32*)(pMemberData + dl_internal_ptr_size(conv_ctx.m_SourcePtrSize)));
+				dl_binary_writer_write_ptr( writer, Offset );
+				dl_binary_writer_write_4byte( writer, pMemberData + dl_internal_ptr_size( conv_ctx.m_SourcePtrSize ) );
 			}
 			break;
 
@@ -492,16 +518,32 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 
 					switch(Member.size[conv_ctx.m_SourcePtrSize])
 					{
-						case 1: writer.Write( DLConvertBitFieldFormat( *(uint8*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
-						case 2: writer.Write( DLConvertBitFieldFormat(*(uint16*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
-						case 4: writer.Write( DLConvertBitFieldFormat(*(uint32*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
-						case 8: writer.Write( DLConvertBitFieldFormat(*(uint64*)pMemberData, &Member, nBFMembers, conv_ctx) ); break;
+						case 1:
+						{
+							uint8 val = dl_convert_bit_field_format_uint8( *(uint8*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							dl_binary_writer_write_1byte( writer, &val );
+						} break;
+						case 2:
+						{
+							uint16 val = dl_convert_bit_field_format_uint16( *(uint16*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							dl_binary_writer_write_2byte( writer, &val );
+						} break;
+						case 4:
+						{
+							uint32 val = dl_convert_bit_field_format_uint32( *(uint32*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							dl_binary_writer_write_4byte( writer, &val );
+						} break;
+						case 8:
+						{
+							uint64 val = dl_convert_bit_field_format_uint64( *(uint64*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							dl_binary_writer_write_8byte( writer, &val );
+						} break;
 						default:
 							DL_ASSERT(false && "Not supported pod-size or bitfield-size!");
 					}
 				}
 				else
-					writer.Write(pMemberData, Member.size[conv_ctx.m_SourcePtrSize]);
+					dl_binary_writer_write( writer, pMemberData, Member.size[conv_ctx.m_SourcePtrSize] );
 
 				iMember = j - 1;
 			}
@@ -513,31 +555,31 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t         dl_ctx,
 	}
 
 	// we need to write our entire size with zeroes. Our entire size might be less than the sum of teh members.
-	pint PosDiff = writer.Tell() - Pos;
+	pint PosDiff = dl_binary_writer_tell( writer ) - Pos;
 
 	if(PosDiff < type->size[conv_ctx.m_TargetPtrSize])
-		writer.WriteZero(type->size[conv_ctx.m_TargetPtrSize] - PosDiff);
+		dl_binary_writer_write_zero( writer, type->size[conv_ctx.m_TargetPtrSize] - PosDiff );
 
-	DL_ASSERT(writer.Tell() - Pos == type->size[conv_ctx.m_TargetPtrSize]);
+	DL_ASSERT( dl_binary_writer_tell( writer ) - Pos == type->size[conv_ctx.m_TargetPtrSize] );
 
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_convert_write_instance( dl_ctx_t         dl_ctx,
-													  const SInstance& inst,
-													  pint*            new_offset,
-													  SConvertContext& conv_ctx,
-													  CDLBinaryWriter& writer )
+static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
+													  const SInstance&  inst,
+													  pint*             new_offset,
+													  SConvertContext&  conv_ctx,
+													  dl_binary_writer* writer )
 {
 	union { const uint8* m_u8; const uint16* m_u16; const uint32* m_u32; const uint64* m_u64; const char* m_str; } Data;
 	Data.m_u8 = inst.m_pAddress;
 
-	writer.SeekEnd(); // place instance at the end!
+	dl_binary_writer_seek_end( writer ); // place instance at the end!
 
 	if(inst.m_pType != 0x0)
-		writer.Align(inst.m_pType->alignment[conv_ctx.m_TargetPtrSize]);
+		dl_binary_writer_align( writer, inst.m_pType->alignment[conv_ctx.m_TargetPtrSize] );
 
-	*new_offset = writer.Tell();
+	*new_offset = dl_binary_writer_tell( writer );
 
 	dl_type_t AtomType    = dl_type_t(inst.m_Type & DL_TYPE_ATOM_MASK);
 	dl_type_t StorageType = dl_type_t(inst.m_Type & DL_TYPE_STORAGE_MASK);
@@ -551,7 +593,7 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t         dl_ctx,
 				pint TypeSize = inst.m_pType->size[conv_ctx.m_SourcePtrSize];
 	 			for (pint ElemOffset = 0; ElemOffset < inst.m_ArrayCount * TypeSize; ElemOffset += TypeSize)
 	 			{
-	 				dl_error_t err = dl_internal_convert_write_struct(dl_ctx, Data.m_u8 + ElemOffset, inst.m_pType, conv_ctx, writer);
+	 				dl_error_t err = dl_internal_convert_write_struct( dl_ctx, Data.m_u8 + ElemOffset, inst.m_pType, conv_ctx, writer );
 	 				if(err != DL_ERROR_OK) return err;
 	 			}
 			} break;
@@ -562,22 +604,22 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t         dl_ctx,
 	 			for(pint ElemOffset = 0; ElemOffset < inst.m_ArrayCount * TypeSize; ElemOffset += TypeSize)
 	 			{
 	 				pint OrigOffset = DLInternalReadPtrData(Data.m_u8 + ElemOffset, conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
-	 				conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(writer.Tell(), OrigOffset));
-	 				writer.WritePtr(OrigOffset);
+	 				conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), OrigOffset ) );
+	 				dl_binary_writer_write_ptr( writer, OrigOffset );
 	 			}
 			} break;
 
 			case DL_TYPE_STORAGE_INT8:
-			case DL_TYPE_STORAGE_UINT8:  writer.WriteArray(Data.m_u8, inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_array( writer, Data.m_u8, inst.m_ArrayCount, sizeof(uint8) ); break;
 			case DL_TYPE_STORAGE_INT16:
-			case DL_TYPE_STORAGE_UINT16: writer.WriteArray(Data.m_u16, inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_array( writer, Data.m_u16, inst.m_ArrayCount, sizeof(uint16) ); break;
 			case DL_TYPE_STORAGE_INT32:
 			case DL_TYPE_STORAGE_UINT32:
 			case DL_TYPE_STORAGE_FP32:
-			case DL_TYPE_STORAGE_ENUM:   writer.WriteArray(Data.m_u32, inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_ENUM:   dl_binary_writer_write_array( writer, Data.m_u32, inst.m_ArrayCount, sizeof(uint32) ); break;
 			case DL_TYPE_STORAGE_INT64:
 			case DL_TYPE_STORAGE_UINT64:
-			case DL_TYPE_STORAGE_FP64:   writer.WriteArray(Data.m_u64, inst.m_ArrayCount ); break;
+			case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_array( writer, Data.m_u64, inst.m_ArrayCount, sizeof(uint64) ); break;
 
 			default:
 				DL_ASSERT(false && "Unknown storage type!");
@@ -588,13 +630,13 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t         dl_ctx,
 
 	if(AtomType == DL_TYPE_ATOM_POD && StorageType == DL_TYPE_STORAGE_STR)
 	{
-		writer.WriteArray(Data.m_u8, strlen(Data.m_str) + 1 );
+		dl_binary_writer_write_array( writer, Data.m_u8,  strlen(Data.m_str) + 1, sizeof(uint8) );
 		return DL_ERROR_OK;
 	}
 
 	DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
 	DL_ASSERT(StorageType == DL_TYPE_STORAGE_STRUCT || StorageType == DL_TYPE_STORAGE_PTR);
-	return dl_internal_convert_write_struct(dl_ctx, Data.m_u8, inst.m_pType, conv_ctx, writer);
+	return dl_internal_convert_write_struct( dl_ctx, Data.m_u8, inst.m_pType, conv_ctx, writer );
 }
 
 #include <algorithm>
@@ -609,8 +651,9 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
                                           dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
                                           const SDLType* root_type,       unsigned int   base_offset )
 {
-	// need a parameter for IsSwapping
-	CDLBinaryWriter Writer(out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, out_ptr_size);
+	dl_binary_writer writer;
+	dl_binary_writer_init( &writer, out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, out_ptr_size );
+
 	SConvertContext ConvCtx( src_endian, out_endian, src_ptr_size, out_ptr_size );
 
 	ConvCtx.m_lInstances.Add(SInstance(packed_instance, root_type, 0x0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STRUCT)));
@@ -623,7 +666,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 
 	for(unsigned int i = 0; i < ConvCtx.m_lInstances.Len(); ++i)
 	{
-		err = dl_internal_convert_write_instance( dl_ctx, ConvCtx.m_lInstances[i], &ConvCtx.m_lInstances[i].m_OffsetAfterPatch, ConvCtx, Writer);
+		err = dl_internal_convert_write_instance( dl_ctx, ConvCtx.m_lInstances[i], &ConvCtx.m_lInstances[i].m_OffsetAfterPatch, ConvCtx, &writer );
 		if(err != DL_ERROR_OK) 
 			return err;
 	}
@@ -650,13 +693,13 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 
 			DL_ASSERT(NewOffset != pint(-1) && "We should have found the instance!");
 
-			Writer.SeekSet(PP.m_Pos);
-			Writer.WritePtr(NewOffset + base_offset);
+			dl_binary_writer_seek_set( &writer, PP.m_Pos );
+			dl_binary_writer_write_ptr( &writer, NewOffset + base_offset );
 		}
 	}
 
-	Writer.SeekEnd();
-	*needed_size = (unsigned int)Writer.Tell();
+	dl_binary_writer_seek_end( &writer );
+	*needed_size = (unsigned int)dl_binary_writer_tell( &writer );
 
 	return err;
 }
@@ -669,14 +712,14 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
-	if( packed_instance_size < sizeof(SDLDataHeader) )     return DL_ERROR_MALFORMED_DATA;
+	if( packed_instance_size < sizeof(SDLDataHeader) )              return DL_ERROR_MALFORMED_DATA;
 	if( header->id != DL_INSTANCE_ID &&
-		header->id != DL_INSTANCE_ID_SWAPED )            return DL_ERROR_MALFORMED_DATA;
+		header->id != DL_INSTANCE_ID_SWAPED )                       return DL_ERROR_MALFORMED_DATA;
 	if( header->version != DL_INSTANCE_VERSION &&
-		header->version != DL_INSTANCE_VERSION_SWAPED )  return DL_ERROR_VERSION_MISMATCH;
+		header->version != DL_INSTANCE_VERSION_SWAPED )             return DL_ERROR_VERSION_MISMATCH;
 	if( header->root_instance_type != type &&
-		header->root_instance_type != DLSwapEndian(type) ) return DL_ERROR_TYPE_MISMATCH;
-	if( out_ptr_size != 4 && out_ptr_size != 8 )           return DL_ERROR_INVALID_PARAMETER;
+		header->root_instance_type != dl_swap_endian_uint32(type) ) return DL_ERROR_TYPE_MISMATCH;
+	if( out_ptr_size != 4 && out_ptr_size != 8 )                    return DL_ERROR_INVALID_PARAMETER;
 
 	dl_ptr_size_t src_ptr_size = header->is_64_bit_ptr != 0 ? DL_PTR_SIZE_64BIT : DL_PTR_SIZE_32BIT;
 	dl_ptr_size_t dst_ptr_size;
@@ -703,7 +746,7 @@ static dl_error_t DLInternalConvertInstance( dl_ctx_t       dl_ctx,          dl_
 		return DL_ERROR_OK;
 	}
 
-	dl_typeid_t root_type_id = src_endian != DL_ENDIAN_HOST ? DLSwapEndian(header->root_instance_type) : header->root_instance_type;
+	dl_typeid_t root_type_id = src_endian != DL_ENDIAN_HOST ? dl_swap_endian_uint32( header->root_instance_type ) : header->root_instance_type;
 
 	const SDLType* root_type = dl_internal_find_type(dl_ctx, root_type_id);
 	if(root_type == 0x0)
