@@ -77,7 +77,7 @@ static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
         #define DL_INT64_FMT_STR  "%lld"
         #define DL_UINT64_FMT_STR "%llu"
         typedef uint32 pint;
-#endif // DL_PTR_SIZE_32
+#endif // defined( __LP64__ ) || defined( _WIN64 )
 
 template<class T>
 struct TAlignmentOf

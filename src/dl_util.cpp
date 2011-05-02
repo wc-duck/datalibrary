@@ -49,6 +49,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t    
 {
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
+	(void)consumed_bytes; // TODO: Return good stuff here!
 
 	unsigned int file_size;
 	unsigned char* file_content = dl_read_entire_stream( stream, &file_size );

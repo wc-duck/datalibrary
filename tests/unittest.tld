@@ -15,12 +15,6 @@
 			{ "!?#!" : { "value" : 8, "header_name" : "NAMED_VALUE_MIXED" } }, 
 			  "NAMED_VALUE_NORMAL", 
 			{ "NAMED_VALUE_VALUE" : 1337 }
-		],
-		
-		"CountedValue" : [
-			{ "COUNTED_VALUE_X" : { "count" : 16 } },
-			{ "COUNTED_VALUE_Y" : { "count" : 52 } },
-			{ "COUNTED_VALUE_Z" : { "count" : 16 } }
 		]
 	},
 	

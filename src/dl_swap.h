@@ -30,55 +30,18 @@ DL_FORCEINLINE uint64 dl_swap_endian_uint64( uint64 val )
 	return conv.m_u64;
 }
 
-// DL_FORCEINLINE int8  DLSwapEndian(int8  _SwapMe) { return _SwapMe; }
-// DL_FORCEINLINE int16 DLSwapEndian(int16 _SwapMe) { return ((_SwapMe & 0xff) << 8)  | ((_SwapMe & 0xff00) >> 8); }
-// DL_FORCEINLINE int32 DLSwapEndian(int32 _SwapMe) { return ((_SwapMe & 0xff) << 24) | ((_SwapMe & 0xff00) << 8) | ((_SwapMe >> 8) & 0xff00) | ((_SwapMe >> 24) & 0xff); }
-/*DL_FORCEINLINE int64 DLSwapEndian(int64 _SwapMe)
-{
-	union { int32 m_i32[2]; int64 m_i64; } conv;
-	conv.m_i64 = _SwapMe;
-	int32 tmp     = DLSwapEndian(conv.m_i32[0]);
-	conv.m_i32[0] = DLSwapEndian(conv.m_i32[1]);
-	conv.m_i32[1] = tmp;
-	return conv.m_i64;
-}
-DL_FORCEINLINE uint8  DLSwapEndian(uint8  _SwapMe) { return _SwapMe; }
-DL_FORCEINLINE uint16 DLSwapEndian(uint16 _SwapMe) { return ((_SwapMe & 0xff) << 8)  | ((_SwapMe & 0xff00) >> 8); }
-DL_FORCEINLINE uint32 DLSwapEndian(uint32 _SwapMe) { return ((_SwapMe & 0xff) << 24) | ((_SwapMe & 0xff00) << 8) | ((_SwapMe >> 8) & 0xff00) | ((_SwapMe >> 24) & 0xff); }
-DL_FORCEINLINE uint64 DLSwapEndian(uint64 _SwapMe)
-{
-	union { uint32 m_u32[2]; uint64 m_u64; } conv;
-	conv.m_u64 = _SwapMe;
-	uint32 tmp    = DLSwapEndian(conv.m_u32[0]);
-	conv.m_u32[0] = DLSwapEndian(conv.m_u32[1]);
-	conv.m_u32[1] = tmp;
-	return conv.m_u64;
-}*/
-
 DL_FORCEINLINE pint dl_swap_endian_pint( pint p )
 {
-#ifdef DL_PTR_SIZE32
-	return dl_swap_endian_uint32( p );
-#else
+#if defined( __LP64__ ) || defined( _WIN64 )
 	return dl_swap_endian_uint64( p );
+#else
+	return dl_swap_endian_uint32( p );
 #endif
 }
 
 DL_FORCEINLINE void* dl_swap_endian_ptr( void* ptr ) { return (void*)dl_swap_endian_pint( (pint)ptr ); }
 
-/*
-DL_FORCEINLINE void* DLSwapEndian(void* _SwapMe)
-{
-#ifdef DL_PTR_SIZE32
-	return (void*)DLSwapEndian(uint32(_SwapMe));
-#else
-	return (void*)DLSwapEndian(uint64(_SwapMe));
-#endif
-}
-*/
-
 DL_FORCEINLINE float dl_swap_endian_fp32( float f )
-// DL_FORCEINLINE float DLSwapEndian(float _SwapMe)
 {
 	union { uint32 m_u32; float m_fp32; } conv;
 	conv.m_fp32 = f;
@@ -87,7 +50,6 @@ DL_FORCEINLINE float dl_swap_endian_fp32( float f )
 }
 
 DL_FORCEINLINE double dl_swap_endian_fp64( double f )
-// DL_FORCEINLINE double DLSwapEndian(double _SwapMe)
 {
 	union { uint64 m_u64; double m_fp64; } conv;
 	conv.m_fp64 = f;
@@ -96,8 +58,6 @@ DL_FORCEINLINE double dl_swap_endian_fp64( double f )
 }
 
 DL_STATIC_ASSERT(sizeof(dl_type_t) == 4, dl_type_need_to_be_4_bytes);
-// DL_FORCEINLINE dl_type_t DLSwapEndian(dl_type_t _SwapMe) { return (dl_type_t)DLSwapEndian((uint32)_SwapMe); }
 DL_FORCEINLINE dl_type_t dl_swap_endian_dl_type( dl_type_t val ) { return (dl_type_t)dl_swap_endian_uint32( val ); }
-
 
 #endif // DL_DL_SWAP_H_INCLUDED

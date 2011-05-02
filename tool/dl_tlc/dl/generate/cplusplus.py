@@ -147,10 +147,7 @@ def emit_enum( enum, stream ):
     values = []
     
     for e in enum.values:
-        if isinstance( e, EnumValue ):
-            values.append( '\n\t%s = %u' % ( e.header_name, e.value ) )
-        else:
-            values.append( 'counted here' )
+        values.append( '\n\t%s = %u' % ( e.header_name, e.value ) )
 
     stream.write( ','.join( values ) )
     stream.write( '\n};\n\n' )

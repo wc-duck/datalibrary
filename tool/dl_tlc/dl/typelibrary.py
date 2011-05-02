@@ -61,14 +61,7 @@ class Enum( object ):
             self.name        = name
             self.header_name = header_name
             self.value       = value
-            
-    class EnumCountedValue( object ):
-        def __init__( self, name, header_name, type, count ):
-            self.name        = name
-            self.header_name = header_name
-            self.type        = type
-            self.count       = count
-        
+
     def __init__(self, name, values):
         self.name   = name
         self.size   = PlatformValue( 4 )
@@ -84,37 +77,23 @@ class Enum( object ):
             
             if isinstance( val, basestring ):
                 self.values.append( self.EnumValue( val, val, current_value ) )
-                
+
                 current_value = value + 1
             else:
                 items = val.items()
                 assert len(items) == 1
-                
+
                 name, value = items[0]
                 header_name = name
-                    
+
                 if isinstance( value, int ):
                     name, value = items[0]
-                    
                     self.values.append( self.EnumValue( name, name, value ) )
-                    
                     current_value = value + 1
-                                        
                 elif isinstance( value, dict ):
-                    if 'count' in value:
-                        # counted enum!
-                        count = value['count']
-                        self.values.append( self.EnumCountedValue( name, value.get( 'header_name', name ), counted_enum_type, count ) )
-                        
-                        counted_enum_max_count = max( count, counted_enum_max_count )                        
-                        counted_enum_type = counted_enum_type + 1
-                        
-                    else:
-                        current_value = value.get( 'value', current_value )
-                        
-                        self.values.append( self.EnumValue( name, value.get( 'header_name', name ), current_value ) )
-                        
-                        current_value = current_value + 1
+                    current_value = value.get( 'value', current_value )
+                    self.values.append( self.EnumValue( name, value.get( 'header_name', name ), current_value ) )
+                    current_value = current_value + 1
                 else:
                     assert False, 'bad type!'                    
         

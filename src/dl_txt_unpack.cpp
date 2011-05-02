@@ -423,7 +423,7 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  ty
 		out_txt_instance[ WriteCtx.m_WritePos - 1 ] = 0;
 
 	if( produced_bytes )
-		*produced_bytes = WriteCtx.m_WritePos;
+		*produced_bytes = (unsigned int)WriteCtx.m_WritePos;
 
 	if( out_txt_instance_size > 0 && WriteCtx.m_WritePos > WriteCtx.m_BufferSize )
 		return DL_ERROR_BUFFER_TO_SMALL;

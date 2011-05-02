@@ -24,7 +24,7 @@ struct dl_binary_writer
 	pint          back_alloc_pos;
 };
 
-static void dl_binary_writer_init( dl_binary_writer* writer,
+static inline void dl_binary_writer_init( dl_binary_writer* writer,
 								   uint8* out_data, pint out_data_size, bool dummy,
 								   dl_endian_t source_endian, dl_endian_t target_endian,
 								   dl_ptr_size_t target_ptr_size )
@@ -40,23 +40,23 @@ static void dl_binary_writer_init( dl_binary_writer* writer,
 	writer->back_alloc_pos = out_data_size;
 }
 
-static void dl_binary_writer_finalize( dl_binary_writer* writer )
+static inline void dl_binary_writer_finalize( dl_binary_writer* writer )
 {
 	DL_ASSERT( writer->back_alloc_pos == writer->data_size );
 }
 
-static void dl_binary_writer_seek_set( dl_binary_writer* writer, pint pos ) { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); writer->pos  = pos; }
-static void dl_binary_writer_seek_end( dl_binary_writer* writer )           { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); writer->pos  = writer->needed_size; }
-static pint dl_binary_writer_tell( dl_binary_writer* writer )               { return writer->pos; }
-static pint dl_binary_writer_needed_size( dl_binary_writer* writer )        { return writer->needed_size; }
+static inline void dl_binary_writer_seek_set( dl_binary_writer* writer, pint pos ) { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); writer->pos  = pos; }
+static inline void dl_binary_writer_seek_end( dl_binary_writer* writer )           { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); writer->pos  = writer->needed_size; }
+static inline pint dl_binary_writer_tell( dl_binary_writer* writer )               { return writer->pos; }
+static inline pint dl_binary_writer_needed_size( dl_binary_writer* writer )        { return writer->needed_size; }
 
-static void dl_binary_writer_update_needed_size( dl_binary_writer* writer )
+static inline void dl_binary_writer_update_needed_size( dl_binary_writer* writer )
 {
 	if( writer->back_alloc_pos == writer->data_size || writer->pos <= writer->back_alloc_pos )
 		writer->needed_size = writer->needed_size >= writer->pos ? writer->needed_size : writer->pos;
 }
 
-static void dl_binary_writer_write( dl_binary_writer* writer, const void* data, pint size )
+static inline void dl_binary_writer_write( dl_binary_writer* writer, const void* data, pint size )
 {
 	if( !writer->dummy && ( writer->pos + size <= writer->data_size ) )
 	{
@@ -69,24 +69,24 @@ static void dl_binary_writer_write( dl_binary_writer* writer, const void* data, 
 	dl_binary_writer_update_needed_size( writer );
 }
 
-static void dl_binary_writer_write_int8  ( dl_binary_writer* writer, int8   u ) { dl_binary_writer_write( writer, &u, sizeof(int8) );   }
-static void dl_binary_writer_write_int16 ( dl_binary_writer* writer, int16  u ) { dl_binary_writer_write( writer, &u, sizeof(int16) );  }
-static void dl_binary_writer_write_int32 ( dl_binary_writer* writer, int32  u ) { dl_binary_writer_write( writer, &u, sizeof(int32) );  }
-static void dl_binary_writer_write_int64 ( dl_binary_writer* writer, int64  u ) { dl_binary_writer_write( writer, &u, sizeof(int64) );  }
-static void dl_binary_writer_write_uint8 ( dl_binary_writer* writer, uint8  u ) { dl_binary_writer_write( writer, &u, sizeof(uint8) );  }
-static void dl_binary_writer_write_uint16( dl_binary_writer* writer, uint16 u ) { dl_binary_writer_write( writer, &u, sizeof(uint16) ); }
-static void dl_binary_writer_write_uint32( dl_binary_writer* writer, uint32 u ) { dl_binary_writer_write( writer, &u, sizeof(uint32) ); }
-static void dl_binary_writer_write_uint64( dl_binary_writer* writer, uint64 u ) { dl_binary_writer_write( writer, &u, sizeof(uint64) ); }
-static void dl_binary_writer_write_fp32  ( dl_binary_writer* writer, float  u ) { dl_binary_writer_write( writer, &u, sizeof(float)  ); }
-static void dl_binary_writer_write_fp64  ( dl_binary_writer* writer, double u ) { dl_binary_writer_write( writer, &u, sizeof(double) ); }
-static void dl_binary_writer_write_pint  ( dl_binary_writer* writer, pint   u ) { dl_binary_writer_write( writer, &u, sizeof(pint) );   }
+static inline void dl_binary_writer_write_int8  ( dl_binary_writer* writer, int8   u ) { dl_binary_writer_write( writer, &u, sizeof(int8) );   }
+static inline void dl_binary_writer_write_int16 ( dl_binary_writer* writer, int16  u ) { dl_binary_writer_write( writer, &u, sizeof(int16) );  }
+static inline void dl_binary_writer_write_int32 ( dl_binary_writer* writer, int32  u ) { dl_binary_writer_write( writer, &u, sizeof(int32) );  }
+static inline void dl_binary_writer_write_int64 ( dl_binary_writer* writer, int64  u ) { dl_binary_writer_write( writer, &u, sizeof(int64) );  }
+static inline void dl_binary_writer_write_uint8 ( dl_binary_writer* writer, uint8  u ) { dl_binary_writer_write( writer, &u, sizeof(uint8) );  }
+static inline void dl_binary_writer_write_uint16( dl_binary_writer* writer, uint16 u ) { dl_binary_writer_write( writer, &u, sizeof(uint16) ); }
+static inline void dl_binary_writer_write_uint32( dl_binary_writer* writer, uint32 u ) { dl_binary_writer_write( writer, &u, sizeof(uint32) ); }
+static inline void dl_binary_writer_write_uint64( dl_binary_writer* writer, uint64 u ) { dl_binary_writer_write( writer, &u, sizeof(uint64) ); }
+static inline void dl_binary_writer_write_fp32  ( dl_binary_writer* writer, float  u ) { dl_binary_writer_write( writer, &u, sizeof(float)  ); }
+static inline void dl_binary_writer_write_fp64  ( dl_binary_writer* writer, double u ) { dl_binary_writer_write( writer, &u, sizeof(double) ); }
+static inline void dl_binary_writer_write_pint  ( dl_binary_writer* writer, pint   u ) { dl_binary_writer_write( writer, &u, sizeof(pint) );   }
 
-static void dl_binary_writer_write_1byte( dl_binary_writer* writer, const void* data )
+static inline void dl_binary_writer_write_1byte( dl_binary_writer* writer, const void* data )
 {
 	dl_binary_writer_write( writer, data, 1 );
 }
 
-static void dl_binary_writer_write_2byte( dl_binary_writer* writer, const void* data )
+static inline void dl_binary_writer_write_2byte( dl_binary_writer* writer, const void* data )
 {
 	union { uint16* u16; const void* data; } conv;
 	conv.data = data;
@@ -98,7 +98,7 @@ static void dl_binary_writer_write_2byte( dl_binary_writer* writer, const void* 
 	dl_binary_writer_write( writer, &val, 2 );
 }
 
-static void dl_binary_writer_write_4byte( dl_binary_writer* writer, const void* data )
+static inline void dl_binary_writer_write_4byte( dl_binary_writer* writer, const void* data )
 {
 	union { uint32* u32; const void* data; } conv;
 	conv.data = data;
@@ -110,7 +110,7 @@ static void dl_binary_writer_write_4byte( dl_binary_writer* writer, const void* 
 	dl_binary_writer_write( writer, &val, 4 );
 }
 
-static void dl_binary_writer_write_8byte( dl_binary_writer* writer, const void* data )
+static inline void dl_binary_writer_write_8byte( dl_binary_writer* writer, const void* data )
 {
 	union { uint64* u64; const void* data; } conv;
 	conv.data = data;
@@ -122,7 +122,7 @@ static void dl_binary_writer_write_8byte( dl_binary_writer* writer, const void* 
 	dl_binary_writer_write( writer, &val, 8 );
 }
 
-static void dl_binary_writer_write_swap( dl_binary_writer* writer, const void* data, pint size )
+static inline void dl_binary_writer_write_swap( dl_binary_writer* writer, const void* data, pint size )
 {
 	switch( size )
 	{
@@ -135,7 +135,7 @@ static void dl_binary_writer_write_swap( dl_binary_writer* writer, const void* d
 	}
 }
 
-static void dl_binary_writer_write_array( dl_binary_writer* writer, const void* array, pint count, pint elem_size )
+static inline void dl_binary_writer_write_array( dl_binary_writer* writer, const void* array, pint count, pint elem_size )
 {
 	if( !writer->dummy )
 	{
@@ -144,10 +144,10 @@ static void dl_binary_writer_write_array( dl_binary_writer* writer, const void* 
 		{
 			switch( elem_size )
 			{
-				case 1: { uint8  u = ((const uint8*) array)[i]; DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, u ); }
-				case 2: { uint16 u = ((const uint16*)array)[i]; DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, u ); }
-				case 4: { uint32 u = ((const uint32*)array)[i]; DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, u ); }
-				case 8: { uint64 u = ((const uint64*)array)[i]; DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, u ); }
+				case 1: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint8*)  array)[i] ); }
+				case 2: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint16*) array)[i] ); }
+				case 4: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint32*) array)[i] ); }
+				case 8: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint64*) array)[i] ); }
 			}
 		}
 	}
@@ -162,7 +162,7 @@ static void dl_binary_writer_write_array( dl_binary_writer* writer, const void* 
 }
 
 // val is expected to be in host-endian!!!
-static void dl_binary_writer_write_ptr( dl_binary_writer* writer, pint val )
+static inline void dl_binary_writer_write_ptr( dl_binary_writer* writer, pint val )
 {
 	if( writer->target_endian != DL_ENDIAN_HOST )
 	{
@@ -186,14 +186,14 @@ static void dl_binary_writer_write_ptr( dl_binary_writer* writer, pint val )
 	}
 }
 
-static void dl_binary_writer_write_string( dl_binary_writer* writer, const void* str, pint len )
+static inline void dl_binary_writer_write_string( dl_binary_writer* writer, const void* str, pint len )
 {
 	char str_end = '\0';
 	dl_binary_writer_write( writer, str, len );
 	dl_binary_writer_write( writer, &str_end, sizeof(char) );
 }
 
-static void dl_binary_writer_write_zero( dl_binary_writer* writer, pint bytes )
+static inline void dl_binary_writer_write_zero( dl_binary_writer* writer, pint bytes )
 {
 	if( !writer->dummy )
 	{
@@ -206,18 +206,18 @@ static void dl_binary_writer_write_zero( dl_binary_writer* writer, pint bytes )
 	dl_binary_writer_update_needed_size( writer );
 }
 
-static void dl_binary_writer_reserve( dl_binary_writer* writer, pint bytes )
+static inline void dl_binary_writer_reserve( dl_binary_writer* writer, pint bytes )
 {
 	DL_LOG_BIN_WRITER_VERBOSE( "Reserve: %lu + %lu", writer->pos, bytes );
 	writer->needed_size = writer->needed_size >= writer->pos + bytes ? writer->needed_size : writer->pos + bytes;
 }
 
-static uint8  dl_binary_writer_read_uint8 ( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint8*) ( writer->data + writer->pos ); }
-static uint16 dl_binary_writer_read_uint16( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint16*)( writer->data + writer->pos ); }
-static uint32 dl_binary_writer_read_uint32( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint32*)( writer->data + writer->pos ); }
-static uint64 dl_binary_writer_read_uint64( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint64*)( writer->data + writer->pos ); }
+static inline uint8  dl_binary_writer_read_uint8 ( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint8*) ( writer->data + writer->pos ); }
+static inline uint16 dl_binary_writer_read_uint16( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint16*)( writer->data + writer->pos ); }
+static inline uint32 dl_binary_writer_read_uint32( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint32*)( writer->data + writer->pos ); }
+static inline uint64 dl_binary_writer_read_uint64( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint64*)( writer->data + writer->pos ); }
 
-static void dl_binary_writer_align( dl_binary_writer* writer, pint align )
+static inline void dl_binary_writer_align( dl_binary_writer* writer, pint align )
 {
 	pint alignment = dl_internal_align_up( writer->pos, align );
 	if( !writer->dummy && alignment != writer->pos )
@@ -229,7 +229,7 @@ static void dl_binary_writer_align( dl_binary_writer* writer, pint align )
 	dl_binary_writer_update_needed_size( writer );
 };
 
-static pint dl_binary_writer_push_back_alloc( dl_binary_writer* writer, pint bytes )
+static inline pint dl_binary_writer_push_back_alloc( dl_binary_writer* writer, pint bytes )
 {
 	// allocates a chunk of "bytes" bytes from the back of the buffer and return the
 	// offset to it. function ignores alignment and tries to pack data as tightly as possible
@@ -241,7 +241,7 @@ static pint dl_binary_writer_push_back_alloc( dl_binary_writer* writer, pint byt
 }
 
 // return start of new array!
-static pint dl_binary_writer_pop_back_alloc( dl_binary_writer* writer, uint32 num_elem, uint32 elem_size, uint32 elem_align )
+static inline pint dl_binary_writer_pop_back_alloc( dl_binary_writer* writer, uint32 num_elem, uint32 elem_size, uint32 elem_align )
 {
 	DL_ASSERT( writer->back_alloc_pos != writer->data_size );
 	DL_ASSERT( writer->back_alloc_pos >= writer->needed_size && "back-alloc and front-alloc overlap!" );
@@ -292,6 +292,6 @@ static pint dl_binary_writer_pop_back_alloc( dl_binary_writer* writer, uint32 nu
 	return arr_pos;
 }
 
-static bool dl_binary_writer_in_back_alloc_area( dl_binary_writer* writer ) { return writer->pos > writer->needed_size; }
+static inline bool dl_binary_writer_in_back_alloc_area( dl_binary_writer* writer ) { return writer->pos > writer->needed_size; }
 
 #endif // DL_DL_BINARY_WRITER_H_INCLUDED

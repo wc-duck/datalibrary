@@ -238,8 +238,7 @@ static int dl_internal_pack_on_null( void* pack_ctx )
 {
 	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
 	DL_ASSERT(pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID);
-	// dl_binary_writer_write( pCtx->writer, pint(-1), sizeof(pint) ); // mark Null-ptr
-	dl_binary_writer_write_ptr( pCtx->writer, -1 );
+	dl_binary_writer_write_ptr( pCtx->writer, (pint)-1 );
 	pCtx->PopState();
 	return 1;
 }
@@ -886,8 +885,8 @@ static int dl_internal_pack_on_array_end( void* pack_ctx )
 		}
 		else if(is_back_array)
 		{
-			pint size  = sizeof( char* );
-			pint align = sizeof( char* );
+			uint32 size  = sizeof( char* );
+			uint32 align = sizeof( char* );
 
 			if( pType != 0x0 )
 			{
