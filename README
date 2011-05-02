@@ -1,8 +1,107 @@
-THE DATA LIBRARY.
+# THE DATA LIBRARY.
 
-About:
+## About:
 The data library, or DL for short, is a library for serialization of data.
 
-Licence:
+## Licence:
 DL is distributed under the zlib license.
 See LICENSE-file for full details.
+
+## Examples:
+
+The easiest way to work with dl is through the util-functions exposed in dl_util.h.
+
+These functions will solve all things like file-read/write, endianness- and ptr-size conversions etc for you.
+
+### Preparation
+
+structs are defined in a typelibrary like this:
+
+	{
+		"module" : "example",
+		"types" : {
+			"my_type" : {
+				"members" : [
+					{ "name" : "integer", "type" : "uint32" },
+					{ "name" : "string",  "type" : "string" },
+					{ "name" : "array",   "type" : "array", "subtype" : "uint16" }
+				]
+			}
+		}
+	}
+
+Save above code to example.tld and run this through dl_tlc.py to generate c-headers and
+a typelibrary-definition-file, we will call it example.bin.
+
+	python dl_tlc -c example.h -o example.bin example.tld
+
+### Create dl-context and load a type-library:
+
+	#include <dl/dl.h>
+
+	dl_ctx_t create_dl_ctx()
+	{
+		// create and load context
+		dl_ctx_t dl_ctx;
+		dl_create_params_t create_params;
+		DL_CREATE_PARAMS_SET_DEFAULT( create_params );
+
+		dl_context_create( &dl_ctx, &create_params );
+
+		// load typelibrary
+		unsigned char* lib_data = 0x0;
+		unsigned int lib_data_size = 0;
+
+		read_from_file( "example.bin", &lib_data, &lib_data_size );
+
+		dl_context_load_type_library( dl_ctx, lib_data, lib_data_size );
+
+		return dl_ctx;
+	}
+
+### Store instance to file
+
+	#include <dl/dl_util.h>
+	#include "example.h"
+
+	void store_me( dl_ctx_t dl_ctx )
+	{
+		example e;
+		e.integer = 1337;
+		e.string  = "I like cowbells!";
+		uint16 arr[] = { 1, 2, 3, 4, 5, 6 };
+		e.array.data  = arr;
+		e.array.count = 6;
+
+		dl_util_store_to_file( dl_ctx,
+							   example::TYPE_ID,         // type identifier for example-type
+							   "path/to/store/to.file",  // file to store to
+							   DL_UTIL_FILE_TYPE_BINARY, // store as binary file
+							   DL_ENDIAN_HOST,           // store with endian of this system
+							   sizeof(void*),            // store with pointer-size of this system
+							   &e );                     // instance to store
+	}
+
+### Load instance from file
+
+	#include <dl/dl_util.h>
+	#include "example.h"
+
+	void store_me( dl_ctx_t dl_ctx )
+	{
+		example* e;
+
+		dl_util_load_from_file( dl_ctx,
+								example::TYPE_ID,         // type identifier for example-type
+								"path/to/read/from.file", // file to read
+								DL_UTIL_FILE_TYPE_AUTO,   // autodetect if file is binary or text
+								(void**)&e,               // instance will be returned here
+								0x0 );
+
+		printf( "e->integer = %u\n", e->integer );
+		printf( "e->string  = %s\n", e->string );
+		for( unsigned int i = 0; i < e->array.count; ++i )
+			printf( "e->array[%u] = %u\n", i, e->array.data[i] );
+	}
+
+For more in deapth examples, see EXAMPLE-file
