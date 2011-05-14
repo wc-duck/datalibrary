@@ -292,6 +292,7 @@ if family == "windows" then
 else
 	AddJob( "test",          "unittest c",        dl_tests .. test_args,                                        dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests .. test_args,    dl_tests,    "local/generated/unittest.bin" )
+	AddJob( "test_gdb",      "unittest valgrind", "gdb --args " .. dl_tests .. test_args,                       dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_cs",       "unittest c#",       "nunit-console " .. cs_test_lib .. cs_test_args,              cs_test_lib, "local/generated/unittest.bin" )
 end
 
