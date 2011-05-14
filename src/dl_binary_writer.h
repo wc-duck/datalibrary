@@ -45,8 +45,8 @@ static inline void dl_binary_writer_finalize( dl_binary_writer* writer )
 	DL_ASSERT( writer->back_alloc_pos == writer->data_size );
 }
 
-static inline void dl_binary_writer_seek_set( dl_binary_writer* writer, pint pos ) { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); writer->pos  = pos; }
-static inline void dl_binary_writer_seek_end( dl_binary_writer* writer )           { DL_LOG_BIN_WRITER_VERBOSE("Seek Set: %lu", _pPos); writer->pos  = writer->needed_size; }
+static inline void dl_binary_writer_seek_set( dl_binary_writer* writer, pint pos ) { writer->pos  = pos;                 DL_LOG_BIN_WRITER_VERBOSE("Seek Set: " DL_PINT_FMT_STR, writer->pos); }
+static inline void dl_binary_writer_seek_end( dl_binary_writer* writer )           { writer->pos  = writer->needed_size; DL_LOG_BIN_WRITER_VERBOSE("Seek End: " DL_PINT_FMT_STR, writer->pos); }
 static inline pint dl_binary_writer_tell( dl_binary_writer* writer )               { return writer->pos; }
 static inline pint dl_binary_writer_needed_size( dl_binary_writer* writer )        { return writer->needed_size; }
 
@@ -60,7 +60,7 @@ static inline void dl_binary_writer_write( dl_binary_writer* writer, const void*
 {
 	if( !writer->dummy && ( writer->pos + size <= writer->data_size ) )
 	{
-		DL_LOG_BIN_WRITER_VERBOSE("Write: %lu + %lu (%u)", writer->pos, size, uint32(*(pint*)data) );
+		DL_LOG_BIN_WRITER_VERBOSE("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)", writer->pos, size, uint32(*(pint*)data) );
 		DL_ASSERT( writer->pos + size <= writer->data_size && "To small buffer!" );
 		memmove( writer->data + writer->pos, data, size);
 	}
@@ -139,15 +139,15 @@ static inline void dl_binary_writer_write_array( dl_binary_writer* writer, const
 {
 	if( !writer->dummy )
 	{
-		DL_LOG_BIN_WRITER_VERBOSE( "Write Array: %lu + %lu (%lu)", writer->pos, elem_size, count );
+		DL_LOG_BIN_WRITER_VERBOSE( "Write Array: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (" DL_PINT_FMT_STR ")", writer->pos, elem_size, count );
 		for (pint i = 0; i < count; ++i)
 		{
 			switch( elem_size )
 			{
-				case 1: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint8*)  array)[i] ); }
-				case 2: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint16*) array)[i] ); }
-				case 4: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint32*) array)[i] ); }
-				case 8: { DL_LOG_BIN_WRITER_VERBOSE( "%lu = %u", i, ((const uint64*) array)[i] ); }
+				case 1: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = %u",                 i, ((const uint8*)  array)[i] ); }
+				case 2: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = %u",                 i, ((const uint16*) array)[i] ); }
+				case 4: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = %u",                 i, ((const uint32*) array)[i] ); }
+				case 8: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = " DL_UINT64_FMT_STR, i, ((const uint64*) array)[i] ); }
 			}
 		}
 	}
@@ -197,7 +197,7 @@ static inline void dl_binary_writer_write_zero( dl_binary_writer* writer, pint b
 {
 	if( !writer->dummy )
 	{
-		DL_LOG_BIN_WRITER_VERBOSE("Write zero: %lu + %lu", writer->pos, bytes);
+		DL_LOG_BIN_WRITER_VERBOSE("Write zero: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR, writer->pos, bytes);
 		DL_ASSERT( writer->pos + bytes <= writer->data_size && "To small buffer!" );
 		memset( writer->data + writer->pos, 0x0, bytes );
 	}
@@ -208,7 +208,7 @@ static inline void dl_binary_writer_write_zero( dl_binary_writer* writer, pint b
 
 static inline void dl_binary_writer_reserve( dl_binary_writer* writer, pint bytes )
 {
-	DL_LOG_BIN_WRITER_VERBOSE( "Reserve: %lu + %lu", writer->pos, bytes );
+	DL_LOG_BIN_WRITER_VERBOSE( "Reserve: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR, writer->pos, bytes );
 	writer->needed_size = writer->needed_size >= writer->pos + bytes ? writer->needed_size : writer->pos + bytes;
 }
 
@@ -222,7 +222,7 @@ static inline void dl_binary_writer_align( dl_binary_writer* writer, pint align 
 	pint alignment = dl_internal_align_up( writer->pos, align );
 	if( !writer->dummy && alignment != writer->pos )
 	{
-		DL_LOG_BIN_WRITER_VERBOSE( "Align: %lu + %lu (%lu)", writer->pos, alignment - writer->pos, align );
+		DL_LOG_BIN_WRITER_VERBOSE( "Align: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (" DL_PINT_FMT_STR ")", writer->pos, alignment - writer->pos, align );
 		memset( writer->data + writer->pos, 0x0, alignment - writer->pos);
 	}
 	writer->pos = alignment;
@@ -236,7 +236,7 @@ static inline pint dl_binary_writer_push_back_alloc( dl_binary_writer* writer, p
 	// since data that will be stored here is only temporary.
 
 	writer->back_alloc_pos -= bytes;
-	DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: %lu (%lu)\n", writer->back_alloc_pos, bytes);
+	DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: " DL_PINT_FMT_STR " (" DL_PINT_FMT_STR ")\n", writer->back_alloc_pos, bytes);
 	return writer->back_alloc_pos;
 }
 
@@ -254,7 +254,7 @@ static inline pint dl_binary_writer_pop_back_alloc( dl_binary_writer* writer, ui
 	pint first_elem = writer->back_alloc_pos;
 	pint last_elem  = first_elem + elem_size * ( num_elem - 1 );
 
-	DL_LOG_BIN_WRITER_VERBOSE("First: %lu last %lu", first_elem, last_elem);
+	DL_LOG_BIN_WRITER_VERBOSE("First: " DL_PINT_FMT_STR " last " DL_PINT_FMT_STR, first_elem, last_elem);
 
 	unsigned char* curr_first = writer->data + first_elem;
 	unsigned char* curr_last  = writer->data + last_elem;
@@ -266,7 +266,7 @@ static inline pint dl_binary_writer_pop_back_alloc( dl_binary_writer* writer, ui
 		{
 			DL_ASSERT( elem_size <= DL_ARRAY_LENGTH(swap_buffer));
 
-			DL_LOG_BIN_WRITER_VERBOSE("Swap: %lu to %lu", curr_first - writer->data, curr_last - writer->data );
+			DL_LOG_BIN_WRITER_VERBOSE("Swap: " DL_PINT_FMT_STR " to " DL_PINT_FMT_STR, curr_first - writer->data, curr_last - writer->data );
 
 			memcpy( swap_buffer, curr_first,  elem_size );
 			memcpy( curr_first,  curr_last,   elem_size );
