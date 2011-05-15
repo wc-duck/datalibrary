@@ -59,6 +59,7 @@ struct pack_text_test
 
 		// pack txt to binary
 		EXPECT_DL_ERR_OK( dl_txt_pack_calc_size( dl_ctx, text_buffer, out_size ) );
+
 		EXPECT_DL_ERR_OK( dl_txt_pack( dl_ctx, text_buffer, out_buffer, *out_size, 0x0 ) );
 	}
 };
@@ -846,6 +847,41 @@ TYPED_TEST(DLBase, bug3)
 	this->do_the_round_about( BugTest3::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
 
 	EXPECT_ARRAY_EQ( Inst.sub.arr.count,  Inst.sub.arr.data, Loaded[0].sub.arr.data);
+}
+
+TYPED_TEST(DLBase, bug4)
+{
+	// testing bug where struct first in struct with ptr in substruct will not get patched on load.
+
+	// TODO: Test with only 1
+	const char* strings1[] = { "cow",   "bells",   "rule" };
+	const char* strings2[] = { "2cow2", "2bells2", "2rule2", "and the last one" };
+	StringArray str_arr[2];
+	str_arr[0].Strings.data  = strings1;
+	str_arr[0].Strings.count = DL_ARRAY_LENGTH( strings1 );
+	str_arr[1].Strings.data  = strings2;
+	str_arr[1].Strings.count = DL_ARRAY_LENGTH( strings2 );
+
+	BugTest4 Inst;
+	Inst.struct_with_str_arr.data  = str_arr;
+	Inst.struct_with_str_arr.count = 2;
+
+	BugTest4 Loaded[1024];
+
+	this->do_the_round_about( BugTest4::TYPE_ID, &Inst, &Loaded, sizeof(Loaded) );
+
+	unsigned int num_struct = Inst.struct_with_str_arr.count;
+	EXPECT_EQ( num_struct, Loaded[0].struct_with_str_arr.count );
+
+	for( unsigned int i = 0; i < num_struct; ++i )
+	{
+		StringArray* orig =      Inst.struct_with_str_arr.data + i;
+		StringArray* load = Loaded[0].struct_with_str_arr.data + i;
+		EXPECT_EQ( orig->Strings.count, load->Strings.count );
+
+		for( unsigned int j = 0; j < orig->Strings.count; ++j )
+			EXPECT_STREQ( orig->Strings[j], load->Strings[j] );
+	}
 }
 
 TEST(DLMisc, endian_is_correct)

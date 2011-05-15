@@ -160,6 +160,12 @@
 				{ "name" : "e3", "type" : "NamedValue" },
 				{ "name" : "e4", "type" : "NamedValue" } 
 			]
+		},
+		
+		"BugTest4" : {
+			"members" : [
+				{ "name" : "struct_with_str_arr", "type" : "array", "subtype" : "StringArray" }
+			]
 		}
 	}
 }
