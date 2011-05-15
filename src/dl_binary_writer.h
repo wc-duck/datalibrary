@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #if 0 // BinaryWriterVerbose
-	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...) printf("DL:" _Fmt "\n", ##__VA_ARGS__)
+	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...) printf("DL: " _Fmt "\n", ##__VA_ARGS__)
 #else
 	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...)
 #endif
@@ -25,9 +25,9 @@ struct dl_binary_writer
 };
 
 static inline void dl_binary_writer_init( dl_binary_writer* writer,
-								   uint8* out_data, pint out_data_size, bool dummy,
-								   dl_endian_t source_endian, dl_endian_t target_endian,
-								   dl_ptr_size_t target_ptr_size )
+										  uint8* out_data, pint out_data_size, bool dummy,
+										  dl_endian_t source_endian, dl_endian_t target_endian,
+										  dl_ptr_size_t target_ptr_size )
 {
 	writer->dummy          = dummy;
 	writer->source_endian  = source_endian;
@@ -60,7 +60,14 @@ static inline void dl_binary_writer_write( dl_binary_writer* writer, const void*
 {
 	if( !writer->dummy && ( writer->pos + size <= writer->data_size ) )
 	{
-		DL_LOG_BIN_WRITER_VERBOSE("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)", writer->pos, size, uint32(*(pint*)data) );
+		switch( size )
+		{
+			case 1: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(char*)data   ); break;
+			case 2: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(uint16*)data ); break;
+			case 4: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(uint32*)data ); break;
+			case 8: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (" DL_UINT64_FMT_STR ")", writer->pos, size, *(uint64*)data ); break;
+			default: DL_LOG_BIN_WRITER_VERBOSE("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR, writer->pos, size ); break;
+		}
 		DL_ASSERT( writer->pos + size <= writer->data_size && "To small buffer!" );
 		memmove( writer->data + writer->pos, data, size);
 	}
@@ -126,10 +133,10 @@ static inline void dl_binary_writer_write_swap( dl_binary_writer* writer, const 
 {
 	switch( size )
 	{
-		case 1: dl_binary_writer_write_1byte( writer, data ); break; // sizeof(uint8):  Write( *(uint8*)_pData); break;
-		case 2: dl_binary_writer_write_2byte( writer, data ); break; //case sizeof(uint16): Write(*(uint16*)_pData); break;
-		case 4: dl_binary_writer_write_4byte( writer, data ); break; //case sizeof(uint32): Write(*(uint32*)_pData); break;
-		case 8: dl_binary_writer_write_8byte( writer, data ); break; //case sizeof(uint64): Write(*(uint64*)_pData); break;
+		case 1: dl_binary_writer_write_1byte( writer, data ); break;
+		case 2: dl_binary_writer_write_2byte( writer, data ); break;
+		case 4: dl_binary_writer_write_4byte( writer, data ); break;
+		case 8: dl_binary_writer_write_8byte( writer, data ); break;
 		default:
 			DL_ASSERT( false && "unhandled case!" );
 	}
@@ -144,10 +151,10 @@ static inline void dl_binary_writer_write_array( dl_binary_writer* writer, const
 		{
 			switch( elem_size )
 			{
-				case 1: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = %u",                 i, ((const uint8*)  array)[i] ); }
-				case 2: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = %u",                 i, ((const uint16*) array)[i] ); }
-				case 4: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = %u",                 i, ((const uint32*) array)[i] ); }
-				case 8: { DL_LOG_BIN_WRITER_VERBOSE( DL_PINT_FMT_STR " = " DL_UINT64_FMT_STR, i, ((const uint64*) array)[i] ); }
+				case 1: { DL_LOG_BIN_WRITER_VERBOSE( "\t%c",                 ((const uint8*)  array)[i] ); } break;
+				case 2: { DL_LOG_BIN_WRITER_VERBOSE( "\t%u",                 ((const uint16*) array)[i] ); } break;
+				case 4: { DL_LOG_BIN_WRITER_VERBOSE( "\t%u",                 ((const uint32*) array)[i] ); } break;
+				case 8: { DL_LOG_BIN_WRITER_VERBOSE( "\t" DL_UINT64_FMT_STR, ((const uint64*) array)[i] ); } break;
 			}
 		}
 	}
@@ -277,7 +284,7 @@ static inline pint dl_binary_writer_pop_back_alloc( dl_binary_writer* writer, ui
 		}
 
 	if( elem_size == elem_align )
-		dl_binary_writer_write( writer, writer->data + first_elem, elem_size + num_elem );
+		dl_binary_writer_write( writer, writer->data + first_elem, elem_size * num_elem );
 	else
 	{
 		for( uint32 elem = 0; elem < num_elem; ++elem )
