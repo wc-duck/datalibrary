@@ -290,10 +290,12 @@ if family == "windows" then
 	AddJob( "test",          "unittest c",        string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_cs",       "unittest c#",       "extern\\cs\\NUnit-2.5.9.10348\\bin\\net-2.0\\nunit-console /nologo local\\csharp\\dl_tests.dll" .. cs_test_args, "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) 
 else
-	AddJob( "test",          "unittest c",        dl_tests .. test_args,                                        dl_tests,    "local/generated/unittest.bin" )
-	AddJob( "test_valgrind", "unittest valgrind", "valgrind -v --leak-check=full " .. dl_tests .. test_args,    dl_tests,    "local/generated/unittest.bin" )
-	AddJob( "test_gdb",      "unittest valgrind", "gdb --args " .. dl_tests .. test_args,                       dl_tests,    "local/generated/unittest.bin" )
-	AddJob( "test_cs",       "unittest c#",       "nunit-console " .. cs_test_lib .. cs_test_args,              cs_test_lib, "local/generated/unittest.bin" )
+	local valgrind_flags = " -v --leak-check=full --track-origins=yes "
+
+	AddJob( "test",          "unittest c",        dl_tests .. test_args,                                 dl_tests,    "local/generated/unittest.bin" )
+	AddJob( "test_valgrind", "unittest valgrind", "valgrind" .. valgrind_flags .. dl_tests .. test_args, dl_tests,    "local/generated/unittest.bin" )
+	AddJob( "test_gdb",      "unittest gdb",      "gdb --args " .. dl_tests .. test_args,                dl_tests,    "local/generated/unittest.bin" )
+	AddJob( "test_cs",       "unittest c#",       "nunit-console " .. cs_test_lib .. cs_test_args,       cs_test_lib, "local/generated/unittest.bin" )
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
