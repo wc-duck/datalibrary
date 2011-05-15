@@ -231,10 +231,13 @@ int main(int argc, char** argv)
 		if( err != DL_ERROR_OK )
 			M_ERROR_AND_QUIT( "DL error reading stream: %s", dl_error_to_string( err ) );
 
-		if( g_Unpack == 1 ) // should unpack
-			err = dl_util_store_to_stream( dl_ctx, type, out_file, DL_UTIL_FILE_TYPE_TEXT, DL_ENDIAN_HOST, sizeof(void*), instance );
-		else
-			err = dl_util_store_to_stream( dl_ctx, type, out_file, DL_UTIL_FILE_TYPE_BINARY, out_endian, out_ptr_size, instance );
+		err = dl_util_store_to_stream( dl_ctx,
+									   type,
+									   out_file,
+									   g_Unpack == 1 ? DL_UTIL_FILE_TYPE_TEXT : DL_UTIL_FILE_TYPE_BINARY,
+									   out_endian,
+									   out_ptr_size,
+									   instance );
 
 		if( err != DL_ERROR_OK )
 			M_ERROR_AND_QUIT( "DL error writing stream: %s", dl_error_to_string( err ) );
