@@ -241,11 +241,12 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
-						for(pint iElem = 0; iElem < Count; ++iElem)
+						for( pint elem = 0; elem < Count; ++elem )
 						{
-							pint  Offset     = *(pint*)(pArrayData + (iElem * sizeof(char*)));
-							char* pTheString =  (char*)(_pData + Offset);
-							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)pTheString, (unsigned int)strlen(pTheString));
+							union { const uint8* u8p; const pint* pp; } conv;
+							conv.u8p = pArrayData + ( elem * sizeof(char*) );
+							char* str =  (char*)( _pDataBase + *conv.pp );
+							yajl_gen_string( _Ctx->m_JsonGen, (unsigned char*)str, (unsigned int)strlen(str) );
 						}
 					}
 					break;
