@@ -16,6 +16,10 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
 /*
 	Enum: dl_util_file_type_t
 		Enumeration of possible file types that can be read by util-functions.
@@ -156,5 +160,9 @@ dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         
 									FILE*       stream,     dl_util_file_type_t filetype,
 									dl_endian_t out_endian, unsigned int        out_ptr_size,
 									void*       out_instance );
+
+#ifdef __cplusplus
+}
+#endif  // __cplusplus
 
 #endif // DL_DL_UTIL_H_INCLUDED
