@@ -163,7 +163,10 @@ class TestLibDL( DL ):
 	# store/load tests
 	def do_the_round_about(self, typename, instance):
 		loaded = self.dl_ctx.LoadInstance( typename, self.dl_ctx.StoreInstance(instance) )
-		self.AssertInstanceEqual(instance, loaded)
+		self.AssertInstanceEqual( instance, loaded )
+		
+		via_text = self.dl_ctx.LoadInstanceFromString( typename, self.dl_ctx.StoreInstanceToString( instance ) )
+		self.AssertInstanceEqual( instance, via_text )
 	
 	def testWritePods(self):
 		Instance = self.dl_ctx.types.Pods()

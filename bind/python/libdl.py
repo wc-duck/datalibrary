@@ -275,7 +275,7 @@ class DLContext:
         if not dll_path:
             dll_path = self.try_default_dl_dll() 
         if not dll_path:
-            raise DLError # fix me!
+            raise DLError( 'could not find dl dynamic library', 0 )
 
         self.dl = CDLL( dll_path )
         self.dl.dl_error_to_string.restype = c_char_p
@@ -460,18 +460,27 @@ class DLContext:
             Load an instance of a DL-type from a file.
             
             type_name -- name of type.
-            in_file     -- path to file to read.
+            in_file   -- path to file to read.
         '''
         return self.LoadInstance(type_name, open(in_file, 'rb').read())
-        
+    
+    def LoadInstanceFromString(self, type_name, in_str):
+        '''
+            Load an instance of a DL-type from a string.
+            
+            type_name -- name of type.
+            in_str    -- string with dl-text-data.
+        '''
+        return self.LoadInstance( type_name, self.PackText( in_str ) )
+     
     def LoadInstanceFromTextFile(self, type_name, in_file):
         '''
             Load an instance of a DL-type from a text file.
             
             type_name -- name of type.
-            in_file     -- path to file to read.
+            in_file   -- path to file to read.
         '''
-        return self.LoadInstance(type_name, self.PackText(open(in_file, 'rb').read()))
+        return self.LoadInstanceFromString( type_name, open(in_file, 'rb').read() )
     
     def ConvertInstance( self, type_id, instance, endian = sys.byteorder, ptr_size = host_ptr_size() ):
         endian = 0 if endian == 'big' else 1
@@ -488,8 +497,8 @@ class DLContext:
         '''
             Store a DL-instance to buffer that is returned as a string.
             
-            _Instance -- instance to store.
-            endian   -- endian to store it in
+            instance  -- instance to store.
+            endian    -- endian to store it in
             ptr_size  -- pointer size to store it with
         '''   
              
@@ -507,9 +516,9 @@ class DLContext:
         '''
             Store a DL-instance to file.
             
-            instance -- instance to store.
-            file_name     -- path to file to write to.
-            endian   -- endian to store it in
+            instance  -- instance to store.
+            file_name -- path to file to write to.
+            endian    -- endian to store it in
             ptr_size  -- pointer size to store it with
         '''
         open(file_name, 'wb').write(self.StoreInstance(instance, endian, ptr_size))
@@ -518,10 +527,10 @@ class DLContext:
         packed_instance = self.StoreInstance(instance)
         
         text_size = c_uint(0)
-        self.txt_unpack( packed_instance, len(packed_instance), c_void_p(0), 0, byref( text_size ) )
+        self.txt_unpack( instance.TYPE_ID, packed_instance, len(packed_instance), c_void_p(0), 0, byref( text_size ) )
         
         text_instance = create_string_buffer( text_size.value )
-        self.txt_unpack( packed_instance, len(packed_instance), text_instance, text_size, c_void_p(0) )
+        self.txt_unpack( instance.TYPE_ID, packed_instance, len(packed_instance), text_instance, text_size, c_void_p(0) )
             
         return text_instance.raw
         
