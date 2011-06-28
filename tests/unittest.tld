@@ -166,6 +166,9 @@
 			"members" : [
 				{ "name" : "struct_with_str_arr", "type" : "array", "subtype" : "StringArray" }
 			]
-		}
+		},
+		
+		"PtrHolder" : { "members" : [ { "name" : "ptr", "type" : "pointer", "subtype" : "Pods2" } ] },
+		"PtrArray"  : { "members" : [ { "name" : "arr", "type" : "array",   "subtype" : "PtrHolder" } ] }
 	}
 }

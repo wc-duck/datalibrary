@@ -675,6 +675,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 			DL_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
 			const SDLType* pSubType = dl_internal_find_type(pCtx->dl_ctx, pMember->type_id);
 			DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->name);
+			dl_binary_writer_seek_end( pCtx->writer );
 			dl_binary_writer_align( pCtx->writer, pSubType->alignment[DL_PTR_SIZE_HOST] );
 			pCtx->PushStructState(pSubType);
 

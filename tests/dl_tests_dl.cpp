@@ -749,6 +749,42 @@ TYPED_TEST(DLBase, ptr_chain_circle)
 	EXPECT_EQ(New->Next->Next,             New->Next->Next->Next->Prev);
 }
 
+TYPED_TEST(DLBase, array_struct_with_ptr_holder )
+{
+	Pods2 p1, p2, p3;
+	p1.Int1 = 1; p1.Int2 = 2;
+	p2.Int1 = 3; p2.Int2 = 4;
+	p3.Int1 = 5; p3.Int2 = 6;
+
+	// testing array of pointer-type
+	PtrHolder arr[] = { { &p1 }, { &p2 }, { &p2 }, { &p3 } };
+	PtrArray inst;
+	inst.arr.data  = arr;
+	inst.arr.count = DL_ARRAY_LENGTH( arr );
+
+	union
+	{
+		PtrArray loaded;
+		uint32_t data[1024]; // this is so ugly!
+	} load;
+
+	this->do_the_round_about( PtrArray::TYPE_ID, &inst, &load.loaded, sizeof(load.data) );
+
+	EXPECT_EQ( inst.arr.count, load.loaded.arr.count );
+	for( uint32_t i = 0; i < load.loaded.arr.count; ++i )
+	{
+		EXPECT_EQ( inst.arr[i].ptr->Int1, load.loaded.arr[i].ptr->Int1 );
+		EXPECT_EQ( inst.arr[i].ptr->Int2, load.loaded.arr[i].ptr->Int2 );
+	}
+
+	EXPECT_NE( load.loaded.arr[0].ptr, load.loaded.arr[1].ptr );
+	EXPECT_NE( load.loaded.arr[0].ptr, load.loaded.arr[2].ptr );
+	EXPECT_NE( load.loaded.arr[0].ptr, load.loaded.arr[3].ptr );
+	EXPECT_NE( load.loaded.arr[0].ptr, load.loaded.arr[4].ptr );
+
+	EXPECT_EQ( load.loaded.arr[1].ptr, load.loaded.arr[2].ptr );
+}
+
 TYPED_TEST(DLBase, array_pod_empty)
 {
 	PodArray1 Inst = { { NULL, 0 } };
