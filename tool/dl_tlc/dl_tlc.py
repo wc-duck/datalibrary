@@ -49,7 +49,8 @@ def parse_options():
 	parser.add_option("-x", "--hexarray",   dest="hexarray",  help="write type library as hex-array that can be included in c/cpp-code")
 	parser.add_option("",   "--c-header",   dest="cheader",   help="write C-header to file")
 	parser.add_option("-c", "--cpp-header", dest="cppheader", help="write C++-header to file")
-	parser.add_option("-s", "--cs-header",  dest="csheader",  help="write C#-header to file")	
+	parser.add_option("-s", "--cs-header",  dest="csheader",  help="write C#-header to file")
+	parser.add_option("",   "--tld-text",   dest="tld_text",  help="write read type-library in text-format to file")	
 	parser.add_option("",   "--config",     dest="config",    help="configuration file to configure generated headers.")	
 	parser.add_option("-v", "--verbose",    dest="verbose",   help="enable verbose output", action="store_true", default=False)
 
@@ -95,6 +96,10 @@ if __name__ == "__main__":
     if options.cppheader: dl.generate.cplusplus.generate( tl, None, open( options.cppheader, 'w' ) )
 
     compiled_tl = None
+    
+    if options.tld_text:
+    	import sys
+    	dl.typelibrary.generate( tl, sys.stdout )
     
     if options.output or options.hexarray:
         tl_str = StringIO.StringIO()

@@ -101,17 +101,17 @@ def emit_member( member ):
     
     cpp_name = to_cpp_name( member )
     
-    if   isinstance( member, tl.PodMember ):         lines.append( '%s %s;'           % ( cpp_name, member.name ) )
-    elif isinstance( member, tl.InlineArrayMember ): lines.append( '%s %s[%u];'       % ( cpp_name, member.name, member.count ) ) 
-    elif isinstance( member, tl.PointerMember ):     lines.append( 'const %s* %s;'    % ( cpp_name, member.name ) )
-    elif isinstance( member, tl.BitfieldMember ):    lines.append( '%s %s : %u;'      % ( cpp_name, member.name, member.bits ) )
+    if   isinstance( member, tl.PodMember ):         lines.append( '%s %s;'               % ( cpp_name, member.name ) )
+    elif isinstance( member, tl.InlineArrayMember ): lines.append( '%s %s[%u];'           % ( cpp_name, member.name, member.count ) ) 
+    elif isinstance( member, tl.PointerMember ):     lines.append( 'const struct %s* %s;' % ( cpp_name, member.name ) )
+    elif isinstance( member, tl.BitfieldMember ):    lines.append( '%s %s : %u;'          % ( cpp_name, member.name, member.bits ) )
     elif isinstance( member, tl.ArrayMember ):
         if member.type.name == 'string':
             lines.append( '%s %s;' % ( ARRAY_TEMPLATE_STR % { 'data_name'  : 'data',
                                                               'count_name' : 'count',
                                                               'count_type' : a_config_here['uint32'] },
                                        member.name ) )
-        else:              
+        else:
             lines.append( '%s %s;' % ( ARRAY_TEMPLATE % { 'data_type'  : cpp_name, 
                                                           'data_name'  : 'data',
                                                           'count_name' : 'count',
@@ -161,6 +161,9 @@ def generate( typelibrary, config, stream ):
     
     for enum in typelibrary.enums.values():
         emit_enum( enum, structs )
+    
+    #for type_name in typelibrary.types.keys():
+    #    print >> structs, 'struct', type_name, ';' 
     
     for type_name in typelibrary.type_order:
         emit_struct( typelibrary.types[type_name], structs )

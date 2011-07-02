@@ -785,6 +785,53 @@ TYPED_TEST(DLBase, array_struct_with_ptr_holder )
 	EXPECT_EQ( load.loaded.arr[1].ptr, load.loaded.arr[2].ptr );
 }
 
+TYPED_TEST(DLBase, array_struct_circular_ptr_holder_array )
+{
+	// long name!
+	circular_array p1, p2, p3;
+	p1.val = 1337;
+	p2.val = 1338;
+	p3.val = 1339;
+
+	circular_array_ptr_holder p1_arr[] = { { &p2 }, { &p3 } };
+	circular_array_ptr_holder p2_arr[] = { { &p1 }, { &p2 } };
+	circular_array_ptr_holder p3_arr[] = { { &p3 }, { &p1 } };
+
+	p1.arr.data  = p1_arr; p1.arr.count = DL_ARRAY_LENGTH( p1_arr );
+	p2.arr.data  = p2_arr; p2.arr.count = DL_ARRAY_LENGTH( p2_arr );
+	p3.arr.data  = p3_arr; p3.arr.count = DL_ARRAY_LENGTH( p3_arr );
+
+	union
+	{
+		circular_array loaded;
+		uint32_t data[1024]; // this is so ugly!
+	} load;
+
+	this->do_the_round_about( circular_array::TYPE_ID, &p1, &load.loaded, sizeof(load.data) );
+
+	const circular_array* l1 = &load.loaded;
+	const circular_array* l2 = load.loaded.arr[0].ptr;
+	const circular_array* l3 = load.loaded.arr[1].ptr;
+
+	EXPECT_EQ( p1.val,        l1->val );
+	EXPECT_EQ( p1.arr.count,  l1->arr.count );
+
+	EXPECT_EQ( p2.val,        l2->val );
+	EXPECT_EQ( p2.arr.count,  l2->arr.count );
+
+	EXPECT_EQ( p3.val,        l3->val );
+	EXPECT_EQ( p3.arr.count,  l3->arr.count );
+
+	EXPECT_EQ( l1->arr[0].ptr, l2 );
+	EXPECT_EQ( l1->arr[1].ptr, l3 );
+
+	EXPECT_EQ( l2->arr[0].ptr, l1 );
+	EXPECT_EQ( l2->arr[1].ptr, l2 );
+
+	EXPECT_EQ( l3->arr[0].ptr, l3 );
+	EXPECT_EQ( l3->arr[1].ptr, l1 );
+}
+
 TYPED_TEST(DLBase, array_pod_empty)
 {
 	PodArray1 Inst = { { NULL, 0 } };

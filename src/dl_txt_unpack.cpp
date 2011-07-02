@@ -236,7 +236,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 
 						pint Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
 						for(pint iElem = 0; iElem < Count; ++iElem)
-							DLWriteInstance(_Ctx, pSubType, pArrayData + (iElem * Size), _pData);
+							DLWriteInstance(_Ctx, pSubType, pArrayData + (iElem * Size), _pDataBase);
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:

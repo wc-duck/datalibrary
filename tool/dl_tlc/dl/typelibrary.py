@@ -137,7 +137,7 @@ class ArrayMember( Member ):
     def __init__(self, name, data, typelibrary):
         Member.__init__( self, name, data )
         self.type = typelibrary.find_type( data['subtype'] )    
-        self.size  = PlatformValue( (8, 12) )
+        self.size  = PlatformValue( (8, 16) )
         self.align = PlatformValue( (4, 8) )
     
 class InlineArrayMember( Member ):
@@ -269,6 +269,7 @@ class Type( object ):
         
         self.size  = PlatformValue()
         self.align = PlatformValue()
+        
         # calculate member offsets
         for member in self.members:
             member.offset = PlatformValue.align( self.size, member.align )
@@ -334,13 +335,16 @@ class TypeLibrary( object ):
     def __calc_type_order( self ):
         def ready_to_remove( temp, typename ):
             type = self.types[typename]
-            
+
             for member in type.members:
                 if isinstance( member, BitfieldMember ):
                     continue
                 if member.type.name is typename:
                     continue
                 if member.type.name in temp:
+                    for member_member in self.types[member.type.name].members:
+                        if typename is member_member.type.name:
+                            return True
                     return False
                 
             return True
@@ -348,7 +352,7 @@ class TypeLibrary( object ):
         temp = self.types.keys()
         
         while len(temp) > 0:
-            for type in temp:    
+            for type in temp: 
                 if ready_to_remove( temp, type ):
                     self.type_order.append( type )
                     temp.remove(type)
@@ -579,5 +583,12 @@ def compile( typelibrary, stream ):
 
 def generate( typelibrary, stream ):
     ''' generate json typelibrary definition ( some info might be lost ) '''
+    import json
     
-    assert False, 'implement me!!!'
+    lib = {
+        'module' : 'mod',
+        'enums'  : 'enums',
+        'types'  : 'types'
+    }
+    
+    stream.write( json.dumps( lib, indent = 4 ) )

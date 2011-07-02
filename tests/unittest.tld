@@ -169,6 +169,14 @@
 		},
 		
 		"PtrHolder" : { "members" : [ { "name" : "ptr", "type" : "pointer", "subtype" : "Pods2" } ] },
-		"PtrArray"  : { "members" : [ { "name" : "arr", "type" : "array",   "subtype" : "PtrHolder" } ] }
+		"PtrArray"  : { "members" : [ { "name" : "arr", "type" : "array",   "subtype" : "PtrHolder" } ] },
+		
+		"circular_array_ptr_holder" : { "members" : [ { "name" : "ptr", "type" : "pointer", "subtype" : "circular_array" } ] },
+		"circular_array" : { 
+			"members" : [ 
+				{ "name" : "val", "type" : "uint16" },
+				{ "name" : "arr", "type" : "array",   "subtype" : "circular_array_ptr_holder" } 
+			]
+		}
 	}
 }

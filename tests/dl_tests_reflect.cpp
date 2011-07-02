@@ -101,6 +101,8 @@ TEST_F(DLReflect, get_type_info)
 	CHECK_TYPE_INFO_CORRECT( A128BitAlignedType, 1 );
 	CHECK_TYPE_INFO_CORRECT( BugTest1, 1 );
 	CHECK_TYPE_INFO_CORRECT( BugTest1_InArray, 3 );
+	CHECK_TYPE_INFO_CORRECT( circular_array, 2 );
+	CHECK_TYPE_INFO_CORRECT( circular_array_ptr_holder, 1 );
 }
 
 TEST_F(DLReflect, type_lookup)
