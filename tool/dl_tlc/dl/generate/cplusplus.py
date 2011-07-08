@@ -83,16 +83,16 @@ a_config_here = { 'int8'   : 'int8_t',
 
 def to_cpp_name( member ):
     import dl.typelibrary as tl
-    if isinstance( member, tl.ArrayMember ) and member.type.name == 'string':
+    if isinstance( member.type, tl.ArrayType ) and member.type.base_type().name == 'string':
         return 'char*'
     
-    return a_config_here.get( member.type.name, member.type.name )
+    return a_config_here.get( member.type.base_type().name, member.type.base_type().name )
 
 def emit_member( member ):
     lines = []        
     if verbose:
-        lines.append( '// 32bit: size %u, align %u, offset %u' % ( member.size.ptr32, member.align.ptr32, member.offset.ptr32 ) )
-        lines.append( '// 64bit: size %u, align %u, offset %u' % ( member.size.ptr64, member.align.ptr64, member.offset.ptr64 ) )
+        lines.append( '// 32bit: size %u, align %u, offset %u' % ( member.type.size().ptr32, member.type.align.ptr32, member.offset.ptr32 ) )
+        lines.append( '// 64bit: size %u, align %u, offset %u' % ( member.type.size().ptr64, member.type.align.ptr64, member.offset.ptr64 ) )
     
     if member.comment:
         lines.append( '// %s' % member.comment )
@@ -101,12 +101,14 @@ def emit_member( member ):
     
     cpp_name = to_cpp_name( member )
     
-    if   isinstance( member, tl.PodMember ):         lines.append( '%s %s;'               % ( cpp_name, member.name ) )
-    elif isinstance( member, tl.InlineArrayMember ): lines.append( '%s %s[%u];'           % ( cpp_name, member.name, member.count ) ) 
-    elif isinstance( member, tl.PointerMember ):     lines.append( 'const struct %s* %s;' % ( cpp_name, member.name ) )
-    elif isinstance( member, tl.BitfieldMember ):    lines.append( '%s %s : %u;'          % ( cpp_name, member.name, member.bits ) )
-    elif isinstance( member, tl.ArrayMember ):
-        if member.type.name == 'string':
+    if   ( isinstance( member.type, tl.Type ) or
+           isinstance( member.type, tl.Enum ) or
+           isinstance( member.type, tl.BuiltinType ) ):  lines.append( '%s %s;'               % ( cpp_name, member.name ) )
+    elif isinstance( member.type, tl.InlineArrayType ):   lines.append( '%s %s[%u];'           % ( cpp_name, member.name, member.type.count ) ) 
+    elif isinstance( member.type, tl.PointerType ):     lines.append( 'const struct %s* %s;' % ( cpp_name, member.name ) )
+    elif isinstance( member.type, tl.BitfieldType ):    lines.append( '%s %s : %u;'          % ( cpp_name, member.name, member.type.bits ) )
+    elif isinstance( member.type, tl.ArrayType ):
+        if member.type.base_type().name == 'string':
             lines.append( '%s %s;' % ( ARRAY_TEMPLATE_STR % { 'data_name'  : 'data',
                                                               'count_name' : 'count',
                                                               'count_type' : a_config_here['uint32'] },
@@ -131,11 +133,11 @@ def emit_struct( type, stream ):
     for m in type.members:
         member_lines.extend( emit_member( m ) )
         
-    stream.write( CLASS_TEMPLATE % { 'size32'    : type.size.ptr32,
-                                     'size64'    : type.size.ptr64,
-                                     'align32'   : type.align.ptr32,
-                                     'align64'   : type.align.ptr64,
-                                     'align_str' : ' ' if not type.useralign else ' DL_ALIGN( %u ) ' % type.align.ptr32,
+    stream.write( CLASS_TEMPLATE % { 'size32'    : type.size().ptr32,
+                                     'size64'    : type.size().ptr64,
+                                     'align32'   : type.align().ptr32,
+                                     'align64'   : type.align().ptr64,
+                                     'align_str' : ' ' if not type.useralign else ' DL_ALIGN( %u ) ' % type.align().ptr32,
                                      'name'      : type.name,
                                      'uint32'    : a_config_here['uint32'],
                                      'typeid'    : type.typeid,

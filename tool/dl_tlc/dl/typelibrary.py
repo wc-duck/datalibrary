@@ -35,13 +35,48 @@ class DLTypeLibraryError(Exception):
 
 class BuiltinType( object ):
     def __init__(self, name, size, align):
-        self.name   = name
-        self.size   = PlatformValue(size)
-        self.align  = PlatformValue(align)
-        self.typeid = 0
+        self.name      = name
+        self.my_size   = PlatformValue(size)
+        self.my_align  = PlatformValue(align)
+        self.typeid    = 0
         
-    def read_members(self, data, typelibrary):
-        pass
+    def base_type(self): return self
+    def size(self):      return self.my_size
+    def align(self):     return self.my_align
+    
+class ArrayType( object ):
+    def __init__( self, type ):
+        self.type  = type
+        
+    def base_type(self): return self.type.base_type()
+    def size(self):      return PlatformValue( ( 8, 16 ) )
+    def align(self):     return PlatformValue( ( 4,  8 ) )
+
+class InlineArrayType( object ):
+    def __init__( self, type, count ):
+        self.type  = type
+        self.count = count
+        
+    def base_type(self): return self.type.base_type()
+    def size(self):      return self.type.size() * self.count
+    def align(self):     return self.type.align()
+
+class PointerType( object ):
+    def __init__( self, type ):
+        self.type  = type
+        
+    def base_type(self): return self.type.base_type()
+    def size(self):      return PlatformValue( ( 4, 8 ) )
+    def align(self):     return PlatformValue( ( 4, 8 ) ) 
+    
+class BitfieldType( object ):
+    def __init__( self, bits ):
+        self.type  = None
+        self.bits  = bits
+
+    def base_type(self): return self.type.base_type()
+    def size(self):      return self.type.size()
+    def align(self):     return self.type.align()
 
 BUILTIN_TYPES = { 'int8'   : BuiltinType('int8',   (1, 1), (1, 1)),
                   'int16'  : BuiltinType('int16',  (2, 2), (2, 2)),
@@ -63,14 +98,10 @@ class Enum( object ):
             self.value       = value
 
     def __init__(self, name, values):
-        self.name   = name
-        self.size   = PlatformValue( 4 )
-        self.align  = PlatformValue( 4 ) 
+        self.name   = name 
         self.values = []
         
         current_value = 0
-        #counted_enum_type = 1
-        #counted_enum_max_count = 0
         
         for val in values:
             name, header_name, value = '', '', 0
@@ -107,6 +138,10 @@ class Enum( object ):
         
         self.typeid = hash_buffer( self.name )
         
+    def base_type(self): return self
+    def size(self):      return PlatformValue( 4 )
+    def align(self):     return PlatformValue( 4 )
+        
     def get_value(self, name):
         for val in self.values:
             if val.name == name:
@@ -114,108 +149,97 @@ class Enum( object ):
         assert False, 'could not find enum-value %s' % name
         return 0
 
-class Member( object ):
-    def __init__(self, name, data):
-        self.name    = name
-        self.comment = data.get('comment', '')
-        if 'default' in data:
-            self.default = data['default']
-            
-    def calc_size_and_align(self, typelibrary):
-        pass
-
-class PodMember( Member ):
-    def __init__(self, name, data, typelibrary):
-        Member.__init__( self, name, data )
-        self.type = typelibrary.find_type( data['type'] )
-            
-    def calc_size_and_align(self, typelibrary):
-        self.size  = self.type.size
-        self.align = self.type.align
+def create_member( data, typelibrary ):
+    type = data['type'].strip()
     
-class ArrayMember( Member ):
-    def __init__(self, name, data, typelibrary):
-        Member.__init__( self, name, data )
-        self.type = typelibrary.find_type( data['subtype'] )    
-        self.size  = PlatformValue( (8, 16) )
-        self.align = PlatformValue( (4, 8) )
+    new_member = None
     
-class InlineArrayMember( Member ):
-    def __init__(self, name, data, typelibrary):
-        Member.__init__( self, name, data )
-        self.type = typelibrary.find_type( data['subtype'] )
-        self.count = data['count']
+    assert not 'subtype' in data, 'old format in tld-data'
     
-    def calc_size_and_align(self, typelibrary):
-        self.size  = self.type.size * self.count
-        self.align = self.type.align
-
-class BitfieldMember( Member ):
-    def __init__(self, name, data, typelibrary):
-        from sys import maxint
+    import re
+    '''
+        search for symbols describing type.
         
-        Member.__init__( self, name, data )
+        TODO: Current gives to many positives!
         
-        self.index = data.get('index', -maxint) # if no index, sort bitfields first
-        self.bits  = data['bits']
-        self.type  = 'bitfield' # TODO: this will be recalculated later on
-        self.size  = PlatformValue( 0 )
-        self.align = PlatformValue( 0 )
-
-class PointerMember( Member ):
-    def __init__(self, name, data, typelibrary):
-        Member.__init__( self, name, data )
+        - start with alphanum, starting with alpha-char.
+        followed by:
+        - [] for array of prev symbol
+        - [NUM] for inline array of prev symbol with length NUM
+        - * for pointer to prev symbol
+    '''
+    p = re.compile( r'(\w+)|(\[\d+\])|(\[\])|(\*)' )
+    found = p.findall( type )
+    
+    base_type = typelibrary.find_type( found[0][0] )
+    
+    # haxxor! remove this, need to think through how to handle more than 2 elements in type
+    if len(found) == 1:
+        if type == 'bitfield':
+            new_member = Type.Member( BitfieldType( data['bits'] ) )
+        else:        
+            new_member = Type.Member( base_type )
+    else:
+        assert len(found) <= 2, 'not supported yet... just getting this in place. %u' % len(found)
+    
+        f = found[1]
         
-        if hasattr( self, 'default' ) and self.default != None:
+        if f[0]: # type
+            assert i == 0, 'types can only occur as element 0 in type-definition!'
+        
+        if f[1]: new_member = Type.Member( InlineArrayType( base_type, int( f[1][1:-1] ) ) )
+        if f[2]: new_member = Type.Member( ArrayType( base_type ) )
+        if f[3]: new_member = Type.Member( PointerType( base_type ) )
+                
+    new_member.name    = data['name']
+    new_member.comment = data.get('comment', '')
+    if 'default' in data:
+        new_member.default = data[ 'default' ]
+        if isinstance( new_member.type, PointerType ) and new_member.default != None:
             raise  'only null is supported as default for ptrs!'
         
-        self.type = typelibrary.find_type( data['subtype'] )
-        self.size  = PlatformValue( (4, 8) )
-        self.align = PlatformValue( (4, 8) )
-    
-def create_member( data, typelibrary ):
-    name = data['name']
-    type = data['type']
-
-    if type == 'array':        return ArrayMember( name, data, typelibrary )
-    if type == 'inline-array': return InlineArrayMember( name, data, typelibrary )
-    if type == 'bitfield':     return BitfieldMember( name, data, typelibrary )
-    if type == 'pointer':      return PointerMember( name, data, typelibrary )
-    return PodMember( name, data, typelibrary )
+    return new_member
 
 class Type( object ):
-    def __init__(self, name, data, typelibrary):    
-        self.name    = name
-        self.typeid  = 0
-        self.comment = data.get('comment', '') 
-        self.size    = PlatformValue( 0 )
-        self.align   = PlatformValue( data.get('align', 0) )
-        
-    def read_members(self, data, typelibrary):
-        # TODO: Handle aliases here!
-        self.members = [ create_member( m, typelibrary ) for m in data['members'] ]
-        
-        if len(self.name) > 32:
-            raise DLException('Type name longer than 32 on type %s' % self.name)
-        
-        # calculate dl-type-id
-        # better typeid-generation plox!
+    class Member( object ):
+        def __init__(self, type):
+            self.type   = type
+            self.offset = PlatformValue( 0 )
+
+    
+    def __init__(self, name, data, typelibrary):
         def hash_buffer( str ):
             hash = 5381
             for char in str:
                 hash = (hash * 33) + ord(char)
             return (hash - 5381) & 0xFFFFFFFF;
         
-        self.typeid = hash_buffer( self.name )
+        if len(name) > 32:
+            raise DLException('Type name longer than 32 on type %s' % name)
+            
+        self.name     = name
+        self.typeid   = hash_buffer( self.name )
+        self.comment  = data.get('comment', '') 
+        self.my_size  = PlatformValue( 0 )
+        self.my_align = PlatformValue( data.get('align', 0) )
         
-    def finalize_bitfield_members(self, typelib):
+    def base_type(self): return self
+    def size(self):      return self.my_size
+    def align(self):     return self.my_align
+        
+    def read_members(self, data, typelibrary):
+        # TODO: Handle aliases here!
+        self.members = [ create_member( m, typelibrary ) for m in data['members'] ]
+        self.finalize_bitfield_members()
+        
+    def finalize_bitfield_members(self):
         ''' does the final calculations for bitfield-members like calculating storage-type '''
         
         def find_bitfield_groups( list ):
             ret = [ ]
             current = None
             for m in list:
-                if isinstance( m, BitfieldMember ):
+                if isinstance( m.type, BitfieldType ):
                     if not current:
                         current = [ ]
                     
@@ -230,7 +254,7 @@ class Type( object ):
                 
             return ret
         
-        def select_storage_type( bits, typelib ):
+        def select_storage_type( bits ):
             if bits <= 8:  return BUILTIN_TYPES['uint8']
             if bits <= 16: return BUILTIN_TYPES['uint16']
             if bits <= 32: return BUILTIN_TYPES['uint32']
@@ -242,49 +266,42 @@ class Type( object ):
         for group in find_bitfield_groups( self.members ):
             bits = 0
             for mem in group:
-                bits += mem.bits
-                mem.last_in_group = False
+                bits += mem.type.bits
+                mem.type.last_in_group = False
             
-            storage_type = select_storage_type( bits, typelib )
-            group[-1].last_in_group = True
+            storage_type = select_storage_type( bits )
+            group[-1].type.last_in_group = True
             
             bit_offset = 0
             
             for mem in group:
-                mem.type        = storage_type
-                mem.size        = storage_type.size
-                mem.align       = storage_type.align
-                mem.bit_offset  = bit_offset
-                bit_offset     += mem.bits
+                mem.type.type        = storage_type
+                mem.type.bit_offset  = bit_offset
+                bit_offset          += mem.type.bits
             
                 
         
-    def calc_size_and_align(self, typelibrary):
-        for member in self.members:
-            member.calc_size_and_align(typelibrary)
-
-        self.finalize_bitfield_members(typelibrary)
+    def calc_size_and_align(self):
+        user_align = self.align()
         
-        user_align = self.align
-        
-        self.size  = PlatformValue()
-        self.align = PlatformValue()
+        self.my_size  = PlatformValue()
+        self.my_align = PlatformValue()
         
         # calculate member offsets
         for member in self.members:
-            member.offset = PlatformValue.align( self.size, member.align )
-            if isinstance( member, BitfieldMember ) and not member.last_in_group:
+            member.offset = PlatformValue.align( self.size(), member.type.align() )
+            if isinstance( member.type, BitfieldType ) and not member.type.last_in_group:
                 continue
-            self.size  = member.offset + member.size
-            self.align = PlatformValue.max( self.align, member.align )
+            self.my_size  = member.offset + member.type.size()
+            self.my_align = PlatformValue.max( self.align(), member.type.align() )
         
-        self.useralign = user_align.ptr32 > self.align.ptr32
+        self.useralign = user_align.ptr32 > self.align().ptr32
         
         if self.useralign:
             self.useralign = True
-            self.align = user_align
+            self.my_align = user_align
         
-        self.size = PlatformValue.align( PlatformValue.max( self.size, self.align ), self.align )
+        self.my_size = PlatformValue.align( PlatformValue.max( self.size(), self.align() ), self.align() )
 
 class TypeLibrary( object ):
     def __init__( self, lib = None ):        
@@ -337,13 +354,19 @@ class TypeLibrary( object ):
             type = self.types[typename]
 
             for member in type.members:
-                if isinstance( member, BitfieldMember ):
+                if isinstance( member.type, BitfieldType ):
                     continue
-                if member.type.name is typename:
+                
+                
+                # TODO: remove temp-code!
+                base_type_name = member.type.base_type().name
+                
+                if base_type_name is typename:
                     continue
-                if member.type.name in temp:
-                    for member_member in self.types[member.type.name].members:
-                        if typename is member_member.type.name:
+                if base_type_name in temp: 
+                    for member_member in self.types[base_type_name].members:
+                        other_base_name = member_member.type.base_type().name
+                        if typename is other_base_name:
                             return True
                     return False
                 
@@ -361,11 +384,7 @@ class TypeLibrary( object ):
     def __calc_size_and_align( self ):
         for type_name in self.type_order:
             type = self.types[type_name]
-            
-            type.calc_size_and_align(self)
-            
-            for member in type.members:
-                member.calc_size_and_align(self)
+            type.calc_size_and_align()
     
     def from_text( self, lib ):
         ''' read typelibrary from text-format lib. '''
@@ -456,18 +475,18 @@ def compile( typelibrary, stream ):
             type_offset = len(data)
             
             logging.debug( '%40s  0x%08X%10u%8u%8u%9u%9u' % ( type.name, type.typeid, type_offset, 
-                                                              type.size.ptr32,  type.size.ptr64,
-                                                              type.align.ptr32, type.align.ptr64 ) )
+                                                              type.size().ptr32,  type.size().ptr64,
+                                                              type.align().ptr32, type.align().ptr64 ) )
             
             lookup += struct.pack('<II', type.typeid, type_offset)
             logging.debug('%s: 0x%08X -> %s', type.name, type.typeid, type_offset)
             
             data += struct.pack( '<32sIIIII', str(type.name), 
-                                              type.size.ptr32, type.size.ptr64,
-                                              type.align.ptr32, type.align.ptr64,
+                                              type.size().ptr32, type.size().ptr64,
+                                              type.align().ptr32, type.align().ptr64,
                                               len(type.members) )
             
-            def to_dl_type( member ):
+            def to_dl_type( the_type ):
                 TYPE_ENUM_MAP = { 'int8'   : libdl.DL_TYPE_STORAGE_INT8,
                                   'int16'  : libdl.DL_TYPE_STORAGE_INT16,
                                   'int32'  : libdl.DL_TYPE_STORAGE_INT32,
@@ -480,35 +499,38 @@ def compile( typelibrary, stream ):
                                   'fp64'   : libdl.DL_TYPE_STORAGE_FP64,
                                   'string' : libdl.DL_TYPE_STORAGE_STR }
                 
-                def atom_type( member ):
-                    if isinstance( member, PodMember ):         return libdl.DL_TYPE_ATOM_POD
-                    if isinstance( member, PointerMember ):     return libdl.DL_TYPE_ATOM_POD
-                    if isinstance( member, ArrayMember ):       return libdl.DL_TYPE_ATOM_ARRAY
-                    if isinstance( member, InlineArrayMember ): return libdl.DL_TYPE_ATOM_INLINE_ARRAY
-                    if isinstance( member, BitfieldMember ):    return libdl.DL_TYPE_ATOM_BITFIELD
-                    assert False, 'missing type (%s)!' % type( member )
+                def atom_type( the_type ):
+                    if isinstance( the_type, Type ):            return libdl.DL_TYPE_ATOM_POD
+                    if isinstance( the_type, BuiltinType ):     return libdl.DL_TYPE_ATOM_POD
+                    if isinstance( the_type, Enum ):            return libdl.DL_TYPE_ATOM_POD
+                    if isinstance( the_type, PointerType ):     return libdl.DL_TYPE_ATOM_POD
+                    if isinstance( the_type, ArrayType ):       return libdl.DL_TYPE_ATOM_ARRAY
+                    if isinstance( the_type, InlineArrayType ): return libdl.DL_TYPE_ATOM_INLINE_ARRAY
+                    if isinstance( the_type, BitfieldType ):    return libdl.DL_TYPE_ATOM_BITFIELD
+                    assert False, 'missing type (%s)!' % type( the_type )
                     
-                def storage_type( member ):
-                    if isinstance( member.type, Enum ):           return libdl.DL_TYPE_STORAGE_ENUM
-                    if isinstance( member.type, BuiltinType ):    return TYPE_ENUM_MAP[member.type.name]
-                    if isinstance( member,      PointerMember ):  return libdl.DL_TYPE_STORAGE_PTR
+                def storage_type( the_type ):
+                    if isinstance( the_type.base_type(), Enum ):        return libdl.DL_TYPE_STORAGE_ENUM
+                    if isinstance( the_type.base_type(), BuiltinType ): return TYPE_ENUM_MAP[member.type.base_type().name]
+                    if isinstance( the_type,             PointerType ): return libdl.DL_TYPE_STORAGE_PTR
                     return libdl.DL_TYPE_STORAGE_STRUCT
                 
                 extra_bits = 0
-                if isinstance( member, BitfieldMember ):
-                    extra_bits = libdl.M_INSERT_BITS(extra_bits, member.bits,       libdl.DL_TYPE_BITFIELD_SIZE_MIN_BIT,   libdl.DL_TYPE_BITFIELD_SIZE_MAX_BIT + 1)
-                    extra_bits = libdl.M_INSERT_BITS(extra_bits, member.bit_offset, libdl.DL_TYPE_BITFIELD_OFFSET_MIN_BIT, libdl.DL_TYPE_BITFIELD_OFFSET_MAX_BIT + 1)
+                if isinstance( the_type, BitfieldType ):
+                    extra_bits = libdl.M_INSERT_BITS(extra_bits, the_type.bits,       libdl.DL_TYPE_BITFIELD_SIZE_MIN_BIT,   libdl.DL_TYPE_BITFIELD_SIZE_MAX_BIT + 1)
+                    extra_bits = libdl.M_INSERT_BITS(extra_bits, the_type.bit_offset, libdl.DL_TYPE_BITFIELD_OFFSET_MIN_BIT, libdl.DL_TYPE_BITFIELD_OFFSET_MAX_BIT + 1)
                 
-                return atom_type( member ) | storage_type( member ) | extra_bits
+                return atom_type( the_type ) | storage_type( the_type ) | extra_bits
             
             MEMBER_FMT = '<32sIIIIIIIII'
             
             for member in type.members:
+                mem_type = member.type
                 data += struct.pack( MEMBER_FMT, str( member.name ), 
-                                                 to_dl_type( member ), member.type.typeid,
-                                                 member.size.ptr32,    member.size.ptr64,
-                                                 member.align.ptr32,   member.align.ptr64,
-                                                 member.offset.ptr32,  member.offset.ptr64,
+                                                 to_dl_type( mem_type ),   mem_type.base_type().typeid,
+                                                 mem_type.size().ptr32,    mem_type.size().ptr64,
+                                                 mem_type.align().ptr32,   mem_type.align().ptr64,
+                                                 member.offset.ptr32,      member.offset.ptr64,
                                                  def_values.get( type.name + '.' + member.name, ( None, 0xFFFFFFFF) )[1] )
                 
                 if hasattr( member, 'default' ):
@@ -535,33 +557,35 @@ def compile( typelibrary, stream ):
             
             member, offset = def_values[ key_name ] 
             def_values[ key_name ] = ( member, len(default_data) )
-            if isinstance( member, PodMember ):
-                if   member.type.name == 'string':           default_data += struct.pack( '<I%us' % ( len( member.default ) + 1 ), len(default_data) + 4, str(member.default) )
-                elif isinstance( member.type, BuiltinType ): default_data += struct.pack( POD_PACK_FMT[member.type.name], member.default )
-                elif isinstance( member.type, Enum ):        default_data += struct.pack( '<I', member.type.get_value( member.default ) )
-                elif isinstance( member.type, Type ):
-                    pass 
-                    instance_str =  '{ "type" : "%s", "data" : %s }' % ( member.type.name, str( json.dumps(member.default) ) )
-                    default_data += dl_ctx.PackText( instance_str )[DL_INSTANCE_HEADER_SIZE:]
+            if   isinstance( member.type, BuiltinType ): 
+                if member.type.name == 'string':
+                    default_data += struct.pack( '<I%us' % ( len( member.default ) + 1 ), len(default_data) + 4, str(member.default) )
                 else:
-                    assert False, 'type not handled? %s' % type( member.type )
-            elif isinstance( member, ArrayMember ) or isinstance( member, InlineArrayMember ):
+                    default_data += struct.pack( POD_PACK_FMT[member.type.name], member.default )
+            elif isinstance( member.type, Enum ):
+                default_data += struct.pack( '<I', member.type.get_value( member.default ) )
+            elif isinstance( member.type, Type ):
+                instance_str =  '{ "type" : "%s", "data" : %s }' % ( member.type.name, str( json.dumps(member.default) ) )
+                default_data += dl_ctx.PackText( instance_str )[DL_INSTANCE_HEADER_SIZE:]
+            elif isinstance( member.type, ArrayType ) or isinstance( member.type, InlineArrayType ):
                 assert not isinstance( member.type, Type ), 'default arrays/inline-arrays of structs not supported yet'
                 
-                if isinstance( member, ArrayMember ):
+                if isinstance( member.type, ArrayType ):
                     default_data += struct.pack('<II', len(default_data) + 8, len(member.default))
                 
-                if   member.type.name == 'string':
+                the_type = member.type.base_type()
+                
+                if the_type.name == 'string':
                     curr_offset = len( default_data ) + len( member.default ) * struct.calcsize( '<I' )
                     for string in member.default:
                         default_data += struct.pack( '<I', curr_offset )
                         curr_offset += len( string ) + 1
                     default_data += ''.join( struct.pack( '<%us' % ( len( string ) + 1 ), str( string ) ) for string in member.default )
-                elif isinstance( member.type, BuiltinType ): default_data += ''.join( struct.pack(POD_PACK_FMT[member.type.name], val) for val in member.default )
-                elif isinstance( member.type, Enum ):        default_data += ''.join( struct.pack('<I', member.type.get_value( val )) for val in member.default )
+                elif isinstance( the_type, BuiltinType ): default_data += ''.join( struct.pack(POD_PACK_FMT[the_type.name], val) for val in member.default )
+                elif isinstance( the_type, Enum ):        default_data += ''.join( struct.pack('<I', the_type.get_value( val )) for val in member.default )
                 else:
-                    assert False, 'type not handled? %s' % type( member.type )
-            elif isinstance( member, PointerMember ): default_data += struct.pack('<I', 0xFFFFFFFF)
+                    assert False, 'type not handled? %s' % type( the_type )
+            elif isinstance( member.type, PointerType ): default_data += struct.pack('<I', 0xFFFFFFFF)
             else:
                 assert False, "type: %s" % type( member )
         

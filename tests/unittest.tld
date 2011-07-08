@@ -41,18 +41,18 @@
 		"Pod2InStruct" : { "members" : [ { "name" : "Pod1",  "type" : "Pods2" },  { "name" : "Pod2",  "type" : "Pods2" }  ] },
 		
 		"Pod2InStructInStruct"        : { "members" : [ { "name" : "p2struct", "type" : "Pod2InStruct" } ] }, 
-		"WithInlineArray"             : { "members" : [ { "name" : "Array",    "type" : "inline-array", "subtype" : "uint32",                "count" : 3 } ] },
-		"WithInlineStructArray"       : { "members" : [ { "name" : "Array",    "type" : "inline-array", "subtype" : "Pods2",                 "count" : 3 } ] },
-		"WithInlineStructStructArray" : { "members" : [ { "name" : "Array",    "type" : "inline-array", "subtype" : "WithInlineStructArray", "count" : 2 } ] },
+		"WithInlineArray"             : { "members" : [ { "name" : "Array",    "type" : "uint32[3]" } ] },
+		"WithInlineStructArray"       : { "members" : [ { "name" : "Array",    "type" : "Pods2[3]" } ] },
+		"WithInlineStructStructArray" : { "members" : [ { "name" : "Array",    "type" : "WithInlineStructArray[2]" } ] },
 		
-		"PodArray1"    : { "members" : [ { "name" : "u32_arr", "type" : "array", "subtype" : "uint32" } ] }, 
-		"PodArray2"    : { "members" : [ { "name" : "sub_arr", "type" : "array", "subtype" : "PodArray1" } ] }, 
+		"PodArray1"    : { "members" : [ { "name" : "u32_arr", "type" : "uint32[]" } ] }, 
+		"PodArray2"    : { "members" : [ { "name" : "sub_arr", "type" : "PodArray1[]" } ] }, 
 		
-		"StructArray1" : { "members" : [ { "name" : "Array", "type" : "array", "subtype" : "Pods2" }  ] },
+		"StructArray1" : { "members" : [ { "name" : "Array", "type" : "Pods2[]" }  ] },
 		
 		"Strings"           : { "members" : [ { "name" : "Str1", "type" : "string" }, { "name" : "Str2", "type" : "string" } ] },
-		"StringInlineArray" : { "members" : [ { "name" : "Strings", "type" : "inline-array", "subtype" : "string", "count" : 3 } ] },
-		"StringArray"       : { "members" : [ { "name" : "Strings", "type" : "array", "subtype" : "string" } ] },
+		"StringInlineArray" : { "members" : [ { "name" : "Strings", "type" : "string[3]" } ] },
+		"StringArray"       : { "members" : [ { "name" : "Strings", "type" : "string[]" } ] },
 		
 		"TestBits" : {
 			"members" : [ 
@@ -84,23 +84,23 @@
 		
 		"SimplePtr" : {
 			"members" : [ 
-				{ "name" : "Ptr1", "type" : "pointer", "subtype" : "Pods" },
-				{ "name" : "Ptr2", "type" : "pointer", "subtype" : "Pods" } 
+				{ "name" : "Ptr1", "type" : "Pods*" },
+				{ "name" : "Ptr2", "type" : "Pods*" } 
 			] 
 		},
 		
 		"PtrChain" : {
 			"members" : [
 				{ "name" : "Int",  "type" : "uint32" },
-				{ "name" : "Next", "type" : "pointer", "subtype" : "PtrChain" }
+				{ "name" : "Next", "type" : "PtrChain*" }
 			]
 		},
 		
 		"DoublePtrChain" : {
 			"members" : [
 				{ "name" : "Int",  "type" : "uint32" },
-				{ "name" : "Next", "type" : "pointer", "subtype" : "DoublePtrChain" },
-				{ "name" : "Prev", "type" : "pointer", "subtype" : "DoublePtrChain" }
+				{ "name" : "Next", "type" : "DoublePtrChain*" },
+				{ "name" : "Prev", "type" : "DoublePtrChain*" }
 			]
 		},
 		
@@ -108,8 +108,8 @@
 		
 		"TestingEnum" : { "members" : [ { "name" : "TheEnum", "type" : "TestEnum1" } ] },
 		
-		"InlineArrayEnum" : { "members" : [ { "name" : "EnumArr", "type" : "inline-array", "subtype" : "TestEnum2", "count" : 4 } ] },
-		"ArrayEnum"       : { "members" : [ { "name" : "EnumArr", "type" : "array",        "subtype" : "TestEnum2" } ] },
+		"InlineArrayEnum" : { "members" : [ { "name" : "EnumArr", "type" : "TestEnum2[4]" } ] },
+		"ArrayEnum"       : { "members" : [ { "name" : "EnumArr", "type" : "TestEnum2[]" } ] },
 		
 		// testing a comment here
 		"PodsDefaults" : {
@@ -130,28 +130,28 @@
 		/*
 			And a multiline comment here
 		*/
-		"DefaultStr"  :         { "members" : [ { "name" : "Str",    "type" : "string",       "default" : "cowbells ftw!"              } ] },
-		"DefaultEnum" :         { "members" : [ { "name" : "Enum",   "type" : "TestEnum1",    "default" : "TESTENUM1_VALUE3"           } ] },
-		"DefaultStruct" :       { "members" : [ { "name" : "Struct", "type" : "Pods2",        "default" : { "Int1" : 13, "Int2" : 37 } } ] },
-		"DefaultPtr"  :         { "members" : [ { "name" : "Ptr",    "type" : "pointer",      "default" : null,                        "subtype" : "Pods" } ] },
+		"DefaultStr"  :         { "members" : [ { "name" : "Str",    "type" : "string",    "default" : "cowbells ftw!"              } ] },
+		"DefaultEnum" :         { "members" : [ { "name" : "Enum",   "type" : "TestEnum1", "default" : "TESTENUM1_VALUE3"           } ] },
+		"DefaultStruct" :       { "members" : [ { "name" : "Struct", "type" : "Pods2",     "default" : { "Int1" : 13, "Int2" : 37 } } ] },
+		"DefaultPtr"  :         { "members" : [ { "name" : "Ptr",    "type" : "Pods*",     "default" : null                         } ] },
 		
 		/**
 			another comment
 		*/
-		"DefaultInlArrayPod"  : { "members" : [ { "name" : "Arr",  "type" : "inline-array", "default" : [ 1, 3, 3, 7 ],                             "subtype" : "uint32",    "count" : 4 } ] },
-		"DefaultInlArrayStr"  : { "members" : [ { "name" : "Arr",  "type" : "inline-array", "default" : [ "cow", "bells", "are", "cool" ],          "subtype" : "string",    "count" : 4 } ] },
-		"DefaultInlArrayEnum" : { "members" : [ { "name" : "Arr",  "type" : "inline-array", "default" : [ "TESTENUM1_VALUE3",
+		"DefaultInlArrayPod"  : { "members" : [ { "name" : "Arr",  "type" : "uint32[4]",    "default" : [ 1, 3, 3, 7 ] } ] },
+		"DefaultInlArrayStr"  : { "members" : [ { "name" : "Arr",  "type" : "string[4]",    "default" : [ "cow", "bells", "are", "cool" ] } ] },
+		"DefaultInlArrayEnum" : { "members" : [ { "name" : "Arr",  "type" : "TestEnum1[4]", "default" : [ "TESTENUM1_VALUE3",
 		                                                                                                  "TESTENUM1_VALUE1",
 		                                                                                                  "TESTENUM1_VALUE2",
-		                                                                                                  "TESTENUM1_VALUE4" ], "subtype" : "TestEnum1", "count" : 4 } ] },
+		                                                                                                  "TESTENUM1_VALUE4" ] } ] },
 		
 		///* hard one
-		"DefaultArrayPod"  :    { "members" : [ { "name" : "Arr",  "type" : "array", "default" : [ 1, 3, 3, 7 ],                             "subtype" : "uint32"    } ] },
-		"DefaultArrayStr"  :    { "members" : [ { "name" : "Arr",  "type" : "array", "default" : [ "cow", "bells", "are", "cool" ],          "subtype" : "string"    } ] },
-		"DefaultArrayEnum" :    { "members" : [ { "name" : "Arr",  "type" : "array", "default" : [ "TESTENUM1_VALUE3",
-		                                                                                           "TESTENUM1_VALUE1",
-		                                                                                           "TESTENUM1_VALUE2", 
-		                                                                                           "TESTENUM1_VALUE4" ], "subtype" : "TestEnum1" } ] },
+		"DefaultArrayPod"  :    { "members" : [ { "name" : "Arr",  "type" : "uint32[]",    "default" : [ 1, 3, 3, 7 ] } ] },
+		"DefaultArrayStr"  :    { "members" : [ { "name" : "Arr",  "type" : "string[]",    "default" : [ "cow", "bells", "are", "cool" ] } ] },
+		"DefaultArrayEnum" :    { "members" : [ { "name" : "Arr",  "type" : "TestEnum1[]", "default" : [ "TESTENUM1_VALUE3",
+		                                                                                                 "TESTENUM1_VALUE1",
+		                                                                                                 "TESTENUM1_VALUE2", 
+		                                                                                                 "TESTENUM1_VALUE4" ] } ] },
 		                                                                                           
 		"NamedEnums" : { 
 			"members" : [ 
@@ -164,18 +164,18 @@
 		
 		"BugTest4" : {
 			"members" : [
-				{ "name" : "struct_with_str_arr", "type" : "array", "subtype" : "StringArray" }
+				{ "name" : "struct_with_str_arr", "type" : "StringArray[]" }
 			]
 		},
 		
-		"PtrHolder" : { "members" : [ { "name" : "ptr", "type" : "pointer", "subtype" : "Pods2" } ] },
-		"PtrArray"  : { "members" : [ { "name" : "arr", "type" : "array",   "subtype" : "PtrHolder" } ] },
+		"PtrHolder" : { "members" : [ { "name" : "ptr", "type" : "Pods2*"      } ] },
+		"PtrArray"  : { "members" : [ { "name" : "arr", "type" : "PtrHolder[]" } ] },
 		
-		"circular_array_ptr_holder" : { "members" : [ { "name" : "ptr", "type" : "pointer", "subtype" : "circular_array" } ] },
+		"circular_array_ptr_holder" : { "members" : [ { "name" : "ptr", "type" : "circular_array*" } ] },
 		"circular_array" : { 
 			"members" : [ 
-				{ "name" : "val", "type" : "uint16" },
-				{ "name" : "arr", "type" : "array",   "subtype" : "circular_array_ptr_holder" } 
+				{ "name" : "val", "type" : "uint16" }, // alignment-bug here, put this member after array and it will fail!
+				{ "name" : "arr", "type" : "circular_array_ptr_holder[]" } 
 			]
 		}
 	}
