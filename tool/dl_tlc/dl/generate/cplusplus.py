@@ -42,10 +42,15 @@ ARRAY_TEMPLATE_STR = '''struct
     #endif // __cplusplus
     }'''
     
-CLASS_TEMPLATE = '''// size32 %(size32)u, size64 %(size64)u, align32 %(align32)u, align64 %(align64)u
+CLASS_TEMPLATE = '''
+#define %(name)s_TYPE_ID (0x%(typeid)08X)
+
+// size32 %(size32)u, size64 %(size64)u, align32 %(align32)u, align64 %(align64)u
 struct%(align_str)s%(name)s
 {
+#ifdef __cplusplus
     const static %(uint32)s TYPE_ID = 0x%(typeid)08X;
+#endif // __cplusplus
     
     %(members)s
 };
@@ -81,12 +86,14 @@ a_config_here = { 'int8'   : 'int8_t',
                   'fp64'   : 'double',
                   'string' : 'const char*' }
 
-def to_cpp_name( member ):
+def to_cpp_name( the_type ):
     import dl.typelibrary as tl
-    if isinstance( member.type, tl.ArrayType ) and member.type.base_type().name == 'string':
-        return 'char*'
     
-    return a_config_here.get( member.type.base_type().name, member.type.base_type().name )
+    btype = the_type.base_type()
+    
+    if isinstance( btype, tl.Type ): return 'struct ' + btype.name
+    if isinstance( btype, tl.Enum ): return 'enum ' + btype.name
+    return a_config_here.get( btype.name, btype.name )
 
 def emit_member( member ):
     lines = []        
@@ -99,13 +106,13 @@ def emit_member( member ):
         
     import dl.typelibrary as tl
     
-    cpp_name = to_cpp_name( member )
+    cpp_name = to_cpp_name( member.type )
     
-    if   ( isinstance( member.type, tl.Type ) or
-           isinstance( member.type, tl.Enum ) or
-           isinstance( member.type, tl.BuiltinType ) ):  lines.append( '%s %s;'               % ( cpp_name, member.name ) )
-    elif isinstance( member.type, tl.InlineArrayType ):   lines.append( '%s %s[%u];'           % ( cpp_name, member.name, member.type.count ) ) 
-    elif isinstance( member.type, tl.PointerType ):     lines.append( 'const struct %s* %s;' % ( cpp_name, member.name ) )
+    if   isinstance( member.type, tl.Type ):            lines.append( '%s %s;'               % ( cpp_name, member.name ) )
+    elif isinstance( member.type, tl.Enum ):            lines.append( '%s %s;'          % ( cpp_name, member.name ) )
+    elif isinstance( member.type, tl.BuiltinType ):     lines.append( '%s %s;'               % ( cpp_name, member.name ) )
+    elif isinstance( member.type, tl.InlineArrayType ): lines.append( '%s %s[%u];'           % ( cpp_name, member.name, member.type.count ) ) 
+    elif isinstance( member.type, tl.PointerType ):     lines.append( 'const %s* %s;' % ( cpp_name, member.name ) )
     elif isinstance( member.type, tl.BitfieldType ):    lines.append( '%s %s : %u;'          % ( cpp_name, member.name, member.type.bits ) )
     elif isinstance( member.type, tl.ArrayType ):
         if member.type.base_type().name == 'string':
