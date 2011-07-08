@@ -1029,11 +1029,11 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	if( out_buffer_size > 0 )
 	{
 		SDLDataHeader header;
-		header.id = DL_INSTANCE_ID;
-		header.version = DL_INSTANCE_VERSION;
-		header.root_instance_type = dl_internal_hash_string(PackContext.root_type->name); // TODO: Read typeid from somewhere, instance-id-generation might change!
-		header.instance_size = (uint32)dl_binary_writer_needed_size( &writer );
-		header.is_64_bit_ptr = sizeof(void*) == 8 ? 1 : 0;
+		header.id                 = DL_INSTANCE_ID;
+		header.version            = DL_INSTANCE_VERSION;
+		header.root_instance_type = dl_internal_typeid_of( dl_ctx, PackContext.root_type );
+		header.instance_size      = (uint32)dl_binary_writer_needed_size( &writer );
+		header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
 		memcpy( out_buffer, &header, sizeof(SDLDataHeader) );
 	}
 

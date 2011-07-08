@@ -294,6 +294,16 @@ static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t 
 	return 0x0;
 }
 
+static inline const dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const SDLType* type )
+{
+	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
+		if( (void*)(dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset) == (void*)type )
+			return dl_ctx->type_lookup[i].type_id;
+
+	DL_ASSERT( false && "Could not find type!?!" );
+	return 0;
+}
+
 static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
 	for (unsigned int i = 0; i < dl_ctx->enum_count; ++i)
