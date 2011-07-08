@@ -150,10 +150,6 @@ class Enum( object ):
         return 0
 
 def create_member( data, typelibrary ):
-    type = data['type'].strip()
-    
-    new_member = None
-    
     assert not 'subtype' in data, 'old format in tld-data'
     
     import re
@@ -169,28 +165,33 @@ def create_member( data, typelibrary ):
         - * for pointer to prev symbol
     '''
     p = re.compile( r'(\w+)|(\[\d+\])|(\[\])|(\*)' )
-    found = p.findall( type )
+    found = p.findall( data['type'].strip() )
     
-    base_type = typelibrary.find_type( found[0][0] )
+    mem_type = None
     
-    # haxxor! remove this, need to think through how to handle more than 2 elements in type
-    if len(found) == 1:
-        if type == 'bitfield':
-            new_member = Type.Member( BitfieldType( data['bits'] ) )
-        else:        
-            new_member = Type.Member( base_type )
-    else:
-        assert len(found) <= 2, 'not supported yet... just getting this in place. %u' % len(found)
-    
-        f = found[1]
-        
+    for index, f in enumerate(found):
         if f[0]: # type
-            assert i == 0, 'types can only occur as element 0 in type-definition!'
+            assert index == 0, 'types can only occur as element 0 in type-definition!'
+            
+            if f[0] == 'bitfield':
+                mem_type = BitfieldType( data['bits'] )
+            else:
+                mem_type = typelibrary.find_type( f[0] )
         
-        if f[1]: new_member = Type.Member( InlineArrayType( base_type, int( f[1][1:-1] ) ) )
-        if f[2]: new_member = Type.Member( ArrayType( base_type ) )
-        if f[3]: new_member = Type.Member( PointerType( base_type ) )
-                
+        if f[1]:
+            assert index > 0, 'element 0 in type need to be a concrete type!'
+            count    = int( f[1][1:-1] )
+            mem_type = InlineArrayType( mem_type, count )
+            
+        if f[2]:
+            assert index > 0, 'element 0 in type need to be a concrete type!' 
+            mem_type = ArrayType( mem_type )
+            
+        if f[3]: 
+            assert index > 0, 'element 0 in type need to be a concrete type!' 
+            mem_type = PointerType( mem_type )
+        
+    new_member         = Type.Member( mem_type );            
     new_member.name    = data['name']
     new_member.comment = data.get('comment', '')
     if 'default' in data:
