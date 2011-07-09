@@ -402,7 +402,6 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			ptr_conv.data_ptr = dl_ctx->enum_info_data + look->offset;
 			SDLEnum* e = ptr_conv.enum_ptr;
 
-			e->type_id     = dl_swap_endian_uint32( e->type_id );
 			e->value_count = dl_swap_endian_uint32( e->value_count );
 			for(uint32 i = 0; i < e->value_count; ++i)
 				e->values[i].value = dl_swap_endian_uint32( e->values[i].value );
@@ -445,6 +444,8 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	// if( !dl_internal_is_align( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
 	//	return DL_ERROR_BAD_ALIGNMENT;
 
+	// TODO: memmove here is a hack, should only need memcpy but due to abuse of dl_instance_load in dl_util.cpp
+	// memmove is needed!
 	memmove(instance, packed_instance + sizeof(SDLDataHeader), header->instance_size);
 
 	SPatchedInstances PI;

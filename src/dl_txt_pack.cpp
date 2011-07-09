@@ -456,13 +456,18 @@ static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_
 	switch(State)
 	{
 		case DL_PACK_STATE_INSTANCE_TYPE:
+		{
 			DL_ASSERT(pCtx->root_type == 0x0);
 			// we are packing an instance, get the type plox!
-			pCtx->root_type = dl_internal_find_type(pCtx->dl_ctx, dl_internal_hash_buffer(str_value, str_len, 0));
+
+			char type_name[DL_MEMBER_NAME_MAX_LEN] = { 0x0 };
+			strncpy( type_name, (const char*)str_value, str_len );
+			pCtx->root_type = dl_internal_find_type_by_name( pCtx->dl_ctx, type_name ); //  dl_internal_find_type(pCtx->dl_ctx, dl_internal_hash_buffer(str_value, str_len, 0));
 
 			DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", str_len, str_value);
 
 			pCtx->PopState(); // back to last state plox!
+		}
 		break;
 		case DL_PACK_STATE_STRING_ARRAY:
 		{

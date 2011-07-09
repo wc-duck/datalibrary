@@ -99,7 +99,7 @@ enum
 
 #include "dl_swap.h"
 
-static const uint32 DL_TYPELIB_VERSION    = 2; // format version for type-libraries.
+static const uint32 DL_TYPELIB_VERSION    = 3; // format version for type-libraries.
 static const uint32 DL_INSTANCE_VERSION   = 1; // format version for instances.
 static const uint32 DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
 static const uint32 DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
@@ -179,7 +179,6 @@ struct SDLType
 struct SDLEnum
 {
 	char        name[DL_ENUM_NAME_MAX_LEN];
-	dl_typeid_t type_id;
 	uint32      value_count;
 	struct
 	{
@@ -279,7 +278,7 @@ static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t 
 {
     DL_ASSERT( dl_internal_is_align( dl_ctx->type_lookup, DL_ALIGNMENTOF(dl_type_lookup_t) ) );
 	// linear search right now!
-	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
+    for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 		if(dl_ctx->type_lookup[i].type_id == type_id)
 		{
 			union
@@ -291,6 +290,23 @@ static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t 
 			return ptr_conv.type_ptr;
 		}
 
+    return 0x0;
+}
+
+static inline const SDLType* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, const char* name )
+{
+	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
+	{
+		union
+		{
+			const uint8*   data_ptr;
+			const SDLType* type_ptr;
+		} ptr_conv;
+		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
+
+		if( strcmp( name, ptr_conv.type_ptr->name ) == 0 )
+			return ptr_conv.type_ptr;
+	}
 	return 0x0;
 }
 

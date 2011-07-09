@@ -7,6 +7,7 @@
 
 import logging
 import struct
+import json
 
 class PlatformValue( object ):
     def __init__(self, val=(0,0)):
@@ -135,8 +136,9 @@ class Enum( object ):
             for char in str:
                 hash = (hash * 33) + ord(char)
             return (hash - 5381) & 0xFFFFFFFF;
-        
-        self.typeid = hash_buffer( self.name )
+
+        id_str = name + json.dumps(values).replace(' ', '')
+        self.typeid = hash_buffer( id_str ) # hash_buffer( self.name )
         
     def base_type(self): return self
     def size(self):      return PlatformValue( 4 )
@@ -217,9 +219,9 @@ class Type( object ):
         
         if len(name) > 32:
             raise DLException('Type name longer than 32 on type %s' % name)
-            
+        
         self.name     = name
-        self.typeid   = hash_buffer( self.name )
+        self.typeid   = hash_buffer( name + json.dumps(data).replace(' ', '') )
         self.comment  = data.get('comment', '') 
         self.my_size  = PlatformValue( 0 )
         self.my_align = PlatformValue( data.get('align', 0) )
@@ -389,7 +391,7 @@ class TypeLibrary( object ):
     
     def from_text( self, lib ):
         ''' read typelibrary from text-format lib. '''
-        import json, re
+        import re
         
         def replacer(match):
             s = match.group(0)
@@ -436,7 +438,7 @@ def compile( typelibrary, stream ):
     HEADER_SIZE = struct.calcsize(HEADER_FMT)
     
     def build_header( typelibrary, type_lookup, type_data, enum_lookup, enum_data, default_data ):
-        header = ''.join( [ struct.pack( '<4sI', 'LTLD', 2 ), # typelibrary identifier and version
+        header = ''.join( [ struct.pack( '<4sI', 'LTLD', 3 ), # typelibrary identifier and version
                             struct.pack( '<II', len(typelibrary.type_order), len(type_data) ), # type info
                             struct.pack( '<II', len(typelibrary.enums),      len(enum_data) ), # enum info
                             struct.pack( '<I',                               len(default_data) ) ] ) # default data
@@ -456,7 +458,7 @@ def compile( typelibrary, stream ):
             enum_offset = len(data)
             logging.debug('%40s  0x%08X%10u' % (enum.name, enum.typeid, enum_offset))
             lookup += struct.pack('<II', enum.typeid, enum_offset)
-            data   += struct.pack( '<32sII', str(enum.name), enum.typeid, len(enum.values))
+            data   += struct.pack( '<32sI', str(enum.name), len(enum.values))
             data   += ''.join( [ struct.pack( '<32sI', str(value.name), value.value ) for value in enum.values ] )
         
         return lookup, data
@@ -608,7 +610,6 @@ def compile( typelibrary, stream ):
 
 def generate( typelibrary, stream ):
     ''' generate json typelibrary definition ( some info might be lost ) '''
-    import json
     
     lib = {
         'module' : 'mod',

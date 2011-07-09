@@ -37,10 +37,11 @@ dl_error_t dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, uns
 
 dl_error_t dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_typeid_t* out_type_id )
 {
-	*out_type_id = dl_internal_hash_string( type_name );
-	const SDLType* pType = dl_internal_find_type(dl_ctx, *out_type_id);
+	const SDLType* pType = dl_internal_find_type_by_name( dl_ctx, type_name );
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
+
+	*out_type_id = dl_internal_typeid_of( dl_ctx, pType );
 
 	return DL_ERROR_OK;
 }
