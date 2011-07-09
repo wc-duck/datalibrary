@@ -87,7 +87,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 	// testing that errors are returned correctly by modding data.
 	unsigned int* lib_version = conv.version + 1;
 
-	EXPECT_EQ(2, *lib_version);
+	EXPECT_EQ(3, *lib_version);
 
 	*lib_version = 0xFFFFFFFF;
 
