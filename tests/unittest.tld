@@ -177,6 +177,15 @@
 				{ "name" : "val", "type" : "uint16" }, // alignment-bug here, put this member after array and it will fail!
 				{ "name" : "arr", "type" : "circular_array_ptr_holder[]" } 
 			]
+		},
+		
+		
+		"str_before_array_bug_arr_type" : { "members" : [ { "name" : "str", "type" : "string" } ] },
+		"str_before_array_bug" : {
+		    "members" : [
+		        { "name" : "str", "type": "string" },
+		        { "name" : "arr", "type": "str_before_array_bug_arr_type[]"}
+		    ]
 		}
 	}
 }

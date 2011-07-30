@@ -599,6 +599,11 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 				}
 				break;
 				case DL_TYPE_ATOM_ARRAY:
+				{
+					// calc alignemnt needed for array
+					pint array_align = dl_internal_align_of_type( pCtx->dl_ctx, pMember->type, pMember->type_id, DL_PTR_SIZE_HOST );
+					dl_binary_writer_needed_size_align_up( pCtx->writer, array_align );
+
 					// save position for array to be able to write ptr and count on array-end.
 					dl_binary_writer_write_pint( pCtx->writer, dl_binary_writer_needed_size( pCtx->writer ) );
 					array_count_patch_pos = dl_binary_writer_tell( pCtx->writer );
@@ -616,6 +621,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 					}
 
 					array_has_sub_ptrs = dl_internal_has_sub_ptr(pCtx->dl_ctx, pMember->type_id); // TODO: Optimize this, store info in type-data
+				}
 				case DL_TYPE_ATOM_INLINE_ARRAY: // FALLTHROUGH
 				{
 					pCtx->PushState(DL_PACK_STATE_ARRAY);

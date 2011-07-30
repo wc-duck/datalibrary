@@ -967,6 +967,26 @@ TYPED_TEST(DLBase, bug4)
 	}
 }
 
+TYPED_TEST(DLBase, str_before_array_bug)
+{
+	// Test for bug #7, where string written before array would lead to mis-alignment of the array.
+
+	str_before_array_bug_arr_type arr_data[] = { { "apan.ymesjh" } };
+	str_before_array_bug mod;
+
+	mod.str = "1234";
+	mod.arr.data  = arr_data;
+	mod.arr.count = DL_ARRAY_LENGTH( arr_data );
+
+	str_before_array_bug loaded[16];
+
+	this->do_the_round_about( str_before_array_bug::TYPE_ID, &mod, &loaded, sizeof(loaded) );
+
+	EXPECT_STREQ( mod.str,        loaded[0].str );
+	EXPECT_EQ   ( mod.arr.count,  loaded[0].arr.count );
+	EXPECT_STREQ( mod.arr[0].str, loaded[0].arr[0].str );
+}
+
 TEST(DLMisc, endian_is_correct)
 {
 	// Test that DL_ENDIAN_HOST is set correctly

@@ -249,31 +249,6 @@ inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset,
 
 DL_FORCEINLINE dl_endian_t DLOtherEndian(dl_endian_t _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
 
-static inline pint DLPodSize(dl_type_t _Type)
-{
-	switch(_Type & DL_TYPE_STORAGE_MASK)
-	{
-		case DL_TYPE_STORAGE_INT8:  
-		case DL_TYPE_STORAGE_UINT8:  return 1;
-
-		case DL_TYPE_STORAGE_INT16: 
-		case DL_TYPE_STORAGE_UINT16: return 2;
-
-		case DL_TYPE_STORAGE_INT32: 
-		case DL_TYPE_STORAGE_UINT32: 
-		case DL_TYPE_STORAGE_FP32: 
-		case DL_TYPE_STORAGE_ENUM:   return 4;
-
-		case DL_TYPE_STORAGE_INT64: 
-		case DL_TYPE_STORAGE_UINT64: 
-		case DL_TYPE_STORAGE_FP64:   return 8;
-
-		default:
-			DL_ASSERT(false && "This should not happen!");
-			return 0;
-	}
-}
-
 static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
     DL_ASSERT( dl_internal_is_align( dl_ctx->type_lookup, DL_ALIGNMENTOF(dl_type_lookup_t) ) );
@@ -308,6 +283,42 @@ static inline const SDLType* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, con
 			return ptr_conv.type_ptr;
 	}
 	return 0x0;
+}
+
+static inline pint DLPodSize( dl_type_t type )
+{
+	switch( type & DL_TYPE_STORAGE_MASK )
+	{
+		case DL_TYPE_STORAGE_INT8:  
+		case DL_TYPE_STORAGE_UINT8:  return 1;
+
+		case DL_TYPE_STORAGE_INT16: 
+		case DL_TYPE_STORAGE_UINT16: return 2;
+
+		case DL_TYPE_STORAGE_INT32: 
+		case DL_TYPE_STORAGE_UINT32: 
+		case DL_TYPE_STORAGE_FP32: 
+		case DL_TYPE_STORAGE_ENUM:   return 4;
+
+		case DL_TYPE_STORAGE_INT64: 
+		case DL_TYPE_STORAGE_UINT64: 
+		case DL_TYPE_STORAGE_FP64:   return 8;
+
+		default:
+			DL_ASSERT(false && "This should not happen!");
+			return 0;
+	}
+}
+
+static inline pint dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl_typeid_t type_id, dl_ptr_size_t ptr_size )
+{
+	switch( type & DL_TYPE_STORAGE_MASK )
+	{
+		case DL_TYPE_STORAGE_STRUCT: return dl_internal_find_type( ctx, type_id )->alignment[ptr_size];
+		case DL_TYPE_STORAGE_STR:
+		case DL_TYPE_STORAGE_PTR:    return sizeof(void*);
+		default:                     return DLPodSize( type );
+	}
 }
 
 static inline const dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const SDLType* type )

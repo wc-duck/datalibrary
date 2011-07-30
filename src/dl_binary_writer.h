@@ -49,6 +49,11 @@ static inline void dl_binary_writer_seek_set( dl_binary_writer* writer, pint pos
 static inline void dl_binary_writer_seek_end( dl_binary_writer* writer )           { writer->pos  = writer->needed_size; DL_LOG_BIN_WRITER_VERBOSE("Seek End: " DL_PINT_FMT_STR, writer->pos); }
 static inline pint dl_binary_writer_tell( dl_binary_writer* writer )               { return writer->pos; }
 static inline pint dl_binary_writer_needed_size( dl_binary_writer* writer )        { return writer->needed_size; }
+static inline void dl_binary_writer_needed_size_align_up( dl_binary_writer* writer, pint alignment )
+{
+	DL_LOG_BIN_WRITER_VERBOSE("Align needed size: " DL_PINT_FMT_STR " -> " DL_PINT_FMT_STR, writer->pos, alignment );
+	writer->needed_size = dl_internal_align_up( writer->needed_size, alignment );
+}
 
 static inline void dl_binary_writer_update_needed_size( dl_binary_writer* writer )
 {
@@ -196,6 +201,7 @@ static inline void dl_binary_writer_write_ptr( dl_binary_writer* writer, pint va
 static inline void dl_binary_writer_write_string( dl_binary_writer* writer, const void* str, pint len )
 {
 	char str_end = '\0';
+	DL_LOG_BIN_WRITER_VERBOSE("Write string: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " = \"%.*s\"", writer->pos, len + 1, (int)len, (char*)str);
 	dl_binary_writer_write( writer, str, len );
 	dl_binary_writer_write( writer, &str_end, sizeof(char) );
 }
