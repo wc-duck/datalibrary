@@ -187,14 +187,20 @@ class DLContext:
                 c_member = getattr( c_instance, member_name )
                 
                 conv_member = None
-                if isinstance( member[0], self.dl_type ):
+                if len(member) == 0:
+                    pass #handle empty arrays
+                elif isinstance( member[0], self.dl_type ):
                     conv_member = [ self.__py_type_to_ctype(inst) for inst in member ]
                 else:
                     conv_member = member
                         
                 if hasattr( c_member, 'data' ):
-                    c_member.data  = ( c_member.data._type_ * len( member ) )( *conv_member )
-                    c_member.count = len( member )
+                    if len( member ) == 0:
+                        c_member.data  = None
+                        c_member.count = 0
+                    else:
+                        c_member.data  = ( c_member.data._type_ * len( member ) )( *conv_member )
+                        c_member.count = len( member )
                 else: # inline array
                     setattr( c_instance, member_name, type(c_member)( *conv_member ) )
             else:
@@ -364,8 +370,7 @@ class DLContext:
         members, c_members, py_members = [], [], []
         
         for member in member_info:
-            members.append( member.name )
-            
+            members.append( member.name )            
             if member.AtomType() == DL_TYPE_ATOM_BITFIELD: # TODO: Do not like this!
                 c_members.append ( ( member.name, self.__get_ctypes_type( member ), member.BitFieldBits() ) )
             else:
