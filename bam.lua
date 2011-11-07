@@ -135,49 +135,41 @@ function DefaultGCC( platform, config )
 	return settings
 end
 
-function SetupMSVCBinaries( settings, build_platform )
+function SetupMSVCBinaries( settings, build_platform, compiler )
 	if family ~= "windows" then
 		return
 	end
 
-	vs8_path = os.getenv("VS80COMNTOOLS")
+	local has_msvs10 = os.getenv('VS100COMNTOOLS') ~= nil
+	local has_msvs8  = os.getenv('VS80COMNTOOLS') ~= nil
 	
-	if vs8_path == nil then error("Visual Studio 8 is not installed on this machine!") end
-	
-	local vs_install_dir = Path( vs8_path .. "/../../../" )
-	local vc_inc_path = Path( vs_install_dir .. "/VC/include" )
-	local vs_ide_path = Path( vs_install_dir .. "/Common7/IDE" )
-	local vs_define_name = ""
-	
-	local lib_path_sufix = ""
-	
-	if build_platform == "win32" then
-		vs_define_name = "DL_VS32_PATH"
-		EnvironmentSet( vs_define_name, Path( "\"" .. vs_install_dir .. "/VC/bin/\"" ) )
-	elseif build_platform == "winx64" then
-		lib_path_sufix = "/amd64"
-		vs_define_name = "DL_VS64_PATH"
-		if platform == "win32" then
-			EnvironmentSet( vs_define_name, Path( "\"" .. vs_install_dir .. "/VC/bin/x86_amd64/\"" ) )
-		else
-			EnvironmentSet( vs_define_name, Path( "\"" .. vs_install_dir .. "/VC/bin/amd64/\"" ) )
+	if compiler == nil then
+		-- set default compiler
+		if     has_msvs10 then compiler = 'msvs10'
+		elseif has_msvs8  then compiler = 'msvs8'
+		else   compiler = nil
 		end
+	elseif compiler == 'msvs10' then
+		if not has_msvs10 then
+			print( compiler  .. ' is not installed on this machine' )
+			os.exit(1)
+		end
+	elseif compiler == 'msvs8' then
+		if not has_msvs8 then
+			print( compiler  .. ' is not installed on this machine' )
+			os.exit(1)
+		end
+	else
+		print( compiler  .. ' is not installed on this machine' )
+		os.exit(1)
 	end
 	
-	EnvironmentSet("PATH", vs_ide_path)
-	
-	settings.cc.exe_c = "%" .. vs_define_name .. "%cl"
-	settings.lib.exe  = "%" .. vs_define_name .. "%lib"
-	settings.dll.exe  = "%" .. vs_define_name .. "%link"
-	settings.link.exe = "%" .. vs_define_name .. "%link"
-	
-	local lib_path  = Path( vs_install_dir .. "/VC/lib" .. lib_path_sufix )
-	local psdk_path = Path( vs_install_dir .. "/VC/PlatformSDK/lib" .. lib_path_sufix )
-	settings.cc.includes:Add(vc_inc_path)
-	settings.dll.libpath:Add(lib_path)
-	settings.dll.libpath:Add(psdk_path)
-	settings.link.libpath:Add(lib_path)
-	settings.link.libpath:Add(psdk_path)
+	local wrapper_path  = "compat/" .. compiler .. "/" .. build_platform
+	settings.cc.exe_c   = wrapper_path .. "/cl.bat"
+	settings.cc.exe_cxx = wrapper_path .. "/cl.bat"
+	settings.lib.exe    = wrapper_path .. "/lib.bat"
+	settings.dll.exe    = wrapper_path .. "/link.bat"
+	settings.link.exe   = wrapper_path .. "/link.bat"
 end
 
 function DefaultMSVC( build_platform, config )
@@ -199,7 +191,7 @@ function DefaultMSVC( build_platform, config )
 		settings.cc.flags:Add("/Ox", "/Ot", "/MT", "/D \"NDEBUG\"")
 	end
 	
-	SetupMSVCBinaries( settings, build_platform )
+	SetupMSVCBinaries( settings, build_platform, ScriptArgs["compiler"] )
 
 	return settings
 end
