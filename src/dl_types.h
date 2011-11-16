@@ -69,16 +69,21 @@ static const uint16 DL_UINT16_MIN = 0x0000U;
 static const uint32 DL_UINT32_MIN = 0x00000000UL;
 static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
 
-#if defined( __LP64__ ) || defined( _WIN64 )
-        #define DL_INT64_FMT_STR  "%ld"
-		#define DL_UINT64_FMT_STR "%lu"
-		#define DL_PINT_FMT_STR   "%lu"
-        typedef uint64 pint;
+#if defined( __LP64__ )
+	#define DL_INT64_FMT_STR  "%ld"
+	#define DL_UINT64_FMT_STR "%lu"
+	#define DL_PINT_FMT_STR   "%lu"
+	typedef uint64 pint;
+#elif defined( _WIN64 )
+	#define DL_INT64_FMT_STR  "%lld"
+	#define DL_UINT64_FMT_STR "%llu"
+	#define DL_PINT_FMT_STR   "%llu"
+	typedef uint64 pint;
 #else
-        #define DL_INT64_FMT_STR  "%lld"
-        #define DL_UINT64_FMT_STR "%llu"
-		#define DL_PINT_FMT_STR   "%u"
-        typedef uint32 pint;
+	#define DL_INT64_FMT_STR  "%lld"
+	#define DL_UINT64_FMT_STR "%llu"
+	#define DL_PINT_FMT_STR   "%u"
+	typedef uint32 pint;
 #endif // defined( __LP64__ ) || defined( _WIN64 )
 
 template<class T>
