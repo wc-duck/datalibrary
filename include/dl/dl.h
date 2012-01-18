@@ -75,7 +75,7 @@ enum dl_error_t
 };
 
 /*
-	Enum: EDLType
+	Enum: dl_type_t
 		Enumeration that describes a specific type in DL.
 */
 enum dl_type_t
