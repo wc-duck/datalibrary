@@ -703,6 +703,8 @@ static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_
 {
 	bool bLastWasBF = false;
 
+	dl_binary_writer_align( &store_ctx->writer, dl_type->alignment[DL_PTR_SIZE_HOST] );
+
 	for(uint32 member = 0; member < dl_type->member_count; ++member)
 	{
 		const SDLMember& Member = dl_type->members[member];

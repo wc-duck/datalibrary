@@ -987,6 +987,31 @@ TYPED_TEST(DLBase, str_before_array_bug)
 	EXPECT_STREQ( mod.arr[0].str, loaded[0].arr[0].str );
 }
 
+TYPED_TEST(DLBase, bug_first_member_in_struct)
+{
+	// testing bug where first member of struct do not have the same
+	// alignment as parent-struct and this struct is part of an array.
+
+	bug_array_alignment_struct descs[] = {
+		{ 1,  2,  3 }, //,  4,  5,  6,  7,  8 },
+		{ 9, 10, 11 }, //, 12, 13, 14, 15, 16 }
+	};
+
+	bug_array_alignment desc;
+	desc.components.data  = descs;
+	desc.components.count = DL_ARRAY_LENGTH(descs);
+
+	bug_array_alignment loaded[128];
+
+	this->do_the_round_about( bug_array_alignment::TYPE_ID, &desc, &loaded, sizeof(loaded) );
+
+	EXPECT_EQ( desc.components[0].type, loaded[0].components[0].type );
+	EXPECT_EQ( desc.components[0].ptr,  loaded[0].components[0].ptr );
+
+	EXPECT_EQ( desc.components[1].type, loaded[0].components[1].type );
+	EXPECT_EQ( desc.components[1].ptr,  loaded[0].components[1].ptr );
+};
+
 TEST(DLMisc, endian_is_correct)
 {
 	// Test that DL_ENDIAN_HOST is set correctly

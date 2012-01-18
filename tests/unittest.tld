@@ -17,7 +17,6 @@
 			{ "NAMED_VALUE_VALUE" : 1337 }
 		]
 	},
-	
 	"types" : {
 		"unused" : { "members" : [ { "name" : "member",  "type" : "int32", "comment" : "only used in unittests to check for errors" } ] },
 		
@@ -186,6 +185,20 @@
 		        { "name" : "str", "type": "string" },
 		        { "name" : "arr", "type": "str_before_array_bug_arr_type[]"}
 		    ]
+		},
+		
+		"bug_array_alignment_struct" : {
+			"members" : [
+				{ "name" : "type",         "type" : "uint32" },
+				{ "name" : "ptr",          "type" : "uint64" },
+				{ "name" : "used_sources", "type" : "uint32" }
+			]
+		},
+		
+		"bug_array_alignment" : {
+			"members" : [
+				{ "name" : "components", "type" : "bug_array_alignment_struct[]" }
+			]
 		}
 	}
 }

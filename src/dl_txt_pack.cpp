@@ -9,6 +9,8 @@
 
 #include <yajl/yajl_parse.h>
 
+#include <stdlib.h>
+
 /*
 	PACKING OF ARRAYS, How its done!
 
@@ -75,7 +77,7 @@ class CFlagField
 
 public:
 	CFlagField()            { ClearAll(); }
-	CFlagField(bool _AllOn) { MemSet(storage, _AllOn ? 0xFF : 0x00, sizeof(storage)); }
+	CFlagField(bool _AllOn) { memset(storage, _AllOn ? 0xFF : 0x00, sizeof(storage)); }
 
 	~CFlagField() {}
 
@@ -119,14 +121,11 @@ struct SDLPackState
 
 struct SDLPackContext
 {
-	SDLPackContext() : root_type(0x0), error_code(DL_ERROR_OK)
+	SDLPackContext() : root_type(0x0), error_code(DL_ERROR_OK), patch_pos_count(0)
 	{
 		PushState(DL_PACK_STATE_INSTANCE);
-		memset(subdata_elems, 0xFF, sizeof(subdata_elems));
-
-		// element 1 is root, and it has position 0
-		subdata_elems[0].pos = 0;
-		subdata_elems[0].count = 0;
+		memset( subdata_elems_pos, 0xFF, sizeof(subdata_elems_pos) );
+		subdata_elems_pos[0] = 0; // element 1 is root, and it has position 0
 	}
 
 	dl_binary_writer* writer;
@@ -146,46 +145,46 @@ struct SDLPackContext
 		state_stack.Push( SDLPackState(DL_PACK_STATE_STRUCT, _pType, struct_start_pos) );
 	}
 
-	void PushEnumState(const SDLEnum* _pMember)
+	void PushEnumState( const SDLEnum* member )
 	{
-		state_stack.Push( SDLPackState(DL_PACK_STATE_ENUM, _pMember) );
+		state_stack.Push( SDLPackState(DL_PACK_STATE_ENUM, member) );
 	}
 
-	void PushMemberState( EDLPackState _State, const SDLMember* _pMember)
+	void PushMemberState( EDLPackState state, const SDLMember* member )
 	{
-		state_stack.Push( SDLPackState(_State, _pMember) );
+		state_stack.Push( SDLPackState(state, member) );
 	}
 
-	void PushState( EDLPackState _State ) 
+	void PushState( EDLPackState state ) 
 	{
-		DL_ASSERT(_State != DL_PACK_STATE_STRUCT && "Please use PushStructState()");
-		state_stack.Push(_State);
+		DL_ASSERT( state != DL_PACK_STATE_STRUCT && "Please use PushStructState()" );
+		state_stack.Push( state );
 	}
 
 	void PopState() { state_stack.Pop(); }
 
 	void ArrayItemPop()
 	{
-		SDLPackState& OldState = state_stack.Top();
+		SDLPackState& old_state = state_stack.Top();
 
 		state_stack.Pop();
 
-		if(OldState.state == DL_PACK_STATE_STRUCT)
+		if(old_state.state == DL_PACK_STATE_STRUCT)
 		{
 			// end should be just after the current struct. but we might not be there since
 			// members could have been written in an order that is not according to type.
-			dl_binary_writer_seek_set( writer, OldState.struct_start_pos + OldState.type->size[DL_PTR_SIZE_HOST] );
+			dl_binary_writer_seek_set( writer, old_state.struct_start_pos + old_state.type->size[DL_PTR_SIZE_HOST] );
 		}
 
 		if( state_stack.Top().state == DL_PACK_STATE_ARRAY )
 		{
 			state_stack.Top().array_count++;
 
-			switch(OldState.state)
+			switch(old_state.state)
 			{
-				case DL_PACK_STATE_STRUCT: PushStructState(OldState.type); break;
-				case DL_PACK_STATE_ENUM:   PushEnumState(OldState.enum_type);   break;
-				default:                   PushState(OldState.state);       break;
+				case DL_PACK_STATE_STRUCT: PushStructState(old_state.type);    break;
+				case DL_PACK_STATE_ENUM:   PushEnumState(old_state.enum_type); break;
+				default:                   PushState(old_state.state);         break;
 			}
 		}
 	}
@@ -193,45 +192,35 @@ struct SDLPackContext
 	EDLPackState CurrentPackState() { return state_stack.Top().state; }
 
 	// positions where we have only an ID that referre to subdata!
-	struct SPatchPosition
+	struct
 	{
-		SPatchPosition() {}
-		SPatchPosition( unsigned int _ID, pint _WritePos, const SDLMember* _pMember )
-			: id(_ID)
-			, write_pos(_WritePos)
-			, member(_pMember) {}
 		unsigned int     id;
 		pint             write_pos;
 		const SDLMember* member;
-	};
+	}            patch_pos[128];
+	unsigned int patch_pos_count;
 
-	CArrayStatic<SPatchPosition, 128> patch_pos;
-
-	void AddPatchPosition(unsigned int _ID)
+	void AddPatchPosition( unsigned int id )
 	{
-		patch_pos.Add(SPatchPosition(_ID, dl_binary_writer_tell( writer ), state_stack.Top().member));
+		unsigned int pp_index = patch_pos_count++;
+		DL_ASSERT( pp_index < DL_ARRAY_LENGTH(patch_pos) );
+
+		patch_pos[pp_index].id        = id;
+		patch_pos[pp_index].write_pos = dl_binary_writer_tell( writer );
+		patch_pos[pp_index].member    = state_stack.Top().member;
 	}
 
-	void RegisterSubdataElement(unsigned int _Element, pint _Pos)
+	void RegisterSubdataElement(unsigned int elem, pint pos)
 	{
-		DL_ASSERT(subdata_elems[_Element].pos == pint(-1) && "Subdata element already registered!");
-		subdata_elems[_Element].pos = _Pos;
-		curr_subdata_elem = _Element;
+		DL_ASSERT(subdata_elems_pos[elem] == pint(-1) && "Subdata element already registered!");
+		subdata_elems_pos[elem] = pos;
+		curr_subdata_elem = elem;
 	}
-
-	pint   SubdataElementPos(unsigned int _Element)   { return subdata_elems[_Element].pos; }
-	uint32 SubdataElementCount(unsigned int _Element) { return subdata_elems[_Element].count; }
 
 	CStackStatic<SDLPackState, 128> state_stack;
 
-private:
 	unsigned int curr_subdata_elem;
-	// positions for different subdata-elements;
-	struct
-	{
-		pint   pos;
-		uint32 count;
-	} subdata_elems[128];
+	pint subdata_elems_pos[128]; // positions for different subdata-elements;
 };
 
 static int dl_internal_pack_on_null( void* pack_ctx )
@@ -398,7 +387,7 @@ static int dl_internal_pack_on_number( void* pack_ctx, const char* str_val, unsi
 			pCtx->AddPatchPosition( (unsigned int)ID );
 
 			// this is the pos that will be patched, but we need to make room for the array now!
-			dl_binary_writer_write_zero( pCtx->writer, pCtx->patch_pos[pCtx->patch_pos.Len() - 1].member->size[DL_PTR_SIZE_HOST] );
+			dl_binary_writer_write_zero( pCtx->writer, pCtx->patch_pos[ pCtx->patch_pos_count - 1 ].member->size[DL_PTR_SIZE_HOST] );
 
 			pCtx->PopState();
 		}
@@ -462,7 +451,7 @@ static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_
 
 			char type_name[DL_MEMBER_NAME_MAX_LEN] = { 0x0 };
 			strncpy( type_name, (const char*)str_value, str_len );
-			pCtx->root_type = dl_internal_find_type_by_name( pCtx->dl_ctx, type_name ); //  dl_internal_find_type(pCtx->dl_ctx, dl_internal_hash_buffer(str_value, str_len, 0));
+			pCtx->root_type = dl_internal_find_type_by_name( pCtx->dl_ctx, type_name );
 
 			DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", str_len, str_value);
 
@@ -670,7 +659,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 			const SDLMember* pMember = 0x0;
 
 			// check that we have referenced this before so we know its type!
-			for (unsigned int iPatchPos = 0; iPatchPos < pCtx->patch_pos.Len(); ++iPatchPos)
+			for (unsigned int iPatchPos = 0; iPatchPos < pCtx->patch_pos_count; ++iPatchPos)
 				if(pCtx->patch_pos[iPatchPos].id == ID)
 				{
 					pMember = pCtx->patch_pos[iPatchPos].member;
@@ -727,13 +716,13 @@ static int dl_internal_pack_on_map_start( void* pack_ctx )
 static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 {
 	// patch subdata
-	for(unsigned int patch_pos = 0; patch_pos < pack_ctx->patch_pos.Len(); ++patch_pos)
+	for(unsigned int patch_pos = 0; patch_pos < pack_ctx->patch_pos_count; ++patch_pos)
 	{
 		unsigned int id = pack_ctx->patch_pos[patch_pos].id;
 		pint member_pos = pack_ctx->patch_pos[patch_pos].write_pos;
 
 		dl_binary_writer_seek_set( pack_ctx->writer, member_pos );
-		dl_binary_writer_write_pint( pack_ctx->writer, pack_ctx->SubdataElementPos(id) );
+		dl_binary_writer_write_pint( pack_ctx->writer, pack_ctx->subdata_elems_pos[id] );
 	}
 }
 

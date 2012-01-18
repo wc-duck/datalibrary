@@ -231,7 +231,7 @@ class TestLibDL( DL ):
 	def testWritePodArray2(self):
 		Instance = self.dl_ctx.types.PodArray2()
 		
-		Instance.sub_arr = [ self.dl_ctx.types.PodArray1() ] * 3
+		Instance.sub_arr = [ self.dl_ctx.types.PodArray1() for i in range(3) ]
 		Instance.sub_arr[0].u32_arr = [ 1, 2, 3 ]
 		Instance.sub_arr[1].u32_arr = [ 3, 4, 5 ]
 		Instance.sub_arr[2].u32_arr = [ 6, 7, 8 ]
