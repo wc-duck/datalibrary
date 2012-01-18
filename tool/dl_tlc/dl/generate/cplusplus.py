@@ -98,8 +98,8 @@ def to_cpp_name( the_type ):
 def emit_member( member ):
     lines = []        
     if verbose:
-        lines.append( '// 32bit: size %u, align %u, offset %u' % ( member.type.size().ptr32, member.type.align.ptr32, member.offset.ptr32 ) )
-        lines.append( '// 64bit: size %u, align %u, offset %u' % ( member.type.size().ptr64, member.type.align.ptr64, member.offset.ptr64 ) )
+        lines.append( '// 32bit: size %u, align %u, offset %u' % ( member.type.size().ptr32, member.type.align().ptr32, member.offset.ptr32 ) )
+        lines.append( '// 64bit: size %u, align %u, offset %u' % ( member.type.size().ptr64, member.type.align().ptr64, member.offset.ptr64 ) )
     
     if member.comment:
         lines.append( '// %s' % member.comment )
