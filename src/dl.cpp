@@ -116,29 +116,43 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 		patched_instances->m_lpPatched.Add(instance);
 	}
 
-	for(uint32 iMember = 0; iMember < type->member_count; ++iMember)
+	for( int member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		const SDLMember& Member = type->members[iMember];
-		const uint8* pMemberData = instance + Member.offset[DL_PTR_SIZE_HOST];
+		const SDLMember* member      = type->members + member_index;
+		const uint8*     member_data = instance + member->offset[DL_PTR_SIZE_HOST];
 
-		dl_type_t AtomType    = Member.AtomType();
-		dl_type_t StorageType = Member.StorageType();
+		dl_type_t atom_type    = member->AtomType();
+		dl_type_t storage_type = member->StorageType();
 
-		switch(AtomType)
+		switch( atom_type )
 		{
 			case DL_TYPE_ATOM_POD:
 			{
-				switch(StorageType)
+				switch( storage_type )
 				{
-					case DL_TYPE_STORAGE_STR:    dl_internal_patch_ptr(pMemberData, base_data); break;
-					case DL_TYPE_STORAGE_STRUCT: dl_internal_patch_loaded_ptrs(dl_ctx, patched_instances, pMemberData, dl_internal_find_type( dl_ctx, Member.type_id), base_data, true ); break;
+					case DL_TYPE_STORAGE_STR:
+						dl_internal_patch_ptr( member_data, base_data );
+						break;
+					case DL_TYPE_STORAGE_STRUCT:
+						dl_internal_patch_loaded_ptrs( dl_ctx,
+													   patched_instances,
+													   member_data,
+													   dl_internal_find_type( dl_ctx, member->type_id ),
+													   base_data,
+													   true );
+					break;
 					case DL_TYPE_STORAGE_PTR:
 					{
-						uint8** ppPtr = (uint8**)pMemberData;
-						dl_internal_patch_ptr(pMemberData, base_data);
+						uint8** ptr = (uint8**)member_data;
+						dl_internal_patch_ptr(member_data, base_data);
 
-						if(*ppPtr != 0x0)
-							dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, *ppPtr, dl_internal_find_type(dl_ctx, Member.type_id), base_data, false );
+						if(*ptr != 0x0)
+							dl_internal_patch_loaded_ptrs( dl_ctx,
+														   patched_instances,
+														   *ptr,
+														   dl_internal_find_type( dl_ctx, member->type_id ),
+														   base_data,
+														   false );
 					}
 					break;
 					default:
@@ -149,42 +163,42 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 			break;
 			case DL_TYPE_ATOM_ARRAY:
 			{
-				if(StorageType == DL_TYPE_STORAGE_STR || StorageType == DL_TYPE_STORAGE_STRUCT)
+				if( storage_type == DL_TYPE_STORAGE_STR || storage_type == DL_TYPE_STORAGE_STRUCT )
 				{
-					dl_internal_patch_ptr(pMemberData, base_data);
-					const uint8* pArrayData = *(const uint8**)pMemberData;
+					dl_internal_patch_ptr( member_data, base_data );
+					const uint8* array_data = *(const uint8**)member_data;
 
-					uint32 Count = *(uint32*)(pMemberData + sizeof(void*));
+					uint32 count = *(uint32*)( member_data + sizeof(void*) );
 
-					if(Count > 0)
+					if( count > 0 )
 					{
-						if(StorageType == DL_TYPE_STORAGE_STRUCT)
+						if(storage_type == DL_TYPE_STORAGE_STRUCT)
 						{
 							// patch sub-ptrs!
-							const SDLType* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
-							uint32 Size = dl_internal_align_up(pSubType->size[DL_PTR_SIZE_HOST], pSubType->alignment[DL_PTR_SIZE_HOST]);
+							const SDLType* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+							uint32 size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 
-							for(uint32 iElemOffset = 0; iElemOffset < Count * Size; iElemOffset += Size)
-								dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, pArrayData + iElemOffset, pSubType, base_data, true );
+							for( uint32 elem_offset = 0; elem_offset < count * size; elem_offset += size )
+								dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, array_data + elem_offset, sub_type, base_data, true );
 						}
 						else
 						{
-							for(uint32 iElemOffset = 0; iElemOffset < Count * sizeof(char*); iElemOffset += sizeof(char*))
-								dl_internal_patch_ptr(pArrayData + iElemOffset, base_data);
+							for( uint32 elem_offset = 0; elem_offset < count * sizeof(char*); elem_offset += sizeof(char*) )
+								dl_internal_patch_ptr( array_data + elem_offset, base_data );
 						}
 					}
 				}
 				else // pod
-					dl_internal_patch_ptr(pMemberData, base_data);
+					dl_internal_patch_ptr( member_data, base_data );
 			}
 			break;
 
 			case DL_TYPE_ATOM_INLINE_ARRAY:
 			{
-				if(StorageType == DL_TYPE_STORAGE_STR)
+				if( storage_type == DL_TYPE_STORAGE_STR )
 				{
-					for(pint iElemOffset = 0; iElemOffset < Member.size[DL_PTR_SIZE_HOST]; iElemOffset += sizeof(char*))
-						dl_internal_patch_ptr(pMemberData + iElemOffset, base_data);
+					for( pint elem_offset = 0; elem_offset < member->size[DL_PTR_SIZE_HOST]; elem_offset += sizeof(char*) )
+						dl_internal_patch_ptr( member_data + elem_offset, base_data );
 				}
 			}
 			break;
@@ -195,6 +209,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 
 		default:
 			DL_ASSERT(false && "Unknown atom type");
+			break;
 		}
 	}
 	return DL_ERROR_OK;
