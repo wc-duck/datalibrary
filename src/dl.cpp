@@ -215,29 +215,29 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 	return DL_ERROR_OK;
 }
 
-struct SOneMemberType
+struct dl_one_member_type
 {
-	SOneMemberType(const SDLMember* _pMember)
+	dl_one_member_type( const SDLMember* member )
 	{
-		size[0] = _pMember->size[0];
-		size[1] = _pMember->size[1];
-		alignment[0] = _pMember->alignment[0];
-		alignment[1] = _pMember->alignment[1];
+		size[0]      = member->size[0];
+		size[1]      = member->size[1];
+		alignment[0] = member->alignment[0];
+		alignment[1] = member->alignment[1];
 		member_count = 1;
 
-		memcpy(&members, _pMember, sizeof(SDLMember));
+		memcpy(&members, member, sizeof(SDLMember));
 		members.offset[0] = 0;
 		members.offset[0] = 0;
 	}
 
-	char      m_Name[DL_TYPE_NAME_MAX_LEN];
+	char      name[DL_TYPE_NAME_MAX_LEN];
 	uint32    size[2];
 	uint32    alignment[2];
 	uint32    member_count;
 	SDLMember members;
 };
 
-DL_STATIC_ASSERT(sizeof(SOneMemberType) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
+DL_STATIC_ASSERT(sizeof(dl_one_member_type) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size);
 
 static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsigned int first_new_type, const uint8* default_data, unsigned int default_data_size)
 {
@@ -272,12 +272,12 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 			pint BaseOffset               = pint( pDst ) - pint( dl_ctx->default_data );
 			pMember->default_value_offset = uint32( BaseOffset );
 
-			SOneMemberType Dummy(pMember);
+			dl_one_member_type Dummy(pMember);
 			unsigned int NeededSize;
 
 			union
 			{
-				SOneMemberType* one_mem_ptr;
+				dl_one_member_type* one_mem_ptr;
 				SDLType*        type_ptr;
 			} conv;
 			conv.one_mem_ptr = &Dummy;
