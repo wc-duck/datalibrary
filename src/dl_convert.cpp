@@ -503,6 +503,8 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t          dl_ctx,
 
 				dl_binary_writer_write_ptr( writer, Offset );
 				dl_binary_writer_write_4byte( writer, pMemberData + dl_internal_ptr_size( conv_ctx.m_SourcePtrSize ) );
+				if( conv_ctx.m_TargetPtrSize == DL_PTR_SIZE_64BIT )
+					dl_binary_writer_write_zero( writer, 4 );
 			}
 			break;
 

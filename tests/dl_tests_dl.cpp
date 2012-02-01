@@ -1010,7 +1010,35 @@ TYPED_TEST(DLBase, bug_first_member_in_struct)
 
 	EXPECT_EQ( desc.components[1].type, loaded[0].components[1].type );
 	EXPECT_EQ( desc.components[1].ptr,  loaded[0].components[1].ptr );
-};
+}
+
+TYPED_TEST(DLBase, bug_test_1)
+{
+	// Testing bug where padding in array-member was missed in some cases.
+	uint8_t arr1[] = { 1, 3, 3, 7 };
+	uint8_t arr2[] = { 13, 37 };
+	test_array_pad_1 descs[] = {
+		{ { arr1, DL_ARRAY_LENGTH(arr1) },  9 },
+		{ { arr2, DL_ARRAY_LENGTH(arr2) }, 11 }
+	};
+
+	test_array_pad desc = { { descs, DL_ARRAY_LENGTH(descs) } };
+
+	test_array_pad loaded[128];
+	this->do_the_round_about( test_array_pad::TYPE_ID, &desc, &loaded, sizeof(loaded) );
+
+	EXPECT_EQ( desc.components[0].type,         loaded[0].components[0].type );
+
+	EXPECT_EQ( desc.components[0].ptr.count, loaded[0].components[0].ptr.count );
+	EXPECT_EQ( desc.components[0].ptr[0],    loaded[0].components[0].ptr[0] );
+	EXPECT_EQ( desc.components[0].ptr[1],    loaded[0].components[0].ptr[1] );
+	EXPECT_EQ( desc.components[0].ptr[2],    loaded[0].components[0].ptr[2] );
+	EXPECT_EQ( desc.components[0].ptr[3],    loaded[0].components[0].ptr[3] );
+
+	EXPECT_EQ( desc.components[1].ptr.count, loaded[0].components[1].ptr.count );
+	EXPECT_EQ( desc.components[1].ptr[0],    loaded[0].components[1].ptr[0] );
+	EXPECT_EQ( desc.components[1].ptr[1],    loaded[0].components[1].ptr[1] );
+}
 
 TEST(DLMisc, endian_is_correct)
 {

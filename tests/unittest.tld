@@ -199,6 +199,19 @@
 			"members" : [
 				{ "name" : "components", "type" : "bug_array_alignment_struct[]" }
 			]
+		},
+		
+		"test_array_pad_1" : {
+			"members" : [
+				{ "name" : "ptr",          "type" : "uint8[]" },
+				{ "name" : "type",         "type" : "uint32"  }
+			]
+		},
+		
+		"test_array_pad" : {
+			"members" : [
+				{ "name" : "components", "type" : "test_array_pad_1[]" }
+			]
 		}
 	}
 }

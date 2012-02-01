@@ -532,8 +532,6 @@ static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_
 
 static dl_error_t dl_internal_store_member(dl_ctx_t _Context, const SDLMember* _pMember, uint8* _pInstance, CDLBinStoreContext* _pStoreContext)
 {
-	dl_binary_writer_align( &_pStoreContext->writer, _pMember->alignment[DL_PTR_SIZE_HOST] );
-
 	dl_type_t AtomType    = dl_type_t(_pMember->type & DL_TYPE_ATOM_MASK);
 	dl_type_t StorageType = dl_type_t(_pMember->type & DL_TYPE_STORAGE_MASK);
 
@@ -705,12 +703,14 @@ static dl_error_t dl_internal_instance_store(dl_ctx_t dl_ctx, const SDLType* dl_
 
 	dl_binary_writer_align( &store_ctx->writer, dl_type->alignment[DL_PTR_SIZE_HOST] );
 
+	pint instance_pos = dl_binary_writer_tell( &store_ctx->writer );
 	for(uint32 member = 0; member < dl_type->member_count; ++member)
 	{
 		const SDLMember& Member = dl_type->members[member];
 
 		if(!bLastWasBF || Member.AtomType() != DL_TYPE_ATOM_BITFIELD)
 		{
+			dl_binary_writer_seek_set( &store_ctx->writer, instance_pos + Member.offset[DL_PTR_SIZE_HOST] );
 			dl_error_t Err = dl_internal_store_member(dl_ctx, &Member, instance + Member.offset[DL_PTR_SIZE_HOST], store_ctx);
 			if(Err != DL_ERROR_OK)
 				return Err;
