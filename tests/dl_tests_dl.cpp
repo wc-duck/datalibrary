@@ -59,7 +59,6 @@ struct pack_text_test
 
 		// pack txt to binary
 		EXPECT_DL_ERR_OK( dl_txt_pack_calc_size( dl_ctx, text_buffer, out_size ) );
-
 		EXPECT_DL_ERR_OK( dl_txt_pack( dl_ctx, text_buffer, out_buffer, *out_size, 0x0 ) );
 	}
 };
@@ -1040,42 +1039,23 @@ TYPED_TEST(DLBase, bug_test_1)
 	EXPECT_EQ( desc.components[1].ptr[1],    loaded[0].components[1].ptr[1] );
 }
 
-/*
-// currently broken
-TYPED_TEST(DLBase, per_bug_1)
+TYPED_TEST( DLBase, per_bug_1 )
 {
-	dl_input_desc mapping[] = {
-		{ "POSITION", 0, YUKI_VF_R32G32B32_FLOAT, 0, 0  },
-		{ "TEXCOORD", 0, YUKI_VF_R32G32_FLOAT,    0, 12 },
-		{ "TEXCOORD", 1, YUKI_VF_R32G32B32_FLOAT, 0, 20 }
-	};
+	// testing that struct with string in it can be used in array.
+	per_bug_1 mapping[] = { { "1str1" }, { "2str2" }, { "3str3" } };
 
-	dl_material_type inst;
-	inst.vertexshader       = "assets\\shaders\\D3D10Window.fxc";
-	inst.geometryshader     = "";
-	inst.pixelshader        = "assets\\shaders\\D3D10Window.fxc";
-	inst.inputmapping.data  = mapping;
-	inst.inputmapping.count = DL_ARRAY_LENGTH(mapping);
+	per_bug inst;
+	inst.arr.data  = mapping;
+	inst.arr.count = DL_ARRAY_LENGTH(mapping);
 
-	dl_material_type loaded[128];
-	this->do_the_round_about( dl_material_type::TYPE_ID, &inst, &loaded, sizeof(loaded) );
+	per_bug loaded[128];
+	this->do_the_round_about( per_bug::TYPE_ID, &inst, &loaded, sizeof(loaded) );
 
-	EXPECT_STREQ( inst.vertexshader,   loaded[0].vertexshader );
-	EXPECT_STREQ( inst.geometryshader, loaded[0].geometryshader );
-	EXPECT_STREQ( inst.pixelshader,    loaded[0].pixelshader );
+	EXPECT_EQ( inst.arr.count, loaded[0].arr.count );
 
-	EXPECT_EQ( inst.inputmapping.count, loaded[0].inputmapping.count );
-
-	for( uint32_t i = 0; i < loaded[0].inputmapping.count; ++i )
-	{
-		EXPECT_STREQ( inst.inputmapping[i].semantic,      loaded[0].inputmapping[i].semantic );
-		EXPECT_EQ   ( inst.inputmapping[i].semanticindex, loaded[0].inputmapping[i].semanticindex );
-		EXPECT_EQ   ( inst.inputmapping[i].format,        loaded[0].inputmapping[i].format );
-		EXPECT_EQ   ( inst.inputmapping[i].slot,          loaded[0].inputmapping[i].slot );
-		EXPECT_EQ   ( inst.inputmapping[i].offset,        loaded[0].inputmapping[i].offset );
-	}
+	for( uint32_t i = 0; i < loaded[0].arr.count; ++i )
+		EXPECT_STREQ( inst.arr[i].str, loaded[0].arr[i].str );
 }
-*/
 
 TEST(DLMisc, endian_is_correct)
 {

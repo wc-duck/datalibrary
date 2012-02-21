@@ -169,7 +169,7 @@ struct SDLPackContext
 
 		state_stack.Pop();
 
-		if(old_state.state == DL_PACK_STATE_STRUCT)
+		if( old_state.state == DL_PACK_STATE_STRUCT )
 		{
 			// end should be just after the current struct. but we might not be there since
 			// members could have been written in an order that is not according to type.
@@ -297,6 +297,7 @@ static int dl_internal_pack_on_bool( void* pack_ctx, int value )
 		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pCtx->writer, (uint64)value ); break;
 		default:
 			DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "true/false only supported on int*, uint* or bitfield!" );
+			break;
 	}
 
 	pCtx->ArrayItemPop();
@@ -493,6 +494,7 @@ static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_
 		break;
 		default:
 			DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Unexpected string \"%.*s\"!", str_len, str_value);
+			break;
 	}
 
 	return 1;
@@ -507,8 +509,12 @@ static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
 		return false;
 
 	for(unsigned int i = 0; i < le_type->member_count; ++i)
-		if( le_type->members[i].AtomType() == DL_TYPE_ATOM_ARRAY )
+	{
+		dl_type_t st = le_type->members[i].StorageType();
+		dl_type_t at = le_type->members[i].AtomType();
+		if( st == DL_TYPE_STORAGE_STR || at == DL_TYPE_ATOM_ARRAY )
 			return true;
+	}
 
 	return false;
 }
@@ -615,7 +621,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 				{
 					pCtx->PushState(DL_PACK_STATE_ARRAY);
 					pCtx->state_stack.Top().array_count_patch_pos = array_count_patch_pos;
-					pCtx->state_stack.Top().is_back_array        = array_has_sub_ptrs;
+					pCtx->state_stack.Top().is_back_array         = array_has_sub_ptrs;
 
 					switch(StorageType)
 					{
@@ -686,6 +692,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 
 		default:
 			DL_ASSERT(false && "This should not happen!");
+			break;
 	}
 
 	return 1;
@@ -696,7 +703,7 @@ static int dl_internal_pack_on_map_start( void* pack_ctx )
 	// check that we are in a correct state here!
 	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
 
-	switch(pCtx->CurrentPackState())
+	switch( pCtx->CurrentPackState() )
 	{
 		case DL_PACK_STATE_SUBDATA:
 		case DL_PACK_STATE_INSTANCE:
@@ -709,6 +716,7 @@ static int dl_internal_pack_on_map_start( void* pack_ctx )
 			break;
 		default:
 			DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
+			break;
 	}
 	return 1;
 }
@@ -854,6 +862,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx )
 		break;
 		default:
 			DL_ASSERT(false && "This should not happen!");
+			break;
 	}
 	return 1;
 }

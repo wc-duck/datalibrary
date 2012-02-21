@@ -436,7 +436,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	return dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->type_count - header.type_count, defaults_data, header.default_value_size );
 }
 
-dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  type,
+dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  type_id,
                              void*                instance,        unsigned int instance_size,
                              const unsigned char* packed_instance, unsigned int packed_instance_size,
                              unsigned int*        consumed )
@@ -447,11 +447,11 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	if( header->id == DL_INSTANCE_ID_SWAPED )          return DL_ERROR_ENDIAN_MISMATCH;
 	if( header->id != DL_INSTANCE_ID )                 return DL_ERROR_MALFORMED_DATA;
 	if( header->version != DL_INSTANCE_VERSION )       return DL_ERROR_VERSION_MISMATCH;
-	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
+	if( header->root_instance_type != type_id )        return DL_ERROR_TYPE_MISMATCH;
 	if( header->instance_size > instance_size )        return DL_ERROR_BUFFER_TO_SMALL;
 
-	const SDLType* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
-	if(pType == 0x0)
+	const SDLType* root_type = dl_internal_find_type( dl_ctx, header->root_instance_type );
+	if( root_type == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	// TODO: Temporary disabled due to CL doing some magic stuff!!! 
@@ -461,10 +461,10 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 
 	// TODO: memmove here is a hack, should only need memcpy but due to abuse of dl_instance_load in dl_util.cpp
 	// memmove is needed!
-	memmove(instance, packed_instance + sizeof(SDLDataHeader), header->instance_size);
+	memmove( instance, packed_instance + sizeof(SDLDataHeader), header->instance_size );
 
-	SPatchedInstances PI;
-	dl_internal_patch_loaded_ptrs( dl_ctx, &PI, (uint8*)instance, pType, (uint8*)instance, false );
+	SPatchedInstances patch_instances;
+	dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, (uint8*)instance, root_type, (uint8*)instance, false );
 
 	if( consumed )
 		*consumed = header->instance_size + sizeof(SDLDataHeader);
