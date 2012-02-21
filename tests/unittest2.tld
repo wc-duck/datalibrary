@@ -1,6 +1,38 @@
 {
 	"module" : "unit_test_2",
 	
+	"enums" : {
+		"EYukiVertexFormat" :
+		[
+			"YUKI_VF_R32G32B32A32_FLOAT",
+			"YUKI_VF_R32G32B32A32_UINT",
+			"YUKI_VF_R32G32B32A32_SINT",
+			"YUKI_VF_R32G32B32_FLOAT",
+			"YUKI_VF_R32G32B32_UINT",
+			"YUKI_VF_R32G32B32_SINT",
+			"YUKI_VF_R16G16B16A16_FLOAT",
+			"YUKI_VF_R16G16B16A16_UNORM",
+			"YUKI_VF_R16G16B16A16_UINT",
+			"YUKI_VF_R16G16B16A16_SNORM",
+			"YUKI_VF_R16G16B16A16_SINT",
+			"YUKI_VF_R32G32_FLOAT",
+			"YUKI_VF_R32G32_UINT",
+			"YUKI_VF_R32G32_SINT",
+			"YUKI_VF_R10G10B10A2_UNORM",
+			"YUKI_VF_R10G10B10A2_UINT",
+			"YUKI_VF_R11G11B10_FLOAT",
+			"YUKI_VF_R8G8B8A8_UNORM",
+			"YUKI_VF_R8G8B8A8_UINT",
+			"YUKI_VF_R8G8B8A8_SNORM",
+			"YUKI_VF_R8G8B8A8_SINT",
+			"YUKI_VF_R16G16_FLOAT",
+			"YUKI_VF_R16G16_UNORM",
+			"YUKI_VF_R16G16_UINT",
+			"YUKI_VF_R16G16_SNORM",
+			"YUKI_VF_R16G16_SINT"
+		]
+	},
+
 	"types" : {
 		"BugTest1_InArray" : { "members" : [ { "name" : "u64_1", "type" : "uint64" },
 											 { "name" : "u64_2", "type" : "uint64" },
@@ -19,6 +51,28 @@
 
 		// testing bug where struct first in struct with ptr in substruct will not get patched on load. 		
 		"BugTest3_StructWithPtr" : { "members" : [ { "name" : "arr", "type" : "uint32[]" } ] },
-		"BugTest3" :               { "members" : [ { "name" : "sub", "type" : "BugTest3_StructWithPtr" } ] }
+		"BugTest3" :               { "members" : [ { "name" : "sub", "type" : "BugTest3_StructWithPtr" } ] },
+
+		"dl_input_desc" :
+		{
+			"members" :
+			[
+				{ "name" : "semantic", "type":"string" },
+				{ "name" : "semanticindex", "type":"uint32" },
+				{ "name" : "format", "type":"EYukiVertexFormat" },
+				{ "name" : "slot", "type":"uint32" },
+				{ "name" : "offset", "type":"uint32" }
+			]
+		},
+		"dl_material_type" :
+		{
+			"members" :
+			[
+				{ "name" : "vertexshader", "type" : "string" },
+				{ "name" : "geometryshader", "type" : "string" },
+				{ "name" : "pixelshader", "type" : "string" },
+				{ "name" : "inputmapping", "type" : "dl_input_desc[]"}
+			]
+		}
 	}
 }

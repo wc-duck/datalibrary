@@ -1040,6 +1040,43 @@ TYPED_TEST(DLBase, bug_test_1)
 	EXPECT_EQ( desc.components[1].ptr[1],    loaded[0].components[1].ptr[1] );
 }
 
+/*
+// currently broken
+TYPED_TEST(DLBase, per_bug_1)
+{
+	dl_input_desc mapping[] = {
+		{ "POSITION", 0, YUKI_VF_R32G32B32_FLOAT, 0, 0  },
+		{ "TEXCOORD", 0, YUKI_VF_R32G32_FLOAT,    0, 12 },
+		{ "TEXCOORD", 1, YUKI_VF_R32G32B32_FLOAT, 0, 20 }
+	};
+
+	dl_material_type inst;
+	inst.vertexshader       = "assets\\shaders\\D3D10Window.fxc";
+	inst.geometryshader     = "";
+	inst.pixelshader        = "assets\\shaders\\D3D10Window.fxc";
+	inst.inputmapping.data  = mapping;
+	inst.inputmapping.count = DL_ARRAY_LENGTH(mapping);
+
+	dl_material_type loaded[128];
+	this->do_the_round_about( dl_material_type::TYPE_ID, &inst, &loaded, sizeof(loaded) );
+
+	EXPECT_STREQ( inst.vertexshader,   loaded[0].vertexshader );
+	EXPECT_STREQ( inst.geometryshader, loaded[0].geometryshader );
+	EXPECT_STREQ( inst.pixelshader,    loaded[0].pixelshader );
+
+	EXPECT_EQ( inst.inputmapping.count, loaded[0].inputmapping.count );
+
+	for( uint32_t i = 0; i < loaded[0].inputmapping.count; ++i )
+	{
+		EXPECT_STREQ( inst.inputmapping[i].semantic,      loaded[0].inputmapping[i].semantic );
+		EXPECT_EQ   ( inst.inputmapping[i].semanticindex, loaded[0].inputmapping[i].semanticindex );
+		EXPECT_EQ   ( inst.inputmapping[i].format,        loaded[0].inputmapping[i].format );
+		EXPECT_EQ   ( inst.inputmapping[i].slot,          loaded[0].inputmapping[i].slot );
+		EXPECT_EQ   ( inst.inputmapping[i].offset,        loaded[0].inputmapping[i].offset );
+	}
+}
+*/
+
 TEST(DLMisc, endian_is_correct)
 {
 	// Test that DL_ENDIAN_HOST is set correctly
