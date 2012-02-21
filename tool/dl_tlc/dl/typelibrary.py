@@ -307,12 +307,10 @@ class Type( object ):
         self.my_size = PlatformValue.align( PlatformValue.max( self.size(), self.align() ), self.align() )
 
 class TypeLibrary( object ):
-    def __init__( self, lib = None ):        
+    def __init__( self, lib = None ):
+        self.enums, self.types, self.type_order = {}, {}, []        
         if lib != None:
-            self.enums, self.types, self.type_order = {}, {}, []
             self.read( open(lib, 'r').read() )
-        else:
-            self.enums, self.types, self.type_order = None, None, None
     
     def read( self, lib ):
         ''' 
