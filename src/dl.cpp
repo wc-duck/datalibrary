@@ -116,7 +116,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 		patched_instances->m_lpPatched.Add(instance);
 	}
 
-	for( int member_index = 0; member_index < type->member_count; ++member_index )
+	for( uint32 member_index = 0; member_index < type->member_count; ++member_index )
 	{
 		const SDLMember* member      = type->members + member_index;
 		const uint8*     member_data = instance + member->offset[DL_PTR_SIZE_HOST];
