@@ -760,7 +760,12 @@ static int dl_internal_pack_on_map_end( void* pack_ctx )
 
 				if(!PackState.members_set.IsSet(iMember))
 				{
-					DL_PACK_ERROR_AND_FAIL_IF( pMember->default_value_offset == DL_UINT32_MAX, pCtx->dl_ctx, DL_ERROR_TXT_MEMBER_MISSING, "Member %s in struct of type %s not set!", pMember->name, PackState.type->name );
+					DL_PACK_ERROR_AND_FAIL_IF( pMember->default_value_offset == DL_UINT32_MAX, 
+											   pCtx->dl_ctx, 
+											   DL_ERROR_TXT_MEMBER_MISSING, 
+											   "Member \"%s\" in struct of type \"%s\" not set!", 
+											   pMember->name, 
+											   PackState.type->name );
 
 					pint   MemberPos  = PackState.struct_start_pos + pMember->offset[DL_PTR_SIZE_HOST];
 					uint8* pDefMember = pCtx->dl_ctx->default_data + pMember->default_value_offset;
