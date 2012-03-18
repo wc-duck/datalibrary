@@ -30,7 +30,7 @@
 	before we need to write another element to the parent array.
 */
 
-enum EDLPackState
+enum dl_pack_state
 {
 	DL_PACK_STATE_POD_INT8   = DL_TYPE_STORAGE_INT8,
 	DL_PACK_STATE_POD_INT16  = DL_TYPE_STORAGE_INT16,
@@ -60,11 +60,11 @@ enum EDLPackState
 #define DL_PACK_ERROR_AND_FAIL( pack_ctx, err, fmt, ... ) { dl_log_error( pack_ctx->dl_ctx, fmt, ##__VA_ARGS__ ); pack_ctx->error_code = err; return 0x0; }
 #define DL_PACK_ERROR_AND_FAIL_IF( cond, pack_ctx, err, fmt, ... ) if( cond ) DL_PACK_ERROR_AND_FAIL( pack_ctx, err, fmt, ##__VA_ARGS__ )
 
-template<unsigned int TBits>
+template<unsigned int BITS>
 class CFlagField
 {
-	DL_STATIC_ASSERT(TBits % 32 == 0, only_even_32_bits);
-	uint32 storage[TBits / 32];
+	DL_STATIC_ASSERT( BITS % 32 == 0, only_even_32_bits );
+	uint32 storage[ BITS / 32 ];
 
 	enum
 	{
@@ -72,37 +72,37 @@ class CFlagField
 		BITS_FOR_FIELD   = 5
 	};
 
-	unsigned int Field(unsigned int _Bit) { return (_Bit & ~(BITS_PER_STORAGE - 1)) >> BITS_FOR_FIELD; }
-	unsigned int Bit  (unsigned int _Bit) { return (_Bit &  (BITS_PER_STORAGE - 1)); }
+	unsigned int Field( unsigned int bit ) { return ( bit  & ~(BITS_PER_STORAGE - 1) ) >> BITS_FOR_FIELD; }
+	unsigned int Bit  ( unsigned int bit ) { return ( bit  &  (BITS_PER_STORAGE - 1) ); }
 
 public:
-	CFlagField()            { ClearAll(); }
-	CFlagField(bool _AllOn) { memset(storage, _AllOn ? 0xFF : 0x00, sizeof(storage)); }
+	CFlagField()              { ClearAll(); }
+	CFlagField( bool all_on ) { memset( storage, all_on ? 0xFF : 0x00, sizeof(storage) ); }
 
 	~CFlagField() {}
 
-	void SetBit  (unsigned int _Bit) { storage[Field(_Bit)] |=  DL_BIT(Bit(_Bit)); }
-	void ClearBit(unsigned int _Bit) { storage[Field(_Bit)] &= ~DL_BIT(Bit(_Bit)); }
-	void FlipBit (unsigned int _Bit) { storage[Field(_Bit)] ^=  DL_BIT(Bit(_Bit)); }
+	void SetBit  ( unsigned int bit ) { storage[ Field( bit ) ] |=  DL_BIT( Bit( bit ) ); }
+	void ClearBit( unsigned int bit ) { storage[ Field( bit ) ] &= ~DL_BIT( Bit( bit ) ); }
+	void FlipBit ( unsigned int bit ) { storage[ Field( bit ) ] ^=  DL_BIT( Bit( bit ) ); }
 
 	void SetAll()   { memset(storage, 0xFF, sizeof(storage)); }
 	void ClearAll() { memset(storage, 0x00, sizeof(storage)); }
 
-	bool IsSet(unsigned int _Bit) { return (storage[Field(_Bit)] & DL_BIT(Bit(_Bit))) != 0; }
+	bool IsSet( unsigned int bit ) { return ( storage[Field( bit )] & DL_BIT( Bit( bit ) ) ) != 0; }
 };
 
 struct SDLPackState
 {
 	SDLPackState() {}
 
-	SDLPackState(EDLPackState _State, const void* _pValue = 0x0, pint _StructStartPos = 0)
-		: state(_State)
-		, value(_pValue)
-		, struct_start_pos(_StructStartPos)
-		, array_count(0)
+	SDLPackState( dl_pack_state pack_state , const void* value = 0x0, pint struct_start_pos = 0 )
+		: state( pack_state )
+		, value( value )
+		, struct_start_pos( struct_start_pos )
+		, array_count( 0 )
 	{}
 
-	EDLPackState   state;
+	dl_pack_state   state;
 
 	union
 	{
@@ -123,7 +123,7 @@ struct SDLPackContext
 {
 	SDLPackContext() : root_type(0x0), error_code(DL_ERROR_OK), patch_pos_count(0)
 	{
-		PushState(DL_PACK_STATE_INSTANCE);
+		PushState( DL_PACK_STATE_INSTANCE );
 		memset( subdata_elems_pos, 0xFF, sizeof(subdata_elems_pos) );
 		subdata_elems_pos[0] = 0; // element 1 is root, and it has position 0
 	}
@@ -133,16 +133,16 @@ struct SDLPackContext
 	const SDLType*    root_type;
 	dl_error_t        error_code;
 
-	void PushStructState(const SDLType* _pType)
+	void PushStructState( const SDLType* type )
 	{
 		pint struct_start_pos = 0;
 
 		if( state_stack.Top().state == DL_PACK_STATE_ARRAY && state_stack.Top().is_back_array )
-			struct_start_pos = dl_binary_writer_push_back_alloc( writer, _pType->size[DL_PTR_SIZE_HOST] );
+			struct_start_pos = dl_binary_writer_push_back_alloc( writer, type->size[DL_PTR_SIZE_HOST] );
 		else
-			struct_start_pos = dl_internal_align_up( dl_binary_writer_tell( writer ), _pType->alignment[DL_PTR_SIZE_HOST]);
+			struct_start_pos = dl_internal_align_up( dl_binary_writer_tell( writer ), type->alignment[DL_PTR_SIZE_HOST]);
 
-		state_stack.Push( SDLPackState(DL_PACK_STATE_STRUCT, _pType, struct_start_pos) );
+		state_stack.Push( SDLPackState(DL_PACK_STATE_STRUCT, type, struct_start_pos) );
 	}
 
 	void PushEnumState( const SDLEnum* member )
@@ -150,12 +150,12 @@ struct SDLPackContext
 		state_stack.Push( SDLPackState(DL_PACK_STATE_ENUM, member) );
 	}
 
-	void PushMemberState( EDLPackState state, const SDLMember* member )
+	void PushMemberState( dl_pack_state state, const SDLMember* member )
 	{
 		state_stack.Push( SDLPackState(state, member) );
 	}
 
-	void PushState( EDLPackState state ) 
+	void PushState( dl_pack_state state ) 
 	{
 		DL_ASSERT( state != DL_PACK_STATE_STRUCT && "Please use PushStructState()" );
 		state_stack.Push( state );
@@ -189,7 +189,7 @@ struct SDLPackContext
 		}
 	}
 
-	EDLPackState CurrentPackState() { return state_stack.Top().state; }
+	dl_pack_state CurrentPackState() { return state_stack.Top().state; }
 
 	// positions where we have only an ID that referre to subdata!
 	struct
@@ -197,7 +197,7 @@ struct SDLPackContext
 		unsigned int     id;
 		pint             write_pos;
 		const SDLMember* member;
-	}            patch_pos[128];
+	} patch_pos[128];
 	unsigned int patch_pos_count;
 
 	void AddPatchPosition( unsigned int id )
@@ -235,7 +235,7 @@ static int dl_internal_pack_on_null( void* pack_ctx_in )
 static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
-	EDLPackState state = pack_ctx->CurrentPackState();
+	dl_pack_state state = pack_ctx->CurrentPackState();
 
 	if( ( state & DL_TYPE_ATOM_MASK ) == DL_TYPE_ATOM_BITFIELD )
 	{
@@ -314,7 +314,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, u
 	union { int64 sign; uint64 unsign; } Max;
 	const char* fmt = "";
 
-	EDLPackState state = pack_ctx->CurrentPackState();
+	dl_pack_state state = pack_ctx->CurrentPackState();
 
 	if( (state & DL_TYPE_ATOM_MASK) == DL_TYPE_ATOM_BITFIELD )
 	{
@@ -466,7 +466,7 @@ static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_
 {
 	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
 
-	EDLPackState State = pCtx->CurrentPackState();
+	dl_pack_state State = pCtx->CurrentPackState();
 	switch(State)
 	{
 		case DL_PACK_STATE_INSTANCE_TYPE:
@@ -648,7 +648,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState( dl_internal_find_enum(pCtx->dl_ctx, member->type_id)) ; break;
 						default:
 							DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_STR);
-							pCtx->PushState( EDLPackState( storage_type ) );
+							pCtx->PushState( dl_pack_state( storage_type ) );
 							break;
 					}
 				}
@@ -709,13 +709,13 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 						break;
 						default: // default is a standard pod-type
 							DL_ASSERT( member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_STR );
-							pCtx->PushState( EDLPackState( storage_type ) );
+							pCtx->PushState( dl_pack_state( storage_type ) );
 							break;
 					}
 				}
 				break;
 				case DL_TYPE_ATOM_BITFIELD:
-					pCtx->PushMemberState( EDLPackState( member->type ), 0x0 );
+					pCtx->PushMemberState( dl_pack_state( member->type ), 0x0 );
 				break;
 				default:
 					DL_ASSERT(false && "Invalid ATOM-type!");
@@ -825,7 +825,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx )
 		return 1;
 	}
 
-	EDLPackState state = pCtx->CurrentPackState();
+	dl_pack_state state = pCtx->CurrentPackState();
 	switch( state )
 	{
 		case DL_PACK_STATE_SUBDATA:
@@ -964,7 +964,7 @@ static int dl_internal_pack_on_array_end( void* pack_ctx )
 	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
 
 	const SDLType* pType    = pCtx->state_stack.Top().type;
-	EDLPackState pack_state = pCtx->state_stack.Top().state;
+	dl_pack_state pack_state = pCtx->state_stack.Top().state;
 
 	pCtx->PopState(); // pop of pack state for sub-type
 	uint32 array_count   = pCtx->state_stack.Top().array_count;
@@ -1017,8 +1017,8 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 {
 	// this could be incremental later on if needed!
 
-	pint TxtLen = strlen(text_data);
-	const unsigned char* TxtData = (const unsigned char*)text_data;
+	pint txt_len = strlen( text_data );
+	const unsigned char* txt_data = (const unsigned char*)text_data;
 
 	static const int ALLOW_COMMENTS_IN_JSON = 1;
 	static const int CAUSE_ERROR_ON_INVALID_UTF8 = 1;
@@ -1051,56 +1051,56 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 
 	yajl_handle my_yajl_handle = yajl_alloc( &callbacks, &my_yajl_config, &my_yajl_alloc, (void*)pack_ctx );
 
-	yajl_status my_yajl_status = yajl_parse( my_yajl_handle, TxtData, (unsigned int)TxtLen ); // read file data, pass to parser
+	yajl_status my_yajl_status = yajl_parse( my_yajl_handle, txt_data, (unsigned int)txt_len ); // read file data, pass to parser
 
-	unsigned int BytesConsumed = yajl_get_bytes_consumed( my_yajl_handle );
+	unsigned int bytes_consumed = yajl_get_bytes_consumed( my_yajl_handle );
 
 	my_yajl_status = yajl_parse_complete( my_yajl_handle ); // parse any remaining buffered data
 
-	if (my_yajl_status != yajl_status_ok && my_yajl_status != yajl_status_insufficient_data)
+	if( my_yajl_status != yajl_status_ok && my_yajl_status != yajl_status_insufficient_data )
 	{
-		if(BytesConsumed != 0) // error occured!
+		if( bytes_consumed != 0 ) // error occured!
 		{
-			unsigned int Line = 1;
-			unsigned int Column = 0;
+			unsigned int line = 1;
+			unsigned int column = 0;
 
-			const char* Ch = text_data;
-			const char* End = text_data + BytesConsumed;
-
-			while(Ch != End)
+			const char* ch  = text_data;
+			const char* end = text_data + bytes_consumed;
+ 
+			while( ch != end )
 			{
-				if(*Ch == '\n')
+				if( *ch == '\n' )
 				{
-					++Line;
-					Column = 0;
+					++line;
+					column = 0;
 				}
 				else
-					++Column;
+					++column;
 
-				++Ch;
+				++ch;
 			}
 
-			dl_log_error( pack_ctx->dl_ctx, "At line %u, column %u", Line, Column);
+			dl_log_error( pack_ctx->dl_ctx, "At line %u, column %u", line, column);
 		}
 
-		char* pStr = (char*)yajl_get_error(my_yajl_handle, 1 /* verbose */, TxtData, (unsigned int)TxtLen);
-		dl_log_error( pack_ctx->dl_ctx, "%s", pStr );
-		yajl_free_error(my_yajl_handle, (unsigned char*)pStr);
+		char* error_str = (char*)yajl_get_error( my_yajl_handle, 1 /* verbose */, txt_data, (unsigned int)txt_len );
+		dl_log_error( pack_ctx->dl_ctx, "%s", error_str );
+		yajl_free_error( my_yajl_handle, (unsigned char*)error_str );
 
-		if(pack_ctx->error_code == DL_ERROR_OK)
+		if( pack_ctx->error_code == DL_ERROR_OK )
 		{
-			yajl_free(my_yajl_handle);
+			yajl_free( my_yajl_handle );
 			return DL_ERROR_TXT_PARSE_ERROR;
 		}
 	}
 
-	if(pack_ctx->root_type == 0x0)
+	if( pack_ctx->root_type == 0x0 )
 	{
 		dl_log_error( pack_ctx->dl_ctx, "Missing root-element in dl-data" );
 		pack_ctx->error_code = DL_ERROR_TXT_PARSE_ERROR;
 	}
 
-	yajl_free(my_yajl_handle);
+	yajl_free( my_yajl_handle );
 	return pack_ctx->error_code;
 }
 
@@ -1111,11 +1111,11 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	dl_binary_writer_init( &writer, out_buffer + sizeof(SDLDataHeader), out_buffer_size - sizeof(SDLDataHeader), IS_DUMMY_WRITER,
 						   DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 
-	SDLPackContext PackContext;
-	PackContext.dl_ctx = dl_ctx;
-	PackContext.writer    = &writer;
+	SDLPackContext pack_ctx;
+	pack_ctx.dl_ctx = dl_ctx;
+	pack_ctx.writer = &writer;
 
-	dl_error_t error = dl_internal_txt_pack( &PackContext, txt_instance );
+	dl_error_t error = dl_internal_txt_pack( &pack_ctx, txt_instance );
 
 	if(error != DL_ERROR_OK)
 		return error;
@@ -1126,7 +1126,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 		SDLDataHeader header;
 		header.id                 = DL_INSTANCE_ID;
 		header.version            = DL_INSTANCE_VERSION;
-		header.root_instance_type = dl_internal_typeid_of( dl_ctx, PackContext.root_type );
+		header.root_instance_type = dl_internal_typeid_of( dl_ctx, pack_ctx.root_type );
 		header.instance_size      = (uint32)dl_binary_writer_needed_size( &writer );
 		header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
 		memcpy( out_buffer, &header, sizeof(SDLDataHeader) );
