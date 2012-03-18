@@ -216,6 +216,8 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t       dl_ctx,
 						dl_internal_convert_collect_instances(dl_ctx, pSubType, pMemberData, base_data, convert_ctx);
 					}
 					break;
+					default:
+						break;
 				}
 			}
 			break;

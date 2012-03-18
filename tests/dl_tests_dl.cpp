@@ -516,7 +516,7 @@ TYPED_TEST(DLBase, array_with_sub_array2)
 	uint32_t Data1[] = { 1337, 7331,  13, 37, 133 } ;
 	uint32_t Data2[] = {    7,    1, 337 } ;
 
-	PodArray1 OrigArray[] = { { Data1, DL_ARRAY_LENGTH(Data1) }, { Data2, DL_ARRAY_LENGTH(Data2) } } ;
+	PodArray1 OrigArray[] = { { { Data1, DL_ARRAY_LENGTH(Data1) } }, { { Data2, DL_ARRAY_LENGTH(Data2) } } } ;
 	PodArray2 Orig = { { OrigArray, DL_ARRAY_LENGTH(OrigArray) } };
 
 	union
