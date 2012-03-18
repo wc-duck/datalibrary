@@ -57,8 +57,8 @@ enum EDLPackState
 	DL_PACK_STATE_STRUCT,
 };
 
-#define DL_PACK_ERROR_AND_FAIL( dl_ctx, err, fmt, ... ) { dl_log_error( dl_ctx, fmt, ##__VA_ARGS__ ); pCtx->error_code = err; return 0x0; }
-#define DL_PACK_ERROR_AND_FAIL_IF( cond, dl_ctx, err, fmt, ... ) if( cond ) DL_PACK_ERROR_AND_FAIL( dl_ctx, err, fmt, ##__VA_ARGS__ )
+#define DL_PACK_ERROR_AND_FAIL( pack_ctx, err, fmt, ... ) { dl_log_error( pack_ctx->dl_ctx, fmt, ##__VA_ARGS__ ); pack_ctx->error_code = err; return 0x0; }
+#define DL_PACK_ERROR_AND_FAIL_IF( cond, pack_ctx, err, fmt, ... ) if( cond ) DL_PACK_ERROR_AND_FAIL( pack_ctx, err, fmt, ##__VA_ARGS__ )
 
 template<unsigned int TBits>
 class CFlagField
@@ -223,19 +223,19 @@ struct SDLPackContext
 	pint subdata_elems_pos[128]; // positions for different subdata-elements;
 };
 
-static int dl_internal_pack_on_null( void* pack_ctx )
+static int dl_internal_pack_on_null( void* pack_ctx_in )
 {
-	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
-	DL_ASSERT(pCtx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID);
-	dl_binary_writer_write_ptr( pCtx->writer, (pint)-1 );
-	pCtx->PopState();
+	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
+	DL_ASSERT( pack_ctx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID );
+	dl_binary_writer_write_ptr( pack_ctx->writer, (pint)-1 );
+	pack_ctx->PopState();
 	return 1;
 }
 
-static int dl_internal_pack_on_bool( void* pack_ctx, int value )
+static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 {
-	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
-	EDLPackState state = pCtx->CurrentPackState();
+	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
+	EDLPackState state = pack_ctx->CurrentPackState();
 
 	if( ( state & DL_TYPE_ATOM_MASK ) == DL_TYPE_ATOM_BITFIELD )
 	{
@@ -247,29 +247,29 @@ static int dl_internal_pack_on_bool( void* pack_ctx, int value )
 		switch( storage_type )
 		{
 			case DL_TYPE_STORAGE_UINT8:
-				dl_binary_writer_write_uint8 ( pCtx->writer,
-											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pCtx->writer ),
+				dl_binary_writer_write_uint8 ( pack_ctx->writer,
+											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
 											   uint8( value ),
 											   DLBitFieldOffset( sizeof(uint8), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT16:
-				dl_binary_writer_write_uint16( pCtx->writer,
-											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint16( pCtx->writer ),
+				dl_binary_writer_write_uint16( pack_ctx->writer,
+											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint16( pack_ctx->writer ),
 											   uint16( value ),
 											   DLBitFieldOffset( sizeof(uint16), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT32:
-				dl_binary_writer_write_uint32( pCtx->writer,
-											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pCtx->writer ),
+				dl_binary_writer_write_uint32( pack_ctx->writer,
+											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
 											   uint32( value ),
 											   DLBitFieldOffset( sizeof(uint32), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT64:
-				dl_binary_writer_write_uint64( pCtx->writer,
-											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pCtx->writer ),
+				dl_binary_writer_write_uint64( pack_ctx->writer,
+											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
 											   uint64( value ),
 											   DLBitFieldOffset( sizeof(uint64), bf_offset, bf_bits ),
 											   bf_bits ) );
@@ -280,117 +280,129 @@ static int dl_internal_pack_on_bool( void* pack_ctx, int value )
 				break;
 		}
 
-		pCtx->PopState();
+		pack_ctx->PopState();
 
 		return 1;
 	}
 
 	switch(state)
 	{
-		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pCtx->writer,   (int8)value ); break;
-		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pCtx->writer,  (int16)value ); break;
-		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pCtx->writer,  (int32)value ); break;
-		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pCtx->writer,  (int64)value ); break;
-		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pCtx->writer,  (uint8)value ); break;
-		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pCtx->writer, (uint16)value ); break;
-		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pCtx->writer, (uint32)value ); break;
-		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pCtx->writer, (uint64)value ); break;
+		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pack_ctx->writer,   (int8)value ); break;
+		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pack_ctx->writer,  (int16)value ); break;
+		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pack_ctx->writer,  (int32)value ); break;
+		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pack_ctx->writer,  (int64)value ); break;
+		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pack_ctx->writer,  (uint8)value ); break;
+		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pack_ctx->writer, (uint16)value ); break;
+		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pack_ctx->writer, (uint32)value ); break;
+		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pack_ctx->writer, (uint64)value ); break;
 		default:
-			DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "true/false only supported on int*, uint* or bitfield!" );
+			DL_PACK_ERROR_AND_FAIL( pack_ctx, DL_ERROR_TXT_PARSE_ERROR, "true/false only supported on int*, uint* or bitfield!" );
 			break;
 	}
 
-	pCtx->ArrayItemPop();
+	pack_ctx->ArrayItemPop();
 	return 1;
 }
 
 template<typename T> DL_FORCEINLINE bool Between(T _Val, T _Min, T _Max) { return _Val <= _Max && _Val >= _Min; }
 
-static int dl_internal_pack_on_number( void* pack_ctx, const char* str_val, unsigned int str_len )
+static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, unsigned int str_len )
 {
-	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
+	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
-	union { int64 m_Signed; uint64 m_Unsigned; } Min;
-	union { int64 m_Signed; uint64 m_Unsigned; } Max;
-	const char* pFmt = "";
+	union { int64 sign; uint64 unsign; } Min;
+	union { int64 sign; uint64 unsign; } Max;
+	const char* fmt = "";
 
-	EDLPackState State = pCtx->CurrentPackState();
+	EDLPackState state = pack_ctx->CurrentPackState();
 
-	if((State & DL_TYPE_ATOM_MASK) == DL_TYPE_ATOM_BITFIELD)
+	if( (state & DL_TYPE_ATOM_MASK) == DL_TYPE_ATOM_BITFIELD )
 	{
-		uint64 Val;
-		DL_PACK_ERROR_AND_FAIL_IF( sscanf(str_val, DL_UINT64_FMT_STR, &Val) != 1, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as bitfield member!", str_len, str_val);
+		uint64 bf_value;
+		DL_PACK_ERROR_AND_FAIL_IF( sscanf( str_val, DL_UINT64_FMT_STR, &bf_value ) != 1, 
+								   pack_ctx, 
+								   DL_ERROR_TXT_PARSE_ERROR, 
+								   "Could not parse %.*s as bitfield member!", 
+								   str_len, str_val );
 
-		unsigned int BFBits   = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED);
-		unsigned int BFOffset = DL_EXTRACT_BITS(State, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED);
+		unsigned int bf_bits   = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED );
+		unsigned int bf_offset = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
 
-		uint64 MaxVal = (uint64(1) << BFBits) - uint64(1);
-		DL_PACK_ERROR_AND_FAIL_IF( Val > MaxVal, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", Val, BFBits);
+		uint64 max_val = (uint64(1) << bf_bits) - uint64(1);
+		DL_PACK_ERROR_AND_FAIL_IF( bf_value > max_val, 
+								   pack_ctx, 
+								   DL_ERROR_TXT_PARSE_ERROR, 
+								   "Value " DL_UINT64_FMT_STR" will not fit in a bitfield with %u bits!", 
+								   bf_value, bf_bits  );
 
-		dl_type_t StorageType = dl_type_t(State & DL_TYPE_STORAGE_MASK);
+		dl_type_t storage_type = dl_type_t( state & DL_TYPE_STORAGE_MASK );
 
-		switch(StorageType)
+		switch( storage_type )
 		{
 			case DL_TYPE_STORAGE_UINT8:
-				dl_binary_writer_write_uint8 ( pCtx->writer,
-											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pCtx->writer ),
-											   uint8(Val),
-											   DLBitFieldOffset( sizeof(uint8), BFOffset, BFBits), BFBits ) );
+				dl_binary_writer_write_uint8 ( pack_ctx->writer,
+											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
+																	  uint8(bf_value),
+																	  DLBitFieldOffset( sizeof(uint8), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT16:
-				dl_binary_writer_write_uint16( pCtx->writer,
-											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint8( pCtx->writer ),
-											   uint16(Val),
-											   DLBitFieldOffset( sizeof(uint16), BFOffset, BFBits), BFBits ) );
+				dl_binary_writer_write_uint16( pack_ctx->writer,
+											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
+																	   uint16(bf_value),
+																	   DLBitFieldOffset( sizeof(uint16), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT32:
-				dl_binary_writer_write_uint32( pCtx->writer,
-											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pCtx->writer ),
-											   uint32(Val),
-											   DLBitFieldOffset( sizeof(uint32), BFOffset, BFBits), BFBits ) );
+				dl_binary_writer_write_uint32( pack_ctx->writer,
+											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
+																	   uint32(bf_value),
+																	   DLBitFieldOffset( sizeof(uint32), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT64:
-				dl_binary_writer_write_uint64( pCtx->writer,
-											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pCtx->writer ),
-											   uint64(Val),
-											   DLBitFieldOffset( sizeof(uint64), BFOffset, BFBits), BFBits ) );
+				dl_binary_writer_write_uint64( pack_ctx->writer,
+											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
+																	   uint64(bf_value),
+																	   DLBitFieldOffset( sizeof(uint64), bf_offset, bf_bits ), bf_bits ) );
 				break;
 
 			default:
-				DL_ASSERT(false && "This should not happen!");
+				DL_ASSERT( false && "This should not happen!" );
 				break;
 		}
 
-		pCtx->PopState();
+		pack_ctx->PopState();
 
 		return 1;
 	}
 
-	switch(State)
+	switch( state )
 	{
-		case DL_PACK_STATE_POD_INT8:   Min.m_Signed  =   int64(DL_INT8_MIN);   Max.m_Signed   =  int64(DL_INT8_MAX);   pFmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_INT16:  Min.m_Signed  =   int64(DL_INT16_MIN);  Max.m_Signed   =  int64(DL_INT16_MAX);  pFmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_INT32:  Min.m_Signed  =   int64(DL_INT32_MIN);  Max.m_Signed   =  int64(DL_INT32_MAX);  pFmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_INT64:  Min.m_Signed  =   int64(DL_INT64_MIN);  Max.m_Signed   =  int64(DL_INT64_MAX);  pFmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT8:  Min.m_Unsigned = uint64(DL_UINT8_MIN);  Max.m_Unsigned = uint64(DL_UINT8_MAX);  pFmt = DL_UINT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT16: Min.m_Unsigned = uint64(DL_UINT16_MIN); Max.m_Unsigned = uint64(DL_UINT16_MAX); pFmt = DL_UINT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT32: Min.m_Unsigned = uint64(DL_UINT32_MIN); Max.m_Unsigned = uint64(DL_UINT32_MAX); pFmt = DL_UINT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT64: Min.m_Unsigned = uint64(DL_UINT64_MIN); Max.m_Unsigned = uint64(DL_UINT64_MAX); pFmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT8:   Min.sign  =   int64(DL_INT8_MIN);   Max.sign   =  int64(DL_INT8_MAX);   fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT16:  Min.sign  =   int64(DL_INT16_MIN);  Max.sign   =  int64(DL_INT16_MAX);  fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT32:  Min.sign  =   int64(DL_INT32_MIN);  Max.sign   =  int64(DL_INT32_MAX);  fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT64:  Min.sign  =   int64(DL_INT64_MIN);  Max.sign   =  int64(DL_INT64_MAX);  fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT8:  Min.unsign = uint64(DL_UINT8_MIN);  Max.unsign = uint64(DL_UINT8_MAX);  fmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT16: Min.unsign = uint64(DL_UINT16_MIN); Max.unsign = uint64(DL_UINT16_MAX); fmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT32: Min.unsign = uint64(DL_UINT32_MIN); Max.unsign = uint64(DL_UINT32_MAX); fmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT64: Min.unsign = uint64(DL_UINT64_MIN); Max.unsign = uint64(DL_UINT64_MAX); fmt = DL_UINT64_FMT_STR; break;
 
-		case DL_PACK_STATE_POD_FP32:   dl_binary_writer_write_fp32( pCtx->writer, (float)atof(str_val) ); pCtx->ArrayItemPop(); return 1;
-		case DL_PACK_STATE_POD_FP64:   dl_binary_writer_write_fp64( pCtx->writer,        atof(str_val) ); pCtx->ArrayItemPop(); return 1;
+		case DL_PACK_STATE_POD_FP32:   dl_binary_writer_write_fp32( pack_ctx->writer, (float)atof(str_val) ); pack_ctx->ArrayItemPop(); return 1;
+		case DL_PACK_STATE_POD_FP64:   dl_binary_writer_write_fp64( pack_ctx->writer,        atof(str_val) ); pack_ctx->ArrayItemPop(); return 1;
 
 		case DL_PACK_STATE_SUBDATA_ID:
 		{
 			uint32 ID;
-			DL_PACK_ERROR_AND_FAIL_IF( sscanf(str_val, "%u", &ID) != 1, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", str_len, str_val);
+			DL_PACK_ERROR_AND_FAIL_IF( sscanf( str_val, "%u", &ID ) != 1, 
+									   pack_ctx, 
+									   DL_ERROR_TXT_PARSE_ERROR, 
+									   "Could not parse %.*s as correct ID!", 
+									   str_len, str_val );
 
-			pCtx->AddPatchPosition( (unsigned int)ID );
+			pack_ctx->AddPatchPosition( (unsigned int)ID );
 
 			// this is the pos that will be patched, but we need to make room for the array now!
-			dl_binary_writer_write_zero( pCtx->writer, pCtx->patch_pos[ pCtx->patch_pos_count - 1 ].member->size[DL_PTR_SIZE_HOST] );
+			dl_binary_writer_write_zero( pack_ctx->writer, pack_ctx->patch_pos[ pack_ctx->patch_pos_count - 1 ].member->size[DL_PTR_SIZE_HOST] );
 
-			pCtx->PopState();
+			pack_ctx->PopState();
 		}
 		return 1;
 
@@ -399,41 +411,53 @@ static int dl_internal_pack_on_number( void* pack_ctx, const char* str_val, unsi
 			return 0;
 	}
 
-	union { int64 m_Signed; uint64 m_Unsigned; } Val;
-	DL_PACK_ERROR_AND_FAIL_IF( sscanf(str_val, pFmt, &Val.m_Signed) != 1, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct integer type!", str_len, str_val);
+	union { int64 sign; uint64 unsign; } value;
+	DL_PACK_ERROR_AND_FAIL_IF( sscanf( str_val, fmt, &value.sign ) != 1, 
+							   pack_ctx, 
+							   DL_ERROR_TXT_PARSE_ERROR, 
+							   "Could not parse %.*s as correct integer type!", 
+							   str_len, str_val );
 
-	switch(State)
+	switch( state )
 	{
 		case DL_PACK_STATE_POD_INT8:
 		case DL_PACK_STATE_POD_INT16:
 		case DL_PACK_STATE_POD_INT32:
 		case DL_PACK_STATE_POD_INT64:
-			DL_PACK_ERROR_AND_FAIL_IF( !Between(Val.m_Signed, Min.m_Signed, Max.m_Signed), pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, DL_INT64_FMT_STR " will not fit in type", Val.m_Signed);
+			DL_PACK_ERROR_AND_FAIL_IF( !Between( value.sign, Min.sign, Max.sign ), 
+										pack_ctx, 
+										DL_ERROR_TXT_PARSE_ERROR, 
+										DL_INT64_FMT_STR " will not fit in type", 
+										value.sign );
 			break;
 		case DL_PACK_STATE_POD_UINT8:
 		case DL_PACK_STATE_POD_UINT16:
 		case DL_PACK_STATE_POD_UINT32:
 		case DL_PACK_STATE_POD_UINT64:
-			DL_PACK_ERROR_AND_FAIL_IF( !Between(Val.m_Unsigned, Min.m_Unsigned, Max.m_Unsigned), pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, DL_UINT64_FMT_STR " will not fit in type", Val.m_Unsigned);
+			DL_PACK_ERROR_AND_FAIL_IF( !Between( value.unsign, Min.unsign, Max.unsign ), 
+										pack_ctx, 
+										DL_ERROR_TXT_PARSE_ERROR, 
+										DL_UINT64_FMT_STR " will not fit in type", 
+										value.unsign );
 			break;
 		default:
 			break;
 	}
 
-	switch(State)
+	switch( state )
 	{
-		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pCtx->writer,   (int8)Val.m_Signed );   break;
-		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pCtx->writer,  (int16)Val.m_Signed );   break;
-		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pCtx->writer,  (int32)Val.m_Signed );   break;
-		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pCtx->writer,  (int64)Val.m_Signed );   break;
-		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pCtx->writer,  (uint8)Val.m_Unsigned ); break;
-		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pCtx->writer, (uint16)Val.m_Unsigned ); break;
-		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pCtx->writer, (uint32)Val.m_Unsigned ); break;
-		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pCtx->writer, (uint64)Val.m_Unsigned ); break;
+		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pack_ctx->writer,   (int8)value.sign );   break;
+		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pack_ctx->writer,  (int16)value.sign );   break;
+		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pack_ctx->writer,  (int32)value.sign );   break;
+		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pack_ctx->writer,  (int64)value.sign );   break;
+		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pack_ctx->writer,  (uint8)value.unsign ); break;
+		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pack_ctx->writer, (uint16)value.unsign ); break;
+		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pack_ctx->writer, (uint32)value.unsign ); break;
+		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pack_ctx->writer, (uint64)value.unsign ); break;
 		default: break;
 	}
 
-	pCtx->ArrayItemPop();
+	pack_ctx->ArrayItemPop();
 
 	return 1;
 }
@@ -454,7 +478,11 @@ static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_
 			strncpy( type_name, (const char*)str_value, str_len );
 			pCtx->root_type = dl_internal_find_type_by_name( pCtx->dl_ctx, type_name );
 
-			DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Could not find type %.*s in loaded types!", str_len, str_value);
+			DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type == 0x0, 
+									   pCtx, 
+									   DL_ERROR_TYPE_NOT_FOUND, 
+									   "Could not find type %.*s in loaded types!", 
+									   str_len, str_value );
 
 			pCtx->PopState(); // back to last state plox!
 		}
@@ -487,13 +515,19 @@ static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_
 			uint32 enum_value;
 			const SDLEnum* enum_type = pCtx->state_stack.Top().enum_type;
 			if( !dl_internal_find_enum_value( enum_type, (const char*)str_value, str_len, &enum_value ) )
-				DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_INVALID_ENUM_VALUE, "Enum \"%s\" do not have the value \"%.*s\"!", enum_type->name, str_len, str_value);
+				DL_PACK_ERROR_AND_FAIL( pCtx,
+										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
+										"Enum \"%s\" do not have the value \"%.*s\"!", 
+										enum_type->name, str_len, str_value );
 			dl_binary_writer_write( pCtx->writer, &enum_value, sizeof(uint32) );
 			pCtx->ArrayItemPop();
 		}
 		break;
 		default:
-			DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Unexpected string \"%.*s\"!", str_len, str_value);
+			DL_PACK_ERROR_AND_FAIL( pCtx, 
+									DL_ERROR_TXT_PARSE_ERROR, 
+									"Unexpected string \"%.*s\"!", 
+									str_len, str_value );
 			break;
 	}
 
@@ -523,72 +557,98 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 {
 	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
 
-	switch(pCtx->CurrentPackState())
+	switch( pCtx->CurrentPackState() )
 	{
 		case DL_PACK_STATE_INSTANCE:
-			DL_PACK_ERROR_AND_FAIL_IF( str_len != 4 && str_len != 7, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\" or \"data\"!", str_len, str_val);
+			DL_PACK_ERROR_AND_FAIL_IF( str_len != 4 && str_len != 7, 
+									   pCtx, 
+									   DL_ERROR_TXT_PARSE_ERROR, 
+									   "Got key \"%.*s\", expected \"type\" or \"data\"!", 
+									   str_len, str_val );
 
-			if(strncmp((const char*)str_val, "type", str_len) == 0)
+			if( strncmp( (const char*)str_val, "type", str_len ) == 0 )
 			{
-				DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type != 0x0, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance set two times!");
+				DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type != 0x0, 
+										   pCtx, 
+										   DL_ERROR_TXT_PARSE_ERROR, 
+										   "Type for root-instance set two times!" );
 				pCtx->PushState(DL_PACK_STATE_INSTANCE_TYPE);
 			}
-			else if (strncmp((const char*)str_val, "data", str_len) == 0)
+			else if( strncmp( (const char*)str_val, "data", str_len ) == 0 )
 			{
-				DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type == 0x0, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Type for root-instance not set or after data-segment!");
+				DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type == 0x0, 
+					                       pCtx, 
+					                       DL_ERROR_TXT_PARSE_ERROR, 
+					                       "Type for root-instance not set or after data-segment!" );
 				pCtx->PushStructState(pCtx->root_type);
 			}
-			else if (strncmp((const char*)str_val, "subdata", str_len) == 0)
+			else if( strncmp( (const char*)str_val, "subdata", str_len ) == 0 )
 			{
 				pCtx->PushState(DL_PACK_STATE_SUBDATA);
 			}
 			else
-				DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Got key \"%.*s\", expected \"type\", \"data\" or \"subdata\"!", str_len, str_val);
+				DL_PACK_ERROR_AND_FAIL( pCtx, 
+										DL_ERROR_TXT_PARSE_ERROR, 
+										"Got key \"%.*s\", expected \"type\", \"data\" or \"subdata\"!", 
+										str_len, str_val );
 		break;
 
 		case DL_PACK_STATE_STRUCT:
 		{
-			SDLPackState& State = pCtx->state_stack.Top();
+			SDLPackState& state = pCtx->state_stack.Top();
 
-			unsigned int MemberID = dl_internal_find_member( State.type, dl_internal_hash_buffer(str_val, str_len, 0) );
+			unsigned int member_id = dl_internal_find_member( state.type, dl_internal_hash_buffer(str_val, str_len, 0) );
 
-			DL_PACK_ERROR_AND_FAIL_IF( MemberID > State.type->member_count, pCtx->dl_ctx, DL_ERROR_MEMBER_NOT_FOUND, "Type \"%s\" has no member named \"%.*s\"!", State.type->name, str_len, str_val);
+			DL_PACK_ERROR_AND_FAIL_IF( member_id > state.type->member_count, 
+									   pCtx, 
+									   DL_ERROR_MEMBER_NOT_FOUND, 
+									   "Type \"%s\" has no member named \"%.*s\"!", 
+									   state.type->name, 
+									   str_len, str_val );
 
-			const SDLMember* pMember = State.type->members + MemberID;
+			const SDLMember* member = state.type->members + member_id;
 
-			DL_PACK_ERROR_AND_FAIL_IF( State.members_set.IsSet(MemberID), pCtx->dl_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "Trying to set Member \"%.*s\" twice!", str_len, str_val );
+			DL_PACK_ERROR_AND_FAIL_IF( state.members_set.IsSet( member_id ), 
+									   pCtx, 
+									   DL_ERROR_TXT_MEMBER_SET_TWICE, 
+									   "Trying to set Member \"%.*s\" twice!", 
+									   str_len, str_val );
 
-			State.members_set.SetBit(MemberID);
+			state.members_set.SetBit( member_id );
 
 			// seek to position for member! ( members can come in any order in the text-file so we need to seek )
-			pint MemberPos = pCtx->state_stack.Top().struct_start_pos + pMember->offset[DL_PTR_SIZE_HOST];
-			dl_binary_writer_seek_set( pCtx->writer, MemberPos );
-			DL_ASSERT( dl_binary_writer_in_back_alloc_area( pCtx->writer ) || dl_internal_is_align((void*)MemberPos, pMember->alignment[DL_PTR_SIZE_HOST]) );
+			pint mem_pos = pCtx->state_stack.Top().struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
+			dl_binary_writer_seek_set( pCtx->writer, mem_pos );
+			DL_ASSERT( dl_binary_writer_in_back_alloc_area( pCtx->writer ) || dl_internal_is_align((void*)mem_pos, member->alignment[DL_PTR_SIZE_HOST]) );
 
 			pint array_count_patch_pos = 0; // for inline array, keep as 0.
 			bool array_has_sub_ptrs    = false;
 
-			dl_type_t AtomType    = pMember->AtomType();
-			dl_type_t StorageType = pMember->StorageType();
+			dl_type_t atom_type    = member->AtomType();
+			dl_type_t storage_type = member->StorageType();
 
-			switch(AtomType)
+			switch( atom_type )
 			{
 				case DL_TYPE_ATOM_POD:
 				{
-					switch(StorageType)
+					switch( storage_type )
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = dl_internal_find_type(pCtx->dl_ctx, pMember->type_id);
-							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Type of member \"%s\" not in type library!", pMember->name);
+							const SDLType* pSubType = dl_internal_find_type( pCtx->dl_ctx, member->type_id );
+							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, 
+													   pCtx, 
+													   DL_ERROR_TYPE_NOT_FOUND, 
+													   "Type of member \"%s\" not in type library!", 
+													   member->name );
 							pCtx->PushStructState(pSubType); 
 						}
 						break;
-						case DL_TYPE_STORAGE_PTR:  pCtx->PushMemberState(DL_PACK_STATE_SUBDATA_ID, pMember); break;
-						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState(dl_internal_find_enum(pCtx->dl_ctx, pMember->type_id)); break;
+						case DL_TYPE_STORAGE_PTR:  pCtx->PushMemberState( DL_PACK_STATE_SUBDATA_ID, member ); break;
+						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState( dl_internal_find_enum(pCtx->dl_ctx, member->type_id)) ; break;
 						default:
-							DL_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
-							pCtx->PushState(EDLPackState(StorageType));
+							DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_STR);
+							pCtx->PushState( EDLPackState( storage_type ) );
 							break;
 					}
 				}
@@ -596,7 +656,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 				case DL_TYPE_ATOM_ARRAY:
 				{
 					// calc alignemnt needed for array
-					pint array_align = dl_internal_align_of_type( pCtx->dl_ctx, pMember->type, pMember->type_id, DL_PTR_SIZE_HOST );
+					pint array_align = dl_internal_align_of_type( pCtx->dl_ctx, member->type, member->type_id, DL_PTR_SIZE_HOST );
 					dl_binary_writer_needed_size_align_up( pCtx->writer, array_align );
 
 					// save position for array to be able to write ptr and count on array-end.
@@ -605,7 +665,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 					dl_binary_writer_write_uint32( pCtx->writer, 0 ); // count need to be patched later!
 					dl_binary_writer_seek_end( pCtx->writer );
 
-					if( StorageType == DL_TYPE_STORAGE_STR )
+					if( storage_type == DL_TYPE_STORAGE_STR )
 					{
 						pCtx->PushState(DL_PACK_STATE_ARRAY);
 						pCtx->state_stack.Top().array_count_patch_pos = array_count_patch_pos;
@@ -615,7 +675,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 						break;
 					}
 
-					array_has_sub_ptrs = dl_internal_has_sub_ptr(pCtx->dl_ctx, pMember->type_id); // TODO: Optimize this, store info in type-data
+					array_has_sub_ptrs = dl_internal_has_sub_ptr(pCtx->dl_ctx, member->type_id); // TODO: Optimize this, store info in type-data
 				}
 				case DL_TYPE_ATOM_INLINE_ARRAY: // FALLTHROUGH
 				{
@@ -623,31 +683,39 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 					pCtx->state_stack.Top().array_count_patch_pos = array_count_patch_pos;
 					pCtx->state_stack.Top().is_back_array         = array_has_sub_ptrs;
 
-					switch(StorageType)
+					switch( storage_type )
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = dl_internal_find_type(pCtx->dl_ctx, pMember->type_id);
-							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Type of array \"%s\" not in type library!", pMember->name );
+							const SDLType* pSubType = dl_internal_find_type(pCtx->dl_ctx, member->type_id);
+							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, 
+													   pCtx, 
+													   DL_ERROR_TYPE_NOT_FOUND, 
+													   "Type of array \"%s\" not in type library!", 
+													   member->name );
 							pCtx->PushStructState(pSubType);
 						}
 						break;
 						case DL_TYPE_STORAGE_ENUM:
 						{
-							const SDLEnum* pEnum = dl_internal_find_enum(pCtx->dl_ctx, pMember->type_id);
-							DL_PACK_ERROR_AND_FAIL_IF( pEnum == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Enum-type of array \"%s\" not in type library!", pMember->name);
-							pCtx->PushEnumState(pEnum);
+							const SDLEnum* the_enum = dl_internal_find_enum( pCtx->dl_ctx, member->type_id );
+							DL_PACK_ERROR_AND_FAIL_IF( the_enum == 0x0, 
+								                       pCtx, 
+								                       DL_ERROR_TYPE_NOT_FOUND, 
+								                       "Enum-type of array \"%s\" not in type library!", 
+								                       member->name );
+							pCtx->PushEnumState( the_enum );
 						}
 						break;
 						default: // default is a standard pod-type
-							DL_ASSERT(pMember->IsSimplePod() || StorageType == DL_TYPE_STORAGE_STR);
-							pCtx->PushState(EDLPackState(StorageType));
+							DL_ASSERT( member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_STR );
+							pCtx->PushState( EDLPackState( storage_type ) );
 							break;
 					}
 				}
 				break;
 				case DL_TYPE_ATOM_BITFIELD:
-					pCtx->PushMemberState(EDLPackState(pMember->type), 0x0);
+					pCtx->PushMemberState( EDLPackState( member->type ), 0x0 );
 				break;
 				default:
 					DL_ASSERT(false && "Invalid ATOM-type!");
@@ -660,33 +728,46 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 			// found a subdata item! the map-key need to be a id!
 
 			uint32 ID;
-			DL_PACK_ERROR_AND_FAIL_IF( sscanf((char*)str_val, "%u", &ID) != 1, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Could not parse %.*s as correct ID!", str_len, str_val);
+			DL_PACK_ERROR_AND_FAIL_IF( sscanf((char*)str_val, "%u", &ID) != 1, 
+									   pCtx, 
+									   DL_ERROR_TXT_PARSE_ERROR, 
+									   "Could not parse %.*s as correct ID!", 
+									   str_len, str_val );
 
-			const SDLMember* pMember = 0x0;
+			const SDLMember* member = 0x0;
 
 			// check that we have referenced this before so we know its type!
-			for (unsigned int iPatchPos = 0; iPatchPos < pCtx->patch_pos_count; ++iPatchPos)
-				if(pCtx->patch_pos[iPatchPos].id == ID)
+			for( unsigned int patch_pos = 0; patch_pos < pCtx->patch_pos_count; ++patch_pos )
+				if(pCtx->patch_pos[patch_pos].id == ID)
 				{
-					pMember = pCtx->patch_pos[iPatchPos].member;
+					member = pCtx->patch_pos[patch_pos].member;
 					break;
 				}
 
-			DL_PACK_ERROR_AND_FAIL_IF( pMember == 0, pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "An item with id %u has not been encountered in the earlier part of the document, hence the type could not be deduced!", ID);
+			DL_PACK_ERROR_AND_FAIL_IF( member == 0, 
+									   pCtx,
+									   DL_ERROR_TXT_PARSE_ERROR, 
+									   "An item with id %u has not been encountered in the earlier part of the document, hence the type could not be deduced!", 
+									   ID );
 
-			dl_type_t AtomType = pMember->AtomType();
-			dl_type_t StorageType = pMember->StorageType();
+			dl_type_t atom_type    = member->AtomType();
+			dl_type_t storage_type = member->StorageType();
 
-			DL_ASSERT(AtomType == DL_TYPE_ATOM_POD);
-			DL_ASSERT(StorageType == DL_TYPE_STORAGE_PTR);
-			const SDLType* pSubType = dl_internal_find_type(pCtx->dl_ctx, pMember->type_id);
-			DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, pCtx->dl_ctx, DL_ERROR_TYPE_NOT_FOUND, "Type of ptr \"%s\" not in type library!", pMember->name);
+			DL_ASSERT( atom_type    == DL_TYPE_ATOM_POD );
+			DL_ASSERT( storage_type == DL_TYPE_STORAGE_PTR );
+
+			const SDLType* sub_type = dl_internal_find_type( pCtx->dl_ctx, member->type_id );
+			DL_PACK_ERROR_AND_FAIL_IF( sub_type == 0x0, 
+									   pCtx, 
+									   DL_ERROR_TYPE_NOT_FOUND, 
+									   "Type of ptr \"%s\" not in type library!",
+									   member->name );
 			dl_binary_writer_seek_end( pCtx->writer );
-			dl_binary_writer_align( pCtx->writer, pSubType->alignment[DL_PTR_SIZE_HOST] );
-			pCtx->PushStructState(pSubType);
+			dl_binary_writer_align( pCtx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
+			pCtx->PushStructState( sub_type );
 
 			// register this element as it will be written here!
-			pCtx->RegisterSubdataElement(ID, dl_binary_writer_tell( pCtx->writer ) );
+			pCtx->RegisterSubdataElement( ID, dl_binary_writer_tell( pCtx->writer ) );
 		}
 		break;
 
@@ -715,7 +796,7 @@ static int dl_internal_pack_on_map_start( void* pack_ctx )
 				dl_binary_writer_reserve( pCtx->writer, pCtx->state_stack.Top().type->size[DL_PTR_SIZE_HOST] );
 			break;
 		default:
-			DL_PACK_ERROR_AND_FAIL( pCtx->dl_ctx, DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
+			DL_PACK_ERROR_AND_FAIL( pCtx, DL_ERROR_TXT_PARSE_ERROR, "Did not expect map-open here!");
 			break;
 	}
 	return 1;
@@ -744,36 +825,36 @@ static int dl_internal_pack_on_map_end( void* pack_ctx )
 		return 1;
 	}
 
-	EDLPackState State = pCtx->CurrentPackState();
-	switch(State)
+	EDLPackState state = pCtx->CurrentPackState();
+	switch( state )
 	{
 		case DL_PACK_STATE_SUBDATA:
-		case DL_PACK_STATE_INSTANCE: pCtx->PopState();     break;
+		case DL_PACK_STATE_INSTANCE: pCtx->PopState(); break;
 		case DL_PACK_STATE_STRUCT:
 		{
 			SDLPackState& PackState = pCtx->state_stack.Top();
 
 			// Check that all members are set!
-			for (uint32 iMember = 0; iMember < PackState.type->member_count; ++iMember)
+			for( uint32 member_index = 0; member_index < PackState.type->member_count; ++member_index )
 			{
-				const SDLMember* pMember = PackState.type->members + iMember;
+				const SDLMember* member = PackState.type->members + member_index;
 
-				if(!PackState.members_set.IsSet(iMember))
+				if( !PackState.members_set.IsSet(member_index) )
 				{
-					DL_PACK_ERROR_AND_FAIL_IF( pMember->default_value_offset == DL_UINT32_MAX, 
-											   pCtx->dl_ctx, 
+					DL_PACK_ERROR_AND_FAIL_IF( member->default_value_offset == DL_UINT32_MAX, 
+											   pCtx, 
 											   DL_ERROR_TXT_MEMBER_MISSING, 
 											   "Member \"%s\" in struct of type \"%s\" not set!", 
-											   pMember->name, 
+											   member->name, 
 											   PackState.type->name );
 
-					pint   MemberPos  = PackState.struct_start_pos + pMember->offset[DL_PTR_SIZE_HOST];
-					uint8* pDefMember = pCtx->dl_ctx->default_data + pMember->default_value_offset;
+					pint   mem_pos  = PackState.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
+					uint8* pDefMember = pCtx->dl_ctx->default_data + member->default_value_offset;
 
-					dl_binary_writer_seek_set( pCtx->writer, MemberPos );
+					dl_binary_writer_seek_set( pCtx->writer, mem_pos );
 
-					dl_type_t AtomType    = pMember->AtomType();
-					dl_type_t StorageType = pMember->StorageType();
+					dl_type_t AtomType    = member->AtomType();
+					dl_type_t StorageType = member->StorageType();
 
 					switch(AtomType)
 					{
@@ -787,14 +868,14 @@ static int dl_internal_pack_on_map_end( void* pack_ctx )
 									pint str_pos = dl_binary_writer_tell( pCtx->writer );
 									char* str = *(char**)pDefMember;
 									dl_binary_writer_write_string( pCtx->writer, str, strlen( str ) );
-									dl_binary_writer_seek_set( pCtx->writer, MemberPos );
+									dl_binary_writer_seek_set( pCtx->writer, mem_pos );
 									dl_binary_writer_write_pint( pCtx->writer, str_pos );
 								}
 								break;
 								case DL_TYPE_STORAGE_PTR: dl_binary_writer_write_pint( pCtx->writer, (pint)-1 ); break; // can only default to null!
 								default:
-									DL_ASSERT( pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
-									dl_binary_writer_write( pCtx->writer, pDefMember, pMember->size[DL_PTR_SIZE_HOST] );
+									DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
+									dl_binary_writer_write( pCtx->writer, pDefMember, member->size[DL_PTR_SIZE_HOST] );
 							}
 						}
 						break;
@@ -806,20 +887,20 @@ static int dl_internal_pack_on_map_end( void* pack_ctx )
 								{
 									char** pArray = (char**)pDefMember;
 
-									uint32 Count = pMember->size[DL_PTR_SIZE_HOST] / sizeof(char*);
+									uint32 Count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
 									for(uint32 iElem = 0; iElem < Count; ++iElem)
 									{
 										dl_binary_writer_seek_end( pCtx->writer );
 										pint str_pos = dl_binary_writer_tell( pCtx->writer );
 										dl_binary_writer_write_string( pCtx->writer, pArray[iElem], strlen( pArray[iElem] ) );
-										dl_binary_writer_seek_set( pCtx->writer, MemberPos + sizeof(char*) * iElem );
+										dl_binary_writer_seek_set( pCtx->writer, mem_pos + sizeof(char*) * iElem );
 										dl_binary_writer_write_pint( pCtx->writer, str_pos );
 									}
 								}
 								break;
 								default:
-									DL_ASSERT( pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
-									dl_binary_writer_write( pCtx->writer, pDefMember, pMember->size[DL_PTR_SIZE_HOST] );
+									DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
+									dl_binary_writer_write( pCtx->writer, pDefMember, member->size[DL_PTR_SIZE_HOST] );
 							}
 						}
 						break;
@@ -851,8 +932,8 @@ static int dl_internal_pack_on_map_end( void* pack_ctx )
 								}
 								break;
 								default:
-									DL_ASSERT(pMember->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-									dl_binary_writer_write( pCtx->writer, *(uint8**)pDefMember, Count * DLPodSize(pMember->type) );
+									DL_ASSERT(member->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
+									dl_binary_writer_write( pCtx->writer, *(uint8**)pDefMember, Count * DLPodSize(member->type) );
 							}
 						}
 						break;
