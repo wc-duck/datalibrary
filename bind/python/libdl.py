@@ -80,6 +80,9 @@ DL_STORAGE_TO_NAME = { DL_TYPE_STORAGE_INT8   : 'int8',
                  
                        DL_TYPE_STORAGE_STR    : 'string' }
 
+class ptr_wrapper():
+    pass
+
 # TODO: should there be a subclass each for correct dl-errors?
 class DLError(Exception):
     def __init__(self, err, value):
@@ -130,7 +133,7 @@ class DLContext:
         storage_type = member_info.StorageType()
         
         if storage_type == DL_TYPE_STORAGE_PTR:
-            return None   
+            return None
 
         type_name = self.__get_type_name( storage_type, member_info.type_id )
         
@@ -141,14 +144,17 @@ class DLContext:
         
         atom_type = member_info.AtomType()
               
-        if   atom_type == DL_TYPE_ATOM_POD:          return c_type 
+        if   atom_type == DL_TYPE_ATOM_POD:
+            if storage_type == DL_TYPE_STORAGE_PTR:
+                return POINTER( c_type )
+            return c_type 
         elif atom_type == DL_TYPE_ATOM_INLINE_ARRAY: return c_type * member_info.array_count 
         elif atom_type == DL_TYPE_ATOM_ARRAY:
             class dl_array( Structure ):
                 _fields_ = [ ( 'data',  POINTER( c_type ) ), 
                              ( 'count', c_uint32 ) ]
             return dl_array
-        elif atom_type == DL_TYPE_ATOM_BITFIELD:     return c_type
+        elif atom_type == DL_TYPE_ATOM_BITFIELD:     return c_type 
         else:
             return None
         
@@ -165,7 +171,10 @@ class DLContext:
         py_type = self.type_cache[ type_name ].py_type
         
         atom_type = member_info.AtomType()
-        if   atom_type == DL_TYPE_ATOM_POD:          return py_type
+        if   atom_type == DL_TYPE_ATOM_POD:
+            if storage_type == DL_TYPE_STORAGE_PTR:
+                return ptr_wrapper
+            return py_type
         elif atom_type == DL_TYPE_ATOM_INLINE_ARRAY: return ( list, py_type, member_info.array_count )
         elif atom_type == DL_TYPE_ATOM_ARRAY:        return list
         elif atom_type == DL_TYPE_ATOM_BITFIELD:     return int # TODO: need to be long if bitfield-size is to big
@@ -203,6 +212,8 @@ class DLContext:
                         c_member.count = len( member )
                 else: # inline array
                     setattr( c_instance, member_name, type(c_member)( *conv_member ) )
+            elif isinstance(member, ptr_wrapper):
+                setattr( c_instance, member_name, None )
             else:
                 setattr( c_instance, member_name, member )
         
@@ -287,18 +298,24 @@ class DLContext:
         self.dl.dl_error_to_string.restype = c_char_p
         self.dl_ctx = c_void_p(0)
         
+        def dl_msg_handler( msg, userdata ):
+            print msg
+            
+        self.CDL_MSG_HANDLER = CFUNCTYPE( None, c_char_p, c_void_p )
+        self.msg_handler = self.CDL_MSG_HANDLER(dl_msg_handler)
+        
         class dl_create_params(Structure):
             _fields_ = [ ('alloc_func',     c_void_p), 
                          ('free_func',      c_void_p), 
                          ('alloc_ctx',      c_void_p),
-                         ('error_msg_func', c_void_p),
+                         ('error_msg_func', self.CDL_MSG_HANDLER),
                          ('error_msg_ctx',  c_void_p) ]
             
         params = dl_create_params()
         params.alloc_func = 0
         params.free_func  = 0
         params.alloc_ctx  = 0
-        params.error_msg_func = 0
+        params.error_msg_func = self.msg_handler
         params.error_msg_ctx  = 0
         err = self.dl.dl_context_create( byref(self.dl_ctx), byref(params) )
         
