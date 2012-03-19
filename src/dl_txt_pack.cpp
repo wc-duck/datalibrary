@@ -12,9 +12,9 @@
 #include <stdlib.h>
 
 /*
-	PACKING OF ARRAYS, How its done!
+	PACKING OF ARRAYS, How its done!state_
 
-	if the elements of the array is not containing subarrays ( or other variable size data-types if they ever is added )
+	if the elemf the array is not containing subarrays ( or other variable size data-types if they ever is added )
 	each array element is packed after the last other data section as usual.
 	example:
 
@@ -66,29 +66,15 @@ class CFlagField
 	DL_STATIC_ASSERT( BITS % 32 == 0, only_even_32_bits );
 	uint32 storage[ BITS / 32 ];
 
-	enum
-	{
-		BITS_PER_STORAGE = sizeof(uint32) * 8,
-		BITS_FOR_FIELD   = 5
-	};
+	enum { BITS_PER_STORAGE = sizeof(uint32) * 8, BITS_FOR_FIELD = 5 };
 
 	unsigned int Field( unsigned int bit ) { return ( bit  & ~(BITS_PER_STORAGE - 1) ) >> BITS_FOR_FIELD; }
 	unsigned int Bit  ( unsigned int bit ) { return ( bit  &  (BITS_PER_STORAGE - 1) ); }
 
 public:
-	CFlagField()              { ClearAll(); }
-	CFlagField( bool all_on ) { memset( storage, all_on ? 0xFF : 0x00, sizeof(storage) ); }
-
-	~CFlagField() {}
-
-	void SetBit  ( unsigned int bit ) { storage[ Field( bit ) ] |=  DL_BIT( Bit( bit ) ); }
-	void ClearBit( unsigned int bit ) { storage[ Field( bit ) ] &= ~DL_BIT( Bit( bit ) ); }
-	void FlipBit ( unsigned int bit ) { storage[ Field( bit ) ] ^=  DL_BIT( Bit( bit ) ); }
-
-	void SetAll()   { memset(storage, 0xFF, sizeof(storage)); }
-	void ClearAll() { memset(storage, 0x00, sizeof(storage)); }
-
-	bool IsSet( unsigned int bit ) { return ( storage[Field( bit )] & DL_BIT( Bit( bit ) ) ) != 0; }
+	CFlagField() { memset( storage, 0x00, sizeof(storage) ); }
+	void SetBit( unsigned int bit ) {          storage[ Field( bit ) ] |= DL_BIT( Bit( bit ) ); }
+	bool IsSet ( unsigned int bit ) { return ( storage[ Field( bit ) ] &  DL_BIT( Bit( bit ) ) ) != 0; }
 };
 
 struct SDLPackState
@@ -121,73 +107,10 @@ struct SDLPackState
 
 struct SDLPackContext
 {
-	SDLPackContext() : root_type(0x0), error_code(DL_ERROR_OK), patch_pos_count(0)
-	{
-		PushState( DL_PACK_STATE_INSTANCE );
-		memset( subdata_elems_pos, 0xFF, sizeof(subdata_elems_pos) );
-		subdata_elems_pos[0] = 0; // element 1 is root, and it has position 0
-	}
-
 	dl_binary_writer* writer;
 	dl_ctx_t          dl_ctx;
 	const SDLType*    root_type;
 	dl_error_t        error_code;
-
-	void PushStructState( const SDLType* type )
-	{
-		pint struct_start_pos = 0;
-
-		if( state_stack.Top().state == DL_PACK_STATE_ARRAY && state_stack.Top().is_back_array )
-			struct_start_pos = dl_binary_writer_push_back_alloc( writer, type->size[DL_PTR_SIZE_HOST] );
-		else
-			struct_start_pos = dl_internal_align_up( dl_binary_writer_tell( writer ), type->alignment[DL_PTR_SIZE_HOST]);
-
-		state_stack.Push( SDLPackState(DL_PACK_STATE_STRUCT, type, struct_start_pos) );
-	}
-
-	void PushEnumState( const SDLEnum* member )
-	{
-		state_stack.Push( SDLPackState(DL_PACK_STATE_ENUM, member) );
-	}
-
-	void PushMemberState( dl_pack_state state, const SDLMember* member )
-	{
-		state_stack.Push( SDLPackState(state, member) );
-	}
-
-	void PushState( dl_pack_state state ) 
-	{
-		DL_ASSERT( state != DL_PACK_STATE_STRUCT && "Please use PushStructState()" );
-		state_stack.Push( state );
-	}
-
-	void PopState() { state_stack.Pop(); }
-
-	void ArrayItemPop()
-	{
-		SDLPackState& old_state = state_stack.Top();
-
-		state_stack.Pop();
-
-		if( old_state.state == DL_PACK_STATE_STRUCT )
-		{
-			// end should be just after the current struct. but we might not be there since
-			// members could have been written in an order that is not according to type.
-			dl_binary_writer_seek_set( writer, old_state.struct_start_pos + old_state.type->size[DL_PTR_SIZE_HOST] );
-		}
-
-		if( state_stack.Top().state == DL_PACK_STATE_ARRAY )
-		{
-			state_stack.Top().array_count++;
-
-			switch(old_state.state)
-			{
-				case DL_PACK_STATE_STRUCT: PushStructState(old_state.type);    break;
-				case DL_PACK_STATE_ENUM:   PushEnumState(old_state.enum_type); break;
-				default:                   PushState(old_state.state);         break;
-			}
-		}
-	}
 
 	dl_pack_state CurrentPackState() { return state_stack.Top().state; }
 
@@ -200,35 +123,112 @@ struct SDLPackContext
 	} patch_pos[128];
 	unsigned int patch_pos_count;
 
-	void AddPatchPosition( unsigned int id )
-	{
-		unsigned int pp_index = patch_pos_count++;
-		DL_ASSERT( pp_index < DL_ARRAY_LENGTH(patch_pos) );
-
-		patch_pos[pp_index].id        = id;
-		patch_pos[pp_index].write_pos = dl_binary_writer_tell( writer );
-		patch_pos[pp_index].member    = state_stack.Top().member;
-	}
-
-	void RegisterSubdataElement(unsigned int elem, pint pos)
-	{
-		DL_ASSERT(subdata_elems_pos[elem] == pint(-1) && "Subdata element already registered!");
-		subdata_elems_pos[elem] = pos;
-		curr_subdata_elem = elem;
-	}
-
 	CStackStatic<SDLPackState, 128> state_stack;
 
 	unsigned int curr_subdata_elem;
 	pint subdata_elems_pos[128]; // positions for different subdata-elements;
 };
 
+static void dl_txt_pack_ctx_push_state( SDLPackContext* pack_ctx, dl_pack_state state )
+{
+	DL_ASSERT( state != DL_PACK_STATE_STRUCT && "Please use dl_txt_pack_ctx_push_state_struct" );
+	pack_ctx->state_stack.Push( state );
+}
+
+static void dl_txt_pack_ctx_push_state_struct( SDLPackContext* pack_ctx, const SDLType* type )
+{
+	pint struct_start_pos = 0;
+
+	if( pack_ctx->state_stack.Top().state == DL_PACK_STATE_ARRAY && 
+		pack_ctx->state_stack.Top().is_back_array )
+		struct_start_pos = dl_binary_writer_push_back_alloc( pack_ctx->writer, type->size[DL_PTR_SIZE_HOST] );
+	else
+		struct_start_pos = dl_internal_align_up( dl_binary_writer_tell( pack_ctx->writer ), type->alignment[DL_PTR_SIZE_HOST]);
+
+	pack_ctx->state_stack.Push( SDLPackState(DL_PACK_STATE_STRUCT, type, struct_start_pos) );
+}
+
+static void dl_txt_pack_ctx_push_state_enum( SDLPackContext* pack_ctx, const SDLEnum* enum_type )
+{
+	pack_ctx->state_stack.Push( SDLPackState(DL_PACK_STATE_ENUM, enum_type) );
+}
+
+static void dl_txt_pack_ctx_push_state_member( SDLPackContext* pack_ctx, const SDLMember* member )
+{
+	pack_ctx->state_stack.Push( SDLPackState( dl_pack_state( member->type ), 0x0 ) );
+}
+
+static void dl_txt_pack_ctx_push_state_ptr_member( SDLPackContext* pack_ctx, const SDLMember* member )
+{
+	pack_ctx->state_stack.Push( SDLPackState( DL_PACK_STATE_SUBDATA_ID, member ) );
+}
+
+static void dl_txt_pack_ctx_pop_state( struct SDLPackContext* pack_ctx )
+{
+	pack_ctx->state_stack.Pop();
+}
+
+static void dl_txt_pack_ctx_pop_array_item( struct SDLPackContext* pack_ctx )
+{
+	SDLPackState& old_state = pack_ctx->state_stack.Top();
+
+	pack_ctx->state_stack.Pop();
+
+	if( old_state.state == DL_PACK_STATE_STRUCT )
+	{
+		// end should be just after the current struct. but we might not be there since
+		// members could have been written in an order that is not according to type.
+		dl_binary_writer_seek_set( pack_ctx->writer, old_state.struct_start_pos + old_state.type->size[DL_PTR_SIZE_HOST] );
+	}
+
+	if( pack_ctx->state_stack.Top().state == DL_PACK_STATE_ARRAY )
+	{
+		pack_ctx->state_stack.Top().array_count++;
+
+		switch(old_state.state)
+		{
+			case DL_PACK_STATE_STRUCT: dl_txt_pack_ctx_push_state_struct( pack_ctx, old_state.type );    break;
+			case DL_PACK_STATE_ENUM:   dl_txt_pack_ctx_push_state_enum( pack_ctx, old_state.enum_type ); break;
+			default:                   dl_txt_pack_ctx_push_state( pack_ctx, old_state.state);           break;
+		}
+	}
+}
+
+static void dl_txt_pack_ctx_add_patch_pos( SDLPackContext* pack_ctx, unsigned int id )
+{
+	unsigned int pp_index = pack_ctx->patch_pos_count++;
+	DL_ASSERT( pp_index < DL_ARRAY_LENGTH(pack_ctx->patch_pos) );
+
+	pack_ctx->patch_pos[pp_index].id        = id;
+	pack_ctx->patch_pos[pp_index].write_pos = dl_binary_writer_tell( pack_ctx->writer );
+	pack_ctx->patch_pos[pp_index].member    = pack_ctx->state_stack.Top().member;	
+}
+
+static void dl_txt_pack_ctx_register_sub_element( SDLPackContext* pack_ctx, unsigned int elem, pint pos )
+{
+	DL_ASSERT( pack_ctx->subdata_elems_pos[elem] == pint(-1) && "Subdata element already registered!");
+	pack_ctx->subdata_elems_pos[elem] = pos;
+	pack_ctx->curr_subdata_elem = elem;
+}
+
+static void dl_txt_pack_ctx_init( SDLPackContext* pack_ctx )
+{
+	pack_ctx->root_type = 0x0;
+	pack_ctx->error_code = DL_ERROR_OK;
+	pack_ctx->patch_pos_count = 0;
+	
+	dl_txt_pack_ctx_push_state( pack_ctx, DL_PACK_STATE_INSTANCE );
+	memset( pack_ctx->subdata_elems_pos, 0xFF, sizeof(pack_ctx->subdata_elems_pos) );
+	pack_ctx->subdata_elems_pos[0] = 0; // element 1 is root, and it has position 0
+}
+
+
 static int dl_internal_pack_on_null( void* pack_ctx_in )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 	DL_ASSERT( pack_ctx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID );
 	dl_binary_writer_write_ptr( pack_ctx->writer, (pint)-1 );
-	pack_ctx->PopState();
+	dl_txt_pack_ctx_pop_state( pack_ctx );
 	return 1;
 }
 
@@ -280,7 +280,7 @@ static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 				break;
 		}
 
-		pack_ctx->PopState();
+		dl_txt_pack_ctx_pop_state( pack_ctx );
 
 		return 1;
 	}
@@ -300,7 +300,7 @@ static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 			break;
 	}
 
-	pack_ctx->ArrayItemPop();
+	dl_txt_pack_ctx_pop_array_item( pack_ctx );
 	return 1;
 }
 
@@ -369,7 +369,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, u
 				break;
 		}
 
-		pack_ctx->PopState();
+		dl_txt_pack_ctx_pop_state( pack_ctx );
 
 		return 1;
 	}
@@ -385,8 +385,8 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, u
 		case DL_PACK_STATE_POD_UINT32: Min.unsign = uint64(DL_UINT32_MIN); Max.unsign = uint64(DL_UINT32_MAX); fmt = DL_UINT64_FMT_STR; break;
 		case DL_PACK_STATE_POD_UINT64: Min.unsign = uint64(DL_UINT64_MIN); Max.unsign = uint64(DL_UINT64_MAX); fmt = DL_UINT64_FMT_STR; break;
 
-		case DL_PACK_STATE_POD_FP32:   dl_binary_writer_write_fp32( pack_ctx->writer, (float)atof(str_val) ); pack_ctx->ArrayItemPop(); return 1;
-		case DL_PACK_STATE_POD_FP64:   dl_binary_writer_write_fp64( pack_ctx->writer,        atof(str_val) ); pack_ctx->ArrayItemPop(); return 1;
+		case DL_PACK_STATE_POD_FP32:   dl_binary_writer_write_fp32( pack_ctx->writer, (float)atof(str_val) ); dl_txt_pack_ctx_pop_array_item( pack_ctx ); return 1;
+		case DL_PACK_STATE_POD_FP64:   dl_binary_writer_write_fp64( pack_ctx->writer,        atof(str_val) ); dl_txt_pack_ctx_pop_array_item( pack_ctx ); return 1;
 
 		case DL_PACK_STATE_SUBDATA_ID:
 		{
@@ -397,12 +397,12 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, u
 									   "Could not parse %.*s as correct ID!", 
 									   str_len, str_val );
 
-			pack_ctx->AddPatchPosition( (unsigned int)ID );
+			dl_txt_pack_ctx_add_patch_pos( pack_ctx, (unsigned int)ID );
 
 			// this is the pos that will be patched, but we need to make room for the array now!
 			dl_binary_writer_write_zero( pack_ctx->writer, pack_ctx->patch_pos[ pack_ctx->patch_pos_count - 1 ].member->size[DL_PTR_SIZE_HOST] );
 
-			pack_ctx->PopState();
+			dl_txt_pack_ctx_pop_state( pack_ctx );
 		}
 		return 1;
 
@@ -457,74 +457,74 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, u
 		default: break;
 	}
 
-	pack_ctx->ArrayItemPop();
+	dl_txt_pack_ctx_pop_array_item( pack_ctx );
 
 	return 1;
 }
 
-static int dl_internal_pack_on_string( void* pack_ctx, const unsigned char* str_value, unsigned int str_len )
+static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* str_value, unsigned int str_len )
 {
-	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
+	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
-	dl_pack_state State = pCtx->CurrentPackState();
+	dl_pack_state State = pack_ctx->CurrentPackState();
 	switch(State)
 	{
 		case DL_PACK_STATE_INSTANCE_TYPE:
 		{
-			DL_ASSERT(pCtx->root_type == 0x0);
+			DL_ASSERT( pack_ctx->root_type == 0x0 );
 			// we are packing an instance, get the type plox!
 
 			char type_name[DL_MEMBER_NAME_MAX_LEN] = { 0x0 };
 			strncpy( type_name, (const char*)str_value, str_len );
-			pCtx->root_type = dl_internal_find_type_by_name( pCtx->dl_ctx, type_name );
+			pack_ctx->root_type = dl_internal_find_type_by_name( pack_ctx->dl_ctx, type_name );
 
-			DL_PACK_ERROR_AND_FAIL_IF( pCtx->root_type == 0x0, 
-									   pCtx, 
+			DL_PACK_ERROR_AND_FAIL_IF( pack_ctx->root_type == 0x0, 
+									   pack_ctx, 
 									   DL_ERROR_TYPE_NOT_FOUND, 
 									   "Could not find type %.*s in loaded types!", 
 									   str_len, str_value );
 
-			pCtx->PopState(); // back to last state plox!
+			dl_txt_pack_ctx_pop_state( pack_ctx ); // back to last state plox!
 		}
 		break;
 		case DL_PACK_STATE_STRING_ARRAY:
 		{
-			dl_binary_writer_seek_end( pCtx->writer );
-			pint offset = dl_binary_writer_tell( pCtx->writer );
-			dl_binary_writer_write_string( pCtx->writer, str_value, str_len );
-			pint array_elem_pos = dl_binary_writer_push_back_alloc( pCtx->writer, sizeof( char* ) );
-			dl_binary_writer_seek_set( pCtx->writer, array_elem_pos );
-			dl_binary_writer_write( pCtx->writer, &offset, sizeof(pint) );
+			dl_binary_writer_seek_end( pack_ctx->writer );
+			pint offset = dl_binary_writer_tell( pack_ctx->writer );
+			dl_binary_writer_write_string( pack_ctx->writer, str_value, str_len );
+			pint array_elem_pos = dl_binary_writer_push_back_alloc( pack_ctx->writer, sizeof( char* ) );
+			dl_binary_writer_seek_set( pack_ctx->writer, array_elem_pos );
+			dl_binary_writer_write( pack_ctx->writer, &offset, sizeof(pint) );
 
-			pCtx->ArrayItemPop(); // back to last state plox!
+			dl_txt_pack_ctx_pop_array_item( pack_ctx ); // back to last state plox!
 		}
 		break;
 		case DL_PACK_STATE_STRING:
 		{
-			pint curr = dl_binary_writer_tell( pCtx->writer );
-			dl_binary_writer_seek_end( pCtx->writer );
-			pint offset = dl_binary_writer_tell( pCtx->writer );
-			dl_binary_writer_write_string( pCtx->writer, str_value, str_len );
-			dl_binary_writer_seek_set( pCtx->writer, curr );
-			dl_binary_writer_write( pCtx->writer, &offset, sizeof(pint) );
-			pCtx->ArrayItemPop(); // back to last state plox!
+			pint curr = dl_binary_writer_tell( pack_ctx->writer );
+			dl_binary_writer_seek_end( pack_ctx->writer );
+			pint offset = dl_binary_writer_tell( pack_ctx->writer );
+			dl_binary_writer_write_string( pack_ctx->writer, str_value, str_len );
+			dl_binary_writer_seek_set( pack_ctx->writer, curr );
+			dl_binary_writer_write( pack_ctx->writer, &offset, sizeof(pint) );
+			dl_txt_pack_ctx_pop_array_item( pack_ctx ); // back to last state plox!
 		}
 		break;
 		case DL_PACK_STATE_ENUM:
 		{
 			uint32 enum_value;
-			const SDLEnum* enum_type = pCtx->state_stack.Top().enum_type;
+			const SDLEnum* enum_type = pack_ctx->state_stack.Top().enum_type;
 			if( !dl_internal_find_enum_value( enum_type, (const char*)str_value, str_len, &enum_value ) )
-				DL_PACK_ERROR_AND_FAIL( pCtx,
+				DL_PACK_ERROR_AND_FAIL( pack_ctx,
 										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
 										"Enum \"%s\" do not have the value \"%.*s\"!", 
 										enum_type->name, str_len, str_value );
-			dl_binary_writer_write( pCtx->writer, &enum_value, sizeof(uint32) );
-			pCtx->ArrayItemPop();
+			dl_binary_writer_write( pack_ctx->writer, &enum_value, sizeof(uint32) );
+			dl_txt_pack_ctx_pop_array_item( pack_ctx );
 		}
 		break;
 		default:
-			DL_PACK_ERROR_AND_FAIL( pCtx, 
+			DL_PACK_ERROR_AND_FAIL( pack_ctx, 
 									DL_ERROR_TXT_PARSE_ERROR, 
 									"Unexpected string \"%.*s\"!", 
 									str_len, str_value );
@@ -572,7 +572,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 										   pCtx, 
 										   DL_ERROR_TXT_PARSE_ERROR, 
 										   "Type for root-instance set two times!" );
-				pCtx->PushState(DL_PACK_STATE_INSTANCE_TYPE);
+				dl_txt_pack_ctx_push_state( pCtx, DL_PACK_STATE_INSTANCE_TYPE );
 			}
 			else if( strncmp( (const char*)str_val, "data", str_len ) == 0 )
 			{
@@ -580,11 +580,11 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 					                       pCtx, 
 					                       DL_ERROR_TXT_PARSE_ERROR, 
 					                       "Type for root-instance not set or after data-segment!" );
-				pCtx->PushStructState(pCtx->root_type);
+				dl_txt_pack_ctx_push_state_struct( pCtx, pCtx->root_type );
 			}
 			else if( strncmp( (const char*)str_val, "subdata", str_len ) == 0 )
 			{
-				pCtx->PushState(DL_PACK_STATE_SUBDATA);
+				dl_txt_pack_ctx_push_state( pCtx, DL_PACK_STATE_SUBDATA );
 			}
 			else
 				DL_PACK_ERROR_AND_FAIL( pCtx, 
@@ -641,14 +641,14 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 													   DL_ERROR_TYPE_NOT_FOUND, 
 													   "Type of member \"%s\" not in type library!", 
 													   member->name );
-							pCtx->PushStructState(pSubType); 
+							dl_txt_pack_ctx_push_state_struct( pCtx, pSubType );
 						}
 						break;
-						case DL_TYPE_STORAGE_PTR:  pCtx->PushMemberState( DL_PACK_STATE_SUBDATA_ID, member ); break;
-						case DL_TYPE_STORAGE_ENUM: pCtx->PushEnumState( dl_internal_find_enum(pCtx->dl_ctx, member->type_id)) ; break;
+						case DL_TYPE_STORAGE_PTR:  dl_txt_pack_ctx_push_state_ptr_member( pCtx, member ); break;
+						case DL_TYPE_STORAGE_ENUM: dl_txt_pack_ctx_push_state_enum( pCtx, dl_internal_find_enum(pCtx->dl_ctx, member->type_id) ); break;
 						default:
 							DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_STR);
-							pCtx->PushState( dl_pack_state( storage_type ) );
+							dl_txt_pack_ctx_push_state( pCtx, dl_pack_state( storage_type ) );
 							break;
 					}
 				}
@@ -667,11 +667,11 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 
 					if( storage_type == DL_TYPE_STORAGE_STR )
 					{
-						pCtx->PushState(DL_PACK_STATE_ARRAY);
+						dl_txt_pack_ctx_push_state( pCtx, DL_PACK_STATE_ARRAY );
 						pCtx->state_stack.Top().array_count_patch_pos = array_count_patch_pos;
 						pCtx->state_stack.Top().is_back_array        = true;
 
-						pCtx->PushState( DL_PACK_STATE_STRING_ARRAY );
+						dl_txt_pack_ctx_push_state( pCtx, DL_PACK_STATE_STRING_ARRAY );
 						break;
 					}
 
@@ -679,7 +679,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 				}
 				case DL_TYPE_ATOM_INLINE_ARRAY: // FALLTHROUGH
 				{
-					pCtx->PushState(DL_PACK_STATE_ARRAY);
+					dl_txt_pack_ctx_push_state( pCtx, DL_PACK_STATE_ARRAY );
 					pCtx->state_stack.Top().array_count_patch_pos = array_count_patch_pos;
 					pCtx->state_stack.Top().is_back_array         = array_has_sub_ptrs;
 
@@ -693,7 +693,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 													   DL_ERROR_TYPE_NOT_FOUND, 
 													   "Type of array \"%s\" not in type library!", 
 													   member->name );
-							pCtx->PushStructState(pSubType);
+							dl_txt_pack_ctx_push_state_struct( pCtx, pSubType );
 						}
 						break;
 						case DL_TYPE_STORAGE_ENUM:
@@ -704,18 +704,18 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 								                       DL_ERROR_TYPE_NOT_FOUND, 
 								                       "Enum-type of array \"%s\" not in type library!", 
 								                       member->name );
-							pCtx->PushEnumState( the_enum );
+							dl_txt_pack_ctx_push_state_enum( pCtx, the_enum );
 						}
 						break;
 						default: // default is a standard pod-type
 							DL_ASSERT( member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_STR );
-							pCtx->PushState( dl_pack_state( storage_type ) );
+							dl_txt_pack_ctx_push_state( pCtx, dl_pack_state( storage_type ) );
 							break;
 					}
 				}
 				break;
 				case DL_TYPE_ATOM_BITFIELD:
-					pCtx->PushMemberState( dl_pack_state( member->type ), 0x0 );
+					dl_txt_pack_ctx_push_state_member( pCtx, member );
 				break;
 				default:
 					DL_ASSERT(false && "Invalid ATOM-type!");
@@ -764,10 +764,10 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   member->name );
 			dl_binary_writer_seek_end( pCtx->writer );
 			dl_binary_writer_align( pCtx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
-			pCtx->PushStructState( sub_type );
+			dl_txt_pack_ctx_push_state_struct( pCtx, sub_type );
 
 			// register this element as it will be written here!
-			pCtx->RegisterSubdataElement( ID, dl_binary_writer_tell( pCtx->writer ) );
+			dl_txt_pack_ctx_register_sub_element( pCtx, ID, dl_binary_writer_tell( pCtx->writer ) );
 		}
 		break;
 
@@ -815,135 +815,135 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 	}
 }
 
-static int dl_internal_pack_on_map_end( void* pack_ctx )
+static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 {
-	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
+	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
-	if(pCtx->state_stack.Len() == 1) // end of top-instance!
+	if( pack_ctx->state_stack.Len() == 1 ) // end of top-instance!
 	{
-		dl_internal_txt_pack_finalize( pCtx );
+		dl_internal_txt_pack_finalize( pack_ctx );
 		return 1;
 	}
 
-	dl_pack_state state = pCtx->CurrentPackState();
+	dl_pack_state state = pack_ctx->CurrentPackState();
 	switch( state )
 	{
 		case DL_PACK_STATE_SUBDATA:
-		case DL_PACK_STATE_INSTANCE: pCtx->PopState(); break;
+		case DL_PACK_STATE_INSTANCE: dl_txt_pack_ctx_pop_state( pack_ctx ); break;
 		case DL_PACK_STATE_STRUCT:
 		{
-			SDLPackState& PackState = pCtx->state_stack.Top();
+			SDLPackState& PackState = pack_ctx->state_stack.Top();
 
 			// Check that all members are set!
 			for( uint32 member_index = 0; member_index < PackState.type->member_count; ++member_index )
 			{
 				const SDLMember* member = PackState.type->members + member_index;
 
-				if( !PackState.members_set.IsSet(member_index) )
+				if( PackState.members_set.IsSet( member_index ) )
+					continue;
+
+				DL_PACK_ERROR_AND_FAIL_IF( member->default_value_offset == DL_UINT32_MAX, 
+										   pack_ctx, 
+										   DL_ERROR_TXT_MEMBER_MISSING, 
+										   "Member \"%s\" in struct of type \"%s\" not set!", 
+										   member->name, 
+										   PackState.type->name );
+
+				pint   mem_pos  = PackState.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
+				uint8* member_default_value = pack_ctx->dl_ctx->default_data + member->default_value_offset;
+
+				dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
+
+				dl_type_t atom_type    = member->AtomType();
+				dl_type_t storage_type = member->StorageType();
+
+				switch( atom_type )
 				{
-					DL_PACK_ERROR_AND_FAIL_IF( member->default_value_offset == DL_UINT32_MAX, 
-											   pCtx, 
-											   DL_ERROR_TXT_MEMBER_MISSING, 
-											   "Member \"%s\" in struct of type \"%s\" not set!", 
-											   member->name, 
-											   PackState.type->name );
-
-					pint   mem_pos  = PackState.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
-					uint8* pDefMember = pCtx->dl_ctx->default_data + member->default_value_offset;
-
-					dl_binary_writer_seek_set( pCtx->writer, mem_pos );
-
-					dl_type_t AtomType    = member->AtomType();
-					dl_type_t StorageType = member->StorageType();
-
-					switch(AtomType)
+					case DL_TYPE_ATOM_POD:
 					{
-						case DL_TYPE_ATOM_POD:
+						switch( storage_type )
 						{
-							switch(StorageType)
+							case DL_TYPE_STORAGE_STR:
 							{
-								case DL_TYPE_STORAGE_STR:
-								{
-									dl_binary_writer_seek_end( pCtx->writer );
-									pint str_pos = dl_binary_writer_tell( pCtx->writer );
-									char* str = *(char**)pDefMember;
-									dl_binary_writer_write_string( pCtx->writer, str, strlen( str ) );
-									dl_binary_writer_seek_set( pCtx->writer, mem_pos );
-									dl_binary_writer_write_pint( pCtx->writer, str_pos );
-								}
-								break;
-								case DL_TYPE_STORAGE_PTR: dl_binary_writer_write_pint( pCtx->writer, (pint)-1 ); break; // can only default to null!
-								default:
-									DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
-									dl_binary_writer_write( pCtx->writer, pDefMember, member->size[DL_PTR_SIZE_HOST] );
+								dl_binary_writer_seek_end( pack_ctx->writer );
+								pint str_pos = dl_binary_writer_tell( pack_ctx->writer );
+								char* str = *(char**)member_default_value;
+								dl_binary_writer_write_string( pack_ctx->writer, str, strlen( str ) );
+								dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
+								dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
 							}
+							break;
+							case DL_TYPE_STORAGE_PTR: dl_binary_writer_write_pint( pack_ctx->writer, (pint)-1 ); break; // can only default to null!
+							default:
+								DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
+								dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
 						}
-						break;
-						case DL_TYPE_ATOM_INLINE_ARRAY:
-						{
-							switch(StorageType)
-							{
-								case DL_TYPE_STORAGE_STR:
-								{
-									char** pArray = (char**)pDefMember;
-
-									uint32 Count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
-									for(uint32 iElem = 0; iElem < Count; ++iElem)
-									{
-										dl_binary_writer_seek_end( pCtx->writer );
-										pint str_pos = dl_binary_writer_tell( pCtx->writer );
-										dl_binary_writer_write_string( pCtx->writer, pArray[iElem], strlen( pArray[iElem] ) );
-										dl_binary_writer_seek_set( pCtx->writer, mem_pos + sizeof(char*) * iElem );
-										dl_binary_writer_write_pint( pCtx->writer, str_pos );
-									}
-								}
-								break;
-								default:
-									DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
-									dl_binary_writer_write( pCtx->writer, pDefMember, member->size[DL_PTR_SIZE_HOST] );
-							}
-						}
-						break;
-						case DL_TYPE_ATOM_ARRAY:
-						{
-							uint32 Count = *(uint32*)(pDefMember + sizeof(void*));
-
-							dl_binary_writer_write_pint( pCtx->writer, dl_binary_writer_needed_size( pCtx->writer ) );
-							dl_binary_writer_write_uint32( pCtx->writer, Count);
-							dl_binary_writer_seek_end( pCtx->writer );
-
-							switch(StorageType)
-							{
-								case DL_TYPE_STORAGE_STR:
-								{
-
-									pint ArrayPos = dl_binary_writer_tell( pCtx->writer );
-									dl_binary_writer_reserve( pCtx->writer, Count * sizeof(char*) );
-
-									char** pArray = *(char***)pDefMember;
-									for(uint32 iElem = 0; iElem < Count; ++iElem)
-									{
-										dl_binary_writer_seek_end( pCtx->writer );
-										pint str_pos = dl_binary_writer_tell( pCtx->writer );
-										dl_binary_writer_write_string( pCtx->writer, pArray[iElem], strlen( pArray[iElem] ) );
-										dl_binary_writer_seek_set( pCtx->writer, ArrayPos + sizeof(char*) * iElem );
-										dl_binary_writer_write_pint( pCtx->writer, str_pos );
-									}
-								}
-								break;
-								default:
-									DL_ASSERT(member->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-									dl_binary_writer_write( pCtx->writer, *(uint8**)pDefMember, Count * DLPodSize(member->type) );
-							}
-						}
-						break;
-						default:
-							DL_ASSERT(false && "WHoo?");
 					}
+					break;
+					case DL_TYPE_ATOM_INLINE_ARRAY:
+					{
+						switch( storage_type )
+						{
+							case DL_TYPE_STORAGE_STR:
+							{
+								char** array_value = (char**)member_default_value;
+
+								uint32 count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
+								for(uint32 elem = 0; elem < count; ++elem)
+								{
+									dl_binary_writer_seek_end( pack_ctx->writer );
+									pint str_pos = dl_binary_writer_tell( pack_ctx->writer );
+									dl_binary_writer_write_string( pack_ctx->writer, array_value[elem], strlen( array_value[elem] ) );
+									dl_binary_writer_seek_set( pack_ctx->writer, mem_pos + sizeof(char*) * elem );
+									dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
+								}
+							}
+							break;
+							default:
+								DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
+								dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+						}
+					}
+					break;
+					case DL_TYPE_ATOM_ARRAY:
+					{
+						uint32 count = *(uint32*)(member_default_value + sizeof(void*));
+
+						dl_binary_writer_write_pint( pack_ctx->writer, dl_binary_writer_needed_size( pack_ctx->writer ) );
+						dl_binary_writer_write_uint32( pack_ctx->writer, count);
+						dl_binary_writer_seek_end( pack_ctx->writer );
+
+						switch( storage_type )
+						{
+							case DL_TYPE_STORAGE_STR:
+							{
+
+								pint array_pos = dl_binary_writer_tell( pack_ctx->writer );
+								dl_binary_writer_reserve( pack_ctx->writer, count * sizeof(char*) );
+
+								char** array_value = *(char***)member_default_value;
+								for( uint32 i = 0; i < count; ++i )
+								{
+									dl_binary_writer_seek_end( pack_ctx->writer );
+									pint str_pos = dl_binary_writer_tell( pack_ctx->writer );
+									dl_binary_writer_write_string( pack_ctx->writer, array_value[i], strlen( array_value[i] ) );
+									dl_binary_writer_seek_set( pack_ctx->writer, array_pos + sizeof(char*) * i );
+									dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
+								}
+							}
+							break;
+							default:
+								DL_ASSERT(member->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
+								dl_binary_writer_write( pack_ctx->writer, *(uint8**)member_default_value, count * DLPodSize(member->type) );
+						}
+					}
+					break;
+					default:
+						DL_ASSERT(false && "WHoo?");
 				}
 			}
 
-			pCtx->ArrayItemPop();
+			dl_txt_pack_ctx_pop_array_item( pack_ctx );
 		}
 		break;
 		default:
@@ -959,50 +959,50 @@ static int dl_internal_pack_on_array_start( void* pack_ctx )
 	return 1;
 }
 
-static int dl_internal_pack_on_array_end( void* pack_ctx )
+static int dl_internal_pack_on_array_end( void* pack_ctx_in )
 {
-	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
+	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
-	const SDLType* pType    = pCtx->state_stack.Top().type;
-	dl_pack_state pack_state = pCtx->state_stack.Top().state;
+	const SDLType* type      = pack_ctx->state_stack.Top().type;
+	dl_pack_state pack_state = pack_ctx->state_stack.Top().state;
 
-	pCtx->PopState(); // pop of pack state for sub-type
-	uint32 array_count   = pCtx->state_stack.Top().array_count;
-	pint   patch_pos     = pCtx->state_stack.Top().array_count_patch_pos;
-	bool   is_back_array = pCtx->state_stack.Top().is_back_array;
-	pCtx->PopState(); // pop of pack state for array
+	dl_txt_pack_ctx_pop_state( pack_ctx ); // pop of pack state for sub-type
+	uint32 array_count   = pack_ctx->state_stack.Top().array_count;
+	pint   patch_pos     = pack_ctx->state_stack.Top().array_count_patch_pos;
+	bool   is_back_array = pack_ctx->state_stack.Top().is_back_array;
+	dl_txt_pack_ctx_pop_state( pack_ctx ); // pop of pack state for array
 	if( patch_pos != 0 ) // not inline array
 	{
 		if( array_count == 0 )
 		{
 			// empty array should be null!
-			dl_binary_writer_seek_set( pCtx->writer, patch_pos - sizeof(pint) );
-			dl_binary_writer_write_pint( pCtx->writer, pint(-1) );
+			dl_binary_writer_seek_set( pack_ctx->writer, patch_pos - sizeof(pint) );
+			dl_binary_writer_write_pint( pack_ctx->writer, pint(-1) );
 		}
 		else if(is_back_array)
 		{
 			uint32 size  = sizeof( char* );
 			uint32 align = sizeof( char* );
 
-			if( pType != 0x0 )
+			if( type != 0x0 )
 			{
-				size  = pType->size[DL_PTR_SIZE_HOST];
-				align = pType->alignment[DL_PTR_SIZE_HOST];
+				size  = type->size[DL_PTR_SIZE_HOST];
+				align = type->alignment[DL_PTR_SIZE_HOST];
 			}
 
 			// TODO: HACKZOR!
 			// When packing arrays of structs one element to much in pushed in the back-alloc.
 			if( pack_state != DL_PACK_STATE_STRING_ARRAY )
-				pCtx->writer->back_alloc_pos += size;
+				pack_ctx->writer->back_alloc_pos += size;
 
-			pint array_pos = dl_binary_writer_pop_back_alloc( pCtx->writer, array_count, size, align );
-			dl_binary_writer_seek_set( pCtx->writer, patch_pos - sizeof(pint) );
-			dl_binary_writer_write_pint( pCtx->writer, array_pos );
+			pint array_pos = dl_binary_writer_pop_back_alloc( pack_ctx->writer, array_count, size, align );
+			dl_binary_writer_seek_set( pack_ctx->writer, patch_pos - sizeof(pint) );
+			dl_binary_writer_write_pint( pack_ctx->writer, array_pos );
 		}
 		else
-			dl_binary_writer_seek_set( pCtx->writer, patch_pos );
+			dl_binary_writer_seek_set( pack_ctx->writer, patch_pos );
 
-		dl_binary_writer_write_uint32( pCtx->writer, array_count );
+		dl_binary_writer_write_uint32( pack_ctx->writer, array_count );
 	}
 
 	return 1;
@@ -1112,6 +1112,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 						   DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 
 	SDLPackContext pack_ctx;
+	dl_txt_pack_ctx_init( &pack_ctx );
 	pack_ctx.dl_ctx = dl_ctx;
 	pack_ctx.writer = &writer;
 
