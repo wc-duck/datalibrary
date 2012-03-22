@@ -249,10 +249,9 @@ DL_FORCEINLINE bool dl_internal_is_align( const void* ptr, pint alignment ) { re
 	return a bitfield offset on a particular platform (currently endian-ness is used to set them apart, that might break ;) )
 	the bitfield offset are counted from least significant bit or most significant bit on different platforms.
 */
-inline unsigned int DLBitFieldOffset(dl_endian_t _Endian, unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits) { return _Endian == DL_ENDIAN_LITTLE ? _Offset : (_BFSize * 8) - _Offset - _nBits; }
-inline unsigned int DLBitFieldOffset(unsigned int _BFSize, unsigned int _Offset, unsigned int _nBits)                      { return DLBitFieldOffset(DL_ENDIAN_HOST, _BFSize, _Offset, _nBits); }
+inline unsigned int dl_bf_offset( dl_endian_t endian, unsigned int bf_size, unsigned int offset, unsigned int bits ) { return endian == DL_ENDIAN_LITTLE ? offset : ( bf_size * 8) - offset - bits; }
 
-DL_FORCEINLINE dl_endian_t DLOtherEndian(dl_endian_t _Endian) { return _Endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
+DL_FORCEINLINE dl_endian_t dl_other_endian( dl_endian_t endian ) { return endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
 
 static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {

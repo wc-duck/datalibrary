@@ -241,7 +241,6 @@ DL_STATIC_ASSERT( sizeof(dl_one_member_type) - sizeof(SDLMember) == sizeof(SDLTy
 
 static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsigned int first_new_type, const uint8* default_data, unsigned int default_data_size)
 {
-    (void)dl_ctx; (void)first_new_type; (void)default_data; (void)default_data_size;
 	if( default_data_size == 0 ) return DL_ERROR_OK;
 
 	if( dl_ctx->default_data != 0x0 )
@@ -503,28 +502,28 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 
 struct CDLBinStoreContext
 {
-	CDLBinStoreContext(uint8* _OutData, pint _OutDataSize, bool _Dummy)
+	CDLBinStoreContext( uint8* out_data, pint out_data_size, bool is_dummy )
 	{
-		dl_binary_writer_init( &writer, _OutData, _OutDataSize, _Dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
+		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 	}
 
-	pint FindWrittenPtr(void* _Ptr)
+	pint FindWrittenPtr( void* ptr )
 	{
-		for (unsigned int iPtr = 0; iPtr < m_WrittenPtrs.Len(); ++iPtr)
-			if(m_WrittenPtrs[iPtr].ptr == _Ptr)
-				return m_WrittenPtrs[iPtr].pos;
+		for (unsigned int i = 0; i < m_WrittenPtrs.Len(); ++i)
+			if(m_WrittenPtrs[i].ptr == ptr)
+				return m_WrittenPtrs[i].pos;
 
 		return pint(-1);
 	}
 
-	void AddWrittenPtr(void* _Ptr, pint _Pos) { m_WrittenPtrs.Add(SWrittenPtr(_Pos, _Ptr)); }
+	void AddWrittenPtr( void* ptr, pint pos ) { m_WrittenPtrs.Add( SWrittenPtr( pos, ptr ) ); }
 
 	dl_binary_writer writer;
 
 	struct SWrittenPtr
 	{
  		SWrittenPtr() {}
- 		SWrittenPtr(pint _Pos, void* _pPtr) : pos(_Pos), ptr(_pPtr) {}
+ 		SWrittenPtr( pint in_pos, void* in_ptr ) : pos(in_pos), ptr(in_ptr) {}
 		pint  pos;
 		void* ptr;
 	};
@@ -849,7 +848,7 @@ dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned 
 	else
 	{
 		out_info->load_size = dl_swap_endian_uint32( header->instance_size );
-		out_info->endian    = DLOtherEndian( DL_ENDIAN_HOST );
+		out_info->endian    = dl_other_endian( DL_ENDIAN_HOST );
 		out_info->root_type = dl_swap_endian_uint32( header->root_instance_type );
 	}
 

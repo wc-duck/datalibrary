@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 /*
-	PACKING OF ARRAYS, How its done!state_
+	PACKING OF ARRAYS, How its done!
 
 	if the elemf the array is not containing subarrays ( or other variable size data-types if they ever is added )
 	each array element is packed after the last other data section as usual.
@@ -250,28 +250,28 @@ static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 				dl_binary_writer_write_uint8 ( pack_ctx->writer,
 											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
 											   uint8( value ),
-											   DLBitFieldOffset( sizeof(uint8), bf_offset, bf_bits ),
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT16:
 				dl_binary_writer_write_uint16( pack_ctx->writer,
 											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint16( pack_ctx->writer ),
 											   uint16( value ),
-											   DLBitFieldOffset( sizeof(uint16), bf_offset, bf_bits ),
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint16), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT32:
 				dl_binary_writer_write_uint32( pack_ctx->writer,
 											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
 											   uint32( value ),
-											   DLBitFieldOffset( sizeof(uint32), bf_offset, bf_bits ),
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint32), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT64:
 				dl_binary_writer_write_uint64( pack_ctx->writer,
 											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
 											   uint64( value ),
-											   DLBitFieldOffset( sizeof(uint64), bf_offset, bf_bits ),
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint64), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 
@@ -343,25 +343,25 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, u
 				dl_binary_writer_write_uint8 ( pack_ctx->writer,
 											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
 																	  uint8(bf_value),
-																	  DLBitFieldOffset( sizeof(uint8), bf_offset, bf_bits ), bf_bits ) );
+																	  dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT16:
 				dl_binary_writer_write_uint16( pack_ctx->writer,
 											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
 																	   uint16(bf_value),
-																	   DLBitFieldOffset( sizeof(uint16), bf_offset, bf_bits ), bf_bits ) );
+																	   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint16), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT32:
 				dl_binary_writer_write_uint32( pack_ctx->writer,
 											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
 																	   uint32(bf_value),
-																	   DLBitFieldOffset( sizeof(uint32), bf_offset, bf_bits ), bf_bits ) );
+																	   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint32), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT64:
 				dl_binary_writer_write_uint64( pack_ctx->writer,
 											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
 																	   uint64(bf_value),
-																	   DLBitFieldOffset( sizeof(uint64), bf_offset, bf_bits ), bf_bits ) );
+																	   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint64), bf_offset, bf_bits ), bf_bits ) );
 				break;
 
 			default:

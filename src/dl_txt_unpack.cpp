@@ -277,7 +277,7 @@ static void DLWriteInstance(SDLUnpackContext* _Ctx, const SDLType* _pType, const
 			{
 				uint64 WriteMe = 0;
  				uint32 BFBits   = Member.BitFieldBits();
- 				uint32 BFOffset = DLBitFieldOffset(Member.size[DL_PTR_SIZE_HOST], Member.BitFieldOffset(), BFBits);
+ 				uint32 BFOffset = dl_bf_offset( DL_ENDIAN_HOST, Member.size[DL_PTR_SIZE_HOST], Member.BitFieldOffset(), BFBits );
  
  				switch(Member.size[DL_PTR_SIZE_HOST])
  				{
