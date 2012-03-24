@@ -58,11 +58,11 @@ void error_report_function( const char* msg, void* ctx )
 	fprintf( stderr, "%s\n", msg );
 }
 
-void print_help(SGetOptContext* _pCtx)
+void print_help( getopt_context_t* ctx )
 {
 	char buffer[2048];
 	printf("usage: dl_pack.exe [options] file_to_pack\n\n");
-	printf("%s", GetOptCreateHelpString(_pCtx, buffer, 2048));
+	printf("%s", getopt_create_help_string( ctx, buffer, sizeof(buffer) ) );
 }
 
 unsigned char* read_file(FILE* file, unsigned int* out_size)
@@ -130,24 +130,24 @@ dl_ctx_t create_ctx()
 	return dl_ctx;
 }
 
-int main(int argc, char** argv)
+int main( int argc, const char** argv )
 {
-	static const SOption OptionList[] =
+	static const getopt_option_t option_list[] =
 	{
-		{"help",    'h', E_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message"},
-		{"libpath", 'L', E_OPTION_TYPE_REQUIRED, 0x0,        'L', "add type-library include path", "path"},
-		{"lib",     'l', E_OPTION_TYPE_REQUIRED, 0x0,        'l', "add type-library", "path"},
-		{"output",  'o', E_OPTION_TYPE_REQUIRED, 0x0,        'o', "output to file", "file"},
-		{"endian",  'e', E_OPTION_TYPE_REQUIRED, 0x0,        'e', "endianness of output data, if not specified pack-platform is assumed", "little,big"},
-		{"ptrsize", 'p', E_OPTION_TYPE_REQUIRED, 0x0,        'p', "ptr-size of output data, if not specified pack-platform is assumed", "4,8"},
-		{"unpack",  'u', E_OPTION_TYPE_FLAG_SET, &g_Unpack,    1, "force dl_pack to treat input data as a packed instance that should be unpacked."},
-		{"info",    'i', E_OPTION_TYPE_FLAG_SET, &g_Info,      1, "make dl_pack show info about a packed instance."},
-		{"verbose", 'v', E_OPTION_TYPE_FLAG_SET, &g_Verbose,   1, "verbose output"},
+		{"help",    'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message", 0x0},
+		{"libpath", 'L', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'L', "add type-library include path", "path"},
+		{"lib",     'l', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'l', "add type-library", "path"},
+		{"output",  'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'o', "output to file", "file"},
+		{"endian",  'e', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'e', "endianness of output data, if not specified pack-platform is assumed", "little,big"},
+		{"ptrsize", 'p', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'p', "ptr-size of output data, if not specified pack-platform is assumed", "4,8"},
+		{"unpack",  'u', GETOPT_OPTION_TYPE_FLAG_SET, &g_Unpack,    1, "force dl_pack to treat input data as a packed instance that should be unpacked."},
+		{"info",    'i', GETOPT_OPTION_TYPE_FLAG_SET, &g_Info,      1, "make dl_pack show info about a packed instance."},
+		{"verbose", 'v', GETOPT_OPTION_TYPE_FLAG_SET, &g_Verbose,   1, "verbose output"},
 		{0}
 	};
 
-	SGetOptContext GOCtx;
-	GetOptCreateContext(&GOCtx, argc, argv, OptionList);
+	getopt_context_t go_ctx;
+	getopt_create_context( &go_ctx, argc, argv, option_list );
 
 	add_lib_path("");
 	const char*  out_file_path  = "";
@@ -156,40 +156,40 @@ int main(int argc, char** argv)
 	unsigned int out_ptr_size   = sizeof(void*);
 
 	int opt;
-	while((opt = GetOpt(&GOCtx)) != -1)
+	while( (opt = getopt_next( &go_ctx ) ) != -1 )
 	{
 		switch(opt)
 		{
-			case 'h': print_help(&GOCtx); return 0;
-			case 'L': if( !add_lib_path( GOCtx.m_CurrentOptArg ) ) M_ERROR_AND_QUIT( "dl_pack only supports %u libpaths!", MAX_LIB_PATHS );       break;
-			case 'l': if( !add_lib( GOCtx.m_CurrentOptArg ) )      M_ERROR_AND_QUIT( "dl_pack only supports %u type libraries libs!", MAX_LIBS ); break;
+			case 'h': print_help(&go_ctx); return 0;
+			case 'L': if( !add_lib_path( go_ctx.current_opt_arg ) ) M_ERROR_AND_QUIT( "dl_pack only supports %u libpaths!", MAX_LIB_PATHS );       break;
+			case 'l': if( !add_lib( go_ctx.current_opt_arg ) )      M_ERROR_AND_QUIT( "dl_pack only supports %u type libraries libs!", MAX_LIBS ); break;
 			case 'o':
 				if(out_file_path[0] != '\0')
-					M_ERROR_AND_QUIT("output-file already set to: \"%s\", trying to set it to \"%s\"", out_file_path, GOCtx.m_CurrentOptArg);
+					M_ERROR_AND_QUIT("output-file already set to: \"%s\", trying to set it to \"%s\"", out_file_path, go_ctx.current_opt_arg);
 
-				out_file_path = GOCtx.m_CurrentOptArg;
+				out_file_path = go_ctx.current_opt_arg;
 				break;
 			case 'e':
-				if(strcmp(GOCtx.m_CurrentOptArg, "little") == 0)
+				if(strcmp(go_ctx.current_opt_arg, "little") == 0)
 					out_endian = DL_ENDIAN_LITTLE;
-				else if(strcmp(GOCtx.m_CurrentOptArg, "big") == 0) 
+				else if(strcmp(go_ctx.current_opt_arg, "big") == 0) 
 					out_endian = DL_ENDIAN_BIG;
 				else
-					M_ERROR_AND_QUIT("endian-flag need \"little\" or \"big\", not \"%s\"!", GOCtx.m_CurrentOptArg);
+					M_ERROR_AND_QUIT("endian-flag need \"little\" or \"big\", not \"%s\"!", go_ctx.current_opt_arg);
 				break;
 			case 'p':
-				if(strlen(GOCtx.m_CurrentOptArg) != 1 || (GOCtx.m_CurrentOptArg[0] != '4' && GOCtx.m_CurrentOptArg[0] != '8'))
-					M_ERROR_AND_QUIT("ptr-flag need \"4\" or \"8\", not \"%s\"!", GOCtx.m_CurrentOptArg);
+				if(strlen(go_ctx.current_opt_arg) != 1 || (go_ctx.current_opt_arg[0] != '4' && go_ctx.current_opt_arg[0] != '8'))
+					M_ERROR_AND_QUIT("ptr-flag need \"4\" or \"8\", not \"%s\"!", go_ctx.current_opt_arg);
 
-				out_ptr_size = GOCtx.m_CurrentOptArg[0] - '0';
+				out_ptr_size = go_ctx.current_opt_arg[0] - '0';
 				break;
-			case '!': M_ERROR_AND_QUIT("incorrect usage of flag \"%s\"!", GOCtx.m_CurrentOptArg);
-			case '?': M_ERROR_AND_QUIT("unrecognized flag \"%s\"!", GOCtx.m_CurrentOptArg);
+			case '!': M_ERROR_AND_QUIT("incorrect usage of flag \"%s\"!", go_ctx.current_opt_arg);
+			case '?': M_ERROR_AND_QUIT("unrecognized flag \"%s\"!", go_ctx.current_opt_arg);
 			case '+':
 				if(in_file_path[0] != '\0')
-					M_ERROR_AND_QUIT("input-file already set to: \"%s\", trying to set it to \"%s\"", in_file_path, GOCtx.m_CurrentOptArg);
+					M_ERROR_AND_QUIT("input-file already set to: \"%s\", trying to set it to \"%s\"", in_file_path, go_ctx.current_opt_arg);
 
-				in_file_path = GOCtx.m_CurrentOptArg;
+				in_file_path = go_ctx.current_opt_arg;
 				break;
 			case 0: break; // ignore, flag was set!
 		}
