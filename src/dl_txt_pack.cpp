@@ -73,8 +73,8 @@ class CFlagField
 
 public:
 	CFlagField() { memset( storage, 0x00, sizeof(storage) ); }
-	void SetBit( unsigned int bit ) {          storage[ Field( bit ) ] |= DL_BIT( Bit( bit ) ); }
-	bool IsSet ( unsigned int bit ) { return ( storage[ Field( bit ) ] &  DL_BIT( Bit( bit ) ) ) != 0; }
+	void SetBit( unsigned int bit ) {          storage[ Field( bit ) ] |= (uint32)DL_BIT( Bit( bit ) ); }
+	bool IsSet ( unsigned int bit ) { return ( storage[ Field( bit ) ] &  (uint32)DL_BIT( Bit( bit ) ) ) != 0; }
 };
 
 struct SDLPackState

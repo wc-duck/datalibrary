@@ -6,7 +6,7 @@
 #include "dl_types.h"
 
 DL_FORCEINLINE int8  dl_swap_endian_int8 ( int8  val ) { return val; }
-DL_FORCEINLINE int16 dl_swap_endian_int16( int16 val ) { return ( ( val & 0x00FF ) << 8 )  | ( ( val & 0xFF00 ) >> 8 ); }
+DL_FORCEINLINE int16 dl_swap_endian_int16( int16 val ) { return (int16)( ( ( val & 0x00FF ) << 8 )  | ( ( val & 0xFF00 ) >> 8 ) ); }
 DL_FORCEINLINE int32 dl_swap_endian_int32( int32 val ) { return ( ( val & 0x00FF ) << 24 ) | ( ( val & 0xFF00 ) << 8) | ( ( val >> 8 ) & 0xFF00 ) | ( ( val >> 24 ) & 0x00FF ); }
 DL_FORCEINLINE int64 dl_swap_endian_int64( int64 val )
 {
@@ -18,7 +18,7 @@ DL_FORCEINLINE int64 dl_swap_endian_int64( int64 val )
 	return conv.m_i64;
 }
 DL_FORCEINLINE uint8  dl_swap_endian_uint8 ( uint8  val ) { return val; }
-DL_FORCEINLINE uint16 dl_swap_endian_uint16( uint16 val ) { return ( ( val & 0x00FF ) << 8 )  | ( ( val & 0xFF00 ) >> 8 ); }
+DL_FORCEINLINE uint16 dl_swap_endian_uint16( uint16 val ) { return (uint16)( ( ( val & 0x00FF ) << 8 )  | ( val & 0xFF00 ) >> 8 ); }
 DL_FORCEINLINE uint32 dl_swap_endian_uint32( uint32 val ) { return ( ( val & 0x00FF ) << 24 ) | ( ( val & 0xFF00 ) << 8) | ( ( val >> 8 ) & 0xFF00 ) | ( ( val >> 24 ) & 0x00FF ); }
 DL_FORCEINLINE uint64 dl_swap_endian_uint64( uint64 val )
 {

@@ -168,7 +168,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 					dl_internal_patch_ptr( member_data, base_data );
 					const uint8* array_data = *(const uint8**)member_data;
 
-					uint32 count = *(uint32*)( member_data + sizeof(void*) );
+					pint count = *(uint32*)( member_data + sizeof(void*) );
 
 					if( count > 0 )
 					{
@@ -176,14 +176,14 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 						{
 							// patch sub-ptrs!
 							const SDLType* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
-							uint32 size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
+							pint size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 
-							for( uint32 elem_offset = 0; elem_offset < count * size; elem_offset += size )
+							for( pint elem_offset = 0; elem_offset < count * size; elem_offset += size )
 								dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, array_data + elem_offset, sub_type, base_data, true );
 						}
 						else
 						{
-							for( uint32 elem_offset = 0; elem_offset < count * sizeof(char*); elem_offset += sizeof(char*) )
+							for( pint elem_offset = 0; elem_offset < count * sizeof(char*); elem_offset += sizeof(char*) )
 								dl_internal_patch_ptr( array_data + elem_offset, base_data );
 						}
 					}
@@ -328,9 +328,9 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	if( header.id      != DL_TYPELIB_ID )      return DL_ERROR_MALFORMED_DATA;
 	if( header.version != DL_TYPELIB_VERSION ) return DL_ERROR_VERSION_MISMATCH;
 
-	unsigned int types_offset    = sizeof(SDLTypeLibraryHeader) + header.type_count * sizeof(dl_type_lookup_t);
-	unsigned int enums_offset    = types_offset + header.types_size + header.enum_count * sizeof(dl_type_lookup_t);
-	unsigned int defaults_offset = enums_offset + header.enums_size;
+	pint types_offset    = sizeof(SDLTypeLibraryHeader) + header.type_count * sizeof(dl_type_lookup_t);
+	pint enums_offset    = types_offset + header.types_size + header.enum_count * sizeof(dl_type_lookup_t);
+	pint defaults_offset = enums_offset + header.enums_size;
 
 	const unsigned char* types_data    = lib_data + types_offset;
 	const unsigned char* enums_data    = lib_data + enums_offset;

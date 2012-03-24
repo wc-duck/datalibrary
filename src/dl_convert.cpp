@@ -336,7 +336,7 @@ static T dl_convert_bf_format( T old_val, const SDLMember* bf_members, uint32 bf
 		uint32 bf_source_offset = dl_bf_offset( conv_ctx->m_SourceEndian, sizeof(T), bf_offset, bf_bits );
 		uint32 bf_target_offset = dl_bf_offset( conv_ctx->m_TargetEndian, sizeof(T), bf_offset, bf_bits );
 
- 		T extracted =    DL_EXTRACT_BITS( old_val, T(bf_source_offset), T(bf_bits) );
+ 		T extracted = (T)DL_EXTRACT_BITS( old_val, T(bf_source_offset), T(bf_bits) );
  		new_val     = (T)DL_INSERT_BITS ( new_val, extracted, T(bf_target_offset), T(bf_bits) );
 	}
 
@@ -751,17 +751,17 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	dl_error_t err = dl_internal_convert_no_header( dl_ctx,
-											    packed_instance + sizeof(SDLDataHeader),
-											    packed_instance + sizeof(SDLDataHeader),
-											    out_instance == 0x0 ? 0x0 : out_instance + sizeof(SDLDataHeader),
-											    out_instance_size - sizeof(SDLDataHeader),
-											    out_size,
-											    src_endian,
-											    out_endian,
-											    src_ptr_size,
-											    dst_ptr_size,
-											    root_type,
-											    0 );
+												    packed_instance + sizeof(SDLDataHeader),
+												    packed_instance + sizeof(SDLDataHeader),
+												    out_instance == 0x0 ? 0x0 : out_instance + sizeof(SDLDataHeader),
+												    out_instance_size - sizeof(SDLDataHeader),
+												    out_size,
+												    src_endian,
+												    out_endian,
+												    src_ptr_size,
+												    dst_ptr_size,
+												    root_type,
+												    0u );
 
 	if(out_instance != 0x0)
 	{

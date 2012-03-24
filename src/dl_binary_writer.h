@@ -225,10 +225,10 @@ static inline void dl_binary_writer_reserve( dl_binary_writer* writer, pint byte
 	writer->needed_size = writer->needed_size >= writer->pos + bytes ? writer->needed_size : writer->pos + bytes;
 }
 
-static inline uint8  dl_binary_writer_read_uint8 ( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint8*) ( writer->data + writer->pos ); }
-static inline uint16 dl_binary_writer_read_uint16( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint16*)( writer->data + writer->pos ); }
-static inline uint32 dl_binary_writer_read_uint32( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint32*)( writer->data + writer->pos ); }
-static inline uint64 dl_binary_writer_read_uint64( dl_binary_writer* writer ) { return writer->dummy ? 0 : *(uint64*)( writer->data + writer->pos ); }
+static inline uint8  dl_binary_writer_read_uint8 ( dl_binary_writer* writer ) { return writer->dummy ? ( uint8)0 : *( uint8*)( writer->data + writer->pos ); }
+static inline uint16 dl_binary_writer_read_uint16( dl_binary_writer* writer ) { return writer->dummy ? (uint16)0 : *(uint16*)( writer->data + writer->pos ); }
+static inline uint32 dl_binary_writer_read_uint32( dl_binary_writer* writer ) { return writer->dummy ? (uint32)0 : *(uint32*)( writer->data + writer->pos ); }
+static inline uint64 dl_binary_writer_read_uint64( dl_binary_writer* writer ) { return writer->dummy ? (uint64)0 : *(uint64*)( writer->data + writer->pos ); }
 
 static inline void dl_binary_writer_align( dl_binary_writer* writer, pint align )
 {
