@@ -6,7 +6,6 @@
 
 #include "container/dl_array.h"
 
-#include <stdio.h> // printf
 #include <stdlib.h> // malloc, free
 
 // TODO: bug! dl_internal_default_alloc do not follow alignment.
