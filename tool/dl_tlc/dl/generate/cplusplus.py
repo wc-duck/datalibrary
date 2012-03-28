@@ -71,7 +71,7 @@ HEADER_TEMPLATE = '''
 #endif // %(module)s_H_INCLUDED
 '''
 
-verbose = False # TODO: not global plox!!!
+verbose = True # TODO: not global plox!!!
 
 # TODO: read this config from user!!!
 a_config_here = { 'int8'   : 'int8_t',

@@ -376,21 +376,21 @@ static void* dl_internal_unpack_malloc( void* ctx, unsigned int size )
 }
 static void dl_internal_unpack_free( void* ctx, void* ptr )
 {
-	DL_UNUSED(ctx); DL_UNUSED(ptr);
+	(void)ctx; (void)ptr;
 	// just ignore free, the data should be allocated on the stack!
 }
 
 static void* dl_internal_unpack_realloc_func( void* ctx, void* ptr, unsigned int size ) 
 {
-	DL_UNUSED(ctx); DL_UNUSED(ptr); DL_UNUSED(size);
+	(void)ctx; (void)ptr; (void)size;
 	DL_ASSERT(false && "yajl should never need to realloc");
 	return 0x0;
 }
 
-dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  type,
-                          const unsigned char* packed_instance,  unsigned int packed_instance_size,
-                          char*                out_txt_instance, unsigned int out_txt_instance_size,
-                          unsigned int*        produced_bytes )
+dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t type,
+                          const unsigned char* packed_instance,  size_t      packed_instance_size,
+                          char*                out_txt_instance, size_t      out_txt_instance_size,
+                          size_t*              produced_bytes )
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
@@ -423,7 +423,7 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  ty
 		out_txt_instance[ write_ctx.write_pos - 1 ] = 0;
 
 	if( produced_bytes )
-		*produced_bytes = (unsigned int)write_ctx.write_pos;
+		*produced_bytes = write_ctx.write_pos;
 
 	if( out_txt_instance_size > 0 && write_ctx.write_pos > write_ctx.buffer_size )
 		return DL_ERROR_BUFFER_TO_SMALL;
@@ -431,9 +431,9 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  ty
 	return DL_ERROR_OK;
 };
 
-dl_error_t dl_txt_unpack_calc_size( dl_ctx_t dl_ctx,                      dl_typeid_t  type,
-                                    const unsigned char* packed_instance, unsigned int packed_instance_size,
-                                    unsigned int* out_txt_instance_size )
+dl_error_t dl_txt_unpack_calc_size( dl_ctx_t dl_ctx,                           dl_typeid_t type,
+                                    const unsigned char* packed_instance,      size_t      packed_instance_size,
+                                    size_t*              out_txt_instance_size )
 {
 	return dl_txt_unpack( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, out_txt_instance_size );
 }

@@ -92,7 +92,7 @@ class DLError(Exception):
         return '%s(0x%08X)' % ( self.err, self.value )
 
 def host_ptr_size():
-    return 4 if platform.architecture()[0] == '32bit' else 8
+    return c_size_t(4) if platform.architecture()[0] == '32bit' else c_size_t(8)
 
 class DLContext:
     class dl_cache_entry:
@@ -507,7 +507,7 @@ class DLContext:
     def ConvertInstance( self, type_id, instance, endian = sys.byteorder, ptr_size = host_ptr_size() ):
         endian = 0 if endian == 'big' else 1
         
-        converted_size = c_uint(0)
+        converted_size = c_size_t(0)
         self.convert( type_id, instance, len(instance), 0, 0, endian, ptr_size, byref( converted_size ) )
         
         converted_data = ( c_ubyte * converted_size.value )() 
@@ -527,7 +527,7 @@ class DLContext:
         type_id    = instance.TYPE_ID
         c_instance = self.__py_type_to_ctype( instance )    
         
-        store_size = c_uint(0)
+        store_size = c_size_t(0)
         self.instance_store( type_id, byref(c_instance), 0, 0, byref(store_size) )            
         packed_data = ( c_ubyte * store_size.value )()
         self.instance_store( type_id, byref(c_instance), packed_data, store_size, c_void_p(0) )
@@ -548,7 +548,7 @@ class DLContext:
     def StoreInstanceToString( self, instance ):
         packed_instance = self.StoreInstance(instance)
         
-        text_size = c_uint(0)
+        text_size = c_size_t(0)
         self.txt_unpack( instance.TYPE_ID, packed_instance, len(packed_instance), c_void_p(0), 0, byref( text_size ) )
         
         text_instance = create_string_buffer( text_size.value )
@@ -562,7 +562,7 @@ class DLContext:
     def PackText( self, text, endian = sys.byteorder, ptr_size = host_ptr_size() ):
         instance_data = create_string_buffer(text)
         
-        packed_size = c_uint(0)
+        packed_size = c_size_t(0)
         self.txt_pack( instance_data, c_void_p(0), 0, byref(packed_size) )
         
         packed_data = create_string_buffer(packed_size.value)

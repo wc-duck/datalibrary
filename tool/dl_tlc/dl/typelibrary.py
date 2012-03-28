@@ -357,8 +357,7 @@ class TypeLibrary( object ):
             for member in type.members:
                 if isinstance( member.type, BitfieldType ):
                     continue
-                
-                
+
                 # TODO: remove temp-code!
                 base_type_name = member.type.base_type().name
                 

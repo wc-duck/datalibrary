@@ -36,7 +36,6 @@
 
 #endif
 
-#define DL_UNUSED (void)
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 #define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: implement me plox!
 
@@ -104,13 +103,21 @@ enum
 
 #include "dl_swap.h"
 
-static const uint32 DL_TYPELIB_VERSION    = 3; // format version for type-libraries.
-static const uint32 DL_INSTANCE_VERSION   = 1; // format version for instances.
-static const uint32 DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
-static const uint32 DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
-static const uint32 DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
-static const uint32 DL_INSTANCE_ID             = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
-static const uint32 DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint32( DL_INSTANCE_ID );
+#if defined( __GNUC__ )
+	#define DL_UNUSED __attribute__((unused))
+#else
+	#define DL_UNUSED
+#endif
+
+static const uint32 DL_UNUSED DL_TYPELIB_VERSION    = 3; // format version for type-libraries.
+static const uint32 DL_UNUSED DL_INSTANCE_VERSION   = 1; // format version for instances.
+static const uint32 DL_UNUSED DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
+static const uint32 DL_UNUSED DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
+static const uint32 DL_UNUSED DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
+static const uint32 DL_UNUSED DL_INSTANCE_ID             = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
+static const uint32 DL_UNUSED DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint32( DL_INSTANCE_ID );
+
+#undef DL_UNUSED
 
 static const pint DL_NULL_PTR_OFFSET[2] =
 {
@@ -325,7 +332,7 @@ static inline pint dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl_t
 	}
 }
 
-static inline const dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const SDLType* type )
+static inline dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const SDLType* type )
 {
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 		if( (void*)(dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset) == (void*)type )

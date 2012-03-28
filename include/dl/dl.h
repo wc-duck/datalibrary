@@ -7,6 +7,7 @@
 	File: dl.h
 */
 
+#include <stddef.h>
 #include <dl/dl_defines.h>
 
 #ifdef __cplusplus
@@ -219,7 +220,7 @@ dl_error_t DL_DLL_EXPORT dl_context_destroy( dl_ctx_t dl_ctx );
 		lib_data      - Pointer to binary-data with type-library.
 		lib_data_size - Size of lib_data.
 */
-dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size );
+dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, size_t lib_data_size );
 
 
 /*
@@ -243,9 +244,9 @@ dl_error_t DL_DLL_EXPORT dl_context_load_type_library( dl_ctx_t dl_ctx, const un
 		Packed instance to load is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
 dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t type,
-                                           void*                instance,        unsigned int instance_size,
-                                           const unsigned char* packed_instance, unsigned int packed_instance_size,
-                                           unsigned int*        consumed );
+                                           void*                instance,        size_t instance_size,
+                                           const unsigned char* packed_instance, size_t packed_instance_size,
+                                           size_t*              consumed );
 
 /*
 	Function: dl_instance_load_inplace
@@ -264,9 +265,9 @@ dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             dl_ctx,         
 	Note:
 		Some small memory-waste will be incurred by this function since some header-data will be left in memory.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t   type,
-												   unsigned char* packed_instance, unsigned int  packed_instance_size,
-												   void**         loaded_instance, unsigned int* consumed );
+dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+												   unsigned char* packed_instance, size_t      packed_instance_size,
+												   void**         loaded_instance, size_t*     consumed );
 
 /*
 	Group: Store
@@ -281,7 +282,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 		instance - Ptr to instance to calculate size of.
 		out_size - Ptr where to store the amount of bytes needed to store the instances.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, unsigned int* out_size);
+dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, size_t* out_size);
 
 /*
 	Function: dl_instace_store
@@ -307,8 +308,8 @@ dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t typ
 		Function can be used to calculate the amount of bytes that will be produced if storing an instance
 		by setting out_buffer_size to 0.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type,            void*         instance,
-											unsigned char* out_buffer, unsigned int out_buffer_size, unsigned int* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type,            void*   instance,
+											unsigned char* out_buffer, size_t      out_buffer_size, size_t* produced_bytes );
 
 
 /*
@@ -341,7 +342,7 @@ typedef struct dl_instance_info
 	Return:
 		DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_get_info( const unsigned char* packed_instance, unsigned int packed_instance_size, dl_instance_info_t* out_info );
+dl_error_t DL_DLL_EXPORT dl_instance_get_info( const unsigned char* packed_instance, size_t packed_instance_size, dl_instance_info_t* out_info );
 
 #ifdef __cplusplus
 }

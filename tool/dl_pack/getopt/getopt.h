@@ -25,6 +25,8 @@
 #ifndef GETOPT_GETOPT_H_INCLUDED
 #define GETOPT_GETOPT_H_INCLUDED
 
+#include <stddef.h>
+
 #if defined (__cplusplus)
 extern "C" {
 #endif
@@ -200,7 +202,7 @@ int getopt_next( getopt_context_t* ctx );
 	Returns:
 		buffer filled with a help-string.
 */
-const char* getopt_create_help_string( getopt_context_t* ctx, char* buffer, unsigned int buffer_size );
+const char* getopt_create_help_string( getopt_context_t* ctx, char* buffer, size_t buffer_size );
 
 #if defined (__cplusplus)
 }

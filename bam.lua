@@ -114,7 +114,7 @@ function DefaultGCC( platform, config )
 	local settings = DefaultSettings( platform, config )
 	SetDriversGCC(settings)
 	
-	settings.cc.flags:Add("-Wall","-Werror", "-ansi", "-Wstrict-aliasing=2")
+	settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
 	if config == "debug" then
 		settings.cc.flags:Add("-O0", "-g")
 	else
@@ -233,7 +233,8 @@ end
 static_library = StaticLibrary( build_settings, "dl", obj_files )
 shared_library = SharedLibrary( build_settings, "dl", dll_files )
 
-dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, CollectRecursive("tool/dl_pack/*.cpp", "src/getopt/*.cpp")), static_library )
+build_settings.cc.includes:Add('tool/dl_pack')
+dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, CollectRecursive("tool/dl_pack/*.c", "tool/dl_pack/*.cpp") ), static_library )
 
 -- HACK BONANZA!
 if build_platform == "linux_x86" then

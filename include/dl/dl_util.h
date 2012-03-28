@@ -82,10 +82,10 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t        
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t         type,
-									 FILE*         stream,       dl_util_file_type_t filetype,
-									 void**        out_instance, dl_typeid_t*        out_type,
-									 unsigned int* consumed_bytes );
+dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         type,
+									 FILE*    stream,       dl_util_file_type_t filetype,
+									 void**   out_instance, dl_typeid_t*        out_type,
+									 size_t*  consumed_bytes );
 
 /*
 	Function: dl_util_load_from_file_inplace
@@ -108,7 +108,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t    
 */
 dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_t         type,
 										   const char*  filename,     dl_util_file_type_t filetype,
-										   void*        out_instance, unsigned int        out_instance_size,
+										   void*        out_instance, size_t              out_instance_size,
 										   dl_typeid_t* out_type );
 
 /*
@@ -133,7 +133,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_
 */
 dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 								  const char* filename,   dl_util_file_type_t filetype,
-								  dl_endian_t out_endian, unsigned int        out_ptr_size,
+								  dl_endian_t out_endian, size_t              out_ptr_size,
 								  void*       out_instance );
 
 /*
@@ -158,7 +158,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 */
 dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 									FILE*       stream,     dl_util_file_type_t filetype,
-									dl_endian_t out_endian, unsigned int        out_ptr_size,
+									dl_endian_t out_endian, size_t              out_ptr_size,
 									void*       out_instance );
 
 #ifdef __cplusplus

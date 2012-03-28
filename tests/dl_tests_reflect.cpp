@@ -18,8 +18,9 @@ class DLReflect : public DL {};
 
 TEST_F(DLReflect, pods)
 {
-	dl_type_info_t   Info = { 0 };
+	dl_type_info_t   Info;
 	dl_member_info_t Members[128];
+	memset( &Info, 0x0, sizeof(dl_type_info_t) );
 
 	EXPECT_DL_ERR_OK(dl_reflect_get_type_info( Ctx, Pods::TYPE_ID, &Info ));
 	EXPECT_DL_ERR_OK(dl_reflect_get_type_members( Ctx, Pods::TYPE_ID, Members, DL_ARRAY_LENGTH(Members) ));
@@ -69,7 +70,7 @@ TEST_F(DLReflect, pods)
 }
 
 #define CHECK_TYPE_INFO_CORRECT( TYPE_NAME, MEM_COUNT ) { \
-	dl_type_info_t ti = {}; \
+	dl_type_info_t ti; \
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, TYPE_NAME::TYPE_ID, &ti ) ); \
 	EXPECT_STREQ( #TYPE_NAME,            ti.name ); \
 	EXPECT_EQ(sizeof(TYPE_NAME),         ti.size); \

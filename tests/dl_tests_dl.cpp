@@ -42,15 +42,15 @@ const unsigned int OUT_BUFFER_SIZE = 2048;
 
 struct pack_text_test
 {
-	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
-					   unsigned char* store_buffer, unsigned int  store_size,
-					   unsigned char* out_buffer,   unsigned int* out_size )
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
+					   unsigned char* store_buffer, size_t      store_size,
+					   unsigned char* out_buffer,   size_t*     out_size )
 	{
 		// unpack binary to txt
 		char text_buffer[2048];
 		memset(text_buffer, 0xFE, sizeof(text_buffer));
 
-		unsigned int text_size = 0;
+		size_t text_size = 0;
 		EXPECT_DL_ERR_OK( dl_txt_unpack_calc_size( dl_ctx, type, store_buffer, store_size, &text_size ) );
 		EXPECT_DL_ERR_OK( dl_txt_unpack( dl_ctx, type, store_buffer, store_size, text_buffer, text_size, 0x0 ) );
 		EXPECT_EQ( (unsigned char)0xFE, (unsigned char)text_buffer[text_size] ); // no overwrite on the generated text plox!
@@ -65,9 +65,9 @@ struct pack_text_test
 
 struct inplace_load_test
 {
-	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
-					   unsigned char* store_buffer, unsigned int  store_size,
-					   unsigned char* out_buffer,   unsigned int* out_size )
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
+					   unsigned char* store_buffer, size_t      store_size,
+					   unsigned char* out_buffer,   size_t*     out_size )
 	{
 		// copy stored instance into temp-buffer
 		unsigned char inplace_buffer[4096];
@@ -76,7 +76,7 @@ struct inplace_load_test
 
 		// load inplace
 		void* loaded_instance = 0x0;
-		unsigned int consumed = 0;
+		size_t consumed = 0;
 		EXPECT_DL_ERR_OK( dl_instance_load_inplace( dl_ctx, type, inplace_buffer, store_size, &loaded_instance, &consumed ));
 
 		EXPECT_EQ( store_size, consumed );
@@ -91,14 +91,14 @@ struct inplace_load_test
 template<unsigned int conv_ptr_size, dl_endian_t conv_endian>
 struct convert_test
 {
-	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
-					   unsigned char* store_buffer, unsigned int  store_size,
-					   unsigned char* out_buffer,   unsigned int* out_size )
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
+					   unsigned char* store_buffer, size_t      store_size,
+					   unsigned char* out_buffer,   size_t*     out_size )
 	{
 		// calc size to convert
 		unsigned char convert_buffer[2048];
 		memset(convert_buffer, 0xFE, sizeof(convert_buffer));
-		unsigned int convert_size = 0;
+		size_t convert_size = 0;
 		EXPECT_DL_ERR_OK( dl_convert_calc_size( dl_ctx, type, store_buffer, store_size, conv_ptr_size, &convert_size ) );
 
 		// convert to other pointer size
@@ -117,9 +117,9 @@ struct convert_test
 template<unsigned int conv_ptr_size, dl_endian_t conv_endian>
 struct convert_inplace_test
 {
-	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t   type,
-			           unsigned char* store_buffer, unsigned int  store_size,
-			           unsigned char* out_buffer,   unsigned int* out_size )
+	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
+			           unsigned char* store_buffer, size_t      store_size,
+			           unsigned char* out_buffer,   size_t*     out_size )
 	{
 		/*
 			About test
@@ -134,7 +134,7 @@ struct convert_inplace_test
 
 		unsigned char convert_buffer[2048];
 		memset( convert_buffer, 0xFE, sizeof(convert_buffer) );
-		unsigned int convert_size = 0;
+		size_t convert_size = 0;
 
 		if( conv_ptr_size <= sizeof(void*) )
 		{
@@ -178,7 +178,7 @@ struct convert_inplace_test
 template <typename T>
 struct DLBase : public DL
 {
-	void do_the_round_about( dl_typeid_t type, void* pack_me, void* unpack_me, unsigned int unpack_me_size )
+	void do_the_round_about( dl_typeid_t type, void* pack_me, void* unpack_me, size_t unpack_me_size )
 	{
 		dl_ctx_t dl_ctx = this->Ctx;
 
@@ -186,7 +186,7 @@ struct DLBase : public DL
 		memset(store_buffer, 0xFE, sizeof(store_buffer));
 
 		// calc size of stored instance
-		unsigned int store_size = 0;
+		size_t store_size = 0;
 		EXPECT_DL_ERR_OK( dl_instance_calc_size( dl_ctx, type, pack_me, &store_size ) );
 
 		// store instance to binary
@@ -196,7 +196,7 @@ struct DLBase : public DL
 
 		unsigned char out_buffer[OUT_BUFFER_SIZE];
 		memset( out_buffer, 0xFE, sizeof(out_buffer) );
-		unsigned int out_size;
+		size_t out_size;
 
 		T::do_it( dl_ctx, type, store_buffer, store_size, out_buffer, &out_size );
 
@@ -205,7 +205,7 @@ struct DLBase : public DL
 		// out instance should have correct format
 		EXPECT_INSTANCE_INFO( out_buffer, out_size, sizeof(void*), DL_ENDIAN_HOST, type );
 
-		unsigned int consumed = 0;
+		size_t consumed = 0;
 		// load binary
 		EXPECT_DL_ERR_OK( dl_instance_load( dl_ctx, type, unpack_me, unpack_me_size, out_buffer, out_size, &consumed ) );
 
@@ -231,7 +231,8 @@ TYPED_TEST_CASE(DLBase, DLBaseTypes);
 TYPED_TEST(DLBase, pods)
 {
 	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
-	Pods P1         = { 0 };
+	Pods P1;
+	memset( &P1, 0x0, sizeof(Pods) );
 
 	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1, sizeof(Pods) );
 
@@ -250,7 +251,8 @@ TYPED_TEST(DLBase, pods)
 TYPED_TEST(DLBase, pods_max)
 {
 	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
-	Pods P1         = { 0 };
+	Pods P1;
+	memset( &P1, 0x0, sizeof(Pods) );
 
 	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1, sizeof(Pods) );
 
@@ -270,7 +272,8 @@ TYPED_TEST(DLBase, pods_max)
 TYPED_TEST(DLBase, pods_min)
 {
 	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
-	Pods P1         = { 0 };
+	Pods P1;
+	memset( &P1, 0x0, sizeof(Pods) );
 
 	this->do_the_round_about( Pods::TYPE_ID, &P1Original, &P1, sizeof(Pods) );
 
@@ -289,7 +292,8 @@ TYPED_TEST(DLBase, pods_min)
 TYPED_TEST(DLBase, struct_in_struct)
 {
 	MorePods P1Original = { { 1, 2, 3, 4, 5, 6, 7, 8, 0.0f, 0}, { 9, 10, 11, 12, 13, 14, 15, 16, 0.0f, 0} };
-	MorePods P1         = { { 0 }, { 0 } };
+	MorePods P1;
+	memset( &P1, 0x0, sizeof(MorePods) );
 
 	this->do_the_round_about( MorePods::TYPE_ID, &P1Original, &P1, sizeof(MorePods) );
 
@@ -1093,7 +1097,7 @@ TEST(DLMisc, built_in_tl_eq_bin_file)
 	
 	FILE* f = fopen( test_file, "rb" );
 	fseek( f, 0, SEEK_END );
-	unsigned int read_tl_size = ftell(f);
+	size_t read_tl_size = ftell(f);
 	fseek( f, 0, SEEK_SET );
 	
 	unsigned char* read_tl = (unsigned char*)malloc(read_tl_size);

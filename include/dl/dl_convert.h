@@ -29,11 +29,11 @@ extern "C" {
 		out_endian           - Endian to convert the packed instance to.
 		out_ptr_size         - Size in bytes of pointers after conversions, valid values 4 and 8.
 */
-dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
-                                     unsigned char* packed_instance, unsigned int packed_instance_size,
-                                     unsigned char* out_instance,    unsigned int out_instance_size,
-                                     dl_endian_t    out_endian,      unsigned int out_ptr_size,
-                                     unsigned int*  produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+                                     unsigned char* packed_instance, size_t      packed_instance_size,
+                                     unsigned char* out_instance,    size_t      out_instance_size,
+                                     dl_endian_t    out_endian,      size_t      out_ptr_size,
+                                     size_t*        produced_bytes );
 
 /*
 	Function: dl_convert_inplace
@@ -55,10 +55,10 @@ dl_error_t DL_DLL_EXPORT dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t
 		DL_ERROR_OK on success. DL_ERROR_UNSUPORTED_OPERATION is returned if trying to convert to format not
 		supported, for example converting 4-byte ptrs to 8-byte.
 */
-dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t dl_ctx,                dl_typeid_t  type,
-                                             unsigned char* packed_instance, unsigned int packed_instance_size,
-                                             dl_endian_t    out_endian,      unsigned int out_ptr_size,
-                                             unsigned int*  produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t dl_ctx,                dl_typeid_t type,
+                                             unsigned char* packed_instance, size_t      packed_instance_size,
+                                             dl_endian_t    out_endian,      size_t      out_ptr_size,
+                                             size_t*        produced_bytes );
 
 /*
 	Function: dl_convert_calc_size
@@ -72,9 +72,9 @@ dl_error_t DL_DLL_EXPORT dl_convert_inplace( dl_ctx_t dl_ctx,                dl_
 		out_ptr_size         - Size in bytes of pointers after conversions, valid values 4 and 8.
 		out_size             - Ptr where to store the calculated size.
 */
-dl_error_t DL_DLL_EXPORT dl_convert_calc_size( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
-                                               unsigned char* packed_instance, unsigned int  packed_instance_size,
-                                               unsigned int   out_ptr_size,    unsigned int* out_size );
+dl_error_t DL_DLL_EXPORT dl_convert_calc_size( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+                                               unsigned char* packed_instance, size_t      packed_instance_size,
+                                               size_t         out_ptr_size,    size_t*     out_size );
 
 #ifdef __cplusplus
 }

@@ -643,11 +643,11 @@ bool dl_internal_sort_pred( const SInstance& i1, const SInstance& i2 ) { return 
 
 dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
                                           unsigned char* packed_instance, unsigned char* packed_instance_base,
-                                          unsigned char* out_instance,    unsigned int   out_instance_size,
-                                          unsigned int*  needed_size,
+                                          unsigned char* out_instance,    size_t         out_instance_size,
+                                          size_t*        needed_size,
                                           dl_endian_t    src_endian,      dl_endian_t    out_endian,
                                           dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
-                                          const SDLType* root_type,       unsigned int   base_offset )
+                                          const SDLType* root_type,       size_t         base_offset )
 {
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer, out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, out_ptr_size );
@@ -702,11 +702,11 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 	return err;
 }
 
-static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
-                                             unsigned char* packed_instance, unsigned int packed_instance_size,
-                                             unsigned char* out_instance,    unsigned int out_instance_size,
-                                             dl_endian_t    out_endian,      unsigned int out_ptr_size,
-                                             unsigned int*  out_size )
+static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+                                                unsigned char* packed_instance, size_t      packed_instance_size,
+                                                unsigned char* out_instance,    size_t      out_instance_size,
+                                                dl_endian_t    out_endian,      size_t      out_ptr_size,
+                                                size_t*        out_size )
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
@@ -766,11 +766,11 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 	if(out_instance != 0x0)
 	{
 		SDLDataHeader* pNewHeader = (SDLDataHeader*)out_instance;
-		pNewHeader->id               = DL_INSTANCE_ID;
-		pNewHeader->version          = DL_INSTANCE_VERSION;
+		pNewHeader->id                 = DL_INSTANCE_ID;
+		pNewHeader->version            = DL_INSTANCE_VERSION;
 		pNewHeader->root_instance_type = type;
-		pNewHeader->instance_size     = uint32(*out_size);
-		pNewHeader->is_64_bit_ptr         = out_ptr_size == 4 ? 0 : 1;
+		pNewHeader->instance_size      = uint32(*out_size);
+		pNewHeader->is_64_bit_ptr      = out_ptr_size == 4 ? 0 : 1;
 
 		if(DL_ENDIAN_HOST != out_endian)
 			DLSwapHeader(pNewHeader);
@@ -784,33 +784,33 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 extern "C" {
 #endif  // __cplusplus
 
-dl_error_t dl_convert_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t  type,
-		                       unsigned char* packed_instance, unsigned int packed_instance_size,
-		                       dl_endian_t    out_endian,      unsigned int out_ptr_size,
-		                       unsigned int*  produced_bytes )
+dl_error_t dl_convert_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+		                       unsigned char* packed_instance, size_t      packed_instance_size,
+		                       dl_endian_t    out_endian,      size_t      out_ptr_size,
+		                       size_t*        produced_bytes )
 {
-	unsigned int dummy;
+	size_t dummy;
 	if( produced_bytes == 0x0 )
 		produced_bytes = &dummy;
 	return dl_internal_convert_instance( dl_ctx, type, packed_instance, packed_instance_size, packed_instance, packed_instance_size, out_endian, out_ptr_size, produced_bytes );
 }
 
-dl_error_t dl_convert( dl_ctx_t dl_ctx,                dl_typeid_t  type,
-                       unsigned char* packed_instance, unsigned int packed_instance_size,
-                       unsigned char* out_instance,    unsigned int out_instance_size,
-                       dl_endian_t    out_endian,      unsigned int out_ptr_size,
-                       unsigned int*  produced_bytes )
+dl_error_t dl_convert( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+                       unsigned char* packed_instance, size_t      packed_instance_size,
+                       unsigned char* out_instance,    size_t      out_instance_size,
+                       dl_endian_t    out_endian,      size_t      out_ptr_size,
+                       size_t*        produced_bytes )
 {
 	DL_ASSERT(out_instance != packed_instance && "Src and destination can not be the same!");
-	unsigned int dummy;
+	size_t dummy;
 	if( produced_bytes == 0x0 )
 		produced_bytes = &dummy;
 	return dl_internal_convert_instance( dl_ctx, type, packed_instance, packed_instance_size, out_instance, out_instance_size, out_endian, out_ptr_size, produced_bytes );
 }
 
-dl_error_t dl_convert_calc_size( dl_ctx_t dl_ctx,                dl_typeid_t   type,
-                                 unsigned char* packed_instance, unsigned int  packed_instance_size,
-                                 unsigned int   out_ptr_size,    unsigned int* out_size )
+dl_error_t dl_convert_calc_size( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+                                 unsigned char* packed_instance, size_t      packed_instance_size,
+                                 size_t         out_ptr_size,    size_t*     out_size )
 {
 	return dl_convert( dl_ctx, type, packed_instance, packed_instance_size, 0x0, 0, DL_ENDIAN_HOST, out_ptr_size, out_size );
 }

@@ -34,7 +34,7 @@ extern "C" {
 	Note:
 		The instance after pack will be in current platform endian.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, unsigned int out_buffer_size, unsigned int* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes );
 
 /*
 	Function: dl_txt_pack_calc_size
@@ -45,7 +45,7 @@ dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance,
 		txt_instance      - Zero-terminated string to calculate binary blob size of.
 		out_instance_size - Size required to pack _pTxtData.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, unsigned int* out_instance_size );
+dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size );
 
 /*
 	Function: dl_txt_unpack
@@ -63,10 +63,10 @@ dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t  type,
-                                        const unsigned char* packed_instance,  unsigned int packed_instance_size,
-                                        char*                out_txt_instance, unsigned int out_txt_instance_size,
-                                        unsigned int*        produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t type,
+                                        const unsigned char* packed_instance,  size_t      packed_instance_size,
+                                        char*                out_txt_instance, size_t      out_txt_instance_size,
+                                        size_t*              produced_bytes );
 
 /*
 	Function: dl_txt_unpack_calc_size
@@ -82,9 +82,9 @@ dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t dl_ctx,                       d
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_unpack_calc_size( dl_ctx_t dl_ctx,                      dl_typeid_t  type,
-                                                  const unsigned char* packed_instance, unsigned int packed_instance_size,
-                                                  unsigned int* out_txt_instance_size );
+dl_error_t DL_DLL_EXPORT dl_txt_unpack_calc_size( dl_ctx_t             dl_ctx,               dl_typeid_t type,
+                                                  const unsigned char* packed_instance,      size_t      packed_instance_size,
+                                                  size_t*              out_txt_instance_size );
 
 #ifdef __cplusplus
 }

@@ -9,8 +9,8 @@
 #include <stdlib.h> // malloc, free
 
 // TODO: bug! dl_internal_default_alloc do not follow alignment.
-static void* dl_internal_default_alloc( unsigned int size, unsigned int alignment, void* alloc_ctx ) { DL_UNUSED(alignment); DL_UNUSED(alloc_ctx); return malloc(size); }
-static void  dl_internal_default_free ( void* ptr, void* alloc_ctx ) {  DL_UNUSED(alloc_ctx); free(ptr); }
+static void* dl_internal_default_alloc( unsigned int size, unsigned int alignment, void* alloc_ctx ) { (void)alignment; (void)alloc_ctx; return malloc(size); }
+static void  dl_internal_default_free ( void* ptr, void* alloc_ctx ) {  (void)alloc_ctx; free(ptr); }
 
 static void* dl_internal_realloc( dl_ctx_t dl_ctx, void* ptr, unsigned int old_size, unsigned int new_size, unsigned int alignment )
 {
@@ -69,11 +69,11 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 // implemented in dl_convert.cpp
 dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
                                           unsigned char* packed_instance, unsigned char* packed_instance_base,
-                                          unsigned char* out_instance,    unsigned int   out_instance_size,
-                                          unsigned int*  needed_size,
+                                          unsigned char* out_instance,    size_t         out_instance_size,
+                                          size_t*        needed_size,
                                           dl_endian_t    src_endian,      dl_endian_t    out_endian,
                                           dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
-                                          const SDLType* root_type,       unsigned int   base_offset );
+                                          const SDLType* root_type,       size_t         base_offset );
 
 struct SPatchedInstances
 {
@@ -271,7 +271,7 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 			member->default_value_offset = uint32( base_offset );
 
 			dl_one_member_type dummy( member );
-			unsigned int needed_size;
+			size_t needed_size;
 
 			union
 			{
@@ -279,13 +279,14 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 				SDLType*        type_ptr;
 			} conv;
 			conv.one_mem_ptr = &dummy;
+
 			dl_internal_convert_no_header( dl_ctx,
 										   src, (unsigned char*)default_data,
 										   dst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
 										   &needed_size,
 										   DL_ENDIAN_LITTLE,  DL_ENDIAN_HOST,
 										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
-										   conv.type_ptr, (unsigned int)base_offset ); // TODO: Ugly cast, remove plox!
+										   conv.type_ptr, base_offset );
 
 			SPatchedInstances patch_instances;
 			dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, dst, conv.type_ptr, dl_ctx->default_data, false );
@@ -316,7 +317,7 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 	}
 }
 
-dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, unsigned int lib_data_size )
+dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, size_t lib_data_size )
 {
 	if(lib_data_size < sizeof(SDLTypeLibraryHeader))
 		return DL_ERROR_MALFORMED_DATA;
@@ -435,9 +436,9 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 }
 
 dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  type_id,
-                             void*                instance,        unsigned int instance_size,
-                             const unsigned char* packed_instance, unsigned int packed_instance_size,
-                             unsigned int*        consumed )
+                             void*                instance,        size_t instance_size,
+                             const unsigned char* packed_instance, size_t packed_instance_size,
+                             size_t*              consumed )
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
@@ -465,14 +466,14 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, (uint8*)instance, root_type, (uint8*)instance, false );
 
 	if( consumed )
-		*consumed = header->instance_size + sizeof(SDLDataHeader);
+		*consumed = (size_t)header->instance_size + sizeof(SDLDataHeader);
 
 	return DL_ERROR_OK;
 }
 
-dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t   type,
-												   unsigned char* packed_instance, unsigned int  packed_instance_size,
-												   void**         loaded_instance, unsigned int* consumed)
+dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+												   unsigned char* packed_instance, size_t      packed_instance_size,
+												   void**         loaded_instance, size_t*     consumed)
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 
@@ -483,7 +484,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
 
 	const SDLType* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
-	if(pType == 0x0)
+	if( pType == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	uint8* intstance_ptr = packed_instance + sizeof(SDLDataHeader);
@@ -508,8 +509,8 @@ struct CDLBinStoreContext
 
 	pint FindWrittenPtr( void* ptr )
 	{
-		for (unsigned int i = 0; i < m_WrittenPtrs.Len(); ++i)
-			if(m_WrittenPtrs[i].ptr == ptr)
+		for( pint i = 0; i < m_WrittenPtrs.Len(); ++i )
+			if( m_WrittenPtrs[i].ptr == ptr )
 				return m_WrittenPtrs[i].pos;
 
 		return pint(-1);
@@ -736,8 +737,8 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type_id,         void*         instance,
-							  unsigned char* out_buffer, unsigned int out_buffer_size, unsigned int* produced_bytes )
+dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,         void*   instance,
+							  unsigned char* out_buffer, size_t      out_buffer_size, size_t* produced_bytes )
 {
 	if( out_buffer_size > 0 && out_buffer_size <= sizeof(SDLDataHeader) )
 		return DL_ERROR_BUFFER_TO_SMALL;
@@ -756,7 +757,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type_id,  
 	header.pad[0] = header.pad[1] = header.pad[2] = 0;
 
 	unsigned char* store_ctx_buffer      = 0x0;
-	unsigned int   store_ctx_buffer_size = 0;
+	size_t         store_ctx_buffer_size = 0;
 	bool           store_ctx_is_dummy    = out_buffer_size == 0;
 
 	if( out_buffer_size > 0 )
@@ -788,7 +789,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t  type_id,  
 	return err;
 }
 
-dl_error_t dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, unsigned int* out_size )
+dl_error_t dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, size_t* out_size )
 {
 	return dl_instance_store( dl_ctx, type, instance, 0x0, 0, out_size );
 }
@@ -828,7 +829,7 @@ const char* dl_error_to_string( dl_error_t error )
 #undef DL_ERR_TO_STR
 }
 
-dl_error_t dl_instance_get_info( const unsigned char* packed_instance, unsigned int packed_instance_size, dl_instance_info_t* out_info )
+dl_error_t dl_instance_get_info( const unsigned char* packed_instance, size_t packed_instance_size, dl_instance_info_t* out_info )
 {
 	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
 

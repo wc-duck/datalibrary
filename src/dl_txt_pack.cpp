@@ -955,7 +955,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 
 static int dl_internal_pack_on_array_start( void* pack_ctx )
 {
-	DL_UNUSED(pack_ctx);
+	(void)pack_ctx;
 	return 1;
 }
 
@@ -1009,9 +1009,9 @@ static int dl_internal_pack_on_array_end( void* pack_ctx_in )
 }
 
 // TODO: These allocs need to be controllable!!!
-void* dl_internal_pack_alloc  ( void* ctx, unsigned int sz )            { DL_UNUSED(ctx); return malloc(sz); }
-void* dl_internal_pack_realloc( void* ctx, void* ptr, unsigned int sz ) { DL_UNUSED(ctx); return realloc(ptr, sz); }
-void  dl_internal_pack_free   ( void* ctx, void* ptr )                  { DL_UNUSED(ctx); free(ptr); }
+void* dl_internal_pack_alloc  ( void* ctx, unsigned int sz )            { (void)ctx; return malloc(sz); }
+void* dl_internal_pack_realloc( void* ctx, void* ptr, unsigned int sz ) { (void)ctx; return realloc(ptr, sz); }
+void  dl_internal_pack_free   ( void* ctx, void* ptr )                  { (void)ctx; free(ptr); }
 
 static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* text_data )
 {
@@ -1104,7 +1104,7 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 	return pack_ctx->error_code;
 }
 
-dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, unsigned int out_buffer_size, unsigned int* produced_bytes )
+dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes )
 {
 	const bool IS_DUMMY_WRITER = out_buffer_size == 0;
 	dl_binary_writer writer;
@@ -1141,7 +1141,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, unsigned int* out_instance_size )
+dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size )
 {
 	return dl_txt_pack( dl_ctx, txt_instance, 0x0, 0, out_instance_size );
 }

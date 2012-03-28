@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static unsigned char* dl_read_entire_stream( FILE* file, unsigned int* out_size )
+static unsigned char* dl_read_entire_stream( FILE* file, size_t* out_size )
 {
 	const unsigned int CHUNK_SIZE = 1024;
 	size_t         total_size = 0;
@@ -22,7 +22,7 @@ static unsigned char* dl_read_entire_stream( FILE* file, unsigned int* out_size 
 	}
 	while( chunk_size >= CHUNK_SIZE );
 
-	*out_size = (unsigned int)total_size;
+	*out_size = total_size;
 	return out_buffer;
 }
 
@@ -42,16 +42,16 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t        
 	return error;
 }
 
-dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t         type,
-									 FILE*         stream,       dl_util_file_type_t filetype,
-									 void**        out_instance, dl_typeid_t*        out_type,
-									 unsigned int* consumed_bytes )
+dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         type,
+									 FILE*    stream,       dl_util_file_type_t filetype,
+									 void**   out_instance, dl_typeid_t*        out_type,
+									 size_t*  consumed_bytes )
 {
 	// TODO: this function need to handle alignment for _ppInstance
 	// TODO: this function should take an allocator for the user to be able to control allocations.
 	(void)consumed_bytes; // TODO: Return good stuff here!
 
-	unsigned int file_size;
+	size_t file_size;
 	unsigned char* file_content = dl_read_entire_stream( stream, &file_size );
 
 	file_content[file_size] = '\0';
@@ -70,7 +70,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t    
 	}
 
 	unsigned char* load_instance = 0x0;
-	unsigned int   load_size = 0;
+	size_t         load_size = 0;
 
 	switch(in_file_type)
 	{
@@ -105,7 +105,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t    
 		case DL_UTIL_FILE_TYPE_TEXT:
 		{
 			// calc needed space
-			unsigned int packed_size = 0;
+			size_t packed_size = 0;
 			error = dl_txt_pack( dl_ctx, (char*)file_content, 0x0, 0, &packed_size );
 
 			if(error != DL_ERROR_OK) { free(file_content); return error; }
@@ -143,7 +143,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,       dl_typeid_t    
 
 dl_error_t dl_util_load_from_file_inplace( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
                                            const char* filename,     dl_util_file_type_t filetype,
-                                           void*       out_instance, unsigned int        out_instance_size )
+                                           void*       out_instance, size_t              out_instance_size )
 {
 	(void)dl_ctx; (void)filename; (void)type; (void)filetype; (void)out_instance; (void)out_instance_size;
 	return DL_ERROR_INTERNAL_ERROR; // TODO: Build me
@@ -151,7 +151,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t    dl_ctx,       dl_typeid_t
 
 dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
                                   const char* filename,   dl_util_file_type_t filetype,
-                                  dl_endian_t out_endian, unsigned int        out_ptr_size,
+                                  dl_endian_t out_endian, size_t              out_ptr_size,
                                   void*       instance )
 {
 	FILE* out_file = fopen( filename, filetype == DL_UTIL_FILE_TYPE_BINARY ? "wb" : "w" );
@@ -168,13 +168,13 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 
 dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 									FILE*       stream,     dl_util_file_type_t filetype,
-									dl_endian_t out_endian, unsigned int        out_ptr_size,
+									dl_endian_t out_endian, size_t              out_ptr_size,
 									void*       instance )
 {
 	if( filetype == DL_UTIL_FILE_TYPE_AUTO )
 		return DL_ERROR_INVALID_PARAMETER;
 
-	unsigned int packed_size = 0;
+	size_t packed_size = 0;
 
 	// calculate pack-size
 	dl_error_t error = dl_instance_store( dl_ctx, type, instance, 0x0, 0, &packed_size );
@@ -190,7 +190,7 @@ dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         
 
 	if( error != DL_ERROR_OK ) { free(packed_instance); return error; }
 
-	unsigned int out_size = 0;
+	size_t         out_size = 0;
 	unsigned char* out_data = 0x0;
 
 	switch( filetype )

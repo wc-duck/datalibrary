@@ -425,7 +425,8 @@ TEST_F( DLText, basic_bool_in_bitfield )
 		"}"
 	"}";
 
-	TestBits p1 = { 0 };
+	TestBits p1;
+	memset( &p1, 0x0, sizeof(TestBits) );
 
 	unsigned char out_text_data[1024];
 

@@ -18,8 +18,6 @@
 */
 
 int g_Verbose = 0;
-int g_Unpack  = 0;
-int g_Info    = 0;
 
 enum
 {
@@ -65,7 +63,7 @@ void print_help( getopt_context_t* ctx )
 	printf("%s", getopt_create_help_string( ctx, buffer, sizeof(buffer) ) );
 }
 
-unsigned char* read_file(FILE* file, unsigned int* out_size)
+unsigned char* read_file(FILE* file, size_t* out_size)
 {
 	const unsigned int CHUNK_SIZE = 1024;
 	size_t         total_size = 0;
@@ -80,7 +78,7 @@ unsigned char* read_file(FILE* file, unsigned int* out_size)
 	}
 	while( chunk_size >= CHUNK_SIZE );
 
-	*out_size = (unsigned int)total_size;
+	*out_size = total_size;
 	return out_buffer;
 }
 
@@ -92,36 +90,36 @@ dl_ctx_t create_ctx()
 	p.error_msg_func = error_report_function;
 	dl_error_t err = dl_context_create( &dl_ctx, &p );
 	if(err != DL_ERROR_OK)
-		M_ERROR_AND_FAIL( "DL error while creating context: %s", dl_error_to_string(err));
+		M_ERROR_AND_FAIL( "DL error while creating context: %s", dl_error_to_string(err) );
 
 	// load all type-libs.
-	for( unsigned int iLib = 0; iLib < g_num_libs; iLib++ )
+	for( unsigned int lib_index = 0; lib_index < g_num_libs; lib_index++ )
 	{
 		// search for lib!
-		for (unsigned int iPath = 0; iPath < g_num_lib_paths; ++iPath)
+		for ( unsigned int path_index = 0; path_index < g_num_lib_paths; ++path_index )
 		{
 			// build testpath.
-			char Path[2048];
-			size_t PathLen = strlen(g_lib_paths[iPath]);
-			strcpy(Path, g_lib_paths[iPath]);
-			if(PathLen != 0 && Path[PathLen - 1] != '/')
-				Path[PathLen++] = '/';
-			strcpy(Path + PathLen, g_libs[iLib]);
+			char   path[2048];
+			size_t path_len = strlen( g_lib_paths[ path_index ] );
+			strcpy( path, g_lib_paths[ path_index ] );
+			if( path_len != 0 && path[path_len - 1] != '/' )
+				path[ path_len++ ] = '/';
+			strcpy( path + path_len, g_libs[ lib_index ] );
 
-			FILE* File = fopen(Path, "rb");
+			FILE* file = fopen( path, "rb" );
 
-			if(File != 0x0)
+			if( file != 0x0 )
 			{
-				M_VERBOSE_OUTPUT("Reading type-library from file %s", Path);
+				M_VERBOSE_OUTPUT("Reading type-library from file %s", path);
 
-				unsigned int Size;
-				unsigned char* TL = read_file(File, &Size);
-				err = dl_context_load_type_library(dl_ctx, TL, Size);
-				if(err != DL_ERROR_OK)
-					M_ERROR_AND_FAIL( "DL error while loading type library (%s): %s", Path, dl_error_to_string(err));
+				size_t         file_size;
+				unsigned char* file_data = read_file( file, &file_size );
+				err = dl_context_load_type_library( dl_ctx, file_data, file_size );
+				if( err != DL_ERROR_OK )
+					M_ERROR_AND_FAIL( "DL error while loading type library (%s): %s", path, dl_error_to_string(err) );
 
-				free(TL);
-				fclose(File);
+				free(file_data);
+				fclose(file);
 				break;
 			}
 		}
@@ -132,18 +130,21 @@ dl_ctx_t create_ctx()
 
 int main( int argc, const char** argv )
 {
+	int show_info = 0;
+	int do_unpack = 0;
+
 	static const getopt_option_t option_list[] =
 	{
-		{"help",    'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message", 0x0},
-		{"libpath", 'L', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'L', "add type-library include path", "path"},
-		{"lib",     'l', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'l', "add type-library", "path"},
-		{"output",  'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'o', "output to file", "file"},
-		{"endian",  'e', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'e', "endianness of output data, if not specified pack-platform is assumed", "little,big"},
-		{"ptrsize", 'p', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'p', "ptr-size of output data, if not specified pack-platform is assumed", "4,8"},
-		{"unpack",  'u', GETOPT_OPTION_TYPE_FLAG_SET, &g_Unpack,    1, "force dl_pack to treat input data as a packed instance that should be unpacked."},
-		{"info",    'i', GETOPT_OPTION_TYPE_FLAG_SET, &g_Info,      1, "make dl_pack show info about a packed instance."},
-		{"verbose", 'v', GETOPT_OPTION_TYPE_FLAG_SET, &g_Verbose,   1, "verbose output"},
-		{0}
+		{ "help",    'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message", 0x0 },
+		{ "libpath", 'L', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'L', "add type-library include path", "path" },
+		{ "lib",     'l', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'l', "add type-library", "path" },
+		{ "output",  'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'o', "output to file", "file" },
+		{ "endian",  'e', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'e', "endianness of output data, if not specified pack-platform is assumed", "little,big" },
+		{ "ptrsize", 'p', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'p', "ptr-size of output data, if not specified pack-platform is assumed", "4,8" },
+		{ "unpack",  'u', GETOPT_OPTION_TYPE_FLAG_SET, &do_unpack,   1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
+		{ "info",    'i', GETOPT_OPTION_TYPE_FLAG_SET, &show_info,   1, "make dl_pack show info about a packed instance.", 0x0 },
+		{ "verbose", 'v', GETOPT_OPTION_TYPE_FLAG_SET, &g_Verbose,   1, "verbose output", 0x0 },
+		GETOPT_OPTIONS_END
 	};
 
 	getopt_context_t go_ctx;
@@ -204,9 +205,9 @@ int main( int argc, const char** argv )
 	if( dl_ctx == 0x0 )
 		return 1;
 
-	if( g_Info == 1 ) // show info about instance plox!
+	if( show_info == 1 ) // show info about instance plox!
 	{
-		unsigned int size;
+		size_t         size;
 		unsigned char* data = read_file( in_file, &size );
 
 		dl_instance_info_t info;
@@ -234,7 +235,7 @@ int main( int argc, const char** argv )
 		err = dl_util_store_to_stream( dl_ctx,
 									   type,
 									   out_file,
-									   g_Unpack == 1 ? DL_UTIL_FILE_TYPE_TEXT : DL_UTIL_FILE_TYPE_BINARY,
+									   do_unpack == 1 ? DL_UTIL_FILE_TYPE_TEXT : DL_UTIL_FILE_TYPE_BINARY,
 									   out_endian,
 									   out_ptr_size,
 									   instance );

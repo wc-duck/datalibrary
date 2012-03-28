@@ -31,7 +31,7 @@ TEST_F(DLError, type_mismatch_returned)
 	// testing that DL_ERROR_TYPE_MISMATCH is returned if provided type is not matching type stored in instance
 
 	unused u;
-	unsigned int dummy;
+	size_t dummy;
 	unsigned char packed[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char swaped[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char bus_buffer[sizeof(unused) * 10]; // large enough buffer!
@@ -102,7 +102,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 TEST_F(DLError, version_mismatch_returned)
 {
 	unused u;
-	unsigned int dummy;
+	size_t dummy;
 	unsigned char packed[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char swaped[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char bus_buffer[sizeof(unused) * 10]; // large enough buffer!
