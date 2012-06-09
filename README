@@ -74,7 +74,7 @@ structs are defined in a typelibrary like this:
 				"members" : [
 					{ "name" : "integer", "type" : "uint32" },
 					{ "name" : "string",  "type" : "string" },
-					{ "name" : "array",   "type" : "array", "subtype" : "uint16" }
+					{ "name" : "array",   "type" : "uint16[]" }
 				]
 			}
 		}
