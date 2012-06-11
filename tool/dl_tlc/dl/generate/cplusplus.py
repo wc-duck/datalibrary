@@ -64,7 +64,7 @@ HEADER_TEMPLATE = '''
 
 %(define_pods)s
 
-%(user_code)s
+%(usercode)s
 
 %(structs)s
 
@@ -132,6 +132,9 @@ def emit_member( member ):
     return lines
 
 def emit_struct( type, stream ):
+    if type.extern:
+        return
+
     #if verbose:
     if type.comment:
         print >> stream, '//', type.comment
@@ -177,7 +180,7 @@ def generate( typelibrary, config, stream ):
     for type_name in typelibrary.type_order:
         emit_struct( typelibrary.types[type_name], structs )
     
-    stream.write( HEADER_TEMPLATE % { 'module'         : typelibrary.name.upper(),
-                                      'define_pods'    : DEFAULT_STD_TYPES,
-                                      'user_code'      : '// USER CODE',
-                                      'structs'        : structs.getvalue() } )
+    stream.write( HEADER_TEMPLATE % { 'module'      : typelibrary.name.upper(),
+                                      'define_pods' : DEFAULT_STD_TYPES,
+                                      'usercode'    : typelibrary.usercode,
+                                      'structs'     : structs.getvalue() } )

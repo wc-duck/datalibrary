@@ -1,5 +1,8 @@
 {
 	"module" : "unit_test",
+	
+	"usercode" : [ "#include \"../../tests/dl_test_included.h\"" ],
+	
 	"enums" : {
 		"TestEnum1" : [ "TESTENUM1_VALUE1", "TESTENUM1_VALUE2", "TESTENUM1_VALUE3", "TESTENUM1_VALUE4" ],
 		
@@ -17,6 +20,7 @@
 			{ "NAMED_VALUE_VALUE" : 1337 }
 		]
 	},
+	
 	"types" : {
 		"unused" : { "members" : [ { "name" : "member",  "type" : "int32", "comment" : "only used in unittests to check for errors" } ] },
 		

@@ -222,7 +222,8 @@ class Type( object ):
         
         self.name     = name
         self.typeid   = hash_buffer( name + json.dumps(data).replace(' ', '') )
-        self.comment  = data.get('comment', '') 
+        self.comment  = data.get('comment', '')
+        self.extern   = data.get('extern', False) 
         self.my_size  = PlatformValue( 0 )
         self.my_align = PlatformValue( data.get('align', 0) )
         
@@ -397,7 +398,8 @@ class TypeLibrary( object ):
 
         data = json.loads( re.sub(pattern, replacer, lib ) )
         
-        self.name = data['module']
+        self.name     = data['module']
+        self.usercode = '\n'.join( data.get( 'usercode', [] ) ) 
         
         for name, type in BUILTIN_TYPES.items():
             self.types[name] = type

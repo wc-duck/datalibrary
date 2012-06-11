@@ -22,6 +22,14 @@
 		"BugTest3" :               { "members" : [ { "name" : "sub", "type" : "BugTest3_StructWithPtr" } ] },
 
 		"per_bug_1" : { "members" : [ { "name" : "str", "type" : "string"      } ] },
-		"per_bug"   : { "members" : [ { "name" : "arr", "type" : "per_bug_1[]" } ] }
+		"per_bug"   : { "members" : [ { "name" : "arr", "type" : "per_bug_1[]" } ] },
+		
+		"vec3_test" : { "extern" : true, "members" : [ { "name" : "data", "type" : "fp32[3]" } ] },
+		"alias_test" : {
+			"members" : [
+				{ "name" : "m1", "type" : "vec3_test" },
+				{ "name" : "m2", "type" : "vec3_test" }
+			]
+		}
 	}
 }
