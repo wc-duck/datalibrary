@@ -308,8 +308,8 @@ dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t typ
 		Function can be used to calculate the amount of bytes that will be produced if storing an instance
 		by setting out_buffer_size to 0.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type,            void*   instance,
-											unsigned char* out_buffer, size_t      out_buffer_size, size_t* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type,            const void* instance,
+											unsigned char* out_buffer, size_t      out_buffer_size, size_t*     produced_bytes );
 
 
 /*

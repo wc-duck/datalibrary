@@ -134,7 +134,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_
 dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 								  const char* filename,   dl_util_file_type_t filetype,
 								  dl_endian_t out_endian, size_t              out_ptr_size,
-								  void*       out_instance );
+								  const void* out_instance );
 
 /*
 	Function: dl_util_store_to_stream
@@ -159,7 +159,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 									FILE*       stream,     dl_util_file_type_t filetype,
 									dl_endian_t out_endian, size_t              out_ptr_size,
-									void*       out_instance );
+									const void* out_instance );
 
 #ifdef __cplusplus
 }

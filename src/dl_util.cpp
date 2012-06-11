@@ -152,7 +152,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t    dl_ctx,       dl_typeid_t
 dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
                                   const char* filename,   dl_util_file_type_t filetype,
                                   dl_endian_t out_endian, size_t              out_ptr_size,
-                                  void*       instance )
+                                  const void* instance )
 {
 	FILE* out_file = fopen( filename, filetype == DL_UTIL_FILE_TYPE_BINARY ? "wb" : "w" );
 
@@ -169,7 +169,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 									FILE*       stream,     dl_util_file_type_t filetype,
 									dl_endian_t out_endian, size_t              out_ptr_size,
-									void*       instance )
+									const void* instance )
 {
 	if( filetype == DL_UTIL_FILE_TYPE_AUTO )
 		return DL_ERROR_INVALID_PARAMETER;

@@ -505,30 +505,34 @@ struct CDLBinStoreContext
 	CDLBinStoreContext( uint8* out_data, pint out_data_size, bool is_dummy )
 	{
 		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
+		num_written_ptrs = 0;
 	}
 
 	pint FindWrittenPtr( void* ptr )
 	{
-		for( pint i = 0; i < m_WrittenPtrs.Len(); ++i )
-			if( m_WrittenPtrs[i].ptr == ptr )
-				return m_WrittenPtrs[i].pos;
+		for( int i = 0; i < num_written_ptrs; ++i )
+			if( written_ptrs[i].ptr == ptr )
+				return written_ptrs[i].pos;
 
 		return pint(-1);
 	}
 
-	void AddWrittenPtr( void* ptr, pint pos ) { m_WrittenPtrs.Add( SWrittenPtr( pos, ptr ) ); }
+	void AddWrittenPtr( const void* ptr, pint pos )
+	{
+		DL_ASSERT( num_written_ptrs < (int)DL_ARRAY_LENGTH(written_ptrs) );
+		written_ptrs[num_written_ptrs].ptr = ptr;
+		written_ptrs[num_written_ptrs].pos = pos;
+		++num_written_ptrs;
+	}
 
 	dl_binary_writer writer;
 
-	struct SWrittenPtr
+	struct
 	{
- 		SWrittenPtr() {}
- 		SWrittenPtr( pint in_pos, void* in_ptr ) : pos(in_pos), ptr(in_ptr) {}
-		pint  pos;
-		void* ptr;
-	};
-
-	CArrayStatic<SWrittenPtr, 128> m_WrittenPtrs;
+		pint        pos;
+		const void* ptr;
+	} written_ptrs[128];
+	int num_written_ptrs;
 };
 
 static void dl_internal_store_string( const uint8* instance, CDLBinStoreContext* store_ctx )
@@ -737,8 +741,8 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,         void*   instance,
-							  unsigned char* out_buffer, size_t      out_buffer_size, size_t* produced_bytes )
+dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,         const void* instance,
+							  unsigned char* out_buffer, size_t      out_buffer_size, size_t*     produced_bytes )
 {
 	if( out_buffer_size > 0 && out_buffer_size <= sizeof(SDLDataHeader) )
 		return DL_ERROR_BUFFER_TO_SMALL;
