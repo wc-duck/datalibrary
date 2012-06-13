@@ -170,36 +170,39 @@ def create_member( data, typelibrary ):
     found = p.findall( data['type'].strip() )
     
     mem_type = None
+    mem_name = data['name']
     
     for index, f in enumerate(found):
         if f[0]: # type
-            assert index == 0, 'types can only occur as element 0 in type-definition!'
+            if not index == 0: raise DLTypeLibraryError( 'on member "%s", types can only occur as element 0 in type-definition!' % mem_name )
             
             if f[0] == 'bitfield':
                 mem_type = BitfieldType( data['bits'] )
             else:
                 mem_type = typelibrary.find_type( f[0] )
+                if not mem_type:
+                    raise DLTypeLibraryError( 'on member "%s", could not find type "%s" in typelibrary!' % ( mem_name, f[0] ) )
         
         if f[1]:
-            assert index > 0, 'element 0 in type need to be a concrete type!'
+            if not index > 0: raise DLTypeLibraryError( 'on member "%s", element 0 in type need to be a concrete type!' % mem_name )
             count    = int( f[1][1:-1] )
             mem_type = InlineArrayType( mem_type, count )
             
         if f[2]:
-            assert index > 0, 'element 0 in type need to be a concrete type!' 
+            if not index > 0: raise DLTypeLibraryError( 'on member "%s", element 0 in type need to be a concrete type!' % mem_name ) 
             mem_type = ArrayType( mem_type )
             
         if f[3]: 
-            assert index > 0, 'element 0 in type need to be a concrete type!' 
+            if not index > 0: raise DLTypeLibraryError( 'on member "%s", element 0 in type need to be a concrete type!' % mem_name ) 
             mem_type = PointerType( mem_type )
         
     new_member         = Type.Member( mem_type );            
-    new_member.name    = data['name']
+    new_member.name    = mem_name
     new_member.comment = data.get('comment', '')
     if 'default' in data:
         new_member.default = data[ 'default' ]
         if isinstance( new_member.type, PointerType ) and new_member.default != None:
-            raise  'only null is supported as default for ptrs!'
+            raise DLTypeLibraryError( 'on member "%s", only null is supported as default for ptrs!' % mem_name )
         
     return new_member
 

@@ -1,6 +1,6 @@
 ''' copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info '''
 
-import logging
+import logging, sys
 
 config = {
 	'cpp' : {
@@ -87,8 +87,15 @@ if __name__ == "__main__":
     import dl.generate
     
     options = parse_options()
-    
-    tl = dl.typelibrary.TypeLibrary( options.input )
+
+    try:
+        tl =  dl.typelibrary.TypeLibrary( options.input )
+    except dl.typelibrary.DLTypeLibraryError, e:
+        print 'ERROR: %s' % e
+        sys.exit( 1 )
+    except ValueError, e:
+    	print 'ERROR: Failed during json-parse, %s' % e
+    	sys.exit( 1 )
     
     # write headers
     if options.cheader:   dl.generate.c.generate( tl, None, open( options.cheader, 'w' ) )
