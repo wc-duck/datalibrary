@@ -35,9 +35,10 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t        
 	FILE* in_file = fopen( filename, "rb" );
 
 	if( in_file != 0x0 )
+	{
 		error = dl_util_load_from_stream( dl_ctx, type, in_file, filetype, out_instance, out_type, 0x0 );
-
-	fclose(in_file);
+		fclose(in_file);
+	}
 
 	return error;
 }
@@ -159,9 +160,10 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 	dl_error_t error = DL_ERROR_UTIL_FILE_NOT_FOUND;
 
 	if( out_file != 0x0 )
+	{
 		error = dl_util_store_to_stream( dl_ctx, type, out_file, filetype, out_endian, out_ptr_size, instance );
-
-	fclose( out_file );
+		fclose( out_file );
+	}
 
 	return error;
 }

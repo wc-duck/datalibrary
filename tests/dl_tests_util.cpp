@@ -207,4 +207,16 @@ TEST_F( DLUtil, auto_detect_text_file_format )
 	free( conv.p2 );
 }
 
+TEST_F( DLUtil, dl_util_load_non_existing_file )
+{
+	EXPECT_DL_ERR_EQ( DL_ERROR_UTIL_FILE_NOT_FOUND,
+					  dl_util_load_from_file( Ctx, 0, "whobb whobb whoob", DL_UTIL_FILE_TYPE_AUTO, 0, 0 ) );
+}
+
+TEST_F( DLUtil, dl_util_store_non_existing_file )
+{
+	EXPECT_DL_ERR_EQ( DL_ERROR_UTIL_FILE_NOT_FOUND,
+					  dl_util_store_to_file( Ctx, Pods::TYPE_ID, "tests/non_writable.txt", DL_UTIL_FILE_TYPE_TEXT, DL_ENDIAN_HOST, sizeof(void*), &p ) );
+}
+
 // store in other endian and load!
