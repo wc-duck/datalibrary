@@ -297,6 +297,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const SDLType* t
 
 			default:
 				DL_ASSERT(false && "Invalid ATOM-type!");
+				break;
 		}
 	}
 
