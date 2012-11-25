@@ -144,6 +144,7 @@ static inline void dl_binary_writer_write_swap( dl_binary_writer* writer, const 
 		case 8: dl_binary_writer_write_8byte( writer, data ); break;
 		default:
 			DL_ASSERT( false && "unhandled case!" );
+			break;
 	}
 }
 
@@ -184,6 +185,7 @@ static inline void dl_binary_writer_write_ptr( dl_binary_writer* writer, pint va
 			case DL_PTR_SIZE_64BIT: { uint64 u = (uint64)val; dl_binary_writer_write_8byte( writer, &u ); break; }
 			default:
 				DL_ASSERT(false && "Bad ptr-size!?!");
+				break;
 		}
 	}
 	else
@@ -194,6 +196,7 @@ static inline void dl_binary_writer_write_ptr( dl_binary_writer* writer, pint va
 			case DL_PTR_SIZE_64BIT: { uint64 u = (uint64)val; dl_binary_writer_write( writer, &u, 8 ); } break;
 			default:
 				DL_ASSERT(false && "Bad ptr-size!?!");
+				break;
 		}
 	}
 }
