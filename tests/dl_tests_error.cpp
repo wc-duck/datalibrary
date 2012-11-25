@@ -76,7 +76,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 
 	memcpy( modded_type_lib, typelib, sizeof(typelib) );
 
-	EXPECT_EQ(4, sizeof(unsigned int));
+	EXPECT_EQ(4u, sizeof(unsigned int));
 
 	union
 	{
@@ -87,7 +87,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 	// testing that errors are returned correctly by modding data.
 	unsigned int* lib_version = conv.version + 1;
 
-	EXPECT_EQ(3, *lib_version);
+	EXPECT_EQ(3u, *lib_version);
 
 	*lib_version = 0xFFFFFFFF;
 
@@ -122,11 +122,11 @@ TEST_F(DLError, version_mismatch_returned)
 	conv.instance = packed;
 	unsigned int* instance_version;
 	instance_version = conv.instance_version + 1;
-	EXPECT_EQ(1, *instance_version);
+	EXPECT_EQ(1u, *instance_version);
 	*instance_version = 0xFFFFFFFF;
 	conv.instance = swaped;
 	instance_version = conv.instance_version + 1;
-	EXPECT_EQ(0x01000000, *instance_version);
+	EXPECT_EQ(0x01000000u, *instance_version);
 	*instance_version = 0xFFFFFFFF;
 
 	// test all functions in...

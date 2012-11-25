@@ -80,30 +80,30 @@ TEST_F(DLReflect, pods)
 
 TEST_F(DLReflect, get_type_info)
 {
-	CHECK_TYPE_INFO_CORRECT( Pods, 10 );
-	CHECK_TYPE_INFO_CORRECT( Pods2, 2 );
-	CHECK_TYPE_INFO_CORRECT( Strings, 2 );
-	CHECK_TYPE_INFO_CORRECT( PtrChain, 2 );
-	CHECK_TYPE_INFO_CORRECT( MoreBits, 2 );
-	CHECK_TYPE_INFO_CORRECT( MorePods, 2 );
-	CHECK_TYPE_INFO_CORRECT( TestBits, 7 );
-	CHECK_TYPE_INFO_CORRECT( PodArray1, 1 );
-	CHECK_TYPE_INFO_CORRECT( PodArray2, 1 );
-	CHECK_TYPE_INFO_CORRECT( SimplePtr, 2 );
-	CHECK_TYPE_INFO_CORRECT( StringArray, 1 );
-	CHECK_TYPE_INFO_CORRECT( StructArray1, 1 );
-	CHECK_TYPE_INFO_CORRECT( Pod2InStruct, 2 );
-	CHECK_TYPE_INFO_CORRECT( WithInlineArray, 1 );
-	CHECK_TYPE_INFO_CORRECT( StringInlineArray, 1 );
-	CHECK_TYPE_INFO_CORRECT( Pod2InStructInStruct, 1 );
-	CHECK_TYPE_INFO_CORRECT( WithInlineStructArray, 1 );
-	CHECK_TYPE_INFO_CORRECT( WithInlineStructStructArray, 1 );
-	CHECK_TYPE_INFO_CORRECT( DoublePtrChain, 3 );
-	CHECK_TYPE_INFO_CORRECT( A128BitAlignedType, 1 );
-	CHECK_TYPE_INFO_CORRECT( BugTest1, 1 );
-	CHECK_TYPE_INFO_CORRECT( BugTest1_InArray, 3 );
-	CHECK_TYPE_INFO_CORRECT( circular_array, 2 );
-	CHECK_TYPE_INFO_CORRECT( circular_array_ptr_holder, 1 );
+	CHECK_TYPE_INFO_CORRECT( Pods, 10u );
+	CHECK_TYPE_INFO_CORRECT( Pods2, 2u );
+	CHECK_TYPE_INFO_CORRECT( Strings, 2u );
+	CHECK_TYPE_INFO_CORRECT( PtrChain, 2u );
+	CHECK_TYPE_INFO_CORRECT( MoreBits, 2u );
+	CHECK_TYPE_INFO_CORRECT( MorePods, 2u );
+	CHECK_TYPE_INFO_CORRECT( TestBits, 7u );
+	CHECK_TYPE_INFO_CORRECT( PodArray1, 1u );
+	CHECK_TYPE_INFO_CORRECT( PodArray2, 1u );
+	CHECK_TYPE_INFO_CORRECT( SimplePtr, 2u );
+	CHECK_TYPE_INFO_CORRECT( StringArray, 1u );
+	CHECK_TYPE_INFO_CORRECT( StructArray1, 1u );
+	CHECK_TYPE_INFO_CORRECT( Pod2InStruct, 2u );
+	CHECK_TYPE_INFO_CORRECT( WithInlineArray, 1u );
+	CHECK_TYPE_INFO_CORRECT( StringInlineArray, 1u );
+	CHECK_TYPE_INFO_CORRECT( Pod2InStructInStruct, 1u );
+	CHECK_TYPE_INFO_CORRECT( WithInlineStructArray, 1u );
+	CHECK_TYPE_INFO_CORRECT( WithInlineStructStructArray, 1u );
+	CHECK_TYPE_INFO_CORRECT( DoublePtrChain, 3u );
+	CHECK_TYPE_INFO_CORRECT( A128BitAlignedType, 1u );
+	CHECK_TYPE_INFO_CORRECT( BugTest1, 1u );
+	CHECK_TYPE_INFO_CORRECT( BugTest1_InArray, 3u );
+	CHECK_TYPE_INFO_CORRECT( circular_array, 2u );
+	CHECK_TYPE_INFO_CORRECT( circular_array_ptr_holder, 1u );
 }
 
 TEST_F(DLReflect, type_lookup)
