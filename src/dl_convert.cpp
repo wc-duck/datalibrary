@@ -98,6 +98,7 @@ static pint DLInternalReadPtrData( const uint8*  _pPtrData,
 		break;
 		default:
 			DL_ASSERT(false && "Invalid ptr-size");
+			break;
 	}
 
 	return 0;
@@ -156,6 +157,7 @@ static void dl_internal_read_array_data( const uint8*  array_data,
 
 		default:
 			DL_ASSERT(false && "Invalid ptr-size");
+			break;
 	}
 }
 
@@ -316,6 +318,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t         dl_ctx
 
 			default:
 				DL_ASSERT(false && "Invalid ATOM-type!");
+				break;
 		}
 	}
 
@@ -549,6 +552,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t          dl_ctx,
 
 			default:
 				DL_ASSERT(false && "Invalid ATOM-type!");
+				break;
 		}
 	}
 
@@ -621,6 +625,7 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 
 			default:
 				DL_ASSERT(false && "Unknown storage type!");
+				break;
 		}
 
 		return DL_ERROR_OK;
