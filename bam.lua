@@ -182,13 +182,14 @@ function DefaultMSVC( build_platform, config )
 		/wd4127 = warning C4127: conditional expression is constant.
 	--]]
 	settings.cc.flags:Add("/W4", "/WX", "/EHsc", "/wd4324", "/wd4127")
+	settings.cc.flags_c:Add("/TP")
 	
 	if config == "debug" then
-		settings.cc.flags:Add("/Od", "/MTd", "/Z7", "/D \"_DEBUG\"")
+		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"")
 		settings.dll.flags:Add("/DEBUG")
 		settings.link.flags:Add("/DEBUG")
 	else
-		settings.cc.flags:Add("/Ox", "/Ot", "/MT", "/D \"NDEBUG\"")
+		settings.cc.flags:Add("/Ox", "/Ot", "/MD", "/D \"NDEBUG\"")
 	end
 	
 	SetupMSVCBinaries( settings, build_platform, ScriptArgs["compiler"] )
