@@ -352,12 +352,12 @@ static void dl_internal_write_root( SDLUnpackContext*  unpack_ctx, const SDLType
 
 struct dl_write_text_context
 {
-	char* buffer;
-	pint  buffer_size;
-	pint  write_pos;
+	char*  buffer;
+	size_t buffer_size;
+	size_t write_pos;
 };
 
-static void dl_internal_write_text_callback( void* ctx, const char *str, unsigned int len )
+static void dl_internal_write_text_callback( void* ctx, const char *str, size_t len )
 {
 	dl_write_text_context* write_ctx = (dl_write_text_context*)ctx;
 
@@ -367,9 +367,9 @@ static void dl_internal_write_text_callback( void* ctx, const char *str, unsigne
 	write_ctx->write_pos += len;
 }
 
-static const unsigned int UNPACK_STORAGE_SIZE = 1024;
+static const size_t UNPACK_STORAGE_SIZE = 1024;
 
-static void* dl_internal_unpack_malloc( void* ctx, unsigned int size )
+static void* dl_internal_unpack_malloc( void* ctx, size_t size )
 {
 	(void)size;
 	DL_ASSERT( size <= UNPACK_STORAGE_SIZE );
@@ -381,7 +381,7 @@ static void dl_internal_unpack_free( void* ctx, void* ptr )
 	// just ignore free, the data should be allocated on the stack!
 }
 
-static void* dl_internal_unpack_realloc_func( void* ctx, void* ptr, unsigned int size ) 
+static void* dl_internal_unpack_realloc_func( void* ctx, void* ptr, size_t size )
 {
 	(void)ctx; (void)ptr; (void)size;
 	DL_ASSERT(false && "yajl should never need to realloc");
@@ -405,14 +405,14 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t typ
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND; // could not find root-type!
 
-	static const int BEAUTIFY_OUTPUT = 1;
-	yajl_gen_config Conf = { BEAUTIFY_OUTPUT, "  " };
-
 	dl_write_text_context write_ctx = { out_txt_instance, out_txt_instance_size, 0 };
 	uint8 storage[ UNPACK_STORAGE_SIZE ];
-	yajl_alloc_funcs AllocCatch = { dl_internal_unpack_malloc, dl_internal_unpack_realloc_func, dl_internal_unpack_free, storage };
+	yajl_alloc_funcs alloc_catch = { dl_internal_unpack_malloc, dl_internal_unpack_realloc_func, dl_internal_unpack_free, storage };
 
-	yajl_gen generator = yajl_gen_alloc2( dl_internal_write_text_callback, &Conf, &AllocCatch, &write_ctx );
+	yajl_gen generator = yajl_gen_alloc( &alloc_catch );
+	yajl_gen_config( generator, yajl_gen_beautify, 1 );
+	yajl_gen_config( generator, yajl_gen_indent_string, " " );
+	yajl_gen_config( generator, yajl_gen_print_callback, dl_internal_write_text_callback, &write_ctx );
 
 	SDLUnpackContext PackCtx(dl_ctx, generator );
 
@@ -420,8 +420,7 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t typ
 
 	yajl_gen_free( generator );
 
-	if(out_txt_instance != 0x0)
-		out_txt_instance[ write_ctx.write_pos - 1 ] = 0;
+	dl_internal_write_text_callback( &write_ctx, "\0", 1 );
 
 	if( produced_bytes )
 		*produced_bytes = write_ctx.write_pos;

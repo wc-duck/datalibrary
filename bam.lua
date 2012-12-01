@@ -5,7 +5,11 @@ if family == "windows" then -- hackery hack
     PYTHON = "C:\\Python26\\python.exe"
 end
 
-function DLTypeLibrary( tlc_file, dl_shared_lib )
+EXTERNALS_PATH = 'external'
+GTEST_PATH = PathJoin( EXTERNALS_PATH, 'gtest' )
+YAJL_PATH  = PathJoin( EXTERNALS_PATH, 'yajl' )
+
+function dl_type_lib( tlc_file, dl_shared_lib )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header    = out_file .. ".h"
@@ -25,7 +29,7 @@ function DLTypeLibrary( tlc_file, dl_shared_lib )
 	AddDependency( tlc_file, dl_shared_lib )
 end
 
-function CSharpSettings()
+function csharp_settings()
 	local settings = {}
 	settings.exe = {}
 	settings.lib = {}
@@ -59,15 +63,15 @@ function CSharpSettings()
 	return settings
 end
 
-function CSharpCompile( settings, src )
+function csharp_compile( settings, src )
 	local compiled = settings.output( settings, src )
 	local flags = settings.flags:ToString() .. settings.references:ToString() .. settings.libpaths:ToString()
 	AddJob( compiled, "C# " .. compiled, settings.exe .. flags .. " /out:" .. settings.fix_path( compiled ) .. " " .. settings.fix_path( src ), src )
 	return compiled
 end
 
-function CSharpExe( settings, src ) return CSharpCompile( settings.exe, src ) end 
-function CSharpLibrary( settings, src ) return CSharpCompile( settings.lib, src ) end 
+function csharp_exe( settings, src )     return csharp_compile( settings.exe, src ) end 
+function csharp_library( settings, src ) return csharp_compile( settings.lib, src ) end 
 
 function DefaultSettings( platform, config )
 	local settings = {}
@@ -76,6 +80,8 @@ function DefaultSettings( platform, config )
 	settings.optimize = 0
 	settings._is_settingsobject = true
 	settings.invoke_count = 0
+	settings.config = config
+	settings.platform = platform
 	
 	-- SetCommonSettings(settings)
 	settings.config_name = ""
@@ -91,15 +97,8 @@ function DefaultSettings( platform, config )
 	TableLock(settings)	
 
 	settings.cc.includes:Add("include")
-	settings.cc.includes:Add("extern/include")
 	settings.cc.includes:Add("local")
-	
-	settings.dll.libs:Add("yajl")
-	settings.link.libs:Add("yajl")
-
-	settings.dll.libpath:Add("extern/libs/" .. platform .. "/" .. config)
-	settings.link.libpath:Add("extern/libs/" .. platform .. "/" .. config)
-	
+		
 	local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
 	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
 	settings.cc.Output = output_func
@@ -114,28 +113,25 @@ function DefaultGCC( platform, config )
 	local settings = DefaultSettings( platform, config )
 	SetDriversGCC(settings)
 	
-	settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
 	if config == "debug" then
 		settings.cc.flags:Add("-O0", "-g")
 	else
 		settings.cc.flags:Add("-O2")
 	end
 	
+	local arch = '-m64'
 	if platform == "linux_x86" then
 		settings.cc.flags:Add( "-malign-double" ) -- TODO: temporary workaround, dl should support natural alignment for double
-		settings.cc.flags:Add( "-m32" )
-		settings.dll.flags:Add( "-m32" )
-		settings.link.flags:Add( "-m32" )
-	elseif platform == "linux_x86_64" then
-		settings.cc.flags:Add( "-m64" )
-		settings.dll.flags:Add( "-m64" )
-		settings.link.flags:Add( "-m64" )
+		arch = '-m32'
 	end
+	settings.cc.flags:Add( arch )
+	settings.dll.flags:Add( arch )
+	settings.link.flags:Add( arch )
 	
 	return settings
 end
 
-function SetupMSVCBinaries( settings, build_platform, compiler )
+function SetupMSVCBinaries( settings, compiler )
 	if family ~= "windows" then
 		return
 	end
@@ -164,7 +160,7 @@ function SetupMSVCBinaries( settings, build_platform, compiler )
 		os.exit(1)
 	end
 	
-	local wrapper_path  = "compat/" .. compiler .. "/" .. build_platform
+	local wrapper_path  = "compat/" .. compiler .. "/" .. settings.platform
 	settings.cc.exe_c   = wrapper_path .. "/cl.bat"
 	settings.cc.exe_cxx = wrapper_path .. "/cl.bat"
 	settings.lib.exe    = wrapper_path .. "/lib.bat"
@@ -191,11 +187,71 @@ function DefaultMSVC( build_platform, config )
 	else
 		settings.cc.flags:Add("/Ox", "/Ot", "/MD", "/D \"NDEBUG\"")
 	end
-	
-	SetupMSVCBinaries( settings, build_platform, ScriptArgs["compiler"] )
+
+	SetupMSVCBinaries( settings, ScriptArgs["compiler"] )
 
 	return settings
 end
+
+function make_gtest_settings( base_settings )
+	local settings = TableDeepCopy( base_settings )
+	
+	settings.cc.includes:Add( GTEST_PATH )
+	settings.cc.includes:Add( PathJoin( GTEST_PATH, 'include' ) )
+	
+	return settings
+end
+
+function make_yajl_settings( base_settings )
+	local settings = TableDeepCopy( base_settings )
+	
+	settings.cc.includes:Add( PathJoin( YAJL_PATH, 'include' ) )
+	
+	settings.cc.flags:Add( "-fPIC" ) -- HAXX
+	
+	return settings
+end
+
+function make_dl_settings( base_settings )
+	local settings = TableDeepCopy( base_settings )
+	
+	-- build dl on high warning level!
+	settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
+	settings.cc.includes:Add( PathJoin( YAJL_PATH, 'include' ) )
+	
+	return settings
+end
+
+function make_dl_so_settings( base_settings )
+	local settings = make_dl_settings( base_settings )
+	
+	if settings.platform == 'linux_x86_64' then
+		settings.cc.flags:Add( "-fPIC" )
+	end
+	
+	local output_path = PathJoin( BUILD_PATH, PathJoin( settings.platform, settings.config ) )
+	local dll_path    = PathJoin( output_path, 'dll' )
+	
+	settings.cc.Output = function(settings, path) return PathJoin( dll_path, PathFilename(PathBase(path)) .. settings.config_ext) end
+	
+	return settings
+end
+
+function make_test_settings( base_settings )
+	local settings = TableDeepCopy( base_settings )
+	
+	settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
+
+	settings.cc.includes:Add( PathJoin( PathJoin( EXTERNALS_PATH, 'gtest' ), 'include' ) )
+	if settings.platform == "linux_x86_64" or settings.platform == "linux_x86" then
+		settings.link.libs:Add( "pthread" )
+	end
+
+	return settings
+end
+
+
+------------------------ BUILD ------------------------
 
 settings = 
 {
@@ -212,47 +268,37 @@ if not build_platform then error( "platform need to be set. example \"platform=l
 if not config then         error( "config need to be set. example \"config=debug\"" )       end
 
 platform_settings = settings[build_platform]
-if not platform_settings then              error( build_platform .. " is not a supported platform" )    end
+if not platform_settings then error( build_platform .. " is not a supported platform" ) end
 build_settings = platform_settings[config]
-if not build_settings then                 error( config .. " is not a supported configuration" ) end
+if not build_settings then error( config .. " is not a supported configuration" ) end
 
 build_settings = settings[ build_platform ][ config ]
 
-lib_files = Collect( "src/*.cpp" )
-obj_files = Compile( build_settings, lib_files )
+-- sync_externals()
 
--- ugly fugly, need -fPIC on .so-files!
-local output_path = PathJoin( BUILD_PATH, PathJoin( build_platform, config ) )
-if build_platform == "linux_x86_64" then
-	build_settings.cc.Output = function(settings, path) return PathJoin(output_path .. "/dll/", PathFilename(PathBase(path)) .. settings.config_ext) end
-	build_settings.cc.flags:Add( "-fPIC" )
-	dll_files = Compile( build_settings, lib_files )
-else
-	dll_files = obj_files
-end
+dl_settings    = make_dl_settings   ( build_settings )
+dl_so_settings = make_dl_so_settings( build_settings )
+test_settings  = make_test_settings ( build_settings )
+yajl_settings  = make_yajl_settings ( build_settings )
+gtest_settings = make_gtest_settings( build_settings )
 
-static_library = StaticLibrary( build_settings, "dl", obj_files )
-shared_library = SharedLibrary( build_settings, "dl", dll_files )
+yajl_lib  = StaticLibrary( yajl_settings,  "yajl",  Compile( yajl_settings,  Collect( PathJoin( YAJL_PATH, "src/*.c" ) ) ) )
+gtest_lib = StaticLibrary( gtest_settings, "gtest", Compile( gtest_settings, Collect( PathJoin( GTEST_PATH, "src/gtest-all.cc" ) ) ) )
+dl_lib    = StaticLibrary( dl_settings,    "dl",    Compile( dl_settings,    Collect( "src/*.cpp" ) ), yajl_lib )
+dl_shared = SharedLibrary( dl_settings,    "dl",    Compile( dl_so_settings, Collect( "src/*.cpp" ) ), yajl_lib )
 
-build_settings.cc.includes:Add('tool/dl_pack')
-dl_pack = Link( build_settings, "dl_pack", Compile( build_settings, CollectRecursive("tool/dl_pack/*.c", "tool/dl_pack/*.cpp") ), static_library )
+dl_settings.cc.includes:Add('tool/dl_pack')
+dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.c", "tool/dl_pack/*.cpp") ), yajl_lib, dl_lib )
+dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib, yajl_lib )
 
 -- HACK BONANZA!
+tl_build_so = dl_shared
 if build_platform == "linux_x86" then
-	DLTypeLibrary( "tests/unittest.tld", "local/linux_x86_64/" .. config .. "/dl.so" )
-	DLTypeLibrary( "tests/unittest2.tld", "local/linux_x86_64/" .. config .. "/dl.so" )
-else
-	DLTypeLibrary( "tests/unittest.tld", shared_library )
-	DLTypeLibrary( "tests/unittest2.tld", shared_library )
+	tl_build_so = "local/linux_x86_64/" .. config .. "/dl.so"
 end
 
-build_settings.link.libs:Add( "gtest" )
-
-if build_platform == "linux_x86_64" or build_platform == "linux_x86" then
-	build_settings.link.libs:Add( "pthread" )
-end
-
-dl_tests = Link( build_settings, "dl_tests", Compile( build_settings, Collect("tests/*.cpp")), static_library )
+tl1 = dl_type_lib( "tests/unittest.tld",  tl_build_so )
+tl2 = dl_type_lib( "tests/unittest2.tld", tl_build_so ) 
 
 local    test_args = ""
 local py_test_args = ""
@@ -263,9 +309,9 @@ if ScriptArgs["test_filter"] then
 	cs_test_args = " -run=" .. ScriptArgs["test_filter"]
 end
 
-cs_settings     = CSharpSettings()
-cs_libdl_lib    = CSharpLibrary( cs_settings, "bind/cs/libdl.cs" )
-cs_unittest_lib = CSharpLibrary( cs_settings, "local/generated/unittest.cs" )
+cs_settings     = csharp_settings()
+cs_libdl_lib    = csharp_library( cs_settings, "bind/cs/libdl.cs" )
+cs_unittest_lib = csharp_library( cs_settings, "local/generated/unittest.cs" )
 
 cs_settings.lib.references:Add("/reference:libdl.dll")
 cs_settings.lib.references:Add("/reference:unittest.dll")
@@ -277,7 +323,7 @@ else
 	cs_settings.lib.libpaths:Add("/lib:/usr/lib/cli/nunit.framework-2.4")
 end
 
-cs_test_lib     = CSharpLibrary( cs_settings, "tests/csharp_bindings/dl_tests.cs", "local/generated/unittest.cs" )
+cs_test_lib     = csharp_library( cs_settings, "tests/csharp_bindings/dl_tests.cs", "local/generated/unittest.cs" )
 AddDependency( cs_test_lib, cs_libdl_lib, cs_unittest_lib )
 
 if family == "windows" then
@@ -293,8 +339,12 @@ else
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
-AddJob( "test_py", "unittest python", PYTHON .. " " .. dl_tests_py .. " " .. shared_library .. " " .. py_test_args, dl_tests_py, shared_library, "local/generated/unittest.bin" )
+AddJob( "test_py", 
+		"unittest python", 
+		PYTHON .. " " .. dl_tests_py .. " " .. dl_shared .. " " .. py_test_args, 
+		dl_tests_py, 
+		dl_shared, "local/generated/unittest.bin" )
 
 -- do not run unittest as default, only run
-PseudoTarget( "dl_default", dl_pack, dl_tests, shared_library )
+PseudoTarget( "dl_default", dl_pack, dl_tests, dl_shared )
 DefaultTarget( "dl_default" )

@@ -47,6 +47,8 @@ const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned
 
 struct DL : public ::testing::Test
 {
+	virtual ~DL() {}
+
 	virtual void SetUp()
 	{
 		// bake the unittest-type library into the exe!

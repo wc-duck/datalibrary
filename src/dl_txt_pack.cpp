@@ -306,7 +306,7 @@ static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 
 template<typename T> DL_FORCEINLINE bool Between(T _Val, T _Min, T _Max) { return _Val <= _Max && _Val >= _Min; }
 
-static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, unsigned int str_len )
+static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, size_t str_len )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
@@ -462,7 +462,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, u
 	return 1;
 }
 
-static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* str_value, unsigned int str_len )
+static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* str_value, size_t str_len )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
@@ -553,7 +553,7 @@ static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
 	return false;
 }
 
-static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str_val, unsigned int str_len )
+static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str_val, size_t str_len )
 {
 	SDLPackContext* pCtx = (SDLPackContext*)pack_ctx;
 
@@ -1009,9 +1009,9 @@ static int dl_internal_pack_on_array_end( void* pack_ctx_in )
 }
 
 // TODO: These allocs need to be controllable!!!
-void* dl_internal_pack_alloc  ( void* ctx, unsigned int sz )            { (void)ctx; return malloc(sz); }
-void* dl_internal_pack_realloc( void* ctx, void* ptr, unsigned int sz ) { (void)ctx; return realloc(ptr, sz); }
-void  dl_internal_pack_free   ( void* ctx, void* ptr )                  { (void)ctx; free(ptr); }
+void* dl_internal_pack_alloc  ( void* ctx, size_t sz )            { (void)ctx; return malloc(sz); }
+void* dl_internal_pack_realloc( void* ctx, void* ptr, size_t sz ) { (void)ctx; return realloc(ptr, sz); }
+void  dl_internal_pack_free   ( void* ctx, void* ptr )            { (void)ctx; free(ptr); }
 
 static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* text_data )
 {
@@ -1019,14 +1019,6 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 
 	pint txt_len = strlen( text_data );
 	const unsigned char* txt_data = (const unsigned char*)text_data;
-
-	static const int ALLOW_COMMENTS_IN_JSON = 1;
-	static const int CAUSE_ERROR_ON_INVALID_UTF8 = 1;
-
-	yajl_parser_config my_yajl_config = {
-		ALLOW_COMMENTS_IN_JSON,
-		CAUSE_ERROR_ON_INVALID_UTF8
-	};
 
 	yajl_alloc_funcs my_yajl_alloc = {
 		dl_internal_pack_alloc,
@@ -1049,15 +1041,16 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 		dl_internal_pack_on_array_end
 	};
 
-	yajl_handle my_yajl_handle = yajl_alloc( &callbacks, &my_yajl_config, &my_yajl_alloc, (void*)pack_ctx );
+	yajl_handle my_yajl_handle = yajl_alloc( &callbacks, &my_yajl_alloc, pack_ctx );
+	yajl_config( my_yajl_handle, yajl_allow_comments, 1 );
 
 	yajl_status my_yajl_status = yajl_parse( my_yajl_handle, txt_data, (unsigned int)txt_len ); // read file data, pass to parser
 
-	unsigned int bytes_consumed = yajl_get_bytes_consumed( my_yajl_handle );
+	size_t bytes_consumed = yajl_get_bytes_consumed( my_yajl_handle );
 
-	my_yajl_status = yajl_parse_complete( my_yajl_handle ); // parse any remaining buffered data
+	my_yajl_status = yajl_complete_parse( my_yajl_handle ); // parse any remaining buffered data
 
-	if( my_yajl_status != yajl_status_ok && my_yajl_status != yajl_status_insufficient_data )
+	if( my_yajl_status != yajl_status_ok )
 	{
 		if( bytes_consumed != 0 ) // error occured!
 		{

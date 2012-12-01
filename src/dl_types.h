@@ -359,7 +359,7 @@ static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t 
 	return 0x0;
 }
 
-static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* name, unsigned int name_len, uint32* value )
+static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* name, size_t name_len, uint32* value )
 {
 	for( unsigned int j = 0; j < e->value_count; ++j )
 		if( strncmp( e->values[j].name, name, name_len ) == 0 )
@@ -384,7 +384,7 @@ static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid
 	return "UnknownEnum!";
 }
 
-DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8* buffer, unsigned int bytes, uint32_t base_hash )
+DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8* buffer, size_t bytes, uint32_t base_hash )
 {
 	uint32 hash = base_hash + 5381;
 	for (unsigned int i = 0; i < bytes; i++)
