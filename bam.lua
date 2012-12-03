@@ -2,7 +2,7 @@ BUILD_PATH = "local"
 
 PYTHON = "python"
 if family == "windows" then -- hackery hack
-    PYTHON = "C:\\Python26\\python.exe"
+    PYTHON = "C:\\Python27\\python.exe"
 end
 
 EXTERNALS_PATH = 'external'
@@ -172,14 +172,6 @@ function DefaultMSVC( build_platform, config )
 	local settings = DefaultSettings( build_platform, config )
 	SetDriversCL(settings)
 	
-	--[[
-		/EHsc only on unittest
-		/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
-		/wd4127 = warning C4127: conditional expression is constant.
-	--]]
-	settings.cc.flags:Add("/W4", "/WX", "/EHsc", "/wd4324", "/wd4127")
-	settings.cc.flags_c:Add("/TP")
-	
 	if config == "debug" then
 		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"")
 		settings.dll.flags:Add("/DEBUG")
@@ -207,7 +199,9 @@ function make_yajl_settings( base_settings )
 	
 	settings.cc.includes:Add( PathJoin( YAJL_PATH, 'include' ) )
 	
-	settings.cc.flags:Add( "-fPIC" ) -- HAXX
+	if settings.platform == 'linux_x86_64' then
+		settings.cc.flags:Add( "-fPIC" ) -- HAXX
+	end
 	
 	return settings
 end
@@ -216,7 +210,17 @@ function make_dl_settings( base_settings )
 	local settings = TableDeepCopy( base_settings )
 	
 	-- build dl on high warning level!
-	settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
+	if settings.platform == 'linux_x86' or settings.platform == 'linux_x86_64' then
+		settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
+	else
+		--[[
+			/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
+			/wd4127 = warning C4127: conditional expression is constant.
+		--]]
+		settings.cc.flags:Add("/W4", "/WX", "/wd4324", "/wd4127")
+		settings.cc.flags_c:Add("/TP")
+	end
+
 	settings.cc.includes:Add( PathJoin( YAJL_PATH, 'include' ) )
 	
 	return settings
@@ -240,7 +244,17 @@ end
 function make_test_settings( base_settings )
 	local settings = TableDeepCopy( base_settings )
 	
-	settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
+	if settings.platform == 'linux_x86' or settings.platform == 'linux_x86_64' then
+		settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
+	else
+		--[[
+			/EHsc only on unittest
+			/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
+			/wd4127 = warning C4127: conditional expression is constant.
+		--]]
+		settings.cc.flags:Add("/W4", "/WX", "/EHsc", "/wd4324", "/wd4127")
+		settings.cc.flags_c:Add("/TP")
+	end
 
 	settings.cc.includes:Add( PathJoin( PathJoin( EXTERNALS_PATH, 'gtest' ), 'include' ) )
 	if settings.platform == "linux_x86_64" or settings.platform == "linux_x86" then
@@ -295,6 +309,8 @@ dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("te
 tl_build_so = dl_shared
 if build_platform == "linux_x86" then
 	tl_build_so = "local/linux_x86_64/" .. config .. "/dl.so"
+elseif build_platform == "winx64" then
+	tl_build_so = "local/win32/" .. config .. "/dl.dll"
 end
 
 tl1 = dl_type_lib( "tests/unittest.tld",  tl_build_so )
