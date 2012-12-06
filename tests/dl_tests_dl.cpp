@@ -1,5 +1,11 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
+#ifdef __cplusplus
+	#define __STDC_LIMIT_MACROS
+#endif
+
+#include <stdint.h>
+
 #include <gtest/gtest.h>
 
 #include <dl/dl.h>
@@ -9,25 +15,6 @@
 #include "dl_test_common.h"
 
 #include <float.h>
-
-// TODO: Check these versus standard defines!
-static const int8_t  DL_INT8_MAX  = 0x7F;
-static const int16_t DL_INT16_MAX = 0x7FFF;
-static const int32_t DL_INT32_MAX = 0x7FFFFFFFL;
-static const int64_t DL_INT64_MAX = 0x7FFFFFFFFFFFFFFFLL;
-static const int8_t  DL_INT8_MIN  = (-DL_INT8_MAX  - 1);
-static const int16_t DL_INT16_MIN = (-DL_INT16_MAX - 1);
-static const int32_t DL_INT32_MIN = (-DL_INT32_MAX - 1);
-static const int64_t DL_INT64_MIN = (-DL_INT64_MAX - 1);
-
-static const uint8_t  DL_UINT8_MAX  = 0xFFU;
-static const uint16_t DL_UINT16_MAX = 0xFFFFU;
-static const uint32_t DL_UINT32_MAX = 0xFFFFFFFFUL;
-static const uint64_t DL_UINT64_MAX = 0xFFFFFFFFFFFFFFFFULL;
-static const uint8_t  DL_UINT8_MIN  = 0x00U;
-static const uint16_t DL_UINT16_MIN = 0x0000U;
-static const uint32_t DL_UINT32_MIN = 0x00000000UL;
-static const uint64_t DL_UINT64_MIN = 0x0000000000000000ULL;
 
 #define EXPECT_INSTANCE_INFO( inst, size, exp_ptr_size, exp_endian, exp_type ) \
 { \
@@ -256,7 +243,7 @@ TYPED_TEST(DLBase, pods)
 
 TYPED_TEST(DLBase, pods_max)
 {
-	Pods P1Original = { DL_INT8_MAX, DL_INT16_MAX, DL_INT32_MAX, DL_INT64_MAX, DL_UINT8_MAX, DL_UINT16_MAX, DL_UINT32_MAX, DL_UINT64_MAX, FLT_MAX, DBL_MAX };
+	Pods P1Original = { INT8_MAX, INT16_MAX, INT32_MAX, INT64_MAX, UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX, FLT_MAX, DBL_MAX };
 	Pods P1;
 	memset( &P1, 0x0, sizeof(Pods) );
 
@@ -277,7 +264,7 @@ TYPED_TEST(DLBase, pods_max)
 
 TYPED_TEST(DLBase, pods_min)
 {
-	Pods P1Original = { DL_INT8_MIN, DL_INT16_MIN, DL_INT32_MIN, DL_INT64_MIN, DL_UINT8_MIN, DL_UINT16_MIN, DL_UINT32_MIN, DL_UINT64_MIN, FLT_MIN, DBL_MIN };
+	Pods P1Original = { INT8_MIN, INT16_MIN, INT32_MIN, INT64_MIN, 0, 0, 0, 0, FLT_MIN, DBL_MIN };
 	Pods P1;
 	memset( &P1, 0x0, sizeof(Pods) );
 

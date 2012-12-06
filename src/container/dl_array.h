@@ -21,7 +21,7 @@ template <typename T, typename TSTORAGE>
 class CArrayNoReAllocBase
 {
 	TSTORAGE m_Storage;
-	pint m_nElements;
+	size_t m_nElements;
 	M_DECLARE_ARGTYPES_CLASS(T, TArg, TArgConst);
 public:
 	/*
@@ -49,17 +49,17 @@ public:
 	Parameters:
 	_NewSize - New used size.
 	*/
-	inline void SetSize(pint _NewSize)
+	inline void SetSize(size_t _NewSize)
 	{
 		DL_ASSERT(_NewSize <= m_Storage.AllocSize());
 		if(_NewSize < m_nElements) // destroy the rest
 		{
-			for(pint i=_NewSize; i<m_nElements; i++)
+			for(size_t i=_NewSize; i<m_nElements; i++)
 				m_Storage.Base()[i].~T();
 		}
 		else if(_NewSize > m_nElements) // create new objects
 		{
-			for(pint i=m_nElements; i<_NewSize; i++)
+			for(size_t i=m_nElements; i<_NewSize; i++)
 				new(&(m_Storage.Base()[i])) T;
 		}
 		m_nElements = _NewSize;
@@ -71,7 +71,7 @@ public:
 	Returns:
 	Returns Return used length;
 	*/
-	inline pint Len(){return m_nElements;}
+	inline size_t Len(){return m_nElements;}
 
 	/*
 	Function: Full()
@@ -89,7 +89,7 @@ public:
 	Function: Capacity()
 	Returns the amount of items that fit in the array.
 	*/
-	inline pint Capacity() { return m_Storage.AllocSize(); }
+	inline size_t Capacity() { return m_Storage.AllocSize(); }
 
 	/*
 	Function: Add()
@@ -124,7 +124,7 @@ public:
 	Returns:
 	Returns reference to wanted element.
 	*/
-	T& operator[](pint _iEl)
+	T& operator[](size_t _iEl)
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
 		return m_Storage.Base()[_iEl];
@@ -139,7 +139,7 @@ public:
 	Returns:
 	Returns const reference to wanted element.
 	*/
-	const T& operator[](pint _iEl) const
+	const T& operator[](size_t _iEl) const
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
 		return m_Storage.Base()[_iEl];

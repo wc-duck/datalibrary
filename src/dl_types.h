@@ -3,38 +3,17 @@
 #ifndef DL_DL_TYPES_H_INCLUDED
 #define DL_DL_TYPES_H_INCLUDED
 
+#ifdef __cplusplus
+	#define __STDC_LIMIT_MACROS
+#endif
+
+#include <stdint.h>
+
 #include <dl/dl.h>
 
 #include <string.h> // for memcpy
 #include <stdio.h>  // for vsnprintf
 #include <stdarg.h> // for va_list
-
-// remove me!
-#if defined(_MSC_VER)
-
-        typedef signed   __int8  int8;
-        typedef signed   __int16 int16;
-        typedef signed   __int32 int32;
-        typedef signed   __int64 int64;
-        typedef unsigned __int8  uint8;
-        typedef unsigned __int16 uint16;
-        typedef unsigned __int32 uint32;
-        typedef unsigned __int32 uint32_t;
-        typedef unsigned __int64 uint64;
-
-#elif defined(__GNUC__)
-
-        #include <stdint.h>
-        typedef int8_t   int8;
-        typedef int16_t  int16;
-        typedef int32_t  int32;
-        typedef int64_t  int64;
-        typedef uint8_t  uint8;
-        typedef uint16_t uint16;
-        typedef uint32_t uint32;
-        typedef uint64_t uint64;
-
-#endif
 
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 #define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: implement me plox!
@@ -50,39 +29,18 @@ namespace dl_staticassert
 };
 #define DL_STATIC_ASSERT(_Expr, _Msg) enum { DL_JOIN_TOKENS(_static_assert_enum_##_Msg, __LINE__) = sizeof(::dl_staticassert::STATIC_ASSERTION_FAILURE< (bool)( _Expr ) >) }
 
-static const int8  DL_INT8_MAX  = 0x7F;
-static const int16 DL_INT16_MAX = 0x7FFF;
-static const int32 DL_INT32_MAX = 0x7FFFFFFFL;
-static const int64 DL_INT64_MAX = 0x7FFFFFFFFFFFFFFFLL;
-static const int8  DL_INT8_MIN  = (-DL_INT8_MAX  - 1);
-static const int16 DL_INT16_MIN = (-DL_INT16_MAX - 1);
-static const int32 DL_INT32_MIN = (-DL_INT32_MAX - 1);
-static const int64 DL_INT64_MIN = (-DL_INT64_MAX - 1);
-
-static const uint8  DL_UINT8_MAX  = 0xFFU;
-static const uint16 DL_UINT16_MAX = 0xFFFFU;
-static const uint32 DL_UINT32_MAX = 0xFFFFFFFFUL;
-static const uint64 DL_UINT64_MAX = 0xFFFFFFFFFFFFFFFFULL;
-static const uint8  DL_UINT8_MIN  = 0x00U;
-static const uint16 DL_UINT16_MIN = 0x0000U;
-static const uint32 DL_UINT32_MIN = 0x00000000UL;
-static const uint64 DL_UINT64_MIN = 0x0000000000000000ULL;
-
 #if defined( __LP64__ )
 	#define DL_INT64_FMT_STR  "%ld"
 	#define DL_UINT64_FMT_STR "%lu"
 	#define DL_PINT_FMT_STR   "%lu"
-	typedef uint64 pint;
 #elif defined( _WIN64 )
 	#define DL_INT64_FMT_STR  "%lld"
 	#define DL_UINT64_FMT_STR "%llu"
 	#define DL_PINT_FMT_STR   "%llu"
-	typedef uint64 pint;
 #else
 	#define DL_INT64_FMT_STR  "%lld"
 	#define DL_UINT64_FMT_STR "%llu"
 	#define DL_PINT_FMT_STR   "%u"
-	typedef uint32 pint;
 #endif // defined( __LP64__ ) || defined( _WIN64 )
 
 template<class T>
@@ -109,44 +67,44 @@ enum
 	#define DL_UNUSED
 #endif
 
-static const uint32 DL_UNUSED DL_TYPELIB_VERSION    = 3; // format version for type-libraries.
-static const uint32 DL_UNUSED DL_INSTANCE_VERSION   = 1; // format version for instances.
-static const uint32 DL_UNUSED DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
-static const uint32 DL_UNUSED DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
-static const uint32 DL_UNUSED DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
-static const uint32 DL_UNUSED DL_INSTANCE_ID             = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
-static const uint32 DL_UNUSED DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint32( DL_INSTANCE_ID );
+static const uint32_t DL_UNUSED DL_TYPELIB_VERSION    = 3; // format version for type-libraries.
+static const uint32_t DL_UNUSED DL_INSTANCE_VERSION   = 1; // format version for instances.
+static const uint32_t DL_UNUSED DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
+static const uint32_t DL_UNUSED DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
+static const uint32_t DL_UNUSED DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
+static const uint32_t DL_UNUSED DL_INSTANCE_ID             = ('D'<< 24) | ('L' << 16) | ('D' << 8) | 'L';
+static const uint32_t DL_UNUSED DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint32( DL_INSTANCE_ID );
 
 #undef DL_UNUSED
 
-static const pint DL_NULL_PTR_OFFSET[2] =
+static const uintptr_t DL_NULL_PTR_OFFSET[2] =
 {
-	pint(DL_UINT32_MAX), // DL_PTR_SIZE_32BIT
-	pint(-1)            // DL_PTR_SIZE_64BIT
+	(uintptr_t)UINT32_MAX, // DL_PTR_SIZE_32BIT
+	(uintptr_t)-1          // DL_PTR_SIZE_64BIT
 };
 
 struct SDLTypeLibraryHeader
 {
-	uint32 id;
-	uint32 version;
+	uint32_t id;
+	uint32_t version;
 
-	uint32 type_count;		// number of types in typelibrary
-	uint32 types_size;		// number of bytes that are types
+	uint32_t type_count;		// number of types in typelibrary
+	uint32_t types_size;		// number of bytes that are types
 
-	uint32 enum_count;		// number of enums in typelibrary
-	uint32 enums_size;		// number of bytes that are enums
+	uint32_t enum_count;		// number of enums in typelibrary
+	uint32_t enums_size;		// number of bytes that are enums
 
-	uint32 default_value_size;
+	uint32_t default_value_size;
 };
 
 struct SDLDataHeader
 {
-	uint32      id;
-	uint32      version;
+	uint32_t    id;
+	uint32_t    version;
 	dl_typeid_t root_instance_type;
-	uint32      instance_size;
-	uint8       is_64_bit_ptr; // currently uses uint8 instead of bitfield to be compiler-compliant.
-	uint8       pad[3];
+	uint32_t    instance_size;
+	uint8_t     is_64_bit_ptr; // currently uses uint8 instead of bitfield to be compiler-compliant.
+	uint8_t     pad[3];
 };
 
 enum dl_ptr_size_t
@@ -162,15 +120,15 @@ struct SDLMember
 	char        name[DL_MEMBER_NAME_MAX_LEN];
 	dl_type_t   type;
 	dl_typeid_t type_id;
-	uint32      size[2];
-	uint32      alignment[2];
-	uint32      offset[2];
-	uint32      default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
+	uint32_t    size[2];
+	uint32_t    alignment[2];
+	uint32_t    offset[2];
+	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 
 	dl_type_t AtomType()       const { return dl_type_t( type & DL_TYPE_ATOM_MASK); }
 	dl_type_t StorageType()    const { return dl_type_t( type & DL_TYPE_STORAGE_MASK); }
-	uint32    BitFieldBits()   const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED); }
-	uint32    BitFieldOffset() const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED); }
+	uint32_t  BitFieldBits()   const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED); }
+	uint32_t  BitFieldOffset() const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED); }
 	bool      IsSimplePod()    const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
 };
 
@@ -182,20 +140,20 @@ struct SDLMember
 struct SDLType
 {
 	char      name[DL_TYPE_NAME_MAX_LEN];
-	uint32    size[2];
-	uint32    alignment[2];
-	uint32    member_count;
+	uint32_t  size[2];
+	uint32_t  alignment[2];
+	uint32_t  member_count;
 	SDLMember members[0];
 };
 
 struct SDLEnum
 {
 	char        name[DL_ENUM_NAME_MAX_LEN];
-	uint32      value_count;
+	uint32_t    value_count;
 	struct
 	{
-		char    name[DL_ENUM_VALUE_NAME_MAX_LEN];
-		uint32  value;
+		char     name[DL_ENUM_VALUE_NAME_MAX_LEN];
+		uint32_t value;
 	} values[0];
 };
 
@@ -206,7 +164,7 @@ struct SDLEnum
 typedef struct
 {
 	dl_typeid_t type_id;
-	uint32      offset;
+	uint32_t    offset;
 } dl_type_lookup_t;
 
 struct dl_context
@@ -222,14 +180,14 @@ struct dl_context
 	dl_type_lookup_t enum_lookup[128]; // dynamic alloc?
 
 	unsigned int type_count;
-	uint8*       type_info_data;
+	uint8_t*     type_info_data;
 	unsigned int type_info_data_size;
 
 	unsigned int enum_count;
-	uint8*       enum_info_data;
+	uint8_t*     enum_info_data;
 	unsigned int enum_info_data_size;
 
-	uint8* default_data;
+	uint8_t* default_data;
 };
 
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
@@ -249,8 +207,8 @@ inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
 }
 
 template<typename T>
-DL_FORCEINLINE T    dl_internal_align_up( const T value,   pint alignment ) { return T( (pint(value) + alignment - 1) & ~(alignment - 1) ); }
-DL_FORCEINLINE bool dl_internal_is_align( const void* ptr, pint alignment ) { return ((pint)ptr & (alignment - 1)) == 0; }
+DL_FORCEINLINE T    dl_internal_align_up( const T value,   size_t alignment ) { return T( ((size_t)value + alignment - 1) & ~(alignment - 1) ); }
+DL_FORCEINLINE bool dl_internal_is_align( const void* ptr, size_t alignment ) { return ((size_t)ptr & (alignment - 1)) == 0; }
 
 /*
 	return a bitfield offset on a particular platform (currently endian-ness is used to set them apart, that might break ;) )
@@ -269,7 +227,7 @@ static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t 
 		{
 			union
 			{
-				const uint8*   data_ptr;
+				const uint8_t* data_ptr;
 				const SDLType* type_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
@@ -285,7 +243,7 @@ static inline const SDLType* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, con
 	{
 		union
 		{
-			const uint8*   data_ptr;
+			const uint8_t* data_ptr;
 			const SDLType* type_ptr;
 		} ptr_conv;
 		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
@@ -296,7 +254,7 @@ static inline const SDLType* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, con
 	return 0x0;
 }
 
-static inline pint DLPodSize( dl_type_t type )
+static inline size_t DLPodSize( dl_type_t type )
 {
 	switch( type & DL_TYPE_STORAGE_MASK )
 	{
@@ -321,7 +279,7 @@ static inline pint DLPodSize( dl_type_t type )
 	}
 }
 
-static inline pint dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl_typeid_t type_id, dl_ptr_size_t ptr_size )
+static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl_typeid_t type_id, dl_ptr_size_t ptr_size )
 {
 	switch( type & DL_TYPE_STORAGE_MASK )
 	{
@@ -349,7 +307,7 @@ static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t 
 		{
 			union
 			{
-				const uint8*   data_ptr;
+				const uint8_t* data_ptr;
 				const SDLEnum* enum_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->enum_info_data + dl_ctx->enum_lookup[i].offset;
@@ -359,7 +317,7 @@ static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t 
 	return 0x0;
 }
 
-static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* name, size_t name_len, uint32* value )
+static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* name, size_t name_len, uint32_t* value )
 {
 	for( unsigned int j = 0; j < e->value_count; ++j )
 		if( strncmp( e->values[j].name, name, name_len ) == 0 )
@@ -370,7 +328,7 @@ static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* na
 	return false;
 }
 
-static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32 value )
+static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32_t value )
 {
 	const SDLEnum* e = dl_internal_find_enum( dl_ctx, type_id );
 
@@ -384,19 +342,19 @@ static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid
 	return "UnknownEnum!";
 }
 
-DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8* buffer, size_t bytes, uint32_t base_hash )
+DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8_t* buffer, size_t bytes, uint32_t base_hash )
 {
-	uint32 hash = base_hash + 5381;
+	uint32_t hash = base_hash + 5381;
 	for (unsigned int i = 0; i < bytes; i++)
-		hash = (hash * uint32(33)) + *((uint8*)buffer + i);
+		hash = (hash * uint32_t(33)) + *((uint8_t*)buffer + i);
 	return hash - 5381;
 }
 
 DL_FORCEINLINE static uint32_t dl_internal_hash_string( const char* str, uint32_t base_hash = 0 )
 {
-	uint32 hash = base_hash + 5381;
+	uint32_t hash = base_hash + 5381;
 	for (unsigned int i = 0; str[i] != 0; i++)
-		hash = (hash * uint32(33)) + str[i];
+		hash = (hash * uint32_t(33)) + str[i];
 	return hash - 5381; // So empty string == 0
 }
 

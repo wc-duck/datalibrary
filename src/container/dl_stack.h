@@ -51,7 +51,7 @@ public:
 		Function: Len
 			Return the number of elements currently in the stack.
 	*/
-	pint Len() { return m_Data.Len(); }
+	size_t Len() { return m_Data.Len(); }
 };
 
 #endif // CONTAINER_STACK_H_INCLUDED

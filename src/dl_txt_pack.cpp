@@ -1,8 +1,9 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
-#include <dl/dl_txt.h>
 #include "dl_types.h"
 #include "dl_binary_writer.h"
+
+#include <dl/dl_txt.h>
 
 #include "container/dl_array.h"
 #include "container/dl_stack.h"
@@ -64,24 +65,24 @@ template<unsigned int BITS>
 class CFlagField
 {
 	DL_STATIC_ASSERT( BITS % 32 == 0, only_even_32_bits );
-	uint32 storage[ BITS / 32 ];
+	uint32_t storage[ BITS / 32 ];
 
-	enum { BITS_PER_STORAGE = sizeof(uint32) * 8, BITS_FOR_FIELD = 5 };
+	enum { BITS_PER_STORAGE = sizeof(uint32_t) * 8, BITS_FOR_FIELD = 5 };
 
 	unsigned int Field( unsigned int bit ) { return ( bit  & ~(BITS_PER_STORAGE - 1) ) >> BITS_FOR_FIELD; }
 	unsigned int Bit  ( unsigned int bit ) { return ( bit  &  (BITS_PER_STORAGE - 1) ); }
 
 public:
 	CFlagField() { memset( storage, 0x00, sizeof(storage) ); }
-	void SetBit( unsigned int bit ) {          storage[ Field( bit ) ] |= (uint32)DL_BIT( Bit( bit ) ); }
-	bool IsSet ( unsigned int bit ) { return ( storage[ Field( bit ) ] &  (uint32)DL_BIT( Bit( bit ) ) ) != 0; }
+	void SetBit( unsigned int bit ) {          storage[ Field( bit ) ] |= (uint32_t)DL_BIT( Bit( bit ) ); }
+	bool IsSet ( unsigned int bit ) { return ( storage[ Field( bit ) ] &  (uint32_t)DL_BIT( Bit( bit ) ) ) != 0; }
 };
 
 struct SDLPackState
 {
 	SDLPackState() {}
 
-	SDLPackState( dl_pack_state pack_state , const void* value = 0x0, pint struct_start_pos = 0 )
+	SDLPackState( dl_pack_state pack_state , const void* value = 0x0, uintptr_t struct_start_pos = 0 )
 		: state( pack_state )
 		, value( value )
 		, struct_start_pos( struct_start_pos )
@@ -98,9 +99,9 @@ struct SDLPackState
 		const SDLEnum*   enum_type;
 	};
 
-	pint            struct_start_pos;
-	pint            array_count_patch_pos;
-	uint32          array_count;
+	uintptr_t       struct_start_pos;
+	uintptr_t       array_count_patch_pos;
+	uint32_t        array_count;
 	bool            is_back_array;
 	CFlagField<128> members_set;
 };
@@ -118,7 +119,7 @@ struct SDLPackContext
 	struct
 	{
 		unsigned int     id;
-		pint             write_pos;
+		uintptr_t        write_pos;
 		const SDLMember* member;
 	} patch_pos[128];
 	unsigned int patch_pos_count;
@@ -126,7 +127,7 @@ struct SDLPackContext
 	CStackStatic<SDLPackState, 128> state_stack;
 
 	unsigned int curr_subdata_elem;
-	pint subdata_elems_pos[128]; // positions for different subdata-elements;
+	uintptr_t subdata_elems_pos[128]; // positions for different subdata-elements;
 };
 
 static void dl_txt_pack_ctx_push_state( SDLPackContext* pack_ctx, dl_pack_state state )
@@ -137,7 +138,7 @@ static void dl_txt_pack_ctx_push_state( SDLPackContext* pack_ctx, dl_pack_state 
 
 static void dl_txt_pack_ctx_push_state_struct( SDLPackContext* pack_ctx, const SDLType* type )
 {
-	pint struct_start_pos = 0;
+	uintptr_t struct_start_pos = 0;
 
 	if( pack_ctx->state_stack.Top().state == DL_PACK_STATE_ARRAY && 
 		pack_ctx->state_stack.Top().is_back_array )
@@ -204,9 +205,9 @@ static void dl_txt_pack_ctx_add_patch_pos( SDLPackContext* pack_ctx, unsigned in
 	pack_ctx->patch_pos[pp_index].member    = pack_ctx->state_stack.Top().member;	
 }
 
-static void dl_txt_pack_ctx_register_sub_element( SDLPackContext* pack_ctx, unsigned int elem, pint pos )
+static void dl_txt_pack_ctx_register_sub_element( SDLPackContext* pack_ctx, unsigned int elem, uintptr_t pos )
 {
-	DL_ASSERT( pack_ctx->subdata_elems_pos[elem] == pint(-1) && "Subdata element already registered!");
+	DL_ASSERT( pack_ctx->subdata_elems_pos[elem] == (uintptr_t)-1 && "Subdata element already registered!");
 	pack_ctx->subdata_elems_pos[elem] = pos;
 	pack_ctx->curr_subdata_elem = elem;
 }
@@ -227,7 +228,7 @@ static int dl_internal_pack_on_null( void* pack_ctx_in )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 	DL_ASSERT( pack_ctx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID );
-	dl_binary_writer_write_ptr( pack_ctx->writer, (pint)-1 );
+	dl_binary_writer_write_ptr( pack_ctx->writer, (uintptr_t)-1 );
 	dl_txt_pack_ctx_pop_state( pack_ctx );
 	return 1;
 }
@@ -248,30 +249,30 @@ static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 		{
 			case DL_TYPE_STORAGE_UINT8:
 				dl_binary_writer_write_uint8 ( pack_ctx->writer,
-											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
-											   uint8( value ),
-											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8), bf_offset, bf_bits ),
+											   (uint8_t)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
+											   (uint8_t)value,
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT16:
 				dl_binary_writer_write_uint16( pack_ctx->writer,
-											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint16( pack_ctx->writer ),
-											   uint16( value ),
-											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint16), bf_offset, bf_bits ),
+											   (uint16_t)DL_INSERT_BITS( dl_binary_writer_read_uint16( pack_ctx->writer ),
+											   (uint16_t)value,
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint16_t), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT32:
 				dl_binary_writer_write_uint32( pack_ctx->writer,
-											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
-											   uint32( value ),
-											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint32), bf_offset, bf_bits ),
+											   (uint32_t)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
+											   (uint32_t)value,
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint32_t), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 			case DL_TYPE_STORAGE_UINT64:
 				dl_binary_writer_write_uint64( pack_ctx->writer,
-											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
-											   uint64( value ),
-											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint64), bf_offset, bf_bits ),
+											   (uint64_t)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
+											   (uint64_t)value,
+											   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint64_t), bf_offset, bf_bits ),
 											   bf_bits ) );
 			break;
 
@@ -287,14 +288,14 @@ static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 
 	switch(state)
 	{
-		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pack_ctx->writer,   (int8)value ); break;
-		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pack_ctx->writer,  (int16)value ); break;
-		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pack_ctx->writer,  (int32)value ); break;
-		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pack_ctx->writer,  (int64)value ); break;
-		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pack_ctx->writer,  (uint8)value ); break;
-		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pack_ctx->writer, (uint16)value ); break;
-		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pack_ctx->writer, (uint32)value ); break;
-		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pack_ctx->writer, (uint64)value ); break;
+		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pack_ctx->writer,   (int8_t)value ); break;
+		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pack_ctx->writer,  (int16_t)value ); break;
+		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pack_ctx->writer,  (int32_t)value ); break;
+		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pack_ctx->writer,  (int64_t)value ); break;
+		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pack_ctx->writer,  (uint8_t)value ); break;
+		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pack_ctx->writer, (uint16_t)value ); break;
+		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pack_ctx->writer, (uint32_t)value ); break;
+		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pack_ctx->writer, (uint64_t)value ); break;
 		default:
 			DL_PACK_ERROR_AND_FAIL( pack_ctx, DL_ERROR_TXT_PARSE_ERROR, "true/false only supported on int*, uint* or bitfield!" );
 			break;
@@ -310,15 +311,15 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
-	union { int64 sign; uint64 unsign; } Min;
-	union { int64 sign; uint64 unsign; } Max;
+	union { int64_t sign; uint64_t unsign; } Min;
+	union { int64_t sign; uint64_t unsign; } Max;
 	const char* fmt = "";
 
 	dl_pack_state state = pack_ctx->CurrentPackState();
 
 	if( (state & DL_TYPE_ATOM_MASK) == DL_TYPE_ATOM_BITFIELD )
 	{
-		uint64 bf_value;
+		uint64_t bf_value;
 		DL_PACK_ERROR_AND_FAIL_IF( sscanf( str_val, DL_UINT64_FMT_STR, &bf_value ) != 1, 
 								   pack_ctx, 
 								   DL_ERROR_TXT_PARSE_ERROR, 
@@ -328,7 +329,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 		unsigned int bf_bits   = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED );
 		unsigned int bf_offset = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
 
-		uint64 max_val = (uint64(1) << bf_bits) - uint64(1);
+		uint64_t max_val = (uint64_t(1) << bf_bits) - uint64_t(1);
 		DL_PACK_ERROR_AND_FAIL_IF( bf_value > max_val, 
 								   pack_ctx, 
 								   DL_ERROR_TXT_PARSE_ERROR, 
@@ -341,27 +342,27 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 		{
 			case DL_TYPE_STORAGE_UINT8:
 				dl_binary_writer_write_uint8 ( pack_ctx->writer,
-											   (uint8)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
-																	  uint8(bf_value),
-																	  dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8), bf_offset, bf_bits ), bf_bits ) );
+											   (uint8_t)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
+																	    (uint8_t)bf_value,
+																	    dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT16:
 				dl_binary_writer_write_uint16( pack_ctx->writer,
-											   (uint16)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
-																	   uint16(bf_value),
-																	   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint16), bf_offset, bf_bits ), bf_bits ) );
+											   (uint16_t)DL_INSERT_BITS( dl_binary_writer_read_uint8( pack_ctx->writer ),
+																	     (uint16_t)bf_value,
+																	     dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint16_t), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT32:
 				dl_binary_writer_write_uint32( pack_ctx->writer,
-											   (uint32)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
-																	   uint32(bf_value),
-																	   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint32), bf_offset, bf_bits ), bf_bits ) );
+											   (uint32_t)DL_INSERT_BITS( dl_binary_writer_read_uint32( pack_ctx->writer ),
+																	     (uint32_t)bf_value,
+																	     dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint32_t), bf_offset, bf_bits ), bf_bits ) );
 				break;
 			case DL_TYPE_STORAGE_UINT64:
 				dl_binary_writer_write_uint64( pack_ctx->writer,
-											   (uint64)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
-																	   uint64(bf_value),
-																	   dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint64), bf_offset, bf_bits ), bf_bits ) );
+											   (uint64_t)DL_INSERT_BITS( dl_binary_writer_read_uint64( pack_ctx->writer ),
+																	     (uint64_t)bf_value,
+																	     dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint64_t), bf_offset, bf_bits ), bf_bits ) );
 				break;
 
 			default:
@@ -376,21 +377,21 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 
 	switch( state )
 	{
-		case DL_PACK_STATE_POD_INT8:   Min.sign  =   int64(DL_INT8_MIN);   Max.sign   =  int64(DL_INT8_MAX);   fmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_INT16:  Min.sign  =   int64(DL_INT16_MIN);  Max.sign   =  int64(DL_INT16_MAX);  fmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_INT32:  Min.sign  =   int64(DL_INT32_MIN);  Max.sign   =  int64(DL_INT32_MAX);  fmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_INT64:  Min.sign  =   int64(DL_INT64_MIN);  Max.sign   =  int64(DL_INT64_MAX);  fmt = DL_INT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT8:  Min.unsign = uint64(DL_UINT8_MIN);  Max.unsign = uint64(DL_UINT8_MAX);  fmt = DL_UINT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT16: Min.unsign = uint64(DL_UINT16_MIN); Max.unsign = uint64(DL_UINT16_MAX); fmt = DL_UINT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT32: Min.unsign = uint64(DL_UINT32_MIN); Max.unsign = uint64(DL_UINT32_MAX); fmt = DL_UINT64_FMT_STR; break;
-		case DL_PACK_STATE_POD_UINT64: Min.unsign = uint64(DL_UINT64_MIN); Max.unsign = uint64(DL_UINT64_MAX); fmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT8:   Min.sign   = (int64_t)INT8_MIN;   Max.sign   =  (int64_t)INT8_MAX;   fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT16:  Min.sign   = (int64_t)INT16_MIN;  Max.sign   =  (int64_t)INT16_MAX;  fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT32:  Min.sign   = (int64_t)INT32_MIN;  Max.sign   =  (int64_t)INT32_MAX;  fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_INT64:  Min.sign   = (int64_t)INT64_MIN;  Max.sign   =  (int64_t)INT64_MAX;  fmt = DL_INT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT8:  Min.unsign = 0;                   Max.unsign = (uint64_t)UINT8_MAX;  fmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT16: Min.unsign = 0;                   Max.unsign = (uint64_t)UINT16_MAX; fmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT32: Min.unsign = 0;                   Max.unsign = (uint64_t)UINT32_MAX; fmt = DL_UINT64_FMT_STR; break;
+		case DL_PACK_STATE_POD_UINT64: Min.unsign = 0;                   Max.unsign = (uint64_t)UINT64_MAX; fmt = DL_UINT64_FMT_STR; break;
 
 		case DL_PACK_STATE_POD_FP32:   dl_binary_writer_write_fp32( pack_ctx->writer, (float)atof(str_val) ); dl_txt_pack_ctx_pop_array_item( pack_ctx ); return 1;
 		case DL_PACK_STATE_POD_FP64:   dl_binary_writer_write_fp64( pack_ctx->writer,        atof(str_val) ); dl_txt_pack_ctx_pop_array_item( pack_ctx ); return 1;
 
 		case DL_PACK_STATE_SUBDATA_ID:
 		{
-			uint32 ID;
+			uint32_t ID;
 			DL_PACK_ERROR_AND_FAIL_IF( sscanf( str_val, "%u", &ID ) != 1, 
 									   pack_ctx, 
 									   DL_ERROR_TXT_PARSE_ERROR, 
@@ -411,7 +412,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 			return 0;
 	}
 
-	union { int64 sign; uint64 unsign; } value;
+	union { int64_t sign; uint64_t unsign; } value;
 	DL_PACK_ERROR_AND_FAIL_IF( sscanf( str_val, fmt, &value.sign ) != 1, 
 							   pack_ctx, 
 							   DL_ERROR_TXT_PARSE_ERROR, 
@@ -446,14 +447,14 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 
 	switch( state )
 	{
-		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pack_ctx->writer,   (int8)value.sign );   break;
-		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pack_ctx->writer,  (int16)value.sign );   break;
-		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pack_ctx->writer,  (int32)value.sign );   break;
-		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pack_ctx->writer,  (int64)value.sign );   break;
-		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pack_ctx->writer,  (uint8)value.unsign ); break;
-		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pack_ctx->writer, (uint16)value.unsign ); break;
-		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pack_ctx->writer, (uint32)value.unsign ); break;
-		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pack_ctx->writer, (uint64)value.unsign ); break;
+		case DL_PACK_STATE_POD_INT8:   dl_binary_writer_write_int8  ( pack_ctx->writer,   (int8_t)value.sign );   break;
+		case DL_PACK_STATE_POD_INT16:  dl_binary_writer_write_int16 ( pack_ctx->writer,  (int16_t)value.sign );   break;
+		case DL_PACK_STATE_POD_INT32:  dl_binary_writer_write_int32 ( pack_ctx->writer,  (int32_t)value.sign );   break;
+		case DL_PACK_STATE_POD_INT64:  dl_binary_writer_write_int64 ( pack_ctx->writer,  (int64_t)value.sign );   break;
+		case DL_PACK_STATE_POD_UINT8:  dl_binary_writer_write_uint8 ( pack_ctx->writer,  (uint8_t)value.unsign ); break;
+		case DL_PACK_STATE_POD_UINT16: dl_binary_writer_write_uint16( pack_ctx->writer, (uint16_t)value.unsign ); break;
+		case DL_PACK_STATE_POD_UINT32: dl_binary_writer_write_uint32( pack_ctx->writer, (uint32_t)value.unsign ); break;
+		case DL_PACK_STATE_POD_UINT64: dl_binary_writer_write_uint64( pack_ctx->writer, (uint64_t)value.unsign ); break;
 		default: break;
 	}
 
@@ -490,36 +491,36 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 		case DL_PACK_STATE_STRING_ARRAY:
 		{
 			dl_binary_writer_seek_end( pack_ctx->writer );
-			pint offset = dl_binary_writer_tell( pack_ctx->writer );
+			uintptr_t offset = dl_binary_writer_tell( pack_ctx->writer );
 			dl_binary_writer_write_string( pack_ctx->writer, str_value, str_len );
-			pint array_elem_pos = dl_binary_writer_push_back_alloc( pack_ctx->writer, sizeof( char* ) );
+			uintptr_t array_elem_pos = dl_binary_writer_push_back_alloc( pack_ctx->writer, sizeof( char* ) );
 			dl_binary_writer_seek_set( pack_ctx->writer, array_elem_pos );
-			dl_binary_writer_write( pack_ctx->writer, &offset, sizeof(pint) );
+			dl_binary_writer_write( pack_ctx->writer, &offset, sizeof(uintptr_t) );
 
 			dl_txt_pack_ctx_pop_array_item( pack_ctx ); // back to last state plox!
 		}
 		break;
 		case DL_PACK_STATE_STRING:
 		{
-			pint curr = dl_binary_writer_tell( pack_ctx->writer );
+			uintptr_t curr = dl_binary_writer_tell( pack_ctx->writer );
 			dl_binary_writer_seek_end( pack_ctx->writer );
-			pint offset = dl_binary_writer_tell( pack_ctx->writer );
+			uintptr_t offset = dl_binary_writer_tell( pack_ctx->writer );
 			dl_binary_writer_write_string( pack_ctx->writer, str_value, str_len );
 			dl_binary_writer_seek_set( pack_ctx->writer, curr );
-			dl_binary_writer_write( pack_ctx->writer, &offset, sizeof(pint) );
+			dl_binary_writer_write( pack_ctx->writer, &offset, sizeof(uintptr_t) );
 			dl_txt_pack_ctx_pop_array_item( pack_ctx ); // back to last state plox!
 		}
 		break;
 		case DL_PACK_STATE_ENUM:
 		{
-			uint32 enum_value;
+			uint32_t enum_value;
 			const SDLEnum* enum_type = pack_ctx->state_stack.Top().enum_type;
 			if( !dl_internal_find_enum_value( enum_type, (const char*)str_value, str_len, &enum_value ) )
 				DL_PACK_ERROR_AND_FAIL( pack_ctx,
 										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
 										"Enum \"%s\" do not have the value \"%.*s\"!", 
 										enum_type->name, str_len, str_value );
-			dl_binary_writer_write( pack_ctx->writer, &enum_value, sizeof(uint32) );
+			dl_binary_writer_write( pack_ctx->writer, &enum_value, sizeof(uint32_t) );
 			dl_txt_pack_ctx_pop_array_item( pack_ctx );
 		}
 		break;
@@ -617,12 +618,12 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 			state.members_set.SetBit( member_id );
 
 			// seek to position for member! ( members can come in any order in the text-file so we need to seek )
-			pint mem_pos = pCtx->state_stack.Top().struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
+			uintptr_t mem_pos = pCtx->state_stack.Top().struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
 			dl_binary_writer_seek_set( pCtx->writer, mem_pos );
 			DL_ASSERT( dl_binary_writer_in_back_alloc_area( pCtx->writer ) || dl_internal_is_align((void*)mem_pos, member->alignment[DL_PTR_SIZE_HOST]) );
 
-			pint array_count_patch_pos = 0; // for inline array, keep as 0.
-			bool array_has_sub_ptrs    = false;
+			uintptr_t array_count_patch_pos = 0; // for inline array, keep as 0.
+			bool      array_has_sub_ptrs    = false;
 
 			dl_type_t atom_type    = member->AtomType();
 			dl_type_t storage_type = member->StorageType();
@@ -656,7 +657,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 				case DL_TYPE_ATOM_ARRAY:
 				{
 					// calc alignemnt needed for array
-					pint array_align = dl_internal_align_of_type( pCtx->dl_ctx, member->type, member->type_id, DL_PTR_SIZE_HOST );
+					uintptr_t array_align = dl_internal_align_of_type( pCtx->dl_ctx, member->type, member->type_id, DL_PTR_SIZE_HOST );
 					dl_binary_writer_needed_size_align_up( pCtx->writer, array_align );
 
 					// save position for array to be able to write ptr and count on array-end.
@@ -727,7 +728,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 		{
 			// found a subdata item! the map-key need to be a id!
 
-			uint32 ID;
+			uint32_t ID;
 			DL_PACK_ERROR_AND_FAIL_IF( sscanf((char*)str_val, "%u", &ID) != 1, 
 									   pCtx, 
 									   DL_ERROR_TXT_PARSE_ERROR, 
@@ -807,8 +808,8 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 	// patch subdata
 	for(unsigned int patch_pos = 0; patch_pos < pack_ctx->patch_pos_count; ++patch_pos)
 	{
-		unsigned int id = pack_ctx->patch_pos[patch_pos].id;
-		pint member_pos = pack_ctx->patch_pos[patch_pos].write_pos;
+		unsigned int id      = pack_ctx->patch_pos[patch_pos].id;
+		uintptr_t member_pos = pack_ctx->patch_pos[patch_pos].write_pos;
 
 		dl_binary_writer_seek_set( pack_ctx->writer, member_pos );
 		dl_binary_writer_write_pint( pack_ctx->writer, pack_ctx->subdata_elems_pos[id] );
@@ -835,22 +836,22 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 			SDLPackState& PackState = pack_ctx->state_stack.Top();
 
 			// Check that all members are set!
-			for( uint32 member_index = 0; member_index < PackState.type->member_count; ++member_index )
+			for( uint32_t member_index = 0; member_index < PackState.type->member_count; ++member_index )
 			{
 				const SDLMember* member = PackState.type->members + member_index;
 
 				if( PackState.members_set.IsSet( member_index ) )
 					continue;
 
-				DL_PACK_ERROR_AND_FAIL_IF( member->default_value_offset == DL_UINT32_MAX, 
+				DL_PACK_ERROR_AND_FAIL_IF( member->default_value_offset == UINT32_MAX,
 										   pack_ctx, 
 										   DL_ERROR_TXT_MEMBER_MISSING, 
 										   "Member \"%s\" in struct of type \"%s\" not set!", 
 										   member->name, 
 										   PackState.type->name );
 
-				pint   mem_pos  = PackState.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
-				uint8* member_default_value = pack_ctx->dl_ctx->default_data + member->default_value_offset;
+				uintptr_t mem_pos  = PackState.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
+				uint8_t*  member_default_value = pack_ctx->dl_ctx->default_data + member->default_value_offset;
 
 				dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
 
@@ -866,14 +867,14 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 							case DL_TYPE_STORAGE_STR:
 							{
 								dl_binary_writer_seek_end( pack_ctx->writer );
-								pint str_pos = dl_binary_writer_tell( pack_ctx->writer );
+								uintptr_t str_pos = dl_binary_writer_tell( pack_ctx->writer );
 								char* str = *(char**)member_default_value;
 								dl_binary_writer_write_string( pack_ctx->writer, str, strlen( str ) );
 								dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
 								dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
 							}
 							break;
-							case DL_TYPE_STORAGE_PTR: dl_binary_writer_write_pint( pack_ctx->writer, (pint)-1 ); break; // can only default to null!
+							case DL_TYPE_STORAGE_PTR: dl_binary_writer_write_pint( pack_ctx->writer, (uintptr_t)-1 ); break; // can only default to null!
 							default:
 								DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
 								dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
@@ -888,11 +889,11 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 							{
 								char** array_value = (char**)member_default_value;
 
-								uint32 count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
-								for(uint32 elem = 0; elem < count; ++elem)
+								uint32_t count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
+								for( uint32_t elem = 0; elem < count; ++elem )
 								{
 									dl_binary_writer_seek_end( pack_ctx->writer );
-									pint str_pos = dl_binary_writer_tell( pack_ctx->writer );
+									uintptr_t str_pos = dl_binary_writer_tell( pack_ctx->writer );
 									dl_binary_writer_write_string( pack_ctx->writer, array_value[elem], strlen( array_value[elem] ) );
 									dl_binary_writer_seek_set( pack_ctx->writer, mem_pos + sizeof(char*) * elem );
 									dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
@@ -907,7 +908,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 					break;
 					case DL_TYPE_ATOM_ARRAY:
 					{
-						uint32 count = *(uint32*)(member_default_value + sizeof(void*));
+						uint32_t count = *(uint32_t*)(member_default_value + sizeof(void*));
 
 						dl_binary_writer_write_pint( pack_ctx->writer, dl_binary_writer_needed_size( pack_ctx->writer ) );
 						dl_binary_writer_write_uint32( pack_ctx->writer, count);
@@ -918,14 +919,14 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 							case DL_TYPE_STORAGE_STR:
 							{
 
-								pint array_pos = dl_binary_writer_tell( pack_ctx->writer );
+								uintptr_t array_pos = dl_binary_writer_tell( pack_ctx->writer );
 								dl_binary_writer_reserve( pack_ctx->writer, count * sizeof(char*) );
 
 								char** array_value = *(char***)member_default_value;
-								for( uint32 i = 0; i < count; ++i )
+								for( uint32_t i = 0; i < count; ++i )
 								{
 									dl_binary_writer_seek_end( pack_ctx->writer );
-									pint str_pos = dl_binary_writer_tell( pack_ctx->writer );
+									uintptr_t str_pos = dl_binary_writer_tell( pack_ctx->writer );
 									dl_binary_writer_write_string( pack_ctx->writer, array_value[i], strlen( array_value[i] ) );
 									dl_binary_writer_seek_set( pack_ctx->writer, array_pos + sizeof(char*) * i );
 									dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
@@ -934,7 +935,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 							break;
 							default:
 								DL_ASSERT(member->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-								dl_binary_writer_write( pack_ctx->writer, *(uint8**)member_default_value, count * DLPodSize(member->type) );
+								dl_binary_writer_write( pack_ctx->writer, *(uint8_t**)member_default_value, count * DLPodSize(member->type) );
 						}
 					}
 					break;
@@ -967,22 +968,22 @@ static int dl_internal_pack_on_array_end( void* pack_ctx_in )
 	dl_pack_state pack_state = pack_ctx->state_stack.Top().state;
 
 	dl_txt_pack_ctx_pop_state( pack_ctx ); // pop of pack state for sub-type
-	uint32 array_count   = pack_ctx->state_stack.Top().array_count;
-	pint   patch_pos     = pack_ctx->state_stack.Top().array_count_patch_pos;
-	bool   is_back_array = pack_ctx->state_stack.Top().is_back_array;
+	uint32_t array_count   = pack_ctx->state_stack.Top().array_count;
+	uintptr_t patch_pos     = pack_ctx->state_stack.Top().array_count_patch_pos;
+	bool     is_back_array = pack_ctx->state_stack.Top().is_back_array;
 	dl_txt_pack_ctx_pop_state( pack_ctx ); // pop of pack state for array
 	if( patch_pos != 0 ) // not inline array
 	{
 		if( array_count == 0 )
 		{
 			// empty array should be null!
-			dl_binary_writer_seek_set( pack_ctx->writer, patch_pos - sizeof(pint) );
-			dl_binary_writer_write_pint( pack_ctx->writer, pint(-1) );
+			dl_binary_writer_seek_set( pack_ctx->writer, patch_pos - sizeof(uintptr_t) );
+			dl_binary_writer_write_pint( pack_ctx->writer, (uintptr_t)-1 );
 		}
 		else if(is_back_array)
 		{
-			uint32 size  = sizeof( char* );
-			uint32 align = sizeof( char* );
+			uint32_t size  = sizeof( char* );
+			uint32_t align = sizeof( char* );
 
 			if( type != 0x0 )
 			{
@@ -995,8 +996,8 @@ static int dl_internal_pack_on_array_end( void* pack_ctx_in )
 			if( pack_state != DL_PACK_STATE_STRING_ARRAY )
 				pack_ctx->writer->back_alloc_pos += size;
 
-			pint array_pos = dl_binary_writer_pop_back_alloc( pack_ctx->writer, array_count, size, align );
-			dl_binary_writer_seek_set( pack_ctx->writer, patch_pos - sizeof(pint) );
+			uintptr_t array_pos = dl_binary_writer_pop_back_alloc( pack_ctx->writer, array_count, size, align );
+			dl_binary_writer_seek_set( pack_ctx->writer, patch_pos - sizeof(uintptr_t) );
 			dl_binary_writer_write_pint( pack_ctx->writer, array_pos );
 		}
 		else
@@ -1017,7 +1018,7 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 {
 	// this could be incremental later on if needed!
 
-	pint txt_len = strlen( text_data );
+	size_t txt_len = strlen( text_data );
 	const unsigned char* txt_data = (const unsigned char*)text_data;
 
 	yajl_alloc_funcs my_yajl_alloc = {
@@ -1121,7 +1122,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 		header.id                 = DL_INSTANCE_ID;
 		header.version            = DL_INSTANCE_VERSION;
 		header.root_instance_type = dl_internal_typeid_of( dl_ctx, pack_ctx.root_type );
-		header.instance_size      = (uint32)dl_binary_writer_needed_size( &writer );
+		header.instance_size      = (uint32_t)dl_binary_writer_needed_size( &writer );
 		header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
 		memcpy( out_buffer, &header, sizeof(SDLDataHeader) );
 	}

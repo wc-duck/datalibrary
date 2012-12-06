@@ -1,10 +1,10 @@
-#include <dl/dl.h>
-
 #include "dl_types.h"
 #include "dl_swap.h"
 #include "dl_binary_writer.h"
 
 #include "container/dl_array.h"
+
+#include <dl/dl.h>
 
 #include <stdlib.h> // malloc, free
 
@@ -30,7 +30,7 @@ static void* dl_internal_realloc( dl_ctx_t dl_ctx, void* ptr, unsigned int old_s
 
 static void* dl_internal_append_data( dl_ctx_t dl_ctx, void* old_data, unsigned int old_data_size, const void* new_data, unsigned int new_data_size )
 {
-	uint8* data = (uint8*)dl_internal_realloc( dl_ctx, old_data, old_data_size, old_data_size + new_data_size, sizeof(void*) );
+	uint8_t* data = (uint8_t*)dl_internal_realloc( dl_ctx, old_data, old_data_size, old_data_size + new_data_size, sizeof(void*) );
 	memcpy( data + old_data_size, new_data, new_data_size );
 	return data;
 }
@@ -77,9 +77,9 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 
 struct SPatchedInstances
 {
-	CArrayStatic<const uint8*, 1024> m_lpPatched;
+	CArrayStatic<const uint8_t*, 1024> m_lpPatched;
 
-	bool IsPatched(const uint8* _pInstance)
+	bool IsPatched(const uint8_t* _pInstance)
 	{
 		for (unsigned int iPatch = 0; iPatch < m_lpPatched.Len(); ++iPatch)
 			if(m_lpPatched[iPatch] == _pInstance)
@@ -88,9 +88,9 @@ struct SPatchedInstances
 	}
 };
 
-static void dl_internal_patch_ptr( const uint8* ptr, const uint8* base_data )
+static void dl_internal_patch_ptr( const uint8_t* ptr, const uint8_t* base_data )
 {
-	union conv_union { pint offset; const uint8* real_data; };
+	union conv_union { uintptr_t offset; const uint8_t* real_data; };
 	conv_union* read_me = (conv_union*)ptr;
 
 	if (read_me->offset == DL_NULL_PTR_OFFSET[DL_PTR_SIZE_HOST])
@@ -101,9 +101,9 @@ static void dl_internal_patch_ptr( const uint8* ptr, const uint8* base_data )
 
 static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 												 SPatchedInstances* patched_instances,
-												 const uint8*       instance,
+												 const uint8_t*     instance,
 												 const SDLType*     type,
-												 const uint8*       base_data,
+												 const uint8_t*     base_data,
 												 bool               is_member_struct )
 {
 	// TODO: Optimize this please, linear search might not be the best if many subinstances is in file!
@@ -115,10 +115,10 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 		patched_instances->m_lpPatched.Add(instance);
 	}
 
-	for( uint32 member_index = 0; member_index < type->member_count; ++member_index )
+	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
 		const SDLMember* member      = type->members + member_index;
-		const uint8*     member_data = instance + member->offset[DL_PTR_SIZE_HOST];
+		const uint8_t*   member_data = instance + member->offset[DL_PTR_SIZE_HOST];
 
 		dl_type_t atom_type    = member->AtomType();
 		dl_type_t storage_type = member->StorageType();
@@ -142,7 +142,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 					break;
 					case DL_TYPE_STORAGE_PTR:
 					{
-						uint8** ptr = (uint8**)member_data;
+						uint8_t** ptr = (uint8_t**)member_data;
 						dl_internal_patch_ptr(member_data, base_data);
 
 						if(*ptr != 0x0)
@@ -165,9 +165,9 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 				if( storage_type == DL_TYPE_STORAGE_STR || storage_type == DL_TYPE_STORAGE_STRUCT )
 				{
 					dl_internal_patch_ptr( member_data, base_data );
-					const uint8* array_data = *(const uint8**)member_data;
+					const uint8_t* array_data = *(const uint8_t**)member_data;
 
-					pint count = *(uint32*)( member_data + sizeof(void*) );
+					uint32_t count = *(uint32_t*)( member_data + sizeof(void*) );
 
 					if( count > 0 )
 					{
@@ -175,14 +175,14 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 						{
 							// patch sub-ptrs!
 							const SDLType* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
-							pint size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
+							uint32_t size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 
-							for( pint elem_offset = 0; elem_offset < count * size; elem_offset += size )
+							for( uint32_t elem_offset = 0; elem_offset < count * size; elem_offset += size )
 								dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, array_data + elem_offset, sub_type, base_data, true );
 						}
 						else
 						{
-							for( pint elem_offset = 0; elem_offset < count * sizeof(char*); elem_offset += sizeof(char*) )
+							for( size_t elem_offset = 0; elem_offset < count * sizeof(char*); elem_offset += sizeof(char*) )
 								dl_internal_patch_ptr( array_data + elem_offset, base_data );
 						}
 					}
@@ -196,7 +196,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 			{
 				if( storage_type == DL_TYPE_STORAGE_STR )
 				{
-					for( pint elem_offset = 0; elem_offset < member->size[DL_PTR_SIZE_HOST]; elem_offset += sizeof(char*) )
+					for( size_t elem_offset = 0; elem_offset < member->size[DL_PTR_SIZE_HOST]; elem_offset += sizeof(char*) )
 						dl_internal_patch_ptr( member_data + elem_offset, base_data );
 				}
 			}
@@ -230,31 +230,34 @@ struct dl_one_member_type
 	}
 
 	char      name[DL_TYPE_NAME_MAX_LEN];
-	uint32    size[2];
-	uint32    alignment[2];
-	uint32    member_count;
+	uint32_t  size[2];
+	uint32_t  alignment[2];
+	uint32_t  member_count;
 	SDLMember members;
 };
 
 DL_STATIC_ASSERT( sizeof(dl_one_member_type) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size );
 
-static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsigned int first_new_type, const uint8* default_data, unsigned int default_data_size)
+static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
+														  unsigned int   first_new_type,
+														  const uint8_t* default_data,
+														  unsigned int   default_data_size )
 {
 	if( default_data_size == 0 ) return DL_ERROR_OK;
 
 	if( dl_ctx->default_data != 0x0 )
 		return DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS;
 
-	dl_ctx->default_data = (uint8*)dl_ctx->alloc_func( default_data_size * 2, sizeof(void*), dl_ctx->alloc_ctx ); // TODO: times 2 here need to be fixed!
+	dl_ctx->default_data = (uint8_t*)dl_ctx->alloc_func( default_data_size * 2, sizeof(void*), dl_ctx->alloc_ctx ); // TODO: times 2 here need to be fixed!
 
-	uint8* dst = dl_ctx->default_data;
+	uint8_t* dst = dl_ctx->default_data;
 
 	// ptr-patch and convert to native
 	for( unsigned int type_index = first_new_type; type_index < dl_ctx->type_count; ++type_index )
 	{
 		union
 		{
-			const uint8*   data_ptr;
+			const uint8_t* data_ptr;
 			const SDLType* type_ptr;
 		} ptr_conv;
 		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[type_index].offset;
@@ -262,13 +265,13 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 		for( unsigned int member_index = 0; member_index < ptr_conv.type_ptr->member_count; ++member_index )
 		{
 			SDLMember* member = (SDLMember*)ptr_conv.type_ptr->members + member_index;
-			if( member->default_value_offset == DL_UINT32_MAX )
+			if( member->default_value_offset == UINT32_MAX )
 				continue;
 
 			dst                          = dl_internal_align_up( dst, member->alignment[DL_PTR_SIZE_HOST] );
-			uint8* src                   = (uint8*)default_data + member->default_value_offset;
-			pint base_offset             = pint( dst ) - pint( dl_ctx->default_data );
-			member->default_value_offset = uint32( base_offset );
+			uint8_t* src                 = (uint8_t*)default_data + member->default_value_offset;
+			uintptr_t base_offset        = (uintptr_t)dst - (uintptr_t)dl_ctx->default_data;
+			member->default_value_offset = (uint32_t)base_offset;
 
 			dl_one_member_type dummy( member );
 			size_t needed_size;
@@ -298,7 +301,7 @@ static dl_error_t dl_internal_load_type_library_defaults(dl_ctx_t dl_ctx, unsign
 	return DL_ERROR_OK;
 }
 
-static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, const uint8* data )
+static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, const uint8_t* data )
 {
 	memcpy(header, data, sizeof(SDLTypeLibraryHeader));
 
@@ -328,26 +331,26 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	if( header.id      != DL_TYPELIB_ID )      return DL_ERROR_MALFORMED_DATA;
 	if( header.version != DL_TYPELIB_VERSION ) return DL_ERROR_VERSION_MISMATCH;
 
-	pint types_offset    = sizeof(SDLTypeLibraryHeader) + header.type_count * sizeof(dl_type_lookup_t);
-	pint enums_offset    = types_offset + header.types_size + header.enum_count * sizeof(dl_type_lookup_t);
-	pint defaults_offset = enums_offset + header.enums_size;
+	size_t types_offset    = sizeof(SDLTypeLibraryHeader) + header.type_count * sizeof(dl_type_lookup_t);
+	size_t enums_offset    = types_offset + header.types_size + header.enum_count * sizeof(dl_type_lookup_t);
+	size_t defaults_offset = enums_offset + header.enums_size;
 
 	const unsigned char* types_data    = lib_data + types_offset;
 	const unsigned char* enums_data    = lib_data + enums_offset;
 	const unsigned char* defaults_data = lib_data + defaults_offset;
 
 	// store type-info data.
-	dl_ctx->type_info_data = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->type_info_data, dl_ctx->type_info_data_size, types_data, header.types_size );
+	dl_ctx->type_info_data = (uint8_t*)dl_internal_append_data( dl_ctx, dl_ctx->type_info_data, dl_ctx->type_info_data_size, types_data, header.types_size );
 
 	// read type-lookup table
 	union
 	{
-		const uint8* data_ptr;
+		const uint8_t* data_ptr;
 		dl_type_lookup_t* lookup;
 	} cast;
 	cast.data_ptr = lib_data + sizeof(SDLTypeLibraryHeader);
 	dl_type_lookup_t* from_data = cast.lookup;
-	for(uint32 i = dl_ctx->type_count; i < dl_ctx->type_count + header.type_count; ++i)
+	for( uint32_t i = dl_ctx->type_count; i < dl_ctx->type_count + header.type_count; ++i )
 	{
 		dl_type_lookup_t* look = dl_ctx->type_lookup + i;
 
@@ -357,8 +360,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			look->offset   = dl_ctx->type_info_data_size + dl_swap_endian_uint32( from_data->offset );
 			union
 			{
-				const uint8* data_ptr;
-				SDLType*     type_ptr;
+				const uint8_t* data_ptr;
+				SDLType*       type_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->type_info_data + look->offset;
 			SDLType* type = ptr_conv.type_ptr;
@@ -369,7 +372,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			type->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( type->alignment[DL_PTR_SIZE_64BIT] );
 			type->member_count                 = dl_swap_endian_uint32( type->member_count );
 
-			for( uint32 i = 0; i < type->member_count; ++i )
+			for( uint32_t i = 0; i < type->member_count; ++i )
 			{
 				SDLMember* member = type->members + i;
 
@@ -396,11 +399,11 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->type_info_data_size += header.types_size;
 
 	// store enum-info data.
-	dl_ctx->enum_info_data = (uint8*)dl_internal_append_data( dl_ctx, dl_ctx->enum_info_data, dl_ctx->enum_info_data_size, enums_data, header.enums_size );
+	dl_ctx->enum_info_data = (uint8_t*)dl_internal_append_data( dl_ctx, dl_ctx->enum_info_data, dl_ctx->enum_info_data_size, enums_data, header.enums_size );
 
 	// read enum-lookup table
 	dl_type_lookup_t* enum_from_data = (dl_type_lookup_t*)( lib_data + types_offset + header.types_size );
-	for( uint32 i = dl_ctx->enum_count; i < dl_ctx->enum_count + header.enum_count; ++i )
+	for( uint32_t i = dl_ctx->enum_count; i < dl_ctx->enum_count + header.enum_count; ++i )
 	{
 		dl_type_lookup_t* look = dl_ctx->enum_lookup + i;
 
@@ -410,14 +413,14 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			look->offset   = dl_ctx->enum_info_data_size + dl_swap_endian_uint32( enum_from_data->offset );
 			union
 			{
-				const uint8* data_ptr;
-				SDLEnum*     enum_ptr;
+				const uint8_t* data_ptr;
+				SDLEnum*       enum_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->enum_info_data + look->offset;
 			SDLEnum* e = ptr_conv.enum_ptr;
 
 			e->value_count = dl_swap_endian_uint32( e->value_count );
-			for(uint32 i = 0; i < e->value_count; ++i)
+			for( uint32_t i = 0; i < e->value_count; ++i )
 				e->values[i].value = dl_swap_endian_uint32( e->values[i].value );
 		}
 		else
@@ -463,7 +466,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	memmove( instance, packed_instance + sizeof(SDLDataHeader), header->instance_size );
 
 	SPatchedInstances patch_instances;
-	dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, (uint8*)instance, root_type, (uint8*)instance, false );
+	dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, (uint8_t*)instance, root_type, (uint8_t*)instance, false );
 
 	if( consumed )
 		*consumed = (size_t)header->instance_size + sizeof(SDLDataHeader);
@@ -487,7 +490,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	if( pType == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	uint8* intstance_ptr = packed_instance + sizeof(SDLDataHeader);
+	uint8_t* intstance_ptr = packed_instance + sizeof(SDLDataHeader);
 
 	SPatchedInstances patched_instances;
 	dl_internal_patch_loaded_ptrs( dl_ctx, &patched_instances, intstance_ptr, pType, intstance_ptr, false );
@@ -502,22 +505,22 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 
 struct CDLBinStoreContext
 {
-	CDLBinStoreContext( uint8* out_data, pint out_data_size, bool is_dummy )
+	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy )
 	{
 		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 		num_written_ptrs = 0;
 	}
 
-	pint FindWrittenPtr( void* ptr )
+	uintptr_t FindWrittenPtr( void* ptr )
 	{
 		for( int i = 0; i < num_written_ptrs; ++i )
 			if( written_ptrs[i].ptr == ptr )
 				return written_ptrs[i].pos;
 
-		return pint(-1);
+		return (uintptr_t)-1;
 	}
 
-	void AddWrittenPtr( const void* ptr, pint pos )
+	void AddWrittenPtr( const void* ptr, uintptr_t pos )
 	{
 		DL_ASSERT( num_written_ptrs < (int)DL_ARRAY_LENGTH(written_ptrs) );
 		written_ptrs[num_written_ptrs].ptr = ptr;
@@ -529,26 +532,26 @@ struct CDLBinStoreContext
 
 	struct
 	{
-		pint        pos;
+		uintptr_t   pos;
 		const void* ptr;
 	} written_ptrs[128];
 	int num_written_ptrs;
 };
 
-static void dl_internal_store_string( const uint8* instance, CDLBinStoreContext* store_ctx )
+static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	char* str = *(char**)instance;
-	pint pos = dl_binary_writer_tell( &store_ctx->writer );
+	uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
 	dl_binary_writer_seek_end( &store_ctx->writer );
-	pint offset = dl_binary_writer_tell( &store_ctx->writer );
+	uintptr_t offset = dl_binary_writer_tell( &store_ctx->writer );
 	dl_binary_writer_write( &store_ctx->writer, str, strlen(str) + 1 );
 	dl_binary_writer_seek_set( &store_ctx->writer, pos );
-	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(pint) );
+	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl_type, uint8* instance, CDLBinStoreContext* store_ctx );
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
-static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* member, uint8* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	dl_type_t atom_type    = dl_type_t(member->type & DL_TYPE_ATOM_MASK);
 	dl_type_t storage_type = dl_type_t(member->type & DL_TYPE_STORAGE_MASK);
@@ -575,21 +578,21 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 					break;
 				case DL_TYPE_STORAGE_PTR:
 				{
-					uint8* data = *(uint8**)instance;
-					pint offset = store_ctx->FindWrittenPtr( data );
+					uint8_t* data = *(uint8_t**)instance;
+					uintptr_t offset = store_ctx->FindWrittenPtr( data );
 
 					if( data == 0x0 ) // Null-pointer, store pint(-1) to signal to patching!
 					{
-						DL_ASSERT(offset == pint(-1) && "This pointer should not have been found among the written ptrs!");
+						DL_ASSERT(offset == (uintptr_t)-1 && "This pointer should not have been found among the written ptrs!");
 						// keep the -1 in Offset and store it to ptr.
 					}
-					else if( offset == pint(-1) ) // has not been written yet!
+					else if( offset == (uintptr_t)-1 ) // has not been written yet!
 					{
-						pint pos = dl_binary_writer_tell( &store_ctx->writer );
+						uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
 						dl_binary_writer_seek_end( &store_ctx->writer );
 
 						const SDLType* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
-						pint size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
+						uintptr_t size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 						dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
 
 						offset = dl_binary_writer_tell( &store_ctx->writer );
@@ -604,7 +607,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 						dl_binary_writer_seek_set( &store_ctx->writer, pos );
 					}
 
-					dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(pint) );
+					dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 				}
 				break;
 				default: // default is a standard pod-type
@@ -624,9 +627,9 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 					break;
 				case DL_TYPE_STORAGE_STR:
 				{
-					uint32 count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
+					uint32_t count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
 
-					for( uint32 elem = 0; elem < count; ++elem )
+					for( uint32_t elem = 0; elem < count; ++elem )
 						dl_internal_store_string( instance + (elem * sizeof(char*)), store_ctx );
 				}
 				break;
@@ -640,19 +643,19 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 
 		case DL_TYPE_ATOM_ARRAY:
 		{
-			pint size = 0;
+			uintptr_t size = 0;
 			const SDLType* sub_type = 0x0;
 
-			uint8* data_ptr = instance;
-			uint32 count    = *(uint32*)( data_ptr + sizeof(void*) );
+			uint8_t* data_ptr = instance;
+			uint32_t count    = *(uint32_t*)( data_ptr + sizeof(void*) );
 
-			pint offset = 0;
+			uintptr_t offset = 0;
 
 			if( count == 0 )
 				offset = DL_NULL_PTR_OFFSET[ DL_PTR_SIZE_HOST ];
 			else
 			{
-				pint pos = dl_binary_writer_tell( &store_ctx->writer );
+				uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
 				dl_binary_writer_seek_end( &store_ctx->writer );
 
 				switch(storage_type)
@@ -676,7 +679,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 				// write data!
 				dl_binary_writer_reserve( &store_ctx->writer, count * size ); // reserve space for array so subdata is placed correctly
 
-				uint8* data = *(uint8**)data_ptr;
+				uint8_t* data = *(uint8_t**)data_ptr;
 
 				switch(storage_type)
 				{
@@ -697,10 +700,10 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 			}
 
 			// make room for ptr
-			dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(pint) );
+			dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 
 			// write count
-			dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32) );
+			dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32_t) );
 		}
 		return DL_ERROR_OK;
 
@@ -716,14 +719,14 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl_type, uint8* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	bool last_was_bitfield = false;
 
 	dl_binary_writer_align( &store_ctx->writer, dl_type->alignment[DL_PTR_SIZE_HOST] );
 
-	pint instance_pos = dl_binary_writer_tell( &store_ctx->writer );
-	for(uint32 member_index = 0; member_index < dl_type->member_count; ++member_index)
+	uintptr_t instance_pos = dl_binary_writer_tell( &store_ctx->writer );
+	for( uint32_t member_index = 0; member_index < dl_type->member_count; ++member_index )
 	{
 		const SDLMember* member = dl_type->members + member_index;
 
@@ -776,16 +779,16 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	dl_binary_writer_reserve( &store_context.writer, type->size[DL_PTR_SIZE_HOST] );
 	store_context.AddWrittenPtr(instance, 0); // if pointer refere to root-node, it can be found at offset 0
 
-	dl_error_t err = dl_internal_instance_store( dl_ctx, type, (uint8*)instance, &store_context );
+	dl_error_t err = dl_internal_instance_store( dl_ctx, type, (uint8_t*)instance, &store_context );
 
 	// write instance size!
 	SDLDataHeader* out_header = (SDLDataHeader*)out_buffer;
 	dl_binary_writer_seek_end( &store_context.writer );
 	if( out_buffer )
-		out_header->instance_size = (uint32)dl_binary_writer_tell( &store_context.writer );
+		out_header->instance_size = (uint32_t)dl_binary_writer_tell( &store_context.writer );
 
 	if( produced_bytes )
-		*produced_bytes = (uint32)dl_binary_writer_tell( &store_context.writer ) + sizeof(SDLDataHeader);
+		*produced_bytes = (uint32_t)dl_binary_writer_tell( &store_context.writer ) + sizeof(SDLDataHeader);
 
 	if( out_buffer_size > 0 && out_header->instance_size > out_buffer_size )
 		return DL_ERROR_BUFFER_TO_SMALL;

@@ -12,7 +12,7 @@ class TStaticData
 	typedef TAlignedType<RESULT_ALIGNMENT> TDataType;
 public:
 	TDataType m_pStorage[(sizeof(T) * ELEMENTS) / sizeof(TDataType)];
-	DL_FORCEINLINE pint AllocSize(){return ELEMENTS;}
+	DL_FORCEINLINE size_t AllocSize(){return ELEMENTS;}
 	DL_FORCEINLINE T* Base()
 	{
 		union { TDataType* data_ptr; T* type_ptr; } conv;

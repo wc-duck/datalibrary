@@ -1,8 +1,8 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
-#include <dl/dl_reflect.h>
-
 #include "dl_types.h"
+
+#include <dl/dl_reflect.h>
 
 // TODO: Write unittests for new functionality!!!
 
@@ -81,7 +81,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 	if(members_size < pType->member_count)
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	for(uint32 nMember = 0; nMember < pType->member_count; ++nMember)
+	for( uint32_t nMember = 0; nMember < pType->member_count; ++nMember )
 	{
 		const SDLMember& Member = pType->members[nMember];
 
@@ -105,7 +105,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 				break;
 				case DL_TYPE_STORAGE_STR: out_members[nMember].array_count = Member.size[DL_PTR_SIZE_HOST] / sizeof(char*); break;
 				default:
-					out_members[nMember].array_count = Member.size[DL_PTR_SIZE_HOST] / (uint32)DLPodSize(Member.type); break;
+					out_members[nMember].array_count = Member.size[DL_PTR_SIZE_HOST] / (uint32_t)DLPodSize(Member.type); break;
 			}
 		}
 	}
@@ -119,7 +119,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_
 	if( e == 0x0 )                       return DL_ERROR_TYPE_NOT_FOUND;
 	if( out_values_size < e->value_count ) return DL_ERROR_BUFFER_TO_SMALL;
 
-	for( uint32 value = 0; value < e->value_count; ++value )
+	for( uint32_t value = 0; value < e->value_count; ++value )
 	{
 		out_values[value].name  = e->values[value].name;
 		out_values[value].value = e->values[value].value;
