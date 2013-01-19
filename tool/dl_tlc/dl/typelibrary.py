@@ -110,7 +110,7 @@ class Enum( object ):
             if isinstance( val, basestring ):
                 self.values.append( self.EnumValue( val, val, current_value ) )
 
-                current_value = value + 1
+                current_value = current_value + 1
             else:
                 items = val.items()
                 assert len(items) == 1

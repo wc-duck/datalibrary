@@ -355,6 +355,11 @@ TYPED_TEST(DLBase, escaped_val_in_string)
 
 TYPED_TEST(DLBase, enum)
 {
+	EXPECT_EQ( 0, TESTENUM1_VALUE1 );
+	EXPECT_EQ( 1, TESTENUM1_VALUE2 );
+	EXPECT_EQ( 2, TESTENUM1_VALUE3 );
+	EXPECT_EQ( 3, TESTENUM1_VALUE4 );
+
 	EXPECT_EQ(TESTENUM2_VALUE2 + 1, TESTENUM2_VALUE3); // value3 is after value2 but has no value. It sohuld automticallay be one bigger!
 
 	TestingEnum Inst;
