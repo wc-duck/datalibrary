@@ -301,9 +301,9 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 	return DL_ERROR_OK;
 }
 
-static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, const uint8_t* data )
+static void dl_internal_read_typelibrary_header( dl_typelib_header* header, const uint8_t* data )
 {
-	memcpy(header, data, sizeof(SDLTypeLibraryHeader));
+	memcpy(header, data, sizeof(dl_typelib_header));
 
 	if(DL_ENDIAN_HOST == DL_ENDIAN_BIG)
 	{
@@ -322,16 +322,16 @@ static void dl_internal_read_typelibrary_header( SDLTypeLibraryHeader* header, c
 
 dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, size_t lib_data_size )
 {
-	if(lib_data_size < sizeof(SDLTypeLibraryHeader))
+	if(lib_data_size < sizeof(dl_typelib_header))
 		return DL_ERROR_MALFORMED_DATA;
 
-	SDLTypeLibraryHeader header;
+	dl_typelib_header header;
 	dl_internal_read_typelibrary_header(&header, lib_data);
 
 	if( header.id      != DL_TYPELIB_ID )      return DL_ERROR_MALFORMED_DATA;
 	if( header.version != DL_TYPELIB_VERSION ) return DL_ERROR_VERSION_MISMATCH;
 
-	size_t types_offset    = sizeof(SDLTypeLibraryHeader) + header.type_count * sizeof(dl_type_lookup_t);
+	size_t types_offset    = sizeof(dl_typelib_header) + header.type_count * sizeof(dl_type_lookup_t);
 	size_t enums_offset    = types_offset + header.types_size + header.enum_count * sizeof(dl_type_lookup_t);
 	size_t defaults_offset = enums_offset + header.enums_size;
 
@@ -348,7 +348,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		const uint8_t* data_ptr;
 		dl_type_lookup_t* lookup;
 	} cast;
-	cast.data_ptr = lib_data + sizeof(SDLTypeLibraryHeader);
+	cast.data_ptr = lib_data + sizeof(dl_typelib_header);
 	dl_type_lookup_t* from_data = cast.lookup;
 	for( uint32_t i = dl_ctx->type_count; i < dl_ctx->type_count + header.type_count; ++i )
 	{
@@ -627,7 +627,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 					break;
 				case DL_TYPE_STORAGE_STR:
 				{
-					uint32_t count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
+					uint32_t count = (uint32_t)(member->size[DL_PTR_SIZE_HOST] / sizeof(char*));
 
 					for( uint32_t elem = 0; elem < count; ++elem )
 						dl_internal_store_string( instance + (elem * sizeof(char*)), store_ctx );

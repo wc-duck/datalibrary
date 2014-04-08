@@ -889,7 +889,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 							{
 								char** array_value = (char**)member_default_value;
 
-								uint32_t count = member->size[DL_PTR_SIZE_HOST] / sizeof(char*);
+								uint32_t count = (uint32_t)(member->size[DL_PTR_SIZE_HOST] / sizeof(char*));
 								for( uint32_t elem = 0; elem < count; ++elem )
 								{
 									dl_binary_writer_seek_end( pack_ctx->writer );

@@ -79,11 +79,11 @@ static const uint32_t DL_UNUSED DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint
 
 static const uintptr_t DL_NULL_PTR_OFFSET[2] =
 {
-	(uintptr_t)UINT32_MAX, // DL_PTR_SIZE_32BIT
+	(uintptr_t)0xFFFFFFFF, // DL_PTR_SIZE_32BIT
 	(uintptr_t)-1          // DL_PTR_SIZE_64BIT
 };
 
-struct SDLTypeLibraryHeader
+struct dl_typelib_header
 {
 	uint32_t id;
 	uint32_t version;
