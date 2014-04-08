@@ -3,6 +3,8 @@
 #ifndef DL_DL_TEST_COMMON_H_INCLUDED
 #define DL_DL_TEST_COMMON_H_INCLUDED
 
+#include <dl/dl.h>
+
 // header file generated from unittest-type lib
 #include "generated/unittest.h"
 #include "generated/unittest2.h"
@@ -15,20 +17,20 @@
 
 #define EXPECT_DL_ERR_EQ(_Expect, _Res) { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; }
 #define EXPECT_DL_ERR_OK(_Res) EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
-#define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
+#define DL_ARRAY_LENGTH(Array) (uint32_t)(sizeof(Array)/sizeof(Array[0]))
 
 template<typename T>
-const char* ArrayToString(T* _pArr, unsigned int _Count, char* pBuffer, unsigned int nBuffer)
+const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_size)
 {
-	unsigned int Pos = snprintf(pBuffer, nBuffer, "{ %f", (float)_pArr[0]);
+	unsigned int Pos = snprintf(buff, buff_size, "{ %f", (float)arr[0]);
 
-	for(unsigned int i = 1; i < _Count && Pos < nBuffer; ++i)
+	for(unsigned int i = 1; i < _Count && Pos < buff_size; ++i)
 	{
-		Pos += snprintf(pBuffer + Pos, nBuffer - Pos, ", %f", (float)_pArr[i]);
+		Pos += snprintf(buff + Pos, buff_size - Pos, ", %f", (float)arr[i]);
 	}
 
-	snprintf(pBuffer + Pos, nBuffer - Pos, " }");
-	return pBuffer;
+	snprintf(buff + Pos, buff_size - Pos, " }");
+	return buff;
 }
 
 #define EXPECT_ARRAY_EQ(_Count, _Expect, _Actual) \
