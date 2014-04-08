@@ -4,6 +4,7 @@
 #define DL_DL_BINARY_WRITER_H_INCLUDED
 
 #include <stdio.h>
+#include "dl_types.h"
 
 #if 0 // BinaryWriterVerbose
 	#define DL_LOG_BIN_WRITER_VERBOSE(_Fmt, ...) printf("DL: " _Fmt "\n", ##__VA_ARGS__)
