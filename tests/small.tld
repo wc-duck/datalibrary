@@ -1,0 +1,11 @@
+{
+	"module" : "small",
+
+	"enums" : {
+		"simple_enum" : [ "SIMPLE_VAL1", "SIMPLE_VAL2" ]
+	},
+	
+	"types" : {
+		"single_int" : { "members" : [ { "name" : "member", "type" : "uint32" } ] }
+	}
+}

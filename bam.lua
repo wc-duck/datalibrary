@@ -315,6 +315,7 @@ end
 
 tl1 = dl_type_lib( "tests/unittest.tld",  tl_build_so )
 tl2 = dl_type_lib( "tests/unittest2.tld", tl_build_so ) 
+tl3 = dl_type_lib( "tests/small.tld", tl_build_so ) 
 
 local    test_args = ""
 local py_test_args = ""
