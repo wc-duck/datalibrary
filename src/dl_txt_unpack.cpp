@@ -31,7 +31,7 @@ public:
 	dl_ctx_t m_Ctx;
 	yajl_gen m_JsonGen;
 
- 	unsigned int AddSubDataMember(const SDLMember* member, const uint8_t* data)
+ 	unsigned int AddSubDataMember(const dl_member_desc* member, const uint8_t* data)
 	{
 		m_lSubdataMembers.Add( SSubDataMember( member, data ) );
 		return (unsigned int)(m_lSubdataMembers.Len() - 1);
@@ -50,10 +50,10 @@ public:
 	struct SSubDataMember
 	{
 		SSubDataMember() {}
-		SSubDataMember(const SDLMember* member, const uint8_t* data)
+		SSubDataMember(const dl_member_desc* member, const uint8_t* data)
 			: m_pMember( member )
 			, m_pData( data ) {}
-		const SDLMember* m_pMember;
+		const dl_member_desc* m_pMember;
 		const uint8_t*   m_pData;
 	};
 
@@ -98,7 +98,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		const SDLMember* member = type->members + member_index;
+		const dl_member_desc* member = type->members + member_index;
 
 		yajl_gen_string( _Ctx->m_JsonGen, (const unsigned char*)member->name, (unsigned int)strlen( member->name ) );
 
@@ -328,7 +328,7 @@ static void dl_internal_write_root( SDLUnpackContext*  unpack_ctx, const dl_type
 				int len = dl_internal_str_format( (char*)num_buffer, 16, "%u", subdata_index );
 				yajl_gen_string( unpack_ctx->m_JsonGen, num_buffer, len );
 
-				const SDLMember* member    = unpack_ctx->m_lSubdataMembers[subdata_index].m_pMember;
+				const dl_member_desc* member    = unpack_ctx->m_lSubdataMembers[subdata_index].m_pMember;
 				const uint8_t* member_data = unpack_ctx->m_lSubdataMembers[subdata_index].m_pData;
 
 				DL_ASSERT( member->AtomType()    == DL_TYPE_ATOM_POD );
@@ -393,9 +393,9 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t typ
                           char*                out_txt_instance, size_t      out_txt_instance_size,
                           size_t*              produced_bytes )
 {
-	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
+	dl_data_header* header = (dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(SDLDataHeader) ) return DL_ERROR_MALFORMED_DATA;
+	if( packed_instance_size < sizeof(dl_data_header) ) return DL_ERROR_MALFORMED_DATA;
 	if( header->id == DL_INSTANCE_ID_SWAPED )          return DL_ERROR_ENDIAN_MISMATCH;
 	if( header->id != DL_INSTANCE_ID )                 return DL_ERROR_MALFORMED_DATA;
 	if( header->version != DL_INSTANCE_VERSION)        return DL_ERROR_VERSION_MISMATCH;
@@ -416,7 +416,7 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t typ
 
 	SDLUnpackContext PackCtx(dl_ctx, generator );
 
-	dl_internal_write_root(&PackCtx, pType, packed_instance + sizeof(SDLDataHeader));
+	dl_internal_write_root(&PackCtx, pType, packed_instance + sizeof(dl_data_header));
 
 	yajl_gen_free( generator );
 

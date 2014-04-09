@@ -117,7 +117,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		const SDLMember* member      = type->members + member_index;
+		const dl_member_desc* member      = type->members + member_index;
 		const uint8_t*   member_data = instance + member->offset[DL_PTR_SIZE_HOST];
 
 		dl_type_t atom_type    = member->AtomType();
@@ -216,7 +216,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 
 struct dl_one_member_type
 {
-	dl_one_member_type( const SDLMember* member )
+	dl_one_member_type( const dl_member_desc* member )
 	{
 		size[0]      = member->size[0];
 		size[1]      = member->size[1];
@@ -224,7 +224,7 @@ struct dl_one_member_type
 		alignment[1] = member->alignment[1];
 		member_count = 1;
 
-		memcpy(&members, member, sizeof(SDLMember));
+		memcpy(&members, member, sizeof(dl_member_desc));
 		members.offset[0] = 0;
 		members.offset[0] = 0;
 	}
@@ -233,10 +233,10 @@ struct dl_one_member_type
 	uint32_t  size[2];
 	uint32_t  alignment[2];
 	uint32_t  member_count;
-	SDLMember members;
+	dl_member_desc members;
 };
 
-DL_STATIC_ASSERT( sizeof(dl_one_member_type) - sizeof(SDLMember) == sizeof(dl_type_desc), these_need_same_size );
+DL_STATIC_ASSERT( sizeof(dl_one_member_type) - sizeof(dl_member_desc) == sizeof(dl_type_desc), these_need_same_size );
 
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 														  unsigned int   first_new_type,
@@ -264,7 +264,7 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 
 		for( unsigned int member_index = 0; member_index < ptr_conv.type_ptr->member_count; ++member_index )
 		{
-			SDLMember* member = (SDLMember*)ptr_conv.type_ptr->members + member_index;
+			dl_member_desc* member = (dl_member_desc*)ptr_conv.type_ptr->members + member_index;
 			if( member->default_value_offset == UINT32_MAX )
 				continue;
 
@@ -374,7 +374,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 
 			for( uint32_t i = 0; i < type->member_count; ++i )
 			{
-				SDLMember* member = type->members + i;
+				dl_member_desc* member = type->members + i;
 
 				member->type                         = dl_swap_endian_dl_type( member->type );
 				member->type_id	                     = dl_swap_endian_uint32( member->type_id );
@@ -414,10 +414,10 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			union
 			{
 				const uint8_t* data_ptr;
-				SDLEnum*       enum_ptr;
+				dl_enum_desc*  enum_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->enum_info_data + look->offset;
-			SDLEnum* e = ptr_conv.enum_ptr;
+			dl_enum_desc* e = ptr_conv.enum_ptr;
 
 			e->value_count = dl_swap_endian_uint32( e->value_count );
 			for( uint32_t i = 0; i < e->value_count; ++i )
@@ -443,9 +443,9 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
                              const unsigned char* packed_instance, size_t packed_instance_size,
                              size_t*              consumed )
 {
-	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
+	dl_data_header* header = (dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(SDLDataHeader) ) return DL_ERROR_MALFORMED_DATA;
+	if( packed_instance_size < sizeof(dl_data_header) ) return DL_ERROR_MALFORMED_DATA;
 	if( header->id == DL_INSTANCE_ID_SWAPED )          return DL_ERROR_ENDIAN_MISMATCH;
 	if( header->id != DL_INSTANCE_ID )                 return DL_ERROR_MALFORMED_DATA;
 	if( header->version != DL_INSTANCE_VERSION )       return DL_ERROR_VERSION_MISMATCH;
@@ -463,13 +463,13 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 
 	// TODO: memmove here is a hack, should only need memcpy but due to abuse of dl_instance_load in dl_util.cpp
 	// memmove is needed!
-	memmove( instance, packed_instance + sizeof(SDLDataHeader), header->instance_size );
+	memmove( instance, packed_instance + sizeof(dl_data_header), header->instance_size );
 
 	SPatchedInstances patch_instances;
 	dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, (uint8_t*)instance, root_type, (uint8_t*)instance, false );
 
 	if( consumed )
-		*consumed = (size_t)header->instance_size + sizeof(SDLDataHeader);
+		*consumed = (size_t)header->instance_size + sizeof(dl_data_header);
 
 	return DL_ERROR_OK;
 }
@@ -478,9 +478,9 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 												   unsigned char* packed_instance, size_t      packed_instance_size,
 												   void**         loaded_instance, size_t*     consumed)
 {
-	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
+	dl_data_header* header = (dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(SDLDataHeader) ) return DL_ERROR_MALFORMED_DATA;
+	if( packed_instance_size < sizeof(dl_data_header) ) return DL_ERROR_MALFORMED_DATA;
 	if( header->id == DL_INSTANCE_ID_SWAPED )          return DL_ERROR_ENDIAN_MISMATCH;
 	if( header->id != DL_INSTANCE_ID )                 return DL_ERROR_MALFORMED_DATA;
 	if( header->version != DL_INSTANCE_VERSION )       return DL_ERROR_VERSION_MISMATCH;
@@ -490,7 +490,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	if( pType == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	uint8_t* intstance_ptr = packed_instance + sizeof(SDLDataHeader);
+	uint8_t* intstance_ptr = packed_instance + sizeof(dl_data_header);
 
 	SPatchedInstances patched_instances;
 	dl_internal_patch_loaded_ptrs( dl_ctx, &patched_instances, intstance_ptr, pType, intstance_ptr, false );
@@ -498,7 +498,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	*loaded_instance = intstance_ptr;
 
 	if( consumed )
-		*consumed = header->instance_size + sizeof(SDLDataHeader);
+		*consumed = header->instance_size + sizeof(dl_data_header);
 
 	return DL_ERROR_OK;
 }
@@ -551,7 +551,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 
 static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
-static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	dl_type_t atom_type    = dl_type_t(member->type & DL_TYPE_ATOM_MASK);
 	dl_type_t storage_type = dl_type_t(member->type & DL_TYPE_STORAGE_MASK);
@@ -728,7 +728,7 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 	uintptr_t instance_pos = dl_binary_writer_tell( &store_ctx->writer );
 	for( uint32_t member_index = 0; member_index < dl_type->member_count; ++member_index )
 	{
-		const SDLMember* member = dl_type->members + member_index;
+		const dl_member_desc* member = dl_type->members + member_index;
 
 		if( !last_was_bitfield || member->AtomType() != DL_TYPE_ATOM_BITFIELD )
 		{
@@ -747,7 +747,7 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,         const void* instance,
 							  unsigned char* out_buffer, size_t      out_buffer_size, size_t*     produced_bytes )
 {
-	if( out_buffer_size > 0 && out_buffer_size <= sizeof(SDLDataHeader) )
+	if( out_buffer_size > 0 && out_buffer_size <= sizeof(dl_data_header) )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
 	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
@@ -755,7 +755,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	// write header
-	SDLDataHeader header;
+	dl_data_header header;
 	header.id = DL_INSTANCE_ID;
 	header.version = DL_INSTANCE_VERSION;
 	header.root_instance_type = type_id;
@@ -769,9 +769,9 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 
 	if( out_buffer_size > 0 )
 	{
-		memcpy(out_buffer, &header, sizeof(SDLDataHeader));
-		store_ctx_buffer      = out_buffer + sizeof(SDLDataHeader);
-		store_ctx_buffer_size = out_buffer_size - sizeof(SDLDataHeader);
+		memcpy(out_buffer, &header, sizeof(dl_data_header));
+		store_ctx_buffer      = out_buffer + sizeof(dl_data_header);
+		store_ctx_buffer_size = out_buffer_size - sizeof(dl_data_header);
 	}
 
 	CDLBinStoreContext store_context( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy );
@@ -782,13 +782,13 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	dl_error_t err = dl_internal_instance_store( dl_ctx, type, (uint8_t*)instance, &store_context );
 
 	// write instance size!
-	SDLDataHeader* out_header = (SDLDataHeader*)out_buffer;
+	dl_data_header* out_header = (dl_data_header*)out_buffer;
 	dl_binary_writer_seek_end( &store_context.writer );
 	if( out_buffer )
 		out_header->instance_size = (uint32_t)dl_binary_writer_tell( &store_context.writer );
 
 	if( produced_bytes )
-		*produced_bytes = (uint32_t)dl_binary_writer_tell( &store_context.writer ) + sizeof(SDLDataHeader);
+		*produced_bytes = (uint32_t)dl_binary_writer_tell( &store_context.writer ) + sizeof(dl_data_header);
 
 	if( out_buffer_size > 0 && out_header->instance_size > out_buffer_size )
 		return DL_ERROR_BUFFER_TO_SMALL;
@@ -838,9 +838,9 @@ const char* dl_error_to_string( dl_error_t error )
 
 dl_error_t dl_instance_get_info( const unsigned char* packed_instance, size_t packed_instance_size, dl_instance_info_t* out_info )
 {
-	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
+	dl_data_header* header = (dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(SDLDataHeader) && header->id != DL_INSTANCE_ID_SWAPED && header->id != DL_INSTANCE_ID )
+	if( packed_instance_size < sizeof(dl_data_header) && header->id != DL_INSTANCE_ID_SWAPED && header->id != DL_INSTANCE_ID )
 		return DL_ERROR_MALFORMED_DATA;
 	if(header->version != DL_INSTANCE_VERSION && header->version != DL_INSTANCE_VERSION_SWAPED)
 		return DL_ERROR_VERSION_MISMATCH;

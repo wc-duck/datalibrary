@@ -95,8 +95,8 @@ struct SDLPackState
 	{
 		const void*         value;
 		const dl_type_desc* type;
-		const SDLMember*    member;
-		const SDLEnum*      enum_type;
+		const dl_member_desc*    member;
+		const dl_enum_desc*      enum_type;
 	};
 
 	uintptr_t       struct_start_pos;
@@ -120,7 +120,7 @@ struct SDLPackContext
 	{
 		unsigned int     id;
 		uintptr_t        write_pos;
-		const SDLMember* member;
+		const dl_member_desc* member;
 	} patch_pos[128];
 	unsigned int patch_pos_count;
 
@@ -149,17 +149,17 @@ static void dl_txt_pack_ctx_push_state_struct( SDLPackContext* pack_ctx, const d
 	pack_ctx->state_stack.Push( SDLPackState(DL_PACK_STATE_STRUCT, type, struct_start_pos) );
 }
 
-static void dl_txt_pack_ctx_push_state_enum( SDLPackContext* pack_ctx, const SDLEnum* enum_type )
+static void dl_txt_pack_ctx_push_state_enum( SDLPackContext* pack_ctx, const dl_enum_desc* enum_type )
 {
 	pack_ctx->state_stack.Push( SDLPackState(DL_PACK_STATE_ENUM, enum_type) );
 }
 
-static void dl_txt_pack_ctx_push_state_member( SDLPackContext* pack_ctx, const SDLMember* member )
+static void dl_txt_pack_ctx_push_state_member( SDLPackContext* pack_ctx, const dl_member_desc* member )
 {
 	pack_ctx->state_stack.Push( SDLPackState( dl_pack_state( member->type ), 0x0 ) );
 }
 
-static void dl_txt_pack_ctx_push_state_ptr_member( SDLPackContext* pack_ctx, const SDLMember* member )
+static void dl_txt_pack_ctx_push_state_ptr_member( SDLPackContext* pack_ctx, const dl_member_desc* member )
 {
 	pack_ctx->state_stack.Push( SDLPackState( DL_PACK_STATE_SUBDATA_ID, member ) );
 }
@@ -514,7 +514,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 		case DL_PACK_STATE_ENUM:
 		{
 			uint32_t enum_value;
-			const SDLEnum* enum_type = pack_ctx->state_stack.Top().enum_type;
+			const dl_enum_desc* enum_type = pack_ctx->state_stack.Top().enum_type;
 			if( !dl_internal_find_enum_value( enum_type, (const char*)str_value, str_len, &enum_value ) )
 				DL_PACK_ERROR_AND_FAIL( pack_ctx,
 										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
@@ -607,7 +607,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   state.type->name, 
 									   str_len, str_val );
 
-			const SDLMember* member = state.type->members + member_id;
+			const dl_member_desc* member = state.type->members + member_id;
 
 			DL_PACK_ERROR_AND_FAIL_IF( state.members_set.IsSet( member_id ), 
 									   pCtx, 
@@ -699,7 +699,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 						break;
 						case DL_TYPE_STORAGE_ENUM:
 						{
-							const SDLEnum* the_enum = dl_internal_find_enum( pCtx->dl_ctx, member->type_id );
+							const dl_enum_desc* the_enum = dl_internal_find_enum( pCtx->dl_ctx, member->type_id );
 							DL_PACK_ERROR_AND_FAIL_IF( the_enum == 0x0, 
 								                       pCtx, 
 								                       DL_ERROR_TYPE_NOT_FOUND, 
@@ -735,7 +735,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   "Could not parse %.*s as correct ID!", 
 									   str_len, str_val );
 
-			const SDLMember* member = 0x0;
+			const dl_member_desc* member = 0x0;
 
 			// check that we have referenced this before so we know its type!
 			for( unsigned int patch_pos = 0; patch_pos < pCtx->patch_pos_count; ++patch_pos )
@@ -838,7 +838,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 			// Check that all members are set!
 			for( uint32_t member_index = 0; member_index < PackState.type->member_count; ++member_index )
 			{
-				const SDLMember* member = PackState.type->members + member_index;
+				const dl_member_desc* member = PackState.type->members + member_index;
 
 				if( PackState.members_set.IsSet( member_index ) )
 					continue;
@@ -1102,7 +1102,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 {
 	const bool IS_DUMMY_WRITER = out_buffer_size == 0;
 	dl_binary_writer writer;
-	dl_binary_writer_init( &writer, out_buffer + sizeof(SDLDataHeader), out_buffer_size - sizeof(SDLDataHeader), IS_DUMMY_WRITER,
+	dl_binary_writer_init( &writer, out_buffer + sizeof(dl_data_header), out_buffer_size - sizeof(dl_data_header), IS_DUMMY_WRITER,
 						   DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 
 	SDLPackContext pack_ctx;
@@ -1118,19 +1118,19 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	// write header
 	if( out_buffer_size > 0 )
 	{
-		SDLDataHeader header;
+		dl_data_header header;
 		header.id                 = DL_INSTANCE_ID;
 		header.version            = DL_INSTANCE_VERSION;
 		header.root_instance_type = dl_internal_typeid_of( dl_ctx, pack_ctx.root_type );
 		header.instance_size      = (uint32_t)dl_binary_writer_needed_size( &writer );
 		header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
-		memcpy( out_buffer, &header, sizeof(SDLDataHeader) );
+		memcpy( out_buffer, &header, sizeof(dl_data_header) );
 	}
 
 	dl_binary_writer_finalize( &writer );
 
 	if( produced_bytes )
-		*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(SDLDataHeader);
+		*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);
 
 	return DL_ERROR_OK;
 }

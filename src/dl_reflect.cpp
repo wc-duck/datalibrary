@@ -37,7 +37,7 @@ dl_error_t dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, uns
 
 dl_error_t dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_typeid_t* out_type_id )
 {
-	const SDLType* pType = dl_internal_find_type_by_name( dl_ctx, type_name );
+	const dl_type_desc* pType = dl_internal_find_type_by_name( dl_ctx, type_name );
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -48,7 +48,7 @@ dl_error_t dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_ty
 
 dl_error_t dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_info_t* out_type )
 {
-	const SDLType* pType = dl_internal_find_type(dl_ctx, type);
+	const dl_type_desc* pType = dl_internal_find_type(dl_ctx, type);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -62,7 +62,7 @@ dl_error_t dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_
 
 dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_enum_info_t* out_enum_info )
 {
-	const SDLEnum* e = dl_internal_find_enum( dl_ctx, type );
+	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type );
 	if( e == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -74,7 +74,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t 
 
 dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid_t type, dl_member_info_t* out_members, unsigned int members_size )
 {
-	const SDLType* pType = dl_internal_find_type( dl_ctx, type );
+	const dl_type_desc* pType = dl_internal_find_type( dl_ctx, type );
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -83,7 +83,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 
 	for( uint32_t nMember = 0; nMember < pType->member_count; ++nMember )
 	{
-		const SDLMember& Member = pType->members[nMember];
+		const dl_member_desc& Member = pType->members[nMember];
 
 		out_members[nMember].name    = Member.name;
 		out_members[nMember].type    = Member.type;
@@ -96,7 +96,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 				// TODO: This switch could be skipped if inline-array count were built in to Member.m_Type
 				case DL_TYPE_STORAGE_STRUCT:
 				{
-					const SDLType* pSubType = dl_internal_find_type( dl_ctx, Member.type_id );
+					const dl_type_desc* pSubType = dl_internal_find_type( dl_ctx, Member.type_id );
 					if(pSubType == 0x0)
 						return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -115,7 +115,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 
 dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_t type, dl_enum_value_info_t* out_values, unsigned int out_values_size )
 {
-	const SDLEnum* e = dl_internal_find_enum( dl_ctx, type );
+	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type );
 	if( e == 0x0 )                       return DL_ERROR_TYPE_NOT_FOUND;
 	if( out_values_size < e->value_count ) return DL_ERROR_BUFFER_TO_SMALL;
 

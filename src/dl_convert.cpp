@@ -63,7 +63,7 @@ public:
 	CArrayStatic<PatchPos, 256> m_lPatchOffset;
 };
 
-static inline void DLSwapHeader( SDLDataHeader* header )
+static inline void DLSwapHeader( dl_data_header* header )
 {
 	header->id                 = dl_swap_endian_uint32( header->id );
 	header->version            = dl_swap_endian_uint32( header->version );
@@ -170,7 +170,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 {
 	for( uint32_t iMember = 0; iMember < type->member_count; ++iMember )
 	{
-		const SDLMember& Member = type->members[iMember];
+		const dl_member_desc& Member = type->members[iMember];
 		const uint8_t* pMemberData = data + Member.offset[convert_ctx.m_SourcePtrSize];
 
 		dl_type_t AtomType    = Member.AtomType();
@@ -327,13 +327,13 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 }
 
 template<typename T>
-static T dl_convert_bf_format( T old_val, const SDLMember* bf_members, uint32_t bf_members_count, SConvertContext* conv_ctx )
+static T dl_convert_bf_format( T old_val, const dl_member_desc* bf_members, uint32_t bf_members_count, SConvertContext* conv_ctx )
 {
 	T new_val = 0;
 
 	for( uint32_t i = 0; i < bf_members_count; ++i )
 	{
-		const SDLMember& bf_member = bf_members[i];
+		const dl_member_desc& bf_member = bf_members[i];
 
 		uint32_t bf_bits         = bf_member.BitFieldBits();
 		uint32_t bf_offset       = bf_member.BitFieldOffset();
@@ -347,7 +347,7 @@ static T dl_convert_bf_format( T old_val, const SDLMember* bf_members, uint32_t 
 	return new_val;
 }
 
-static uint8_t dl_convert_bit_field_format_uint8( uint8_t old_value, const SDLMember* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
+static uint8_t dl_convert_bit_field_format_uint8( uint8_t old_value, const dl_member_desc* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
 {
 	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
 		return dl_swap_endian_uint8( dl_convert_bf_format( dl_swap_endian_uint8( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
@@ -355,7 +355,7 @@ static uint8_t dl_convert_bit_field_format_uint8( uint8_t old_value, const SDLMe
 	return dl_convert_bf_format( old_value, first_bf_member, num_bf_member, conv_ctx );
 }
 
-static uint16_t dl_convert_bit_field_format_uint16( uint16_t old_value, const SDLMember* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
+static uint16_t dl_convert_bit_field_format_uint16( uint16_t old_value, const dl_member_desc* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
 {
 	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
 		return dl_swap_endian_uint16( dl_convert_bf_format( dl_swap_endian_uint16( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
@@ -363,7 +363,7 @@ static uint16_t dl_convert_bit_field_format_uint16( uint16_t old_value, const SD
 	return dl_convert_bf_format( old_value, first_bf_member, num_bf_member, conv_ctx );
 }
 
-static uint32_t dl_convert_bit_field_format_uint32( uint32_t old_value, const SDLMember* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
+static uint32_t dl_convert_bit_field_format_uint32( uint32_t old_value, const dl_member_desc* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
 {
 	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
 		return dl_swap_endian_uint32( dl_convert_bf_format( dl_swap_endian_uint32( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
@@ -371,7 +371,7 @@ static uint32_t dl_convert_bit_field_format_uint32( uint32_t old_value, const SD
 	return dl_convert_bf_format( old_value, first_bf_member, num_bf_member, conv_ctx );
 }
 
-static uint64_t dl_convert_bit_field_format_uint64( uint64_t old_value, const SDLMember* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
+static uint64_t dl_convert_bit_field_format_uint64( uint64_t old_value, const dl_member_desc* first_bf_member, uint32_t num_bf_member, SConvertContext* conv_ctx )
 {
 	if( conv_ctx->m_SourceEndian != DL_ENDIAN_HOST )
 		return dl_swap_endian_uint64( dl_convert_bf_format( dl_swap_endian_uint64( old_value ), first_bf_member, num_bf_member, conv_ctx ) );
@@ -391,7 +391,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 
 	for( uint32_t iMember = 0; iMember < type->member_count; ++iMember )
 	{
-		const SDLMember& Member    = type->members[iMember];
+		const dl_member_desc& Member    = type->members[iMember];
 		const uint8_t* pMemberData = data + Member.offset[conv_ctx.m_SourcePtrSize];
 
 		dl_binary_writer_align( writer, Member.alignment[conv_ctx.m_TargetPtrSize] );
@@ -714,9 +714,9 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
                                                 dl_endian_t    out_endian,      size_t      out_ptr_size,
                                                 size_t*        out_size )
 {
-	SDLDataHeader* header = (SDLDataHeader*)packed_instance;
+	dl_data_header* header = (dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(SDLDataHeader) )              return DL_ERROR_MALFORMED_DATA;
+	if( packed_instance_size < sizeof(dl_data_header) )              return DL_ERROR_MALFORMED_DATA;
 	if( header->id != DL_INSTANCE_ID &&
 		header->id != DL_INSTANCE_ID_SWAPED )                       return DL_ERROR_MALFORMED_DATA;
 	if( header->version != DL_INSTANCE_VERSION &&
@@ -757,10 +757,10 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	dl_error_t err = dl_internal_convert_no_header( dl_ctx,
-												    packed_instance + sizeof(SDLDataHeader),
-												    packed_instance + sizeof(SDLDataHeader),
-												    out_instance == 0x0 ? 0x0 : out_instance + sizeof(SDLDataHeader),
-												    out_instance_size - sizeof(SDLDataHeader),
+												    packed_instance + sizeof(dl_data_header),
+												    packed_instance + sizeof(dl_data_header),
+												    out_instance == 0x0 ? 0x0 : out_instance + sizeof(dl_data_header),
+												    out_instance_size - sizeof(dl_data_header),
 												    out_size,
 												    src_endian,
 												    out_endian,
@@ -771,7 +771,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 
 	if(out_instance != 0x0)
 	{
-		SDLDataHeader* pNewHeader = (SDLDataHeader*)out_instance;
+		dl_data_header* pNewHeader = (dl_data_header*)out_instance;
 		pNewHeader->id                 = DL_INSTANCE_ID;
 		pNewHeader->version            = DL_INSTANCE_VERSION;
 		pNewHeader->root_instance_type = type;
@@ -782,7 +782,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 			DLSwapHeader(pNewHeader);
 	}
 
-	*out_size += sizeof(SDLDataHeader);
+	*out_size += sizeof(dl_data_header);
 	return err;
 }
 

@@ -97,7 +97,7 @@ struct dl_typelib_header
 	uint32_t default_value_size;
 };
 
-struct SDLDataHeader
+struct dl_data_header
 {
 	uint32_t    id;
 	uint32_t    version;
@@ -115,7 +115,7 @@ enum dl_ptr_size_t
 	DL_PTR_SIZE_HOST = sizeof(void*) == 4 ? DL_PTR_SIZE_32BIT : DL_PTR_SIZE_64BIT
 };
 
-struct SDLMember
+struct dl_member_desc
 {
 	char        name[DL_MEMBER_NAME_MAX_LEN];
 	dl_type_t   type;
@@ -143,10 +143,10 @@ struct dl_type_desc
 	uint32_t  size[2];
 	uint32_t  alignment[2];
 	uint32_t  member_count;
-	SDLMember members[0];
+	dl_member_desc members[0];
 };
 
-struct SDLEnum
+struct dl_enum_desc
 {
 	char        name[DL_ENUM_NAME_MAX_LEN];
 	uint32_t    value_count;
@@ -300,7 +300,7 @@ static inline dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const dl_type_
 	return 0;
 }
 
-static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
+static inline const dl_enum_desc* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
 	for (unsigned int i = 0; i < dl_ctx->enum_count; ++i)
 		if( dl_ctx->enum_lookup[i].type_id == type_id )
@@ -308,7 +308,7 @@ static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t 
 			union
 			{
 				const uint8_t* data_ptr;
-				const SDLEnum* enum_ptr;
+				const dl_enum_desc* enum_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->enum_info_data + dl_ctx->enum_lookup[i].offset;
 			return ptr_conv.enum_ptr;
@@ -317,7 +317,7 @@ static inline const SDLEnum* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t 
 	return 0x0;
 }
 
-static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* name, size_t name_len, uint32_t* value )
+static inline bool dl_internal_find_enum_value( const dl_enum_desc* e, const char* name, size_t name_len, uint32_t* value )
 {
 	for( unsigned int j = 0; j < e->value_count; ++j )
 		if( strncmp( e->values[j].name, name, name_len ) == 0 )
@@ -330,7 +330,7 @@ static inline bool dl_internal_find_enum_value( const SDLEnum* e, const char* na
 
 static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32_t value )
 {
-	const SDLEnum* e = dl_internal_find_enum( dl_ctx, type_id );
+	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );
 
 	if( e == 0x0 )
 		return "UnknownEnum!";
