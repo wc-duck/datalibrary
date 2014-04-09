@@ -73,7 +73,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
                                           size_t*        needed_size,
                                           dl_endian_t    src_endian,      dl_endian_t    out_endian,
                                           dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
-                                          const SDLType* root_type,       size_t         base_offset );
+                                          const dl_type_desc* root_type,       size_t         base_offset );
 
 struct SPatchedInstances
 {
@@ -102,7 +102,7 @@ static void dl_internal_patch_ptr( const uint8_t* ptr, const uint8_t* base_data 
 static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 												 SPatchedInstances* patched_instances,
 												 const uint8_t*     instance,
-												 const SDLType*     type,
+												 const dl_type_desc*     type,
 												 const uint8_t*     base_data,
 												 bool               is_member_struct )
 {
@@ -174,7 +174,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 						if(storage_type == DL_TYPE_STORAGE_STRUCT)
 						{
 							// patch sub-ptrs!
-							const SDLType* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+							const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
 							uint32_t size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 
 							for( uint32_t elem_offset = 0; elem_offset < count * size; elem_offset += size )
@@ -236,7 +236,7 @@ struct dl_one_member_type
 	SDLMember members;
 };
 
-DL_STATIC_ASSERT( sizeof(dl_one_member_type) - sizeof(SDLMember) == sizeof(SDLType), these_need_same_size );
+DL_STATIC_ASSERT( sizeof(dl_one_member_type) - sizeof(SDLMember) == sizeof(dl_type_desc), these_need_same_size );
 
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 														  unsigned int   first_new_type,
@@ -258,7 +258,7 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 		union
 		{
 			const uint8_t* data_ptr;
-			const SDLType* type_ptr;
+			const dl_type_desc* type_ptr;
 		} ptr_conv;
 		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[type_index].offset;
 
@@ -279,7 +279,7 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 			union
 			{
 				dl_one_member_type* one_mem_ptr;
-				SDLType*        type_ptr;
+				dl_type_desc*        type_ptr;
 			} conv;
 			conv.one_mem_ptr = &dummy;
 
@@ -361,10 +361,10 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			union
 			{
 				const uint8_t* data_ptr;
-				SDLType*       type_ptr;
+				dl_type_desc*  type_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->type_info_data + look->offset;
-			SDLType* type = ptr_conv.type_ptr;
+			dl_type_desc* type = ptr_conv.type_ptr;
 
 			type->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( type->size[DL_PTR_SIZE_32BIT] );
 			type->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( type->size[DL_PTR_SIZE_64BIT] );
@@ -452,7 +452,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	if( header->root_instance_type != type_id )        return DL_ERROR_TYPE_MISMATCH;
 	if( header->instance_size > instance_size )        return DL_ERROR_BUFFER_TO_SMALL;
 
-	const SDLType* root_type = dl_internal_find_type( dl_ctx, header->root_instance_type );
+	const dl_type_desc* root_type = dl_internal_find_type( dl_ctx, header->root_instance_type );
 	if( root_type == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -486,7 +486,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	if( header->version != DL_INSTANCE_VERSION )       return DL_ERROR_VERSION_MISMATCH;
 	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
 
-	const SDLType* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
+	const dl_type_desc* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
 	if( pType == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -549,7 +549,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx );
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
 static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
@@ -564,7 +564,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 			{
 				case DL_TYPE_STORAGE_STRUCT:
 				{
-					const SDLType* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
 					if( sub_type == 0x0 )
 					{
 						dl_log_error( dl_ctx, "Could not find subtype for member %s", member->name );
@@ -591,7 +591,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 						uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
 						dl_binary_writer_seek_end( &store_ctx->writer );
 
-						const SDLType* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+						const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
 						uintptr_t size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 						dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
 
@@ -644,7 +644,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 		case DL_TYPE_ATOM_ARRAY:
 		{
 			uintptr_t size = 0;
-			const SDLType* sub_type = 0x0;
+			const dl_type_desc* sub_type = 0x0;
 
 			uint8_t* data_ptr = instance;
 			uint32_t count    = *(uint32_t*)( data_ptr + sizeof(void*) );
@@ -719,7 +719,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const SDLMember* me
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const SDLType* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	bool last_was_bitfield = false;
 
@@ -750,7 +750,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	if( out_buffer_size > 0 && out_buffer_size <= sizeof(SDLDataHeader) )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	const SDLType* type = dl_internal_find_type( dl_ctx, type_id );
+	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
 	if( type == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 

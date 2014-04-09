@@ -92,7 +92,7 @@ static void dl_internal_write_pod_member( yajl_gen gen, dl_type_t pod_type, cons
 	yajl_gen_number( gen, buffer64, chars );
 }
 
-static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const SDLType* type, const uint8_t* data, const uint8_t* data_base )
+static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_desc* type, const uint8_t* data, const uint8_t* data_base )
 {
 	yajl_gen_map_open(_Ctx->m_JsonGen);
 
@@ -115,7 +115,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const SDLType* t
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* pStructType = dl_internal_find_type( _Ctx->m_Ctx, member->type_id );
+						const dl_type_desc* pStructType = dl_internal_find_type( _Ctx->m_Ctx, member->type_id );
 						if(pStructType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Subtype for member %s not found!", member->name ); return; }
 
 						dl_internal_write_instance(_Ctx, pStructType, member_data, data_base);
@@ -167,7 +167,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const SDLType* t
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* sub_type = dl_internal_find_type( _Ctx->m_Ctx, member->type_id );
+						const dl_type_desc* sub_type = dl_internal_find_type( _Ctx->m_Ctx, member->type_id );
 						if( sub_type == 0x0 ) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", member->name ); return; }
 
 						uintptr_t Size  = sub_type->size[DL_PTR_SIZE_HOST];
@@ -231,7 +231,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const SDLType* t
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const SDLType* sub_type = dl_internal_find_type(_Ctx->m_Ctx, member->type_id);
+						const dl_type_desc* sub_type = dl_internal_find_type(_Ctx->m_Ctx, member->type_id);
 						if( sub_type == 0x0 ) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", member->name ); return; }
 
 						uintptr_t Size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
@@ -304,7 +304,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const SDLType* t
 	yajl_gen_map_close(_Ctx->m_JsonGen);
 }
 
-static void dl_internal_write_root( SDLUnpackContext*  unpack_ctx, const SDLType* type, const unsigned char* data )
+static void dl_internal_write_root( SDLUnpackContext*  unpack_ctx, const dl_type_desc* type, const unsigned char* data )
 {
 	unpack_ctx->AddSubDataMember(0x0, data); // add root-node as a subdata to be able to look it up as id 0!
 
@@ -334,7 +334,7 @@ static void dl_internal_write_root( SDLUnpackContext*  unpack_ctx, const SDLType
 				DL_ASSERT( member->AtomType()    == DL_TYPE_ATOM_POD );
 				DL_ASSERT( member->StorageType() == DL_TYPE_STORAGE_PTR );
 
-				const SDLType* sub_type = dl_internal_find_type( unpack_ctx->m_Ctx, member->type_id );
+				const dl_type_desc* sub_type = dl_internal_find_type( unpack_ctx->m_Ctx, member->type_id );
 				if( sub_type == 0x0 )
 				{
 					dl_log_error(  unpack_ctx->m_Ctx, "Type for inline-array member %s not found!", member->name );
@@ -401,7 +401,7 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t typ
 	if( header->version != DL_INSTANCE_VERSION)        return DL_ERROR_VERSION_MISMATCH;
 	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
 
-	const SDLType* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
+	const dl_type_desc* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
 	if(pType == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND; // could not find root-type!
 

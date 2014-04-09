@@ -93,10 +93,10 @@ struct SDLPackState
 
 	union
 	{
-		const void*      value;
-		const SDLType*   type;
-		const SDLMember* member;
-		const SDLEnum*   enum_type;
+		const void*         value;
+		const dl_type_desc* type;
+		const SDLMember*    member;
+		const SDLEnum*      enum_type;
 	};
 
 	uintptr_t       struct_start_pos;
@@ -108,10 +108,10 @@ struct SDLPackState
 
 struct SDLPackContext
 {
-	dl_binary_writer* writer;
-	dl_ctx_t          dl_ctx;
-	const SDLType*    root_type;
-	dl_error_t        error_code;
+	dl_binary_writer*   writer;
+	dl_ctx_t            dl_ctx;
+	const dl_type_desc* root_type;
+	dl_error_t          error_code;
 
 	dl_pack_state CurrentPackState() { return state_stack.Top().state; }
 
@@ -136,7 +136,7 @@ static void dl_txt_pack_ctx_push_state( SDLPackContext* pack_ctx, dl_pack_state 
 	pack_ctx->state_stack.Push( state );
 }
 
-static void dl_txt_pack_ctx_push_state_struct( SDLPackContext* pack_ctx, const SDLType* type )
+static void dl_txt_pack_ctx_push_state_struct( SDLPackContext* pack_ctx, const dl_type_desc* type )
 {
 	uintptr_t struct_start_pos = 0;
 
@@ -538,7 +538,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 // TODO: This function is not optimal on any part and should be removed, store this info in the member as one bit!
 static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
 {
-	const SDLType* le_type = dl_internal_find_type( dl_ctx, type );
+	const dl_type_desc* le_type = dl_internal_find_type( dl_ctx, type );
 
 	if(le_type == 0) // not sturct
 		return false;
@@ -636,7 +636,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = dl_internal_find_type( pCtx->dl_ctx, member->type_id );
+							const dl_type_desc* pSubType = dl_internal_find_type( pCtx->dl_ctx, member->type_id );
 							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, 
 													   pCtx, 
 													   DL_ERROR_TYPE_NOT_FOUND, 
@@ -688,7 +688,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 					{
 						case DL_TYPE_STORAGE_STRUCT:
 						{
-							const SDLType* pSubType = dl_internal_find_type(pCtx->dl_ctx, member->type_id);
+							const dl_type_desc* pSubType = dl_internal_find_type(pCtx->dl_ctx, member->type_id);
 							DL_PACK_ERROR_AND_FAIL_IF( pSubType == 0x0, 
 													   pCtx, 
 													   DL_ERROR_TYPE_NOT_FOUND, 
@@ -757,7 +757,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 			DL_ASSERT( atom_type    == DL_TYPE_ATOM_POD );
 			DL_ASSERT( storage_type == DL_TYPE_STORAGE_PTR );
 
-			const SDLType* sub_type = dl_internal_find_type( pCtx->dl_ctx, member->type_id );
+			const dl_type_desc* sub_type = dl_internal_find_type( pCtx->dl_ctx, member->type_id );
 			DL_PACK_ERROR_AND_FAIL_IF( sub_type == 0x0, 
 									   pCtx, 
 									   DL_ERROR_TYPE_NOT_FOUND, 
@@ -964,7 +964,7 @@ static int dl_internal_pack_on_array_end( void* pack_ctx_in )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 
-	const SDLType* type      = pack_ctx->state_stack.Top().type;
+	const dl_type_desc* type = pack_ctx->state_stack.Top().type;
 	dl_pack_state pack_state = pack_ctx->state_stack.Top().state;
 
 	dl_txt_pack_ctx_pop_state( pack_ctx ); // pop of pack state for sub-type

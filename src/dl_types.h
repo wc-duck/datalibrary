@@ -137,7 +137,7 @@ struct SDLMember
 #pragma warning(disable:4200) // disable warning for 0-size array
 #endif // defined( _MSC_VER )
 
-struct SDLType
+struct dl_type_desc
 {
 	char      name[DL_TYPE_NAME_MAX_LEN];
 	uint32_t  size[2];
@@ -218,7 +218,7 @@ inline unsigned int dl_bf_offset( dl_endian_t endian, unsigned int bf_size, unsi
 
 DL_FORCEINLINE dl_endian_t dl_other_endian( dl_endian_t endian ) { return endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
 
-static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t type_id)
+static inline const dl_type_desc* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
     DL_ASSERT( dl_internal_is_align( dl_ctx->type_lookup, DL_ALIGNMENTOF(dl_type_lookup_t) ) );
 	// linear search right now!
@@ -228,7 +228,7 @@ static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t 
 			union
 			{
 				const uint8_t* data_ptr;
-				const SDLType* type_ptr;
+				const dl_type_desc* type_ptr;
 			} ptr_conv;
 			ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
 			return ptr_conv.type_ptr;
@@ -237,14 +237,14 @@ static inline const SDLType* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t 
     return 0x0;
 }
 
-static inline const SDLType* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, const char* name )
+static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, const char* name )
 {
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 	{
 		union
 		{
 			const uint8_t* data_ptr;
-			const SDLType* type_ptr;
+			const dl_type_desc* type_ptr;
 		} ptr_conv;
 		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
 
@@ -290,7 +290,7 @@ static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl
 	}
 }
 
-static inline dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const SDLType* type )
+static inline dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const dl_type_desc* type )
 {
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 		if( (void*)(dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset) == (void*)type )
@@ -358,7 +358,7 @@ DL_FORCEINLINE static uint32_t dl_internal_hash_string( const char* str, uint32_
 	return hash - 5381; // So empty string == 0
 }
 
-static inline unsigned int dl_internal_find_member( const SDLType* type, dl_typeid_t name_hash )
+static inline unsigned int dl_internal_find_member( const dl_type_desc* type, dl_typeid_t name_hash )
 {
 	// TODO: currently members only hold name, but they should hold a hash!
 
