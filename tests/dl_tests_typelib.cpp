@@ -4,7 +4,7 @@
 #include <dl/dl_typelib.h>
 
 #include <stdio.h>
-/*
+
 static char* file_read( const char* path, size_t* size )
 {
 	FILE* f = fopen( path, "rb" );
@@ -87,4 +87,3 @@ TEST( DLTypeLibTxt, simple_read_write )
 
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }
-*/
