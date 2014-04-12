@@ -170,11 +170,11 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 {
 	for( uint32_t iMember = 0; iMember < type->member_count; ++iMember )
 	{
-		const dl_member_desc& Member = type->members[iMember];
-		const uint8_t* pMemberData = data + Member.offset[convert_ctx.m_SourcePtrSize];
+		const dl_member_desc* Member = dl_get_type_member( dl_ctx, type, iMember );
+		const uint8_t* pMemberData = data + Member->offset[convert_ctx.m_SourcePtrSize];
 
-		dl_type_t AtomType    = Member.AtomType();
-		dl_type_t StorageType = Member.StorageType();
+		dl_type_t AtomType    = Member->AtomType();
+		dl_type_t StorageType = Member->StorageType();
 
 		switch(AtomType)
 		{
@@ -185,12 +185,12 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 					case DL_TYPE_STORAGE_STR:
 					{
 						uintptr_t Offset = DLInternalReadPtrData( pMemberData, convert_ctx.m_SourceEndian, convert_ctx.m_SourcePtrSize );
-						convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, 1337, Member.type));
+						convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, 1337, Member->type));
 					}
 					break;
 					case DL_TYPE_STORAGE_PTR:
 					{
-						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
+						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member->type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
@@ -200,14 +200,14 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 
 						if(Offset != DL_NULL_PTR_OFFSET[convert_ctx.m_SourcePtrSize] && !convert_ctx.IsSwapped(pPtrData))
 						{
-							convert_ctx.m_lInstances.Add(SInstance(pPtrData, pSubType, 0, Member.type));
+							convert_ctx.m_lInstances.Add(SInstance(pPtrData, pSubType, 0, Member->type));
 							dl_internal_convert_collect_instances(dl_ctx, pSubType, base_data + Offset, base_data, convert_ctx);
 						}
 					}
 					break;
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
+						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member->type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 						dl_internal_convert_collect_instances(dl_ctx, pSubType, pMemberData, base_data, convert_ctx);
@@ -224,11 +224,11 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
+						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member->type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
-						for (uintptr_t ElemOffset = 0; ElemOffset < Member.size[convert_ctx.m_SourcePtrSize]; ElemOffset += pSubType->size[convert_ctx.m_SourcePtrSize])
+						for (uintptr_t ElemOffset = 0; ElemOffset < Member->size[convert_ctx.m_SourcePtrSize]; ElemOffset += pSubType->size[convert_ctx.m_SourcePtrSize])
 							dl_internal_convert_collect_instances(dl_ctx, pSubType, pMemberData + ElemOffset, base_data, convert_ctx);
 					}
 					break;
@@ -238,7 +238,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 						// I am not sure if that is true for all cases right now!
 
 						uint32_t PtrSize = (uint32_t)dl_internal_ptr_size(convert_ctx.m_SourcePtrSize);
-						uint32_t Count = Member.size[convert_ctx.m_SourcePtrSize] / PtrSize;
+						uint32_t Count = Member->size[convert_ctx.m_SourcePtrSize] / PtrSize;
 
 						for (uintptr_t iElem = 0; iElem < Count; ++iElem)
 						{
@@ -248,7 +248,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 					}
 					break;
 					default:
-						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						DL_ASSERT(Member->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 						// ignore
 				}
 			}
@@ -275,7 +275,7 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 						uint32_t PtrSize = (uint32_t)dl_internal_ptr_size(convert_ctx.m_SourcePtrSize);
 						const uint8_t* pArrayData = base_data + Offset;
 
-						convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, Count, Member.type));
+						convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, Count, Member->type));
 
 						for (uintptr_t iElem = 0; iElem < Count; ++iElem)
 						{
@@ -291,11 +291,11 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 
 						const uint8_t* pArrayData = base_data + Offset;
 
-						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
+						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member->type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
-						convert_ctx.m_lInstances.Add(SInstance(pArrayData, pSubType, Count, Member.type));
+						convert_ctx.m_lInstances.Add(SInstance(pArrayData, pSubType, Count, Member->type));
 
 						for (uintptr_t ElemOffset = 0; ElemOffset < pSubType->size[convert_ctx.m_SourcePtrSize] * Count; ElemOffset += pSubType->size[convert_ctx.m_SourcePtrSize])
 							dl_internal_convert_collect_instances(dl_ctx, pSubType, pArrayData + ElemOffset, base_data, convert_ctx);
@@ -304,9 +304,9 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 
 					default:
 					{
-						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						DL_ASSERT(Member->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 						dl_internal_read_array_data( pMemberData, &Offset, &Count, convert_ctx.m_SourceEndian, convert_ctx.m_SourcePtrSize );
-						convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, Count, Member.type));
+						convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, Count, Member->type));
 					}
 					break;
 				}
@@ -391,13 +391,13 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 
 	for( uint32_t iMember = 0; iMember < type->member_count; ++iMember )
 	{
-		const dl_member_desc& Member    = type->members[iMember];
-		const uint8_t* pMemberData = data + Member.offset[conv_ctx.m_SourcePtrSize];
+		const dl_member_desc* Member    = dl_get_type_member( dl_ctx, type, iMember );
+		const uint8_t* pMemberData = data + Member->offset[conv_ctx.m_SourcePtrSize];
 
-		dl_binary_writer_align( writer, Member.alignment[conv_ctx.m_TargetPtrSize] );
+		dl_binary_writer_align( writer, Member->alignment[conv_ctx.m_TargetPtrSize] );
 
-		dl_type_t AtomType    = Member.AtomType();
-		dl_type_t StorageType = Member.StorageType();
+		dl_type_t AtomType    = Member->AtomType();
+		dl_type_t StorageType = Member->StorageType();
 
 		switch(AtomType)
 		{
@@ -407,7 +407,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
+						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member->type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 						dl_internal_convert_write_struct( dl_ctx, pMemberData, pSubType, conv_ctx, writer );
@@ -431,8 +431,8 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 					}
 					break;
 					default:
-						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
-						dl_binary_writer_write_swap( writer, pMemberData, Member.size[conv_ctx.m_SourcePtrSize] );
+						DL_ASSERT(Member->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						dl_binary_writer_write_swap( writer, pMemberData, Member->size[conv_ctx.m_SourcePtrSize] );
 						break;
 				}
 			}
@@ -443,11 +443,11 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member.type_id);
+						const dl_type_desc* pSubType = dl_internal_find_type(dl_ctx, Member->type_id);
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
-						uintptr_t MemberSize  = Member.size[conv_ctx.m_SourcePtrSize];
+						uintptr_t MemberSize  = Member->size[conv_ctx.m_SourcePtrSize];
 						uintptr_t SubtypeSize = pSubType->size[conv_ctx.m_SourcePtrSize];
 						for (uintptr_t ElemOffset = 0; ElemOffset < MemberSize; ElemOffset += SubtypeSize)
 							dl_internal_convert_write_struct( dl_ctx, pMemberData + ElemOffset, pSubType, conv_ctx, writer );
@@ -457,7 +457,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 					{
 						uintptr_t PtrSizeSource = dl_internal_ptr_size(conv_ctx.m_SourcePtrSize);
 						uintptr_t PtrSizeTarget = dl_internal_ptr_size(conv_ctx.m_TargetPtrSize);
-						uint32_t Count = Member.size[conv_ctx.m_SourcePtrSize] / (uint32_t)PtrSizeSource;
+						uint32_t Count = Member->size[conv_ctx.m_SourcePtrSize] / (uint32_t)PtrSizeSource;
 						uintptr_t Pos = dl_binary_writer_tell( writer );
 
 						for (uintptr_t iElem = 0; iElem < Count; ++iElem)
@@ -466,15 +466,15 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(Pos + (iElem * PtrSizeTarget), OldOffset));
 						}
 
-						dl_binary_writer_write_zero( writer, Member.size[conv_ctx.m_TargetPtrSize] );
+						dl_binary_writer_write_zero( writer, Member->size[conv_ctx.m_TargetPtrSize] );
 					}
 					break;
 					default:
 					{
-						DL_ASSERT(Member.IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
+						DL_ASSERT(Member->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 
-						uintptr_t PodSize   = DLPodSize(Member.type);
-						uint32_t  ArraySize = Member.size[conv_ctx.m_SourcePtrSize];
+						uintptr_t PodSize   = DLPodSize(Member->type);
+						uint32_t  ArraySize = Member->size[conv_ctx.m_SourcePtrSize];
 
 						switch(PodSize)
 						{
@@ -512,32 +512,32 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 			{
 				uint32_t j = iMember;
 
-				do { j++; } while(j < type->member_count && type->members[j].AtomType() == DL_TYPE_ATOM_BITFIELD);
+				do { j++; } while(j < type->member_count && dl_get_type_member( dl_ctx, type, j )->AtomType() == DL_TYPE_ATOM_BITFIELD);
 
 				if(conv_ctx.m_SourceEndian != conv_ctx.m_TargetEndian)
 				{
 					uint32_t nBFMembers = j - iMember;
 
-					switch(Member.size[conv_ctx.m_SourcePtrSize])
+					switch(Member->size[conv_ctx.m_SourcePtrSize])
 					{
 						case 1:
 						{
-							uint8_t val = dl_convert_bit_field_format_uint8( *(uint8_t*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							uint8_t val = dl_convert_bit_field_format_uint8( *(uint8_t*)pMemberData, Member, nBFMembers, &conv_ctx );
 							dl_binary_writer_write_1byte( writer, &val );
 						} break;
 						case 2:
 						{
-							uint16_t val = dl_convert_bit_field_format_uint16( *(uint16_t*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							uint16_t val = dl_convert_bit_field_format_uint16( *(uint16_t*)pMemberData, Member, nBFMembers, &conv_ctx );
 							dl_binary_writer_write_2byte( writer, &val );
 						} break;
 						case 4:
 						{
-							uint32_t val = dl_convert_bit_field_format_uint32( *(uint32_t*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							uint32_t val = dl_convert_bit_field_format_uint32( *(uint32_t*)pMemberData, Member, nBFMembers, &conv_ctx );
 							dl_binary_writer_write_4byte( writer, &val );
 						} break;
 						case 8:
 						{
-							uint64_t val = dl_convert_bit_field_format_uint64( *(uint64_t*)pMemberData, &Member, nBFMembers, &conv_ctx );
+							uint64_t val = dl_convert_bit_field_format_uint64( *(uint64_t*)pMemberData, Member, nBFMembers, &conv_ctx );
 							dl_binary_writer_write_8byte( writer, &val );
 						} break;
 						default:
@@ -545,7 +545,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 					}
 				}
 				else
-					dl_binary_writer_write( writer, pMemberData, Member.size[conv_ctx.m_SourcePtrSize] );
+					dl_binary_writer_write( writer, pMemberData, Member->size[conv_ctx.m_SourcePtrSize] );
 
 				iMember = j - 1;
 			}

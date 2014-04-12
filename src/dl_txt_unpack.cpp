@@ -98,7 +98,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		const dl_member_desc* member = type->members + member_index;
+		const dl_member_desc* member = dl_get_type_member( _Ctx->m_Ctx, type, member_index );
 
 		yajl_gen_string( _Ctx->m_JsonGen, (const unsigned char*)member->name, (unsigned int)strlen( member->name ) );
 

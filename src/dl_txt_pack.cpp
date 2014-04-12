@@ -545,8 +545,8 @@ static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
 
 	for(unsigned int i = 0; i < le_type->member_count; ++i)
 	{
-		dl_type_t st = le_type->members[i].StorageType();
-		dl_type_t at = le_type->members[i].AtomType();
+		dl_type_t st = dl_get_type_member( dl_ctx, le_type, i )->StorageType();
+		dl_type_t at = dl_get_type_member( dl_ctx, le_type, i )->AtomType();
 		if( st == DL_TYPE_STORAGE_STR || at == DL_TYPE_ATOM_ARRAY )
 			return true;
 	}
@@ -598,7 +598,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 		{
 			SDLPackState& state = pCtx->state_stack.Top();
 
-			unsigned int member_id = dl_internal_find_member( state.type, dl_internal_hash_buffer(str_val, str_len, 0) );
+			unsigned int member_id = dl_internal_find_member( pCtx->dl_ctx, state.type, dl_internal_hash_buffer(str_val, str_len, 0) );
 
 			DL_PACK_ERROR_AND_FAIL_IF( member_id > state.type->member_count, 
 									   pCtx, 
@@ -607,7 +607,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   state.type->name, 
 									   str_len, str_val );
 
-			const dl_member_desc* member = state.type->members + member_id;
+			const dl_member_desc* member = dl_get_type_member( pCtx->dl_ctx, state.type, member_id );
 
 			DL_PACK_ERROR_AND_FAIL_IF( state.members_set.IsSet( member_id ), 
 									   pCtx, 
@@ -838,7 +838,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 			// Check that all members are set!
 			for( uint32_t member_index = 0; member_index < PackState.type->member_count; ++member_index )
 			{
-				const dl_member_desc* member = PackState.type->members + member_index;
+				const dl_member_desc* member = dl_get_type_member( pack_ctx->dl_ctx, PackState.type, member_index );
 
 				if( PackState.members_set.IsSet( member_index ) )
 					continue;

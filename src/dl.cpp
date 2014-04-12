@@ -52,6 +52,9 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 	ctx->error_msg_func = create_params->error_msg_func;
 	ctx->error_msg_ctx  = create_params->error_msg_ctx;
 
+	ctx->member_count = 0;
+	ctx->type_count   = 0;
+
 	*dl_ctx = ctx;
 
 	return DL_ERROR_OK;
@@ -59,7 +62,6 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 
 dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 {
-	dl_ctx->free_func( dl_ctx->type_info_data, dl_ctx->alloc_ctx );
 	dl_ctx->free_func( dl_ctx->enum_info_data, dl_ctx->alloc_ctx );
 	dl_ctx->free_func( dl_ctx->default_data, dl_ctx->alloc_ctx );
 	dl_ctx->free_func( dl_ctx, dl_ctx->alloc_ctx );
@@ -117,7 +119,7 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		const dl_member_desc* member      = type->members + member_index;
+		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
 		const uint8_t*   member_data = instance + member->offset[DL_PTR_SIZE_HOST];
 
 		dl_type_t atom_type    = member->AtomType();
@@ -214,30 +216,6 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
 	return DL_ERROR_OK;
 }
 
-struct dl_one_member_type
-{
-	dl_one_member_type( const dl_member_desc* member )
-	{
-		size[0]      = member->size[0];
-		size[1]      = member->size[1];
-		alignment[0] = member->alignment[0];
-		alignment[1] = member->alignment[1];
-		member_count = 1;
-
-		memcpy(&members, member, sizeof(dl_member_desc));
-		members.offset[0] = 0;
-		members.offset[0] = 0;
-	}
-
-	char      name[DL_TYPE_NAME_MAX_LEN];
-	uint32_t  size[2];
-	uint32_t  alignment[2];
-	uint32_t  member_count;
-	dl_member_desc members;
-};
-
-DL_STATIC_ASSERT( sizeof(dl_one_member_type) - sizeof(dl_member_desc) == sizeof(dl_type_desc), these_need_same_size );
-
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 														  unsigned int   first_new_type,
 														  const uint8_t* default_data,
@@ -255,16 +233,11 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 	// ptr-patch and convert to native
 	for( unsigned int type_index = first_new_type; type_index < dl_ctx->type_count; ++type_index )
 	{
-		union
-		{
-			const uint8_t* data_ptr;
-			const dl_type_desc* type_ptr;
-		} ptr_conv;
-		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[type_index].offset;
+		dl_type_desc* type = dl_ctx->type_descs + type_index;
 
-		for( unsigned int member_index = 0; member_index < ptr_conv.type_ptr->member_count; ++member_index )
+		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
 		{
-			dl_member_desc* member = (dl_member_desc*)ptr_conv.type_ptr->members + member_index;
+			dl_member_desc* member = (dl_member_desc*)dl_get_type_member( dl_ctx, type, member_index );
 			if( member->default_value_offset == UINT32_MAX )
 				continue;
 
@@ -273,26 +246,32 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 			uintptr_t base_offset        = (uintptr_t)dst - (uintptr_t)dl_ctx->default_data;
 			member->default_value_offset = (uint32_t)base_offset;
 
-			dl_one_member_type dummy( member );
+			uint32_t old_offsets[2] = { member->offset[0], member->offset[1] };
+			member->offset[0] = 0;
+			member->offset[1] = 0;
+
+			dl_type_desc dummy;
+			dummy.size[0]      = member->size[0];
+			dummy.size[1]      = member->size[1];
+			dummy.alignment[0] = member->alignment[0];
+			dummy.alignment[1] = member->alignment[1];
+			dummy.member_count = 1;
+			dummy.member_start = type->member_start + member_index;
+
 			size_t needed_size;
-
-			union
-			{
-				dl_one_member_type* one_mem_ptr;
-				dl_type_desc*        type_ptr;
-			} conv;
-			conv.one_mem_ptr = &dummy;
-
 			dl_internal_convert_no_header( dl_ctx,
 										   src, (unsigned char*)default_data,
 										   dst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
 										   &needed_size,
 										   DL_ENDIAN_LITTLE,  DL_ENDIAN_HOST,
 										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
-										   conv.type_ptr, base_offset );
+										   &dummy, base_offset );
 
 			SPatchedInstances patch_instances;
-			dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, dst, conv.type_ptr, dl_ctx->default_data, false );
+			dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, dst, &dummy, dl_ctx->default_data, false );
+
+			member->offset[0] = old_offsets[0];
+			member->offset[1] = old_offsets[1];
 
 			dst += needed_size;
 		}
@@ -320,6 +299,62 @@ static void dl_internal_read_typelibrary_header( dl_typelib_header* header, cons
 	}
 }
 
+// This is how types are stored in typelibs on disc, this will be reworked and stored on disc
+// in the same way as they are stored in memory.
+struct dl_type_desc_on_disc
+{
+	char      name[DL_TYPE_NAME_MAX_LEN];
+	uint32_t  size[2];
+	uint32_t  alignment[2];
+	uint32_t  member_count;
+	dl_member_desc members[0];
+};
+
+static void dl_endian_swap_type_desc( dl_type_desc* desc )
+{
+	desc->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_32BIT] );
+	desc->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_64BIT] );
+	desc->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_32BIT] );
+	desc->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_64BIT] );
+	desc->member_count                 = dl_swap_endian_uint32( desc->member_count );
+}
+
+static void dl_endian_swap_member_desc( dl_member_desc* desc )
+{
+	desc->type                         = dl_swap_endian_dl_type( desc->type );
+	desc->type_id	                     = dl_swap_endian_uint32( desc->type_id );
+	desc->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_32BIT] );
+	desc->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_64BIT] );
+	desc->offset[DL_PTR_SIZE_32BIT]    = dl_swap_endian_uint32( desc->offset[DL_PTR_SIZE_32BIT] );
+	desc->offset[DL_PTR_SIZE_64BIT]    = dl_swap_endian_uint32( desc->offset[DL_PTR_SIZE_64BIT] );
+	desc->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_32BIT] );
+	desc->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_64BIT] );
+	desc->default_value_offset         = dl_swap_endian_uint32( desc->default_value_offset );
+}
+
+// TODO: this should just be memcpy:ed from disk when on-disk fmt has changed.
+static void dl_HAXX_add_type( dl_ctx_t dl_ctx, dl_typeid_t tid, const dl_type_desc_on_disc* td )
+{
+	unsigned int type_index = dl_ctx->type_count;
+	++dl_ctx->type_count;
+
+	dl_ctx->type_ids[ type_index ] = tid;
+	dl_type_desc* new_type = dl_ctx->type_descs + type_index;
+
+	memcpy( new_type, td, sizeof( dl_type_desc ) );
+	new_type->member_start = dl_ctx->member_count;
+
+	for( uint32_t mem_index = 0; mem_index < td->member_count; ++mem_index )
+	{
+		dl_member_desc* new_mem = dl_ctx->member_descs + dl_ctx->member_count;
+		const dl_member_desc* old_mem = td->members + mem_index;
+
+		dl_ctx->member_count++;
+
+		memcpy( new_mem, old_mem, sizeof( dl_member_desc ) );
+	}
+}
+
 dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, size_t lib_data_size )
 {
 	if(lib_data_size < sizeof(dl_typelib_header))
@@ -340,7 +375,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	const unsigned char* defaults_data = lib_data + defaults_offset;
 
 	// store type-info data.
-	dl_ctx->type_info_data = (uint8_t*)dl_internal_append_data( dl_ctx, dl_ctx->type_info_data, dl_ctx->type_info_data_size, types_data, header.types_size );
+//	dl_ctx->type_info_data = (uint8_t*)dl_internal_append_data( dl_ctx, dl_ctx->type_info_data, dl_ctx->type_info_data_size, types_data, header.types_size );
 
 	// read type-lookup table
 	union
@@ -350,52 +385,38 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	} cast;
 	cast.data_ptr = lib_data + sizeof(dl_typelib_header);
 	dl_type_lookup_t* from_data = cast.lookup;
-	for( uint32_t i = dl_ctx->type_count; i < dl_ctx->type_count + header.type_count; ++i )
+	unsigned int start_type_count = dl_ctx->type_count;
+	for( unsigned int type_index = start_type_count; type_index < start_type_count + header.type_count; ++type_index )
 	{
-		dl_type_lookup_t* look = dl_ctx->type_lookup + i;
+		dl_typeid_t type_id = from_data->type_id;
+		uint32_t    type_offset = from_data->offset;
 
 		if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
 		{
-			look->type_id  = dl_swap_endian_uint32( from_data->type_id );
-			look->offset   = dl_ctx->type_info_data_size + dl_swap_endian_uint32( from_data->offset );
-			union
-			{
-				const uint8_t* data_ptr;
-				dl_type_desc*  type_ptr;
-			} ptr_conv;
-			ptr_conv.data_ptr = dl_ctx->type_info_data + look->offset;
-			dl_type_desc* type = ptr_conv.type_ptr;
-
-			type->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( type->size[DL_PTR_SIZE_32BIT] );
-			type->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( type->size[DL_PTR_SIZE_64BIT] );
-			type->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( type->alignment[DL_PTR_SIZE_32BIT] );
-			type->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( type->alignment[DL_PTR_SIZE_64BIT] );
-			type->member_count                 = dl_swap_endian_uint32( type->member_count );
-
-			for( uint32_t i = 0; i < type->member_count; ++i )
-			{
-				dl_member_desc* member = type->members + i;
-
-				member->type                         = dl_swap_endian_dl_type( member->type );
-				member->type_id	                     = dl_swap_endian_uint32( member->type_id );
-				member->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( member->size[DL_PTR_SIZE_32BIT] );
-				member->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( member->size[DL_PTR_SIZE_64BIT] );
-				member->offset[DL_PTR_SIZE_32BIT]    = dl_swap_endian_uint32( member->offset[DL_PTR_SIZE_32BIT] );
-				member->offset[DL_PTR_SIZE_64BIT]    = dl_swap_endian_uint32( member->offset[DL_PTR_SIZE_64BIT] );
-				member->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( member->alignment[DL_PTR_SIZE_32BIT] );
-				member->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( member->alignment[DL_PTR_SIZE_64BIT] );
-				member->default_value_offset         = dl_swap_endian_uint32( member->default_value_offset );
-			}
+			type_id     = dl_swap_endian_uint32( type_id );
+			type_offset = dl_swap_endian_uint32( type_offset );
 		}
-		else
+
+		union
 		{
-			look->type_id = from_data->type_id;
-			look->offset  = dl_ctx->type_info_data_size + from_data->offset;
+			const uint8_t* data_ptr;
+			dl_type_desc_on_disc* type_ptr;
+		} ptr_conv;
+		ptr_conv.data_ptr = types_data + type_offset;
+
+		if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
+		{
+			dl_endian_swap_type_desc( (dl_type_desc*)ptr_conv.type_ptr );
+
+			for( uint32_t member_index = 0; member_index < ptr_conv.type_ptr->member_count; ++member_index )
+				dl_endian_swap_member_desc( ptr_conv.type_ptr->members + member_index );
 		}
+
+		dl_HAXX_add_type( dl_ctx, type_id, ptr_conv.type_ptr );
+
 		++from_data;
 	}
 
-	dl_ctx->type_count          += header.type_count;
 	dl_ctx->type_info_data_size += header.types_size;
 
 	// store enum-info data.
@@ -728,7 +749,7 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 	uintptr_t instance_pos = dl_binary_writer_tell( &store_ctx->writer );
 	for( uint32_t member_index = 0; member_index < dl_type->member_count; ++member_index )
 	{
-		const dl_member_desc* member = dl_type->members + member_index;
+		const dl_member_desc* member = dl_get_type_member( dl_ctx, dl_type, member_index );
 
 		if( !last_was_bitfield || member->AtomType() != DL_TYPE_ATOM_BITFIELD )
 		{

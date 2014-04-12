@@ -132,19 +132,19 @@ struct dl_member_desc
 	bool      IsSimplePod()    const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
 };
 
-#if defined( _MSC_VER )
-#pragma warning(push)
-#pragma warning(disable:4200) // disable warning for 0-size array
-#endif // defined( _MSC_VER )
-
 struct dl_type_desc
 {
 	char      name[DL_TYPE_NAME_MAX_LEN];
 	uint32_t  size[2];
 	uint32_t  alignment[2];
 	uint32_t  member_count;
-	dl_member_desc members[0];
+	uint32_t  member_start;
 };
+
+#if defined( _MSC_VER )
+#pragma warning(push)
+#pragma warning(disable:4200) // disable warning for 0-size array
+#endif // defined( _MSC_VER )
 
 struct dl_enum_desc
 {
@@ -176,16 +176,21 @@ struct dl_context
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
 
-	dl_type_lookup_t type_lookup[128]; // dynamic alloc?
 	dl_type_lookup_t enum_lookup[128]; // dynamic alloc?
 
 	unsigned int type_count;
-	uint8_t*     type_info_data;
-	unsigned int type_info_data_size;
-
 	unsigned int enum_count;
-	uint8_t*     enum_info_data;
+	unsigned int member_count;
+
+	unsigned int type_info_data_size;
 	unsigned int enum_info_data_size;
+
+	// TODO: dynamic alloc all type-data!
+	dl_typeid_t    type_ids[128];      ///< list of all loaded typeid:s in the same order they appear in type_descs
+	dl_type_desc   type_descs[128];    ///< list of all loaded descriptors for types.
+	dl_member_desc member_descs[1024]; ///< list of all loaded descriptors for members in types.
+
+	uint8_t*     enum_info_data;
 
 	uint8_t* default_data;
 };
@@ -220,19 +225,10 @@ DL_FORCEINLINE dl_endian_t dl_other_endian( dl_endian_t endian ) { return endian
 
 static inline const dl_type_desc* dl_internal_find_type(dl_ctx_t dl_ctx, dl_typeid_t type_id)
 {
-    DL_ASSERT( dl_internal_is_align( dl_ctx->type_lookup, DL_ALIGNMENTOF(dl_type_lookup_t) ) );
 	// linear search right now!
     for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
-		if(dl_ctx->type_lookup[i].type_id == type_id)
-		{
-			union
-			{
-				const uint8_t* data_ptr;
-				const dl_type_desc* type_ptr;
-			} ptr_conv;
-			ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
-			return ptr_conv.type_ptr;
-		}
+    	if( dl_ctx->type_ids[i] == type_id )
+    		return &dl_ctx->type_descs[i];
 
     return 0x0;
 }
@@ -241,15 +237,9 @@ static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx
 {
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 	{
-		union
-		{
-			const uint8_t* data_ptr;
-			const dl_type_desc* type_ptr;
-		} ptr_conv;
-		ptr_conv.data_ptr = dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset;
-
-		if( strcmp( name, ptr_conv.type_ptr->name ) == 0 )
-			return ptr_conv.type_ptr;
+		dl_type_desc* desc = &dl_ctx->type_descs[i];
+		if( strcmp( name, desc->name ) == 0 )
+			return desc;
 	}
 	return 0x0;
 }
@@ -292,12 +282,7 @@ static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl
 
 static inline dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const dl_type_desc* type )
 {
-	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
-		if( (void*)(dl_ctx->type_info_data + dl_ctx->type_lookup[i].offset) == (void*)type )
-			return dl_ctx->type_lookup[i].type_id;
-
-	DL_ASSERT( false && "Could not find type!?!" );
-	return 0;
+	return dl_ctx->type_ids[ type - dl_ctx->type_descs ];
 }
 
 static inline const dl_enum_desc* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
@@ -358,12 +343,15 @@ DL_FORCEINLINE static uint32_t dl_internal_hash_string( const char* str, uint32_
 	return hash - 5381; // So empty string == 0
 }
 
-static inline unsigned int dl_internal_find_member( const dl_type_desc* type, dl_typeid_t name_hash )
+static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_type_desc* type, unsigned int member_index )
 {
-	// TODO: currently members only hold name, but they should hold a hash!
+	return &ctx->member_descs[ type->member_start + member_index ];
+}
 
+static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_desc* type, dl_typeid_t name_hash )
+{
 	for(unsigned int i = 0; i < type->member_count; ++i)
-		if(dl_internal_hash_string(type->members[i].name) == name_hash)
+		if(dl_internal_hash_string( dl_get_type_member( ctx, type, i )->name ) == name_hash)
 			return i;
 
 	return type->member_count + 1;
