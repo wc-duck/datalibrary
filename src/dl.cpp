@@ -12,29 +12,6 @@
 static void* dl_internal_default_alloc( unsigned int size, unsigned int alignment, void* alloc_ctx ) { (void)alignment; (void)alloc_ctx; return malloc(size); }
 static void  dl_internal_default_free ( void* ptr, void* alloc_ctx ) {  (void)alloc_ctx; free(ptr); }
 
-static void* dl_internal_realloc( dl_ctx_t dl_ctx, void* ptr, unsigned int old_size, unsigned int new_size, unsigned int alignment )
-{
-	if( old_size == new_size )
-		return ptr;
-
-	void* new_ptr = dl_ctx->alloc_func( new_size, alignment, dl_ctx->alloc_ctx );
-
-	if( ptr != 0x0 )
-	{
-		memmove( new_ptr, ptr, old_size );
-		dl_ctx->free_func( ptr, dl_ctx->alloc_ctx );
-	}
-
-	return new_ptr;
-}
-
-static void* dl_internal_append_data( dl_ctx_t dl_ctx, void* old_data, unsigned int old_data_size, const void* new_data, unsigned int new_data_size )
-{
-	uint8_t* data = (uint8_t*)dl_internal_realloc( dl_ctx, old_data, old_data_size, old_data_size + new_data_size, sizeof(void*) );
-	memcpy( data + old_data_size, new_data, new_data_size );
-	return data;
-}
-
 dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_params )
 {
 	dl_alloc_func the_alloc = create_params->alloc_func != 0x0 ? create_params->alloc_func : dl_internal_default_alloc;
@@ -52,8 +29,10 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 	ctx->error_msg_func = create_params->error_msg_func;
 	ctx->error_msg_ctx  = create_params->error_msg_ctx;
 
-	ctx->member_count = 0;
-	ctx->type_count   = 0;
+	ctx->type_count       = 0;
+	ctx->member_count     = 0;
+	ctx->enum_count       = 0;
+	ctx->enum_value_count = 0;
 
 	*dl_ctx = ctx;
 
@@ -62,7 +41,6 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 
 dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 {
-	dl_ctx->free_func( dl_ctx->enum_info_data, dl_ctx->alloc_ctx );
 	dl_ctx->free_func( dl_ctx->default_data, dl_ctx->alloc_ctx );
 	dl_ctx->free_func( dl_ctx, dl_ctx->alloc_ctx );
 	return DL_ERROR_OK;
@@ -310,6 +288,13 @@ struct dl_type_desc_on_disc
 	dl_member_desc members[0];
 };
 
+struct dl_enum_desc_on_disc
+{
+	char        name[DL_ENUM_NAME_MAX_LEN];
+	uint32_t    value_count;
+	dl_enum_value_desc values[0];
+};
+
 static void dl_endian_swap_type_desc( dl_type_desc* desc )
 {
 	desc->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_32BIT] );
@@ -322,7 +307,7 @@ static void dl_endian_swap_type_desc( dl_type_desc* desc )
 static void dl_endian_swap_member_desc( dl_member_desc* desc )
 {
 	desc->type                         = dl_swap_endian_dl_type( desc->type );
-	desc->type_id	                     = dl_swap_endian_uint32( desc->type_id );
+	desc->type_id	                   = dl_swap_endian_uint32( desc->type_id );
 	desc->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_32BIT] );
 	desc->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_64BIT] );
 	desc->offset[DL_PTR_SIZE_32BIT]    = dl_swap_endian_uint32( desc->offset[DL_PTR_SIZE_32BIT] );
@@ -335,13 +320,12 @@ static void dl_endian_swap_member_desc( dl_member_desc* desc )
 // TODO: this should just be memcpy:ed from disk when on-disk fmt has changed.
 static void dl_HAXX_add_type( dl_ctx_t dl_ctx, dl_typeid_t tid, const dl_type_desc_on_disc* td )
 {
-	unsigned int type_index = dl_ctx->type_count;
-	++dl_ctx->type_count;
+	unsigned int type_index = dl_ctx->type_count++;
 
 	dl_ctx->type_ids[ type_index ] = tid;
 	dl_type_desc* new_type = dl_ctx->type_descs + type_index;
 
-	memcpy( new_type, td, sizeof( dl_type_desc ) );
+	memcpy( new_type, td, sizeof( dl_type_desc_on_disc ) );
 	new_type->member_start = dl_ctx->member_count;
 
 	for( uint32_t mem_index = 0; mem_index < td->member_count; ++mem_index )
@@ -352,6 +336,27 @@ static void dl_HAXX_add_type( dl_ctx_t dl_ctx, dl_typeid_t tid, const dl_type_de
 		dl_ctx->member_count++;
 
 		memcpy( new_mem, old_mem, sizeof( dl_member_desc ) );
+	}
+}
+
+static void dl_HAXX_add_enum( dl_ctx_t dl_ctx, dl_typeid_t eid, const dl_enum_desc_on_disc* ed )
+{
+	unsigned int enum_index = dl_ctx->enum_count++;
+
+	dl_ctx->enum_ids[enum_index] = eid;
+	dl_enum_desc* new_enum = dl_ctx->enum_descs + enum_index;
+
+	memcpy( new_enum, ed, sizeof( dl_enum_desc_on_disc ) );
+	new_enum->value_start = dl_ctx->enum_value_count;
+
+	for( uint32_t val_index = 0; val_index < ed->value_count; ++val_index )
+	{
+		dl_enum_value_desc* new_val = dl_ctx->enum_value_descs + dl_ctx->enum_value_count;
+		const dl_enum_value_desc* old_val = ed->values + val_index;
+
+		dl_ctx->enum_value_count++;
+
+		memcpy( new_val, old_val, sizeof( dl_enum_value_desc ) );
 	}
 }
 
@@ -374,9 +379,6 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	const unsigned char* enums_data    = lib_data + enums_offset;
 	const unsigned char* defaults_data = lib_data + defaults_offset;
 
-	// store type-info data.
-//	dl_ctx->type_info_data = (uint8_t*)dl_internal_append_data( dl_ctx, dl_ctx->type_info_data, dl_ctx->type_info_data_size, types_data, header.types_size );
-
 	// read type-lookup table
 	union
 	{
@@ -385,8 +387,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	} cast;
 	cast.data_ptr = lib_data + sizeof(dl_typelib_header);
 	dl_type_lookup_t* from_data = cast.lookup;
-	unsigned int start_type_count = dl_ctx->type_count;
-	for( unsigned int type_index = start_type_count; type_index < start_type_count + header.type_count; ++type_index )
+	for( unsigned int type_index = 0; type_index < header.type_count; ++type_index )
 	{
 		dl_typeid_t type_id = from_data->type_id;
 		uint32_t    type_offset = from_data->offset;
@@ -407,7 +408,6 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
 		{
 			dl_endian_swap_type_desc( (dl_type_desc*)ptr_conv.type_ptr );
-
 			for( uint32_t member_index = 0; member_index < ptr_conv.type_ptr->member_count; ++member_index )
 				dl_endian_swap_member_desc( ptr_conv.type_ptr->members + member_index );
 		}
@@ -417,44 +417,37 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		++from_data;
 	}
 
-	dl_ctx->type_info_data_size += header.types_size;
-
-	// store enum-info data.
-	dl_ctx->enum_info_data = (uint8_t*)dl_internal_append_data( dl_ctx, dl_ctx->enum_info_data, dl_ctx->enum_info_data_size, enums_data, header.enums_size );
-
 	// read enum-lookup table
 	dl_type_lookup_t* enum_from_data = (dl_type_lookup_t*)( lib_data + types_offset + header.types_size );
-	for( uint32_t i = dl_ctx->enum_count; i < dl_ctx->enum_count + header.enum_count; ++i )
+	for( uint32_t enum_index = 0; enum_index < header.enum_count; ++enum_index )
 	{
-		dl_type_lookup_t* look = dl_ctx->enum_lookup + i;
+		dl_typeid_t enum_id = enum_from_data->type_id;
+		uint32_t    enum_offset = enum_from_data->offset;
 
 		if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
 		{
-			look->type_id  = dl_swap_endian_uint32( enum_from_data->type_id );
-			look->offset   = dl_ctx->enum_info_data_size + dl_swap_endian_uint32( enum_from_data->offset );
-			union
-			{
-				const uint8_t* data_ptr;
-				dl_enum_desc*  enum_ptr;
-			} ptr_conv;
-			ptr_conv.data_ptr = dl_ctx->enum_info_data + look->offset;
-			dl_enum_desc* e = ptr_conv.enum_ptr;
+			enum_id     = dl_swap_endian_uint32( enum_id );
+			enum_offset = dl_swap_endian_uint32( enum_offset );
+		}
 
-			e->value_count = dl_swap_endian_uint32( e->value_count );
-			for( uint32_t i = 0; i < e->value_count; ++i )
-				e->values[i].value = dl_swap_endian_uint32( e->values[i].value );
-		}
-		else
+		union
 		{
-			look->type_id = enum_from_data->type_id;
-			look->offset  = dl_ctx->enum_info_data_size + enum_from_data->offset;
+			const uint8_t* data_ptr;
+			dl_enum_desc_on_disc* enum_ptr;
+		} ptr_conv;
+		ptr_conv.data_ptr = enums_data + enum_offset;
+
+		if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
+		{
+			ptr_conv.enum_ptr->value_count = dl_swap_endian_uint32( ptr_conv.enum_ptr->value_count );
+			for( uint32_t i = 0; i < ptr_conv.enum_ptr->value_count; ++i )
+				ptr_conv.enum_ptr->values[i].value = dl_swap_endian_uint32( ptr_conv.enum_ptr->values[i].value );
 		}
+
+		 dl_HAXX_add_enum( dl_ctx, enum_id, ptr_conv.enum_ptr );
 
 		++enum_from_data;
 	}
-
-	dl_ctx->enum_count          += header.enum_count;
-	dl_ctx->enum_info_data_size += header.enums_size;
 
 	return dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->type_count - header.type_count, defaults_data, header.default_value_size );
 }

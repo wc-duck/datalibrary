@@ -20,15 +20,17 @@ static dl_error_t dl_context_write_types( dl_ctx_t dl_ctx, dl_binary_writer* wri
 
 static dl_error_t dl_context_write_enums( dl_ctx_t dl_ctx, dl_binary_writer* writer )
 {
+	(void)dl_ctx;
+	(void)writer;
 	// TODO: this basically just re-outputs the read lib... much work left!
 
 	// TODO: handle endianness!
 
 	// ... write typelookup ... // TODO: this can be removed!
-	dl_binary_writer_write( writer, dl_ctx->enum_lookup, sizeof( dl_type_lookup_t ) * dl_ctx->enum_count );
+//	dl_binary_writer_write( writer, dl_ctx->enum_lookup, sizeof( dl_type_lookup_t ) * dl_ctx->enum_count );
 
 	// ... write types ...
-	dl_binary_writer_write( writer, dl_ctx->enum_info_data, dl_ctx->enum_info_data_size );
+//	dl_binary_writer_write( writer, dl_ctx->enum_info_data, dl_ctx->enum_info_data_size );
 
 	return DL_ERROR_OK;
 }
@@ -44,9 +46,9 @@ dl_error_t dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_li
 	header.id         = DL_TYPELIB_ID;
 	header.version    = DL_TYPELIB_VERSION;
 	header.type_count = dl_ctx->type_count;
-	header.types_size = dl_ctx->type_info_data_size;
+//	header.types_size = dl_ctx->type_info_data_size;
 	header.enum_count = dl_ctx->enum_count;
-	header.enums_size = dl_ctx->enum_info_data_size;
+//	header.enums_size = dl_ctx->enum_info_data_size;
 	header.default_value_size = 0;
 	dl_binary_writer_write( &writer, &header, sizeof( header ) );
 

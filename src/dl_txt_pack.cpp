@@ -515,7 +515,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 		{
 			uint32_t enum_value;
 			const dl_enum_desc* enum_type = pack_ctx->state_stack.Top().enum_type;
-			if( !dl_internal_find_enum_value( enum_type, (const char*)str_value, str_len, &enum_value ) )
+			if( !dl_internal_find_enum_value( pack_ctx->dl_ctx, enum_type, (const char*)str_value, str_len, &enum_value ) )
 				DL_PACK_ERROR_AND_FAIL( pack_ctx,
 										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
 										"Enum \"%s\" do not have the value \"%.*s\"!", 

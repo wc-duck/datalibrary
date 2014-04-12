@@ -27,9 +27,7 @@ dl_error_t dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, uns
 	if( dl_ctx->enum_count > out_enums_size )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	for( unsigned int e = 0; e < dl_ctx->enum_count; ++e )
-		out_enums[e] = dl_ctx->enum_lookup[e].type_id;
-
+	memcpy( out_enums, dl_ctx->enum_ids, sizeof( dl_typeid_t ) * dl_ctx->enum_count );
 	return DL_ERROR_OK;
 }
 
@@ -114,13 +112,14 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_t type, dl_enum_value_info_t* out_values, unsigned int out_values_size )
 {
 	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type );
-	if( e == 0x0 )                       return DL_ERROR_TYPE_NOT_FOUND;
+	if( e == 0x0 ) return DL_ERROR_TYPE_NOT_FOUND;
 	if( out_values_size < e->value_count ) return DL_ERROR_BUFFER_TO_SMALL;
 
 	for( uint32_t value = 0; value < e->value_count; ++value )
 	{
-		out_values[value].name  = e->values[value].name;
-		out_values[value].value = e->values[value].value;
+		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, value );
+		out_values[value].name  = v->name;
+		out_values[value].value = v->value;
 	}
 
 	return DL_ERROR_OK;

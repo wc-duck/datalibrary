@@ -141,25 +141,18 @@ struct dl_type_desc
 	uint32_t  member_start;
 };
 
-#if defined( _MSC_VER )
-#pragma warning(push)
-#pragma warning(disable:4200) // disable warning for 0-size array
-#endif // defined( _MSC_VER )
+struct dl_enum_value_desc
+{
+	char     name[DL_ENUM_VALUE_NAME_MAX_LEN];
+	uint32_t value;
+};
 
 struct dl_enum_desc
 {
-	char        name[DL_ENUM_NAME_MAX_LEN];
-	uint32_t    value_count;
-	struct
-	{
-		char     name[DL_ENUM_VALUE_NAME_MAX_LEN];
-		uint32_t value;
-	} values[0];
+	char     name[DL_ENUM_NAME_MAX_LEN];
+	uint32_t value_count;
+	uint32_t value_start;
 };
-
-#if defined( _MSC_VER )
-#pragma warning(pop)
-#endif // defined( _MSC_VER )
 
 typedef struct
 {
@@ -176,21 +169,19 @@ struct dl_context
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
 
-	dl_type_lookup_t enum_lookup[128]; // dynamic alloc?
-
 	unsigned int type_count;
 	unsigned int enum_count;
 	unsigned int member_count;
-
-	unsigned int type_info_data_size;
-	unsigned int enum_info_data_size;
+	unsigned int enum_value_count;
 
 	// TODO: dynamic alloc all type-data!
-	dl_typeid_t    type_ids[128];      ///< list of all loaded typeid:s in the same order they appear in type_descs
-	dl_type_desc   type_descs[128];    ///< list of all loaded descriptors for types.
-	dl_member_desc member_descs[1024]; ///< list of all loaded descriptors for members in types.
+	dl_typeid_t type_ids[128];      ///< list of all loaded typeid:s in the same order they appear in type_descs
+	dl_typeid_t enum_ids[128];      ///< list of all loaded typeid:s for enums in the same order they appear in enum_descs
 
-	uint8_t*     enum_info_data;
+	dl_type_desc       type_descs[128];    ///< list of all loaded descriptors for types.
+	dl_member_desc     member_descs[1024]; ///< list of all loaded descriptors for members in types.
+	dl_enum_desc       enum_descs[128];
+	dl_enum_value_desc enum_value_descs[256];
 
 	uint8_t* default_data;
 };
@@ -285,46 +276,13 @@ static inline dl_typeid_t dl_internal_typeid_of( dl_ctx_t dl_ctx, const dl_type_
 	return dl_ctx->type_ids[ type - dl_ctx->type_descs ];
 }
 
-static inline const dl_enum_desc* dl_internal_find_enum(dl_ctx_t dl_ctx, dl_typeid_t type_id)
+static inline const dl_enum_desc* dl_internal_find_enum( dl_ctx_t dl_ctx, dl_typeid_t type_id )
 {
-	for (unsigned int i = 0; i < dl_ctx->enum_count; ++i)
-		if( dl_ctx->enum_lookup[i].type_id == type_id )
-		{
-			union
-			{
-				const uint8_t* data_ptr;
-				const dl_enum_desc* enum_ptr;
-			} ptr_conv;
-			ptr_conv.data_ptr = dl_ctx->enum_info_data + dl_ctx->enum_lookup[i].offset;
-			return ptr_conv.enum_ptr;
-		}
+	for( unsigned int i = 0; i < dl_ctx->enum_count; ++i )
+		if( dl_ctx->enum_ids[i] == type_id )
+			return &dl_ctx->enum_descs[i];
 
 	return 0x0;
-}
-
-static inline bool dl_internal_find_enum_value( const dl_enum_desc* e, const char* name, size_t name_len, uint32_t* value )
-{
-	for( unsigned int j = 0; j < e->value_count; ++j )
-		if( strncmp( e->values[j].name, name, name_len ) == 0 )
-		{
-			*value = e->values[j].value;
-			return true;
-		}
-	return false;
-}
-
-static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32_t value )
-{
-	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );
-
-	if( e == 0x0 )
-		return "UnknownEnum!";
-
-	for( unsigned int j = 0; j < e->value_count; ++j )
-		if(e->values[j].value == value)
-			return e->values[j].name;
-
-	return "UnknownEnum!";
 }
 
 DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8_t* buffer, size_t bytes, uint32_t base_hash )
@@ -348,6 +306,11 @@ static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_t
 	return &ctx->member_descs[ type->member_start + member_index ];
 }
 
+static inline const dl_enum_value_desc* dl_get_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, unsigned int value_index )
+{
+	return ctx->enum_value_descs + e->value_start + value_index;
+}
+
 static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_desc* type, dl_typeid_t name_hash )
 {
 	for(unsigned int i = 0; i < type->member_count; ++i)
@@ -355,6 +318,37 @@ static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_
 			return i;
 
 	return type->member_count + 1;
+}
+
+static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, const char* name, size_t name_len, uint32_t* value )
+{
+	for( unsigned int j = 0; j < e->value_count; ++j )
+	{
+		const dl_enum_value_desc* v = dl_get_enum_value( ctx, e, j );
+		if( strncmp( v->name, name, name_len ) == 0 )
+		{
+			*value = v->value;
+			return true;
+		}
+	}
+	return false;
+}
+
+static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32_t value )
+{
+	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );
+
+	if( e == 0x0 )
+		return "UnknownEnum!";
+
+	for( unsigned int j = 0; j < e->value_count; ++j )
+	{
+		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, j );
+		if( v->value == value )
+			return v->name;
+	}
+
+	return "UnknownEnum!";
 }
 
 #endif // DL_DL_TYPES_H_INCLUDED
