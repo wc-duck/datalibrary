@@ -5,19 +5,7 @@
 
 #include <stdio.h>
 
-static char* file_read( const char* path, size_t* size )
-{
-	FILE* f = fopen( path, "rb" );
-	if( f == 0x0 )
-		return 0x0;
-	fseek( f, 0, SEEK_END );
-	*size = ftell( f );
-	fseek( f, 0, SEEK_SET );
-
-	char* data = (char*)malloc( *size );
-	fread( data, *size, 1, f );
-	return data;
-}
+#define STRINGIFY( ... ) #__VA_ARGS__
 
 TEST( DLTypeLib, simple_read_write )
 {
@@ -65,7 +53,6 @@ TEST( DLTypeLib, simple_read_write )
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }
 
-
 TEST( DLTypeLibTxt, simple_read_write )
 {
 	dl_ctx_t ctx;
@@ -75,15 +62,17 @@ TEST( DLTypeLibTxt, simple_read_write )
 
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &ctx, &p ) );
 
-	size_t small_tl_txt_size;
-	char*  small_tl_txt = file_read( "tests/small.tld", &small_tl_txt_size );
-	ASSERT_NE( (char*)0x0, small_tl_txt );
+	const char single_member_typelib[] = STRINGIFY({
+		"module" : "small",
+		"types" : {
+			"single_int" : { "members" : [ { "name" : "member", "type" : "uint32" } ] }
+		}
+	});
 
-	printf("%s", small_tl_txt);
+	printf("%s\n", single_member_typelib);
 
 	// ... load typelib ...
-//	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, small_tl_txt, small_tl_txt_size ) );
-	free( small_tl_txt );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib) ) );
 
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }

@@ -184,8 +184,8 @@ int main( int argc, const char** argv )
 
 				out_ptr_size = go_ctx.current_opt_arg[0] - '0';
 				break;
-			case '!': M_ERROR_AND_QUIT("incorrect usage of flag \"%s\"!", go_ctx.current_opt_arg);
-			case '?': M_ERROR_AND_QUIT("unrecognized flag \"%s\"!", go_ctx.current_opt_arg);
+			case '!': M_ERROR_AND_QUIT("incorrect usage of flag \"%s\"!", go_ctx.current_opt_arg); break;
+			case '?': M_ERROR_AND_QUIT("unrecognized flag \"%s\"!", go_ctx.current_opt_arg); break;
 			case '+':
 				if(in_file_path[0] != '\0')
 					M_ERROR_AND_QUIT("input-file already set to: \"%s\", trying to set it to \"%s\"", in_file_path, go_ctx.current_opt_arg);
