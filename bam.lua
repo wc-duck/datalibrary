@@ -302,7 +302,9 @@ dl_lib    = StaticLibrary( dl_settings,    "dl",    Compile( dl_settings,    Col
 dl_shared = SharedLibrary( dl_settings,    "dl",    Compile( dl_so_settings, Collect( "src/*.cpp" ) ), yajl_lib )
 
 dl_settings.cc.includes:Add('tool/dl_pack')
-dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.c", "tool/dl_pack/*.cpp") ), yajl_lib, dl_lib )
+getopt   = Compile( dl_settings, CollectRecursive( "tool/dl_pack/*.c" ) )
+dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.cpp") ), getopt, yajl_lib, dl_lib )
+dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecursive("tool/dl_tlc/*.cpp") ), getopt, yajl_lib, dl_lib )
 dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib, yajl_lib )
 
 -- HACK BONANZA!
@@ -363,5 +365,5 @@ AddJob( "test_py",
 		dl_shared, "local/generated/unittest.bin" )
 
 -- do not run unittest as default, only run
-PseudoTarget( "dl_default", dl_pack, dl_tests, dl_shared )
+PseudoTarget( "dl_default", dl_pack, dltlc, dl_tests, dl_shared )
 DefaultTarget( "dl_default" )

@@ -4,6 +4,7 @@
 #include "dl_types.h"
 
 #include <stdio.h> // remove
+#include <ctype.h>
 
 #define DL_PACK_ERROR_AND_FAIL( pack_ctx, err, fmt, ... ) { dl_log_error( pack_ctx->ctx, fmt, ##__VA_ARGS__ ); pack_ctx->error_code = err; return 0x0; }
 
@@ -12,19 +13,26 @@ enum dl_load_txt_tl_state
 	DL_LOAD_TXT_TL_STATE_ROOT,
 	DL_LOAD_TXT_TL_STATE_ROOT_MAP,
 	DL_LOAD_TXT_TL_STATE_MODULE_NAME,
+	DL_LOAD_TXT_TL_STATE_USERCODE,
 
 	DL_LOAD_TXT_TL_STATE_ENUMS,
 	DL_LOAD_TXT_TL_STATE_ENUMS_MAP,
 	DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST,
+	DL_LOAD_TXT_TL_STATE_ENUM_MAP,
+	DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP,
 
 	DL_LOAD_TXT_TL_STATE_TYPES,
 	DL_LOAD_TXT_TL_STATE_TYPES_MAP,
 
 	DL_LOAD_TXT_TL_STATE_TYPE_MAP,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST,
+	DL_LOAD_TXT_TL_STATE_TYPE_ALIGN,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_TYPE,
+	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS,
+	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT,
+	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_COMMENT,
 
 	DL_LOAD_TXT_TL_STATE_INVALID
 };
@@ -33,8 +41,14 @@ struct dl_load_txt_tl_ctx
 {
 	dl_error_t error_code;
 
+	const char* src_str;
+	yajl_handle yajl;
+
 	dl_load_txt_tl_state stack[128];
 	size_t stack_item;
+
+	size_t def_value_start;
+	int cur_default_value_depth;
 
 	dl_ctx_t ctx;
 	dl_type_desc*   active_type;
@@ -96,6 +110,15 @@ static dl_enum_value_desc* dl_alloc_enum_value( dl_ctx_t ctx )
 	return ctx->enum_value_descs + value_index;
 }
 
+static void dl_load_txt_tl_handle_default( dl_load_txt_tl_ctx* state )
+{
+	if( state->cur_default_value_depth == 0 )
+	{
+		printf("def value: \"%.*s\"\n", (int)( yajl_get_bytes_consumed( state->yajl ) - state->def_value_start ), state->src_str + state->def_value_start );
+		state->pop();
+	}
+}
+
 struct dl_load_state_name_map
 {
 	const char* name;
@@ -128,6 +151,7 @@ static int dl_load_txt_tl_on_map_start( void* ctx )
 			DL_ASSERT( state->active_enum_value == 0x0 );
 			state->push( DL_LOAD_TXT_TL_STATE_TYPE_MAP );
 			break;
+
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST:
 		{
 			DL_ASSERT( state->active_type != 0x0 );
@@ -140,7 +164,34 @@ static int dl_load_txt_tl_on_map_start( void* ctx )
 			state->push( DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP );
 		}
 		break;
+
+		case DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST:
+		{
+			DL_ASSERT( state->active_type == 0x0 );
+			DL_ASSERT( state->active_member == 0x0 );
+			DL_ASSERT( state->active_enum != 0x0 );
+			DL_ASSERT( state->active_enum_value == 0x0 );
+
+			state->active_enum_value = dl_alloc_enum_value( state->ctx );
+
+			state->push( DL_LOAD_TXT_TL_STATE_ENUM_MAP );
+		}
+		break;
+
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
+			DL_ASSERT( state->active_type == 0x0 );
+			DL_ASSERT( state->active_member == 0x0 );
+			DL_ASSERT( state->active_enum != 0x0 );
+			DL_ASSERT( state->active_enum_value != 0x0 );
+
+			state->push( DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP );
+			break;
+
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			++state->cur_default_value_depth;
+			break;
 		default:
+			printf("%u\n", state->stack[state->stack_item] );
 			DL_ASSERT( false );
 			return 0;
 	}
@@ -155,9 +206,10 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 	{
 		case DL_LOAD_TXT_TL_STATE_ROOT_MAP:
 		{
-			dl_load_state_name_map map[] = { { "module", DL_LOAD_TXT_TL_STATE_MODULE_NAME },
-											 { "enums",  DL_LOAD_TXT_TL_STATE_ENUMS },
-											 { "types",  DL_LOAD_TXT_TL_STATE_TYPES } };
+			dl_load_state_name_map map[] = { { "module",   DL_LOAD_TXT_TL_STATE_MODULE_NAME },
+											 { "enums",    DL_LOAD_TXT_TL_STATE_ENUMS },
+											 { "types",    DL_LOAD_TXT_TL_STATE_TYPES },
+											 { "usercode", DL_LOAD_TXT_TL_STATE_USERCODE } };
 
 			dl_load_txt_tl_state s = dl_load_state_from_string( map, DL_ARRAY_LENGTH( map ), str_val, str_len );
 			if( s == DL_LOAD_TXT_TL_STATE_INVALID )
@@ -170,11 +222,13 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		break;
 		case DL_LOAD_TXT_TL_STATE_ENUMS_MAP:
 		{
-			printf("begin parse enum \"%.*s\"\n", (int)str_len, (const char*)str_val);
 			if( str_len >= DL_ENUM_NAME_MAX_LEN )
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "Enumname \"%.*s\" is (currently) to long!", str_len, str_val );
 
-			dl_enum_desc* e = dl_alloc_enum( state->ctx, 0xFFFFFFFF ); // typeid is patched when type is done by using all members etc.
+			// TODO: typeid should be patched when type is done by using all members etc.
+			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len, 0 );
+
+			dl_enum_desc* e = dl_alloc_enum( state->ctx, tid );
 			e->value_start = state->ctx->enum_value_count;
 			e->value_count = 0;
 			memcpy( e->name, str_val, str_len );
@@ -185,15 +239,16 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPES_MAP:
 		{
-			printf("begin parse type \"%.*s\"\n", (int)str_len, (const char*)str_val);
-
 			// ... check that type is not already in tld ...
 
 			if( str_len >= DL_TYPE_NAME_MAX_LEN )
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "Typename \"%.*s\" is (currently) to long!", str_len, str_val );
 
 			// ... alloc new type ...
-			dl_type_desc* type = dl_alloc_type( state->ctx, 0xFFFFFFFF ); // typeid is patched when type is done by using all members etc.
+			// TODO: typeid should be patched when type is done by using all members etc.
+			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len, 0 );
+
+			dl_type_desc* type = dl_alloc_type( state->ctx, tid );
 			type->member_start = state->ctx->member_count;
 			type->member_count = 0;
 			memcpy( type->name, str_val, str_len );
@@ -204,9 +259,8 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MAP:
 		{
-			printf("\tbegin parse type member \"%.*s\"\n", (int)str_len, (const char*)str_val);
-
-			dl_load_state_name_map map[] = { { "members", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST } };
+			dl_load_state_name_map map[] = { { "members", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST },
+											 { "align",   DL_LOAD_TXT_TL_STATE_TYPE_ALIGN }};
 
 			dl_load_txt_tl_state s = dl_load_state_from_string( map, DL_ARRAY_LENGTH( map ), str_val, str_len );
 
@@ -219,8 +273,11 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP:
 		{
-			dl_load_state_name_map map[] = { { "name", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME },
-											 { "type", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_TYPE } };
+			dl_load_state_name_map map[] = { { "name",    DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME },
+											 { "type",    DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_TYPE },
+											 { "bits",    DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS },
+											 { "default", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT },
+											 { "comment", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_COMMENT } };
 
 			dl_load_txt_tl_state s = dl_load_state_from_string( map, DL_ARRAY_LENGTH( map ), str_val, str_len );
 
@@ -229,11 +286,34 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 										"Got key \"%.*s\", in member def, expected \"name\" or \"type\"!",
 										str_len, str_val );
 
+			if( s == DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT )
+			{
+				DL_ASSERT( state->cur_default_value_depth == 0 );
+				state->def_value_start = yajl_get_bytes_consumed( state->yajl );
+			}
+
 			// TODO: check that key was not already set!
 
 			state->push( s );
 		}
 		break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
+		{
+			if( str_len >= DL_ENUM_VALUE_NAME_MAX_LEN )
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "enum value name \"%.*s\" is (currently) to long!", str_len, str_val );
+
+			dl_enum_value_desc* value = state->active_enum_value;
+			memcpy( value->name, str_val, str_len );
+			value->name[ str_len ] = 0;
+		}
+		break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
+		{
+
+		}
+		break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			break;
 		default:
 			printf("unhandled map key %lu %u \"%.*s\"\n", state->stack_item, state->stack[state->stack_item], (int)str_len, (const char*)str_val);
 			// DL_ASSERT( false );
@@ -261,13 +341,20 @@ static int dl_load_txt_tl_on_map_end( void* ctx )
 			state->pop(); // pop DL_LOAD_TXT_TL_STATE_TYPES
 			break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MAP:
-			DL_ASSERT( state->active_type != 0x0 );
+		{
+			dl_type_desc* type = state->active_type;
+
+			DL_ASSERT( type != 0x0 );
+			DL_ASSERT( state->active_member == 0x0 );
 
 			// ... calc size, align and member stuff here + set typeid ...
+			type->member_count = state->ctx->member_count - type->member_start;
+
 
 			state->active_type = 0x0;
 			state->pop(); // pop DL_LOAD_TXT_TL_STATE_TYPE_MAP
-			break;
+		}
+		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP:
 			DL_ASSERT( state->active_type != 0x0 );
 			DL_ASSERT( state->active_member != 0x0 );
@@ -277,6 +364,31 @@ static int dl_load_txt_tl_on_map_end( void* ctx )
 			state->active_member = 0x0;
 
 			state->pop(); // pop DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP
+			break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
+		{
+			DL_ASSERT( state->active_type == 0x0 );
+			DL_ASSERT( state->active_member == 0x0 );
+			DL_ASSERT( state->active_enum != 0x0 );
+			DL_ASSERT( state->active_enum_value != 0x0 );
+
+			state->active_enum_value = 0x0;
+			state->pop(); // pop DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP
+		}
+		break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
+		{
+			DL_ASSERT( state->active_type == 0x0 );
+			DL_ASSERT( state->active_member == 0x0 );
+			DL_ASSERT( state->active_enum != 0x0 );
+			DL_ASSERT( state->active_enum_value != 0x0 );
+
+			state->pop(); // pop DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP
+		}
+		break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			--state->cur_default_value_depth;
+			dl_load_txt_tl_handle_default( state );
 			break;
 		default:
 			DL_ASSERT( false );
@@ -316,6 +428,14 @@ dl_type_t dl_make_type( dl_type_t atom, dl_type_t storage )
 static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str_len, dl_member_desc* member )
 {
 	// TODO: strip whitespace here!
+
+	if( strncmp( "bitfield", str, str_len ) == 0 )
+	{
+		member->type = dl_make_type( DL_TYPE_ATOM_BITFIELD, DL_TYPE_STORAGE_UINT8 );
+
+		// type etc?
+		return 1;
+	}
 
 	for( size_t i = 0; i < DL_ARRAY_LENGTH( BUILTIN_TYPES ); ++i )
 	{
@@ -367,6 +487,36 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 		}
 	}
 
+	const char* iter = str;
+	const char* end  = str + str_len;
+
+	while( ( isalnum( *iter ) || *iter == '_' ) && ( iter != end ) )
+		++iter;
+
+	// ... simple type? ...
+	if( iter == end )
+	{
+		printf( "parsed as type %.*s\n", (int)str_len, str );
+		return 1;
+	}
+
+	if( *iter == '[' )
+	{
+		// ... array? ...
+
+		// ... inline array? ...
+		printf( "parsed as array %.*s\n", (int)str_len, str );
+		return 1;
+	}
+
+	printf("\"%c\"\n", *iter);
+	// ... pointer? ...
+	if( *iter == '*' )
+	{
+		printf( "parsed as ptr %.*s\n", (int)str_len, str );
+		return 1;
+	}
+
 	printf( "couldn't parse %.*s\n", (int)str_len, str );
 	return 0;
 }
@@ -377,11 +527,10 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 
 	switch( state->stack[state->stack_item] )
 	{
-		case DL_LOAD_TXT_TL_STATE_MODULE_NAME:      printf("module name is \"%.*s\"\n",(int)str_len, (const char*)str_val); state->pop(); break;
+		case DL_LOAD_TXT_TL_STATE_MODULE_NAME: state->pop(); break;
+		case DL_LOAD_TXT_TL_STATE_USERCODE: break;
 		case DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST:
 		{
-			printf("\tadd enum-value \"%.*s\"\n",(int)str_len, (const char*)str_val);
-
 			if( str_len >= DL_ENUM_VALUE_NAME_MAX_LEN )
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "enum value name \"%.*s\" is (currently) to long!", str_len, str_val );
 
@@ -409,6 +558,20 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 			state->pop();
 		}
 		break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_COMMENT:
+		{
+			// HANDLE COMMENT HERE!
+			state->pop();
+		}
+		break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
+		{
+			// do it!
+		}
+		break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			dl_load_txt_tl_handle_default( state );
+			break;
 		default:
 			DL_ASSERT( false );
 			return 0;
@@ -417,18 +580,67 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 	return 1;
 }
 
-static int dl_internal_pack_on_array_start( void* ctx )
+static int dl_load_txt_on_integer( void * ctx, long long integer )
+{
+	(void)ctx; (void)integer;
+	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
+
+	switch( state->stack[state->stack_item] )
+	{
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS:
+			state->pop();
+			break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_ALIGN:
+			state->pop();
+			break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
+			break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
+			break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			dl_load_txt_tl_handle_default( state );
+			break;
+		default:
+			printf("%u\n", state->stack[state->stack_item]);
+			DL_ASSERT( false );
+			return 0;
+	}
+	return 1;
+}
+
+static int dl_load_txt_on_double( void * ctx, double dbl )
+{
+	(void)dbl;
+	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
+
+	switch( state->stack[state->stack_item] )
+	{
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			dl_load_txt_tl_handle_default( state );
+			break;
+		default:
+			printf("%u\n", state->stack[state->stack_item]);
+			DL_ASSERT( false );
+			return 0;
+	}
+	return 1;
+}
+
+static int dl_load_txt_on_array_start( void* ctx )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
 	switch( state->stack[state->stack_item] )
 	{
 		case DL_LOAD_TXT_TL_STATE_ENUMS_MAP:
-			printf("begin enum value list!\n");
 			state->push( DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST );
 			break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST:
-			printf("\t\tbegin member value list!\n");
+			break;
+		case DL_LOAD_TXT_TL_STATE_USERCODE:
+			break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			++state->cur_default_value_depth;
 			break;
 		default:
 			DL_ASSERT( false );
@@ -438,19 +650,69 @@ static int dl_internal_pack_on_array_start( void* ctx )
 	return 1;
 }
 
-static int dl_internal_pack_on_array_end( void* ctx )
+static int dl_load_txt_on_array_end( void* ctx )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
 	switch( state->stack[state->stack_item] )
 	{
 		case DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST:
-			printf("end enum value list!\n");
+		{
+			dl_enum_desc* e = state->active_enum;
+			DL_ASSERT( e != 0x0 );
+			DL_ASSERT( state->active_enum_value == 0x0 );
+
+			e->value_count = state->ctx->enum_value_count - e->value_start;
+
 			state->active_enum = 0x0;
 			state->pop();
-			break;
+		}
+		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST:
-			state->pop(); break;
+			state->pop();
+			break;
+		case DL_LOAD_TXT_TL_STATE_USERCODE:
+			state->pop();
+			break;
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			--state->cur_default_value_depth;
+			dl_load_txt_tl_handle_default( state );
+			break;
+		default:
+			DL_ASSERT( false );
+			return 0;
+	}
+
+	return 1;
+}
+
+static int dl_load_txt_on_null( void* ctx )
+{
+	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
+
+	switch( state->stack[state->stack_item] )
+	{
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			dl_load_txt_tl_handle_default( state );
+			break;
+		default:
+			DL_ASSERT( false );
+			return 0;
+	}
+
+	return 1;
+}
+
+static int dl_load_txt_on_bool( void* ctx, int value )
+{
+	(void)value;
+	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
+
+	switch( state->stack[state->stack_item] )
+	{
+		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
+			dl_load_txt_tl_handle_default( state );
+			break;
 		default:
 			DL_ASSERT( false );
 			return 0;
@@ -470,17 +732,17 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 //	};
 
 	yajl_callbacks callbacks = {
-		0x0, // dl_internal_pack_on_null,
-		0x0, // dl_internal_pack_on_bool,
-		NULL, // integer,
-		NULL, // double,
+		dl_load_txt_on_null,
+		dl_load_txt_on_bool,
+		dl_load_txt_on_integer,
+		dl_load_txt_on_double,
 		0x0, // dl_internal_pack_on_number,
 		dl_load_txt_tl_on_string,
 		dl_load_txt_tl_on_map_start,
 		dl_load_txt_tl_on_map_key,
 		dl_load_txt_tl_on_map_end,
-		dl_internal_pack_on_array_start,
-		dl_internal_pack_on_array_end
+		dl_load_txt_on_array_start,
+		dl_load_txt_on_array_end
 	};
 
 	dl_load_txt_tl_ctx state;
@@ -491,21 +753,24 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	state.active_member = 0x0;
 	state.active_enum = 0x0;
 	state.active_enum_value = 0x0;
+	state.cur_default_value_depth = 0;
 	state.error_code = DL_ERROR_OK;
+	state.src_str = lib_data;
+	state.yajl = yajl_alloc( &callbacks, /*&my_yajl_alloc*/0x0, &state );
+	yajl_config( state.yajl, yajl_allow_comments, 1 );
 
-	yajl_handle my_yajl_handle = yajl_alloc( &callbacks, /*&my_yajl_alloc*/0x0, &state );
-	yajl_status my_yajl_status = yajl_parse( my_yajl_handle, (const unsigned char*)lib_data, lib_data_size );
+	yajl_status my_yajl_status = yajl_parse( state.yajl, (const unsigned char*)lib_data, lib_data_size );
 
 	DL_ASSERT( state.stack_item == 0 );
 
 	if( my_yajl_status != yajl_status_ok )
 	{
-		printf("%s\n", yajl_get_error( my_yajl_handle, 1, (const unsigned char*)lib_data, lib_data_size ) );
-		yajl_free( my_yajl_handle );
+		printf("%s\n", yajl_get_error( state.yajl, 1, (const unsigned char*)lib_data, lib_data_size ) );
+		yajl_free( state.yajl );
 		return state.error_code;
 	}
 
-	yajl_free( my_yajl_handle );
+	yajl_free( state.yajl );
 
 	return DL_ERROR_OK;
 }
