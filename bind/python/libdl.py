@@ -110,7 +110,10 @@ class DLContext:
     class dl_member_info(Structure):
         _fields_ = [ ('name',        c_char_p),
                      ('type',        c_uint32), 
-                     ('type_id',     c_uint32), 
+                     ('type_id',     c_uint32),
+                     ('size',        c_uint32),
+                     ('alignment',   c_uint32),
+                     ('offset',      c_uint32), 
                      ('array_count', c_uint32) ]
         
         def AtomType(self):       return self.type & DL_TYPE_ATOM_MASK

@@ -42,6 +42,9 @@ typedef struct dl_member_info
 	const char*  name;
 	dl_type_t    type;
 	dl_typeid_t  type_id;
+	unsigned int size;
+	unsigned int alignment;
+	unsigned int offset;
 	unsigned int array_count;
 } dl_member_info_t;
 

@@ -81,9 +81,12 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 	{
 		const dl_member_desc* Member = dl_get_type_member( dl_ctx, pType, nMember );
 
-		out_members[nMember].name    = Member->name;
-		out_members[nMember].type    = Member->type;
-		out_members[nMember].type_id = Member->type_id;
+		out_members[nMember].name      = Member->name;
+		out_members[nMember].type      = Member->type;
+		out_members[nMember].type_id   = Member->type_id;
+		out_members[nMember].size      = Member->size[DL_PTR_SIZE_HOST];
+		out_members[nMember].alignment = Member->alignment[DL_PTR_SIZE_HOST];
+		out_members[nMember].offset    = Member->offset[DL_PTR_SIZE_HOST];
 
 		if(Member->AtomType() == DL_TYPE_ATOM_INLINE_ARRAY)
 		{
