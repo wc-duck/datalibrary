@@ -6,12 +6,11 @@ static dl_error_t dl_context_write_types( dl_ctx_t dl_ctx, dl_binary_writer* wri
 	// TODO: this basically just re-outputs the read lib... much work left!
 
 	// TODO: handle endianness!
-
 	dl_type_lookup_t lookup[256]; // haxxy before we fix typelib fmt
 	DL_ASSERT( dl_ctx->type_count < 256 );
 
 	size_t lookup_start = dl_binary_writer_tell( writer );
-	size_t type_desc_size = dl_ctx->enum_count * sizeof( dl_type_lookup_t );
+	size_t type_desc_size = dl_ctx->type_count * sizeof( dl_type_lookup_t );
 	dl_binary_writer_reserve( writer, type_desc_size );
 	dl_binary_writer_seek_set( writer, lookup_start + type_desc_size );
 

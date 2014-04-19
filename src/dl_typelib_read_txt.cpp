@@ -27,6 +27,7 @@ enum dl_load_txt_tl_state
 	DL_LOAD_TXT_TL_STATE_TYPE_MAP,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST,
 	DL_LOAD_TXT_TL_STATE_TYPE_ALIGN,
+	DL_LOAD_TXT_TL_STATE_TYPE_EXTERN,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_TYPE,
@@ -76,7 +77,10 @@ static dl_type_desc* dl_alloc_type( dl_ctx_t ctx, dl_typeid_t tid )
 	++ctx->type_count;
 
 	ctx->type_ids[ type_index ] = tid;
-	return ctx->type_descs + type_index;
+	dl_type_desc* type = ctx->type_descs + type_index;
+	memset( type, 0x0, sizeof( dl_type_desc ) );
+
+	return type;
 }
 
 static dl_member_desc* dl_alloc_member( dl_ctx_t ctx )
@@ -262,7 +266,8 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		case DL_LOAD_TXT_TL_STATE_TYPE_MAP:
 		{
 			dl_load_state_name_map map[] = { { "members", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST },
-											 { "align",   DL_LOAD_TXT_TL_STATE_TYPE_ALIGN }};
+											 { "align",   DL_LOAD_TXT_TL_STATE_TYPE_ALIGN },
+											 { "extern",  DL_LOAD_TXT_TL_STATE_TYPE_EXTERN } };
 
 			dl_load_txt_tl_state s = dl_load_state_from_string( map, DL_ARRAY_LENGTH( map ), str_val, str_len );
 
@@ -507,8 +512,8 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 			{
 				member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, builtin->type );
 				member->type_id = 0;
-				member->size[DL_PTR_SIZE_32BIT] = 4;
-				member->size[DL_PTR_SIZE_64BIT] = 8;
+				member->size[DL_PTR_SIZE_32BIT] = 8;
+				member->size[DL_PTR_SIZE_64BIT] = 16;
 				member->alignment[DL_PTR_SIZE_32BIT] = 4;
 				member->alignment[DL_PTR_SIZE_64BIT] = 8;
 				return 1;
@@ -550,8 +555,8 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 	if( is_array )
 	{
 		member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, DL_TYPE_STORAGE_STRUCT );
-		member->size[DL_PTR_SIZE_32BIT] = 4;
-		member->size[DL_PTR_SIZE_64BIT] = 8;
+		member->size[DL_PTR_SIZE_32BIT] = 8;
+		member->size[DL_PTR_SIZE_64BIT] = 16;
 		member->alignment[DL_PTR_SIZE_32BIT] = 4;
 		member->alignment[DL_PTR_SIZE_64BIT] = 8;
 		return 1;
@@ -560,8 +565,10 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 	if( is_inline_array )
 	{
 		member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, DL_TYPE_STORAGE_STRUCT );
-		member->size[DL_PTR_SIZE_32BIT] = 4; // size and align of the actual type here!
-		member->size[DL_PTR_SIZE_64BIT] = 4;
+		// hack here is used to later set the size, this can be removed if we store inline array length
+		// in the same space as bitfield bits and offset.
+		member->size[DL_PTR_SIZE_32BIT] = inline_array_len;
+		member->size[DL_PTR_SIZE_64BIT] = inline_array_len;
 		member->alignment[DL_PTR_SIZE_32BIT] = 0;
 		member->alignment[DL_PTR_SIZE_64BIT] = 0;
 		return 1;
@@ -636,17 +643,43 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 
 static int dl_load_txt_on_integer( void * ctx, long long integer )
 {
-	(void)ctx; (void)integer;
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
 	switch( state->stack[state->stack_item] )
 	{
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS:
+		{
+			DL_ASSERT( state->active_type       != 0x0 );
+			DL_ASSERT( state->active_member     != 0x0 );
+			DL_ASSERT( state->active_enum       == 0x0 );
+			DL_ASSERT( state->active_enum_value == 0x0 );
+
+			dl_member_desc* member = state->active_member;
+
+			if( member->BitFieldBits() != 0 )
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "member has \"bits\" set multiple times!" );
+
+			member->SetBitFieldBits( (unsigned int)integer );
 			state->pop();
-			break;
+		}
+		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_ALIGN:
+		{
+			DL_ASSERT( state->active_type       != 0x0 );
+			DL_ASSERT( state->active_member     == 0x0 );
+			DL_ASSERT( state->active_enum       == 0x0 );
+			DL_ASSERT( state->active_enum_value == 0x0 );
+
+			dl_type_desc* type = state->active_type;
+			if( type->alignment[DL_PTR_SIZE_32BIT] != 0 )
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "%s has \"align\" set multiple times!", type->name );
+
+			type->alignment[DL_PTR_SIZE_32BIT] = (uint32_t)integer;
+			type->alignment[DL_PTR_SIZE_64BIT] = (uint32_t)integer;
+
 			state->pop();
-			break;
+		}
+		break;
 		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
 			break;
 		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
@@ -764,6 +797,10 @@ static int dl_load_txt_on_bool( void* ctx, int value )
 
 	switch( state->stack[state->stack_item] )
 	{
+		case DL_LOAD_TXT_TL_STATE_TYPE_EXTERN:
+			// handle me :)
+			state->pop();
+			break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			dl_load_txt_tl_handle_default( state );
 			break;
@@ -777,6 +814,96 @@ static int dl_load_txt_on_bool( void* ctx, int value )
 
 static inline uint32_t align_up( const uint32_t in, uint32_t alignment ) { return ( in + alignment - 1 ) & ~( alignment - 1 ); }
 
+static dl_member_desc* dl_load_txt_find_first_bitfield_member( dl_member_desc* start, dl_member_desc* end )
+{
+	while( start < end )
+	{
+		if( start->AtomType() == DL_TYPE_ATOM_BITFIELD )
+			return start;
+		++start;
+	}
+	return 0x0;
+}
+
+static dl_member_desc* dl_load_txt_find_first_non_bitfield_member( dl_member_desc* start, dl_member_desc* end )
+{
+	while( start < end )
+	{
+		if( start->AtomType() != DL_TYPE_ATOM_BITFIELD )
+			return start;
+		++start;
+	}
+	return 0x0;
+}
+
+static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type )
+{
+	dl_member_desc* start = ctx->member_descs + type->member_start;
+	dl_member_desc* end   = ctx->member_descs + type->member_start + type->member_count;
+
+	while( true )
+	{
+		dl_member_desc* group_start = dl_load_txt_find_first_bitfield_member( start, end );
+		if( group_start == 0x0 )
+			return; // done!
+		dl_member_desc* group_end = dl_load_txt_find_first_non_bitfield_member( group_start + 1, end );
+		if( group_end == 0x0 )
+			group_end = end;
+
+		unsigned int group_bits = 0;
+		for( dl_member_desc* iter = group_start; iter != group_end; ++iter )
+		{
+			iter->SetBitFieldOffset( group_bits );
+			group_bits += iter->BitFieldBits();
+		}
+
+		// TODO: handle higher bit-counts than 64!
+		dl_type_t storage;
+		if     ( group_bits <= 8  ) storage = DL_TYPE_STORAGE_UINT8;
+		else if( group_bits <= 16 ) storage = DL_TYPE_STORAGE_UINT16;
+		else if( group_bits <= 32 ) storage = DL_TYPE_STORAGE_UINT32;
+		else if( group_bits <= 64 ) storage = DL_TYPE_STORAGE_UINT64;
+		else
+			DL_ASSERT( false );
+
+		for( dl_member_desc* iter = group_start; iter != group_end; ++iter )
+		{
+			iter->type = ( dl_type_t )( (unsigned int)iter->type | (unsigned int)storage );
+			switch( storage )
+			{
+				case DL_TYPE_STORAGE_UINT8:
+					iter->size[DL_PTR_SIZE_32BIT] = 1;
+					iter->size[DL_PTR_SIZE_64BIT] = 1;
+					iter->alignment[DL_PTR_SIZE_32BIT] = 1;
+					iter->alignment[DL_PTR_SIZE_64BIT] = 1;
+					break;
+				case DL_TYPE_STORAGE_UINT16:
+					iter->size[DL_PTR_SIZE_32BIT] = 2;
+					iter->size[DL_PTR_SIZE_64BIT] = 2;
+					iter->alignment[DL_PTR_SIZE_32BIT] = 2;
+					iter->alignment[DL_PTR_SIZE_64BIT] = 2;
+					break;
+				case DL_TYPE_STORAGE_UINT32:
+					iter->size[DL_PTR_SIZE_32BIT] = 4;
+					iter->size[DL_PTR_SIZE_64BIT] = 4;
+					iter->alignment[DL_PTR_SIZE_32BIT] = 4;
+					iter->alignment[DL_PTR_SIZE_64BIT] = 4;
+					break;
+				case DL_TYPE_STORAGE_UINT64:
+					iter->size[DL_PTR_SIZE_32BIT] = 8;
+					iter->size[DL_PTR_SIZE_64BIT] = 8;
+					iter->alignment[DL_PTR_SIZE_32BIT] = 8;
+					iter->alignment[DL_PTR_SIZE_64BIT] = 8;
+					break;
+				default:
+					DL_ASSERT( false );
+			}
+		}
+
+		start = group_end;
+	}
+}
+
 /**
  * return true if the calculation was successful.
  */
@@ -786,54 +913,58 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 	if( type->size[0] > 0 )
 		return true;
 
+	dl_load_txt_fixup_bitfield_members( ctx, type );
+
+	uint32_t size[2]  = { 0, 0 };
+	uint32_t align[2] = { type->alignment[DL_PTR_SIZE_32BIT], type->alignment[DL_PTR_SIZE_64BIT] };
+
 	unsigned int mem_start = type->member_start;
 	unsigned int mem_end   = type->member_start + type->member_count;
 
-	// ... can be fixed now? ...
+	bool in_bitfield_group = false;
+
 	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
 	{
 		dl_member_desc* member = ctx->member_descs + member_index;
+
+		dl_type_t atom = member->AtomType();
 		dl_type_t storage = member->StorageType();
-		if( !member->IsSimplePod() && storage != DL_TYPE_STORAGE_STR )
+
+		if( ( atom == DL_TYPE_ATOM_INLINE_ARRAY || atom == DL_TYPE_ATOM_POD ) && storage == DL_TYPE_STORAGE_STRUCT )
 		{
 			const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
 			if( sub_type == 0x0 )
-				printf("%s->%s need lookup = NOT FOUND!\n", type->name, member->name);
-			else if( sub_type->size[0] == 0 )
 			{
-				// ... 0 in size say that it hasn't been processed yet, so we can't process this type ...
-				return false;
-			}
-		}
-	}
-
-	// ... fixup all bitfields ...
-	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
-	{
-		dl_member_desc* member = ctx->member_descs + member_index;
-		if( member->AtomType() == DL_TYPE_ATOM_BITFIELD )
-		{
-			// ... fix it ...
-			printf( "bitfield! %u\n", member->BitFieldBits() );
-		}
-	}
-
-	uint32_t size[2]  = { 0, 0 };
-	uint32_t align[2] = { 0, 0 };
-
-	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
-	{
-		dl_member_desc* member = ctx->member_descs + member_index;
-
-//		dl_type_t atom    = member->AtomType();
-		dl_type_t storage = member->StorageType();
-		if( !member->IsSimplePod() && storage != DL_TYPE_STORAGE_STR )
-		{
-			const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
-			if( sub_type == 0x0 )
 				printf("%s->%s need lookup = NOT FOUND!\n", type->name, member->name);
+				continue;
+			}
 
+			if( sub_type->size[0] == 0 )
+				dl_load_txt_calc_type_size_and_align( ctx, (dl_type_desc*)sub_type );
+
+			if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
+			{
+				member->size[DL_PTR_SIZE_32BIT] *= sub_type->size[DL_PTR_SIZE_32BIT];
+				member->size[DL_PTR_SIZE_64BIT] *= sub_type->size[DL_PTR_SIZE_64BIT];
+			}
+			else
+			{
+				member->size[DL_PTR_SIZE_32BIT] = sub_type->size[DL_PTR_SIZE_32BIT];
+				member->size[DL_PTR_SIZE_64BIT] = sub_type->size[DL_PTR_SIZE_64BIT];
+			}
+			member->alignment[DL_PTR_SIZE_32BIT] = sub_type->alignment[DL_PTR_SIZE_32BIT];
+			member->alignment[DL_PTR_SIZE_64BIT] = sub_type->alignment[DL_PTR_SIZE_64BIT];
+
+			in_bitfield_group = false;
 		}
+		else if( atom == DL_TYPE_ATOM_BITFIELD )
+		{
+			if( in_bitfield_group )
+				continue;
+			in_bitfield_group = true;
+		}
+		else
+			in_bitfield_group = false;
 
 		member->offset[DL_PTR_SIZE_32BIT] = size[DL_PTR_SIZE_32BIT];
 		member->offset[DL_PTR_SIZE_64BIT] = size[DL_PTR_SIZE_64BIT];
@@ -847,8 +978,8 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 		align[DL_PTR_SIZE_64BIT] = member->alignment[DL_PTR_SIZE_64BIT] > align[DL_PTR_SIZE_64BIT] ? member->alignment[DL_PTR_SIZE_64BIT] : align[DL_PTR_SIZE_64BIT];
 	}
 
-	type->size[DL_PTR_SIZE_32BIT] = size[DL_PTR_SIZE_32BIT];
-	type->size[DL_PTR_SIZE_64BIT] = size[DL_PTR_SIZE_64BIT];
+	type->size[DL_PTR_SIZE_32BIT]      = align_up( size[DL_PTR_SIZE_32BIT], align[DL_PTR_SIZE_32BIT] );
+	type->size[DL_PTR_SIZE_64BIT]      = align_up( size[DL_PTR_SIZE_64BIT], align[DL_PTR_SIZE_64BIT] );
 	type->alignment[DL_PTR_SIZE_32BIT] = align[DL_PTR_SIZE_32BIT];
 	type->alignment[DL_PTR_SIZE_64BIT] = align[DL_PTR_SIZE_64BIT];
 
