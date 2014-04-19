@@ -192,6 +192,27 @@ static void write_tl_as_binary( dl_ctx_t ctx, FILE* out )
 	free( outdata );
 }
 
+static void show_tl_members( dl_ctx_t ctx, const char* member_fmt, dl_typeid_t tid, unsigned int member_count )
+{
+	dl_member_info_t* member_info = (dl_member_info_t*)malloc( member_count * sizeof( dl_member_info_t ) );
+	dl_reflect_get_type_members( ctx, tid, member_info, member_count );
+	for( unsigned int j = 0; j < member_count; ++j )
+	{
+//		const char* atom = "whoo";
+//		switch( member_info->type & DL_TYPE_ATOM_MASK )
+//		{
+//			case DL_TYPE_ATOM_POD:          atom = ""; break;
+//			case DL_TYPE_ATOM_ARRAY:        atom = "[]"; break;
+//			case DL_TYPE_ATOM_INLINE_ARRAY: atom = "[x]"; break;
+//			case DL_TYPE_ATOM_BITFIELD:     atom = " : bits"; break;
+//		}
+
+		// TODO: print name here!
+		printf(member_fmt, member_info[j].name, member_info[j].size, member_info[j].alignment, member_info[j].offset);
+	}
+	free( member_info );
+}
+
 static void show_tl_info( dl_ctx_t ctx )
 {
 	dl_type_context_info_t ctx_info;
@@ -217,8 +238,10 @@ static void show_tl_info( dl_ctx_t ctx )
 
 	char header_fmt[256];
 	char item_fmt[256];
-	snprintf( header_fmt, 256, "%%-%lus       %-15s %-15s %-15s\n", max_name_len, "typeid", "size", "align" );
-	snprintf( item_fmt, 256, "%%-%lus   0x%%-15x %%-15u %%-15u\n", max_name_len );
+	char member_fmt[256];
+	snprintf( header_fmt, 256, "%-10s  %%-%lus %5s %s %s\n", "typeid", max_name_len, "size", "align", "offset" );
+	snprintf( item_fmt,   256, "0x%%08X  %%-%lus %%5u %%5u\n", max_name_len );
+	snprintf( member_fmt, 256, "   - %%-%lus        %%5u %%5u %%5u\n", max_name_len );
 
 	printf("types:\n");
 	int header_len = printf( header_fmt, "name");
@@ -232,17 +255,9 @@ static void show_tl_info( dl_ctx_t ctx )
 		dl_reflect_get_type_info( ctx, tids[i], &type_info );
 
 		// TODO: not only output data for host-platform =/
-		printf( item_fmt, type_info.name, tids[i], type_info.size, type_info.alignment );
-
-		dl_member_info_t* member_info = (dl_member_info_t*)malloc( type_info.member_count * sizeof( dl_member_info ) );
-		dl_reflect_get_type_members( ctx, tids[i], member_info, type_info.member_count );
-		for( unsigned int j = 0; j < type_info.member_count; ++j )
-		{
-			// TODO: print name here!
-			printf("    %s\n", member_info[j].name);
-		}
+		printf( item_fmt, tids[i], type_info.name, type_info.size, type_info.alignment );
+		show_tl_members( ctx, member_fmt, tids[i], type_info.member_count );
 		printf("\n");
-		free( member_info );
 	}
 
 	free( tids );

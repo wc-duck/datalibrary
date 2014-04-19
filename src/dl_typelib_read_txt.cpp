@@ -253,6 +253,8 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			type->member_count = 0;
 			memcpy( type->name, str_val, str_len );
 			type->name[ str_len ] = 0;
+			type->size[ DL_PTR_SIZE_32BIT ] = 0;
+			type->size[ DL_PTR_SIZE_64BIT ] = 0;
 
 			state->active_type = type;
 		}
@@ -425,13 +427,68 @@ dl_type_t dl_make_type( dl_type_t atom, dl_type_t storage )
 	return (dl_type_t)( (unsigned int)atom | (unsigned int)storage );
 }
 
+#include <stdlib.h>
+
 static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str_len, dl_member_desc* member )
 {
-	// TODO: strip whitespace here!
+	// ... strip whitespace ...
+	char   type_name[2048];
+	size_t type_name_len = 0;
+	DL_ASSERT( str_len < DL_ARRAY_LENGTH( type_name ) );
 
-	if( strncmp( "bitfield", str, str_len ) == 0 )
+	const char* iter = str;
+	const char* end  = str + str_len;
+
+	while( ( isalnum( *iter ) || *iter == '_' ) && ( iter != end ) )
+	{
+		type_name[type_name_len++] = *iter;
+		++iter;
+	}
+	type_name[type_name_len] = '\0';
+
+	bool is_ptr = false;
+	bool is_array = false;
+	bool is_inline_array = false;
+	unsigned int inline_array_len = 0;
+
+//	printf("typename: %s\n", type_name);
+
+	// haxxy
+	if( iter != end )
+	{
+		if( *iter == '*' )
+			is_ptr = true;
+		if( *iter == '[' )
+		{
+			++iter;
+			if( *iter == ']' )
+				is_array = true;
+			else
+			{
+				char num[256];
+				size_t num_len = 0;
+				while( isdigit(*iter) && iter != end )
+				{
+					num[num_len++] = *iter;
+					++iter;
+				}
+				num[num_len] = '\0';
+
+				if( *iter != ']' )
+					DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "parse error!?!" );
+
+				inline_array_len = (unsigned int)atol( num );
+				is_inline_array = true;
+			}
+		}
+	}
+
+//	printf("%d %d %d %u\n", is_ptr, is_array, is_inline_array, inline_array_len );
+
+	if( strcmp( "bitfield", type_name ) == 0 )
 	{
 		member->type = dl_make_type( DL_TYPE_ATOM_BITFIELD, DL_TYPE_STORAGE_UINT8 );
+		member->type_id = 0;
 
 		// type etc?
 		return 1;
@@ -440,85 +497,82 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 	for( size_t i = 0; i < DL_ARRAY_LENGTH( BUILTIN_TYPES ); ++i )
 	{
 		const dl_builtin_type* builtin = &BUILTIN_TYPES[i];
-		size_t test_len = strlen( builtin->name );
-
-		// in string length is less than name of builtin type, it can't be it.
-		if( test_len >= str_len )
+		if( strcmp( type_name, builtin->name ) == 0 )
 		{
-			if( strncmp( builtin->name, str, test_len ) == 0 )
+			// handle it ...
+			if( is_ptr )
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "pointer to pod is not supported!" );
+
+			if( is_array )
 			{
-				if( str_len == test_len )
-				{
-					member->type = dl_make_type( DL_TYPE_ATOM_POD, builtin->type );
-					member->size[DL_PTR_SIZE_32BIT] = builtin->size[DL_PTR_SIZE_32BIT];
-					member->size[DL_PTR_SIZE_64BIT] = builtin->size[DL_PTR_SIZE_64BIT];
-					member->alignment[DL_PTR_SIZE_32BIT] = builtin->alignment[DL_PTR_SIZE_32BIT];
-					member->alignment[DL_PTR_SIZE_64BIT] = builtin->alignment[DL_PTR_SIZE_64BIT];
-					return 1;
-				}
-
-				// TODO: handle error here! example "uint8[" or "uint8*whoo"
-
-				// check for [] for array
-				if( str[test_len] == '[' && str[test_len+1] == ']' )
-				{
-					member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, builtin->type );
-					member->size[DL_PTR_SIZE_32BIT] = 4;
-					member->size[DL_PTR_SIZE_64BIT] = 8;
-					member->alignment[DL_PTR_SIZE_32BIT] = 4;
-					member->alignment[DL_PTR_SIZE_64BIT] = 8;
-					return 1;
-				}
-
-				unsigned int inline_array_len = 0;
-				if( sscanf( str + test_len, "[%u]", &inline_array_len ) )
-				{
-					member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, builtin->type );
-					member->size[DL_PTR_SIZE_32BIT] = builtin->size[DL_PTR_SIZE_32BIT] * inline_array_len;
-					member->size[DL_PTR_SIZE_64BIT] = builtin->size[DL_PTR_SIZE_64BIT] * inline_array_len;
-					member->alignment[DL_PTR_SIZE_32BIT] = builtin->alignment[DL_PTR_SIZE_32BIT];
-					member->alignment[DL_PTR_SIZE_64BIT] = builtin->alignment[DL_PTR_SIZE_64BIT];
-					return 1;
-				}
-
-				if( str[test_len] == '*' )
-					DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "pointer to pod is not supported!" );
+				member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, builtin->type );
+				member->type_id = 0;
+				member->size[DL_PTR_SIZE_32BIT] = 4;
+				member->size[DL_PTR_SIZE_64BIT] = 8;
+				member->alignment[DL_PTR_SIZE_32BIT] = 4;
+				member->alignment[DL_PTR_SIZE_64BIT] = 8;
+				return 1;
 			}
+
+			if( is_inline_array )
+			{
+				member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, builtin->type );
+				member->type_id = 0;
+				member->size[DL_PTR_SIZE_32BIT] = builtin->size[DL_PTR_SIZE_32BIT] * inline_array_len;
+				member->size[DL_PTR_SIZE_64BIT] = builtin->size[DL_PTR_SIZE_64BIT] * inline_array_len;
+				member->alignment[DL_PTR_SIZE_32BIT] = builtin->alignment[DL_PTR_SIZE_32BIT];
+				member->alignment[DL_PTR_SIZE_64BIT] = builtin->alignment[DL_PTR_SIZE_64BIT];
+				return 1;
+			}
+
+			member->type = dl_make_type( DL_TYPE_ATOM_POD, builtin->type );
+			member->type_id = 0;
+			member->size[DL_PTR_SIZE_32BIT] = builtin->size[DL_PTR_SIZE_32BIT];
+			member->size[DL_PTR_SIZE_64BIT] = builtin->size[DL_PTR_SIZE_64BIT];
+			member->alignment[DL_PTR_SIZE_32BIT] = builtin->alignment[DL_PTR_SIZE_32BIT];
+			member->alignment[DL_PTR_SIZE_64BIT] = builtin->alignment[DL_PTR_SIZE_64BIT];
+			return 1;
 		}
 	}
 
-	const char* iter = str;
-	const char* end  = str + str_len;
+	member->type_id = dl_internal_hash_string( type_name, 0 );
 
-	while( ( isalnum( *iter ) || *iter == '_' ) && ( iter != end ) )
-		++iter;
-
-	// ... simple type? ...
-	if( iter == end )
+	if( is_ptr )
 	{
-		printf( "parsed as type %.*s\n", (int)str_len, str );
+		member->type = dl_make_type( DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR );
+		member->size[DL_PTR_SIZE_32BIT] = 4;
+		member->size[DL_PTR_SIZE_64BIT] = 8;
+		member->alignment[DL_PTR_SIZE_32BIT] = 4;
+		member->alignment[DL_PTR_SIZE_64BIT] = 8;
 		return 1;
 	}
 
-	if( *iter == '[' )
+	if( is_array )
 	{
-		// ... array? ...
-
-		// ... inline array? ...
-		printf( "parsed as array %.*s\n", (int)str_len, str );
+		member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, DL_TYPE_STORAGE_STRUCT );
+		member->size[DL_PTR_SIZE_32BIT] = 4;
+		member->size[DL_PTR_SIZE_64BIT] = 8;
+		member->alignment[DL_PTR_SIZE_32BIT] = 4;
+		member->alignment[DL_PTR_SIZE_64BIT] = 8;
 		return 1;
 	}
 
-	printf("\"%c\"\n", *iter);
-	// ... pointer? ...
-	if( *iter == '*' )
+	if( is_inline_array )
 	{
-		printf( "parsed as ptr %.*s\n", (int)str_len, str );
+		member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, DL_TYPE_STORAGE_STRUCT );
+		member->size[DL_PTR_SIZE_32BIT] = 4; // size and align of the actual type here!
+		member->size[DL_PTR_SIZE_64BIT] = 4;
+		member->alignment[DL_PTR_SIZE_32BIT] = 0;
+		member->alignment[DL_PTR_SIZE_64BIT] = 0;
 		return 1;
 	}
 
-	printf( "couldn't parse %.*s\n", (int)str_len, str );
-	return 0;
+	member->type = dl_make_type( DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STRUCT );
+	member->size[DL_PTR_SIZE_32BIT] = 0; // size and align of the actual type here!
+	member->size[DL_PTR_SIZE_64BIT] = 0;
+	member->alignment[DL_PTR_SIZE_32BIT] = 0;
+	member->alignment[DL_PTR_SIZE_64BIT] = 0;
+	return 1;
 }
 
 static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, size_t str_len )
@@ -721,6 +775,86 @@ static int dl_load_txt_on_bool( void* ctx, int value )
 	return 1;
 }
 
+static inline uint32_t align_up( const uint32_t in, uint32_t alignment ) { return ( in + alignment - 1 ) & ~( alignment - 1 ); }
+
+/**
+ * return true if the calculation was successful.
+ */
+bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
+{
+	// ... is the type already processed ...
+	if( type->size[0] > 0 )
+		return true;
+
+	unsigned int mem_start = type->member_start;
+	unsigned int mem_end   = type->member_start + type->member_count;
+
+	// ... can be fixed now? ...
+	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
+	{
+		dl_member_desc* member = ctx->member_descs + member_index;
+		dl_type_t storage = member->StorageType();
+		if( !member->IsSimplePod() && storage != DL_TYPE_STORAGE_STR )
+		{
+			const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+			if( sub_type == 0x0 )
+				printf("%s->%s need lookup = NOT FOUND!\n", type->name, member->name);
+			else if( sub_type->size[0] == 0 )
+			{
+				// ... 0 in size say that it hasn't been processed yet, so we can't process this type ...
+				return false;
+			}
+		}
+	}
+
+	// ... fixup all bitfields ...
+	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
+	{
+		dl_member_desc* member = ctx->member_descs + member_index;
+		if( member->AtomType() == DL_TYPE_ATOM_BITFIELD )
+		{
+			// ... fix it ...
+			printf( "bitfield! %u\n", member->BitFieldBits() );
+		}
+	}
+
+	uint32_t size[2]  = { 0, 0 };
+	uint32_t align[2] = { 0, 0 };
+
+	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
+	{
+		dl_member_desc* member = ctx->member_descs + member_index;
+
+//		dl_type_t atom    = member->AtomType();
+		dl_type_t storage = member->StorageType();
+		if( !member->IsSimplePod() && storage != DL_TYPE_STORAGE_STR )
+		{
+			const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+			if( sub_type == 0x0 )
+				printf("%s->%s need lookup = NOT FOUND!\n", type->name, member->name);
+
+		}
+
+		member->offset[DL_PTR_SIZE_32BIT] = size[DL_PTR_SIZE_32BIT];
+		member->offset[DL_PTR_SIZE_64BIT] = size[DL_PTR_SIZE_64BIT];
+
+		size[DL_PTR_SIZE_32BIT]  = align_up( size[DL_PTR_SIZE_32BIT], member->alignment[DL_PTR_SIZE_32BIT] );
+		size[DL_PTR_SIZE_64BIT]  = align_up( size[DL_PTR_SIZE_64BIT], member->alignment[DL_PTR_SIZE_64BIT] );
+		size[DL_PTR_SIZE_32BIT] += member->size[DL_PTR_SIZE_32BIT];
+		size[DL_PTR_SIZE_64BIT] += member->size[DL_PTR_SIZE_64BIT];
+
+		align[DL_PTR_SIZE_32BIT] = member->alignment[DL_PTR_SIZE_32BIT] > align[DL_PTR_SIZE_32BIT] ? member->alignment[DL_PTR_SIZE_32BIT] : align[DL_PTR_SIZE_32BIT];
+		align[DL_PTR_SIZE_64BIT] = member->alignment[DL_PTR_SIZE_64BIT] > align[DL_PTR_SIZE_64BIT] ? member->alignment[DL_PTR_SIZE_64BIT] : align[DL_PTR_SIZE_64BIT];
+	}
+
+	type->size[DL_PTR_SIZE_32BIT] = size[DL_PTR_SIZE_32BIT];
+	type->size[DL_PTR_SIZE_64BIT] = size[DL_PTR_SIZE_64BIT];
+	type->alignment[DL_PTR_SIZE_32BIT] = align[DL_PTR_SIZE_32BIT];
+	type->alignment[DL_PTR_SIZE_64BIT] = align[DL_PTR_SIZE_64BIT];
+
+	return true;
+}
+
 dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size )
 {
 	// ... parse it ...
@@ -744,6 +878,8 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 		dl_load_txt_on_array_start,
 		dl_load_txt_on_array_end
 	};
+
+	unsigned int start_type = dl_ctx->type_count;
 
 	dl_load_txt_tl_ctx state;
 	state.stack_item = 0;
@@ -771,6 +907,13 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	}
 
 	yajl_free( state.yajl );
+
+	// ... calculate size of types ...
+	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
+	{
+		// how to handle recursive types and sub-types that might not already be done?
+		dl_load_txt_calc_type_size_and_align( dl_ctx, dl_ctx->type_descs + i );
+	}
 
 	return DL_ERROR_OK;
 }
