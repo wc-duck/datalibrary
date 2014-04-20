@@ -131,6 +131,11 @@ struct dl_member_desc
 	uint32_t  BitFieldOffset() const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED); }
 	bool      IsSimplePod()    const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
 
+	void SetStorage( dl_type_t storage )
+	{
+		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_STORAGE_MASK ) | (unsigned int)storage );
+	}
+
 	void SetBitFieldBits( unsigned int bits )
 	{
 		type = (dl_type_t)DL_INSERT_BITS( type, bits, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED );

@@ -137,8 +137,8 @@ class Enum( object ):
                 hash = (hash * 33) + ord(char)
             return (hash - 5381) & 0xFFFFFFFF;
 
-        id_str = name + json.dumps(values).replace(' ', '')
-        self.typeid = hash_buffer( id_str ) # hash_buffer( self.name )
+#         id_str = name + json.dumps(values).replace(' ', '')
+        self.typeid = hash_buffer( self.name )
         
     def base_type(self): return self
     def size(self):      return PlatformValue( 4 )
@@ -224,7 +224,7 @@ class Type( object ):
             raise DLException('Type name longer than 32 on type %s' % name)
         
         self.name     = name
-        self.typeid   = hash_buffer( name + json.dumps(data).replace(' ', '') )
+        self.typeid   = hash_buffer( name ) #hash_buffer( name + json.dumps(data).replace(' ', '') )
         self.comment  = data.get('comment', '')
         self.extern   = data.get('extern', False) 
         self.my_size  = PlatformValue( 0 )
