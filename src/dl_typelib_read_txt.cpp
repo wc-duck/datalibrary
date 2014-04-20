@@ -507,9 +507,6 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 	bool is_inline_array = false;
 	unsigned int inline_array_len = 0;
 
-//	printf("typename: %s\n", type_name);
-
-	// haxxy
 	if( iter != end )
 	{
 		if( *iter == '*' )
@@ -538,8 +535,6 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 			}
 		}
 	}
-
-//	printf("%d %d %d %u\n", is_ptr, is_array, is_inline_array, inline_array_len );
 
 	if( strcmp( "bitfield", type_name ) == 0 )
 	{
@@ -946,6 +941,13 @@ static void dl_load_txt_fixup_enum_members( dl_ctx_t ctx, dl_type_desc* type )
 				iter->SetStorage( DL_TYPE_STORAGE_ENUM );
 				if( iter->AtomType() == DL_TYPE_ATOM_POD )
 					dl_set_member_size_and_align_from_builtin( DL_TYPE_STORAGE_ENUM, iter );
+				else if( iter->AtomType() == DL_TYPE_ATOM_INLINE_ARRAY )
+				{
+					unsigned int count = iter->size[0];
+					dl_set_member_size_and_align_from_builtin( DL_TYPE_STORAGE_ENUM, iter );
+					iter->size[DL_PTR_SIZE_32BIT] *= count;
+					iter->size[DL_PTR_SIZE_64BIT] *= count;
+				}
 			}
 		}
 	}
@@ -980,46 +982,30 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 
 		if( atom == DL_TYPE_ATOM_INLINE_ARRAY || atom == DL_TYPE_ATOM_POD )
 		{
-			switch( storage )
+			if( storage == DL_TYPE_STORAGE_STRUCT )
 			{
-				case DL_TYPE_STORAGE_ENUM:
+				const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+				if( sub_type == 0x0 )
 				{
-					if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
-					{
-						member->size[DL_PTR_SIZE_32BIT] *= 4;
-						member->size[DL_PTR_SIZE_64BIT] *= 4;
-					}
+					printf("%s->%s need lookup = NOT FOUND!\n", type->name, member->name);
+					continue;
 				}
-				break;
-				case DL_TYPE_STORAGE_STRUCT:
+
+				if( sub_type->size[0] == 0 )
+					dl_load_txt_calc_type_size_and_align( ctx, (dl_type_desc*)sub_type );
+
+				if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
 				{
-					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
-					if( sub_type == 0x0 )
-					{
-						printf("%s->%s need lookup = NOT FOUND!\n", type->name, member->name);
-						continue;
-					}
-
-					if( sub_type->size[0] == 0 )
-						dl_load_txt_calc_type_size_and_align( ctx, (dl_type_desc*)sub_type );
-
-					if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
-					{
-						member->size[DL_PTR_SIZE_32BIT] *= sub_type->size[DL_PTR_SIZE_32BIT];
-						member->size[DL_PTR_SIZE_64BIT] *= sub_type->size[DL_PTR_SIZE_64BIT];
-					}
-					else
-					{
-						member->size[DL_PTR_SIZE_32BIT] = sub_type->size[DL_PTR_SIZE_32BIT];
-						member->size[DL_PTR_SIZE_64BIT] = sub_type->size[DL_PTR_SIZE_64BIT];
-					}
-					member->alignment[DL_PTR_SIZE_32BIT] = sub_type->alignment[DL_PTR_SIZE_32BIT];
-					member->alignment[DL_PTR_SIZE_64BIT] = sub_type->alignment[DL_PTR_SIZE_64BIT];
+					member->size[DL_PTR_SIZE_32BIT] *= sub_type->size[DL_PTR_SIZE_32BIT];
+					member->size[DL_PTR_SIZE_64BIT] *= sub_type->size[DL_PTR_SIZE_64BIT];
 				}
-				break;
-
-				default:
-					break;
+				else
+				{
+					member->size[DL_PTR_SIZE_32BIT] = sub_type->size[DL_PTR_SIZE_32BIT];
+					member->size[DL_PTR_SIZE_64BIT] = sub_type->size[DL_PTR_SIZE_64BIT];
+				}
+				member->alignment[DL_PTR_SIZE_32BIT] = sub_type->alignment[DL_PTR_SIZE_32BIT];
+				member->alignment[DL_PTR_SIZE_64BIT] = sub_type->alignment[DL_PTR_SIZE_64BIT];
 			}
 
 			bitfield_group_start = 0x0;

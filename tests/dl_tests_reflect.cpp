@@ -95,6 +95,8 @@ TEST_F(DLReflect, get_type_info)
 	CHECK_TYPE_INFO_CORRECT( Pod2InStruct, 2u );
 	CHECK_TYPE_INFO_CORRECT( WithInlineArray, 1u );
 	CHECK_TYPE_INFO_CORRECT( StringInlineArray, 1u );
+	CHECK_TYPE_INFO_CORRECT( ArrayEnum, 1u );
+	CHECK_TYPE_INFO_CORRECT( InlineArrayEnum, 1u );
 	CHECK_TYPE_INFO_CORRECT( Pod2InStructInStruct, 1u );
 	CHECK_TYPE_INFO_CORRECT( WithInlineStructArray, 1u );
 	CHECK_TYPE_INFO_CORRECT( WithInlineStructStructArray, 1u );
