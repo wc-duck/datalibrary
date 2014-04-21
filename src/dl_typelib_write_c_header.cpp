@@ -30,7 +30,6 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )
 {
 	dl_binary_writer_write_string_fmt( writer, "#endif // %s_INCLUDED\n\n", module_name_uppercase );
-//	dl_binary_writer_write_zero( writer, 1 );
 }
 
 static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t ctx )

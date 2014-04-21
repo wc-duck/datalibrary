@@ -1000,8 +1000,8 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 		else
 			bitfield_group_start = 0x0;
 
-		member->offset[DL_PTR_SIZE_32BIT] = align_up( size[DL_PTR_SIZE_32BIT], member->alignment[DL_PTR_SIZE_32BIT] );
-		member->offset[DL_PTR_SIZE_64BIT] = align_up( size[DL_PTR_SIZE_64BIT], member->alignment[DL_PTR_SIZE_64BIT] );
+		member->offset[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], member->alignment[DL_PTR_SIZE_32BIT] );
+		member->offset[DL_PTR_SIZE_64BIT] = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], member->alignment[DL_PTR_SIZE_64BIT] );
 		size[DL_PTR_SIZE_32BIT] = member->offset[DL_PTR_SIZE_32BIT] + member->size[DL_PTR_SIZE_32BIT];
 		size[DL_PTR_SIZE_64BIT] = member->offset[DL_PTR_SIZE_64BIT] + member->size[DL_PTR_SIZE_64BIT];
 
@@ -1009,8 +1009,8 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 		align[DL_PTR_SIZE_64BIT] = member->alignment[DL_PTR_SIZE_64BIT] > align[DL_PTR_SIZE_64BIT] ? member->alignment[DL_PTR_SIZE_64BIT] : align[DL_PTR_SIZE_64BIT];
 	}
 
-	type->size[DL_PTR_SIZE_32BIT]      = align_up( size[DL_PTR_SIZE_32BIT], align[DL_PTR_SIZE_32BIT] );
-	type->size[DL_PTR_SIZE_64BIT]      = align_up( size[DL_PTR_SIZE_64BIT], align[DL_PTR_SIZE_64BIT] );
+	type->size[DL_PTR_SIZE_32BIT]      = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], align[DL_PTR_SIZE_32BIT] );
+	type->size[DL_PTR_SIZE_64BIT]      = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], align[DL_PTR_SIZE_64BIT] );
 	type->alignment[DL_PTR_SIZE_32BIT] = align[DL_PTR_SIZE_32BIT];
 	type->alignment[DL_PTR_SIZE_64BIT] = align[DL_PTR_SIZE_64BIT];
 
