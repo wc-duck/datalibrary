@@ -419,41 +419,31 @@ static void dl_set_member_size_and_align_from_builtin( dl_type_t storage, dl_mem
 	{
 		case DL_TYPE_STORAGE_INT8:
 		case DL_TYPE_STORAGE_UINT8:
-			member->size[DL_PTR_SIZE_32BIT] = 1;
-			member->size[DL_PTR_SIZE_64BIT] = 1;
-			member->alignment[DL_PTR_SIZE_32BIT] = 1;
-			member->alignment[DL_PTR_SIZE_64BIT] = 1;
+			member->set_size( 1, 1 );
+			member->set_align( 1, 1 );
 			break;
 		case DL_TYPE_STORAGE_INT16:
 		case DL_TYPE_STORAGE_UINT16:
-			member->size[DL_PTR_SIZE_32BIT] = 2;
-			member->size[DL_PTR_SIZE_64BIT] = 2;
-			member->alignment[DL_PTR_SIZE_32BIT] = 2;
-			member->alignment[DL_PTR_SIZE_64BIT] = 2;
+			member->set_size( 2, 2 );
+			member->set_align( 2, 2 );
 			break;
 		case DL_TYPE_STORAGE_FP32:
 		case DL_TYPE_STORAGE_INT32:
 		case DL_TYPE_STORAGE_UINT32:
 		case DL_TYPE_STORAGE_ENUM:
-			member->size[DL_PTR_SIZE_32BIT] = 4;
-			member->size[DL_PTR_SIZE_64BIT] = 4;
-			member->alignment[DL_PTR_SIZE_32BIT] = 4;
-			member->alignment[DL_PTR_SIZE_64BIT] = 4;
+			member->set_size( 4, 4 );
+			member->set_align( 4, 4 );
 			break;
 		case DL_TYPE_STORAGE_FP64:
 		case DL_TYPE_STORAGE_INT64:
 		case DL_TYPE_STORAGE_UINT64:
-			member->size[DL_PTR_SIZE_32BIT] = 8;
-			member->size[DL_PTR_SIZE_64BIT] = 8;
-			member->alignment[DL_PTR_SIZE_32BIT] = 8;
-			member->alignment[DL_PTR_SIZE_64BIT] = 8;
+			member->set_size( 8, 8 );
+			member->set_align( 8, 8 );
 			break;
 		case DL_TYPE_STORAGE_STR:
 		case DL_TYPE_STORAGE_PTR:
-			member->size[DL_PTR_SIZE_32BIT] = 4;
-			member->size[DL_PTR_SIZE_64BIT] = 8;
-			member->alignment[DL_PTR_SIZE_32BIT] = 4;
-			member->alignment[DL_PTR_SIZE_64BIT] = 8;
+			member->set_size( 4, 8 );
+			member->set_align( 4, 8 );
 			break;
 		default:
 			DL_ASSERT( false );
@@ -558,10 +548,8 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 			{
 				member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, builtin->type );
 				member->type_id = 0;
-				member->size[DL_PTR_SIZE_32BIT] = 8;
-				member->size[DL_PTR_SIZE_64BIT] = 16;
-				member->alignment[DL_PTR_SIZE_32BIT] = 4;
-				member->alignment[DL_PTR_SIZE_64BIT] = 8;
+				member->set_size( 8, 16 );
+				member->set_align( 4, 8 );
 				return 1;
 			}
 
@@ -588,20 +576,16 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 	if( is_ptr )
 	{
 		member->type = dl_make_type( DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR );
-		member->size[DL_PTR_SIZE_32BIT] = 4;
-		member->size[DL_PTR_SIZE_64BIT] = 8;
-		member->alignment[DL_PTR_SIZE_32BIT] = 4;
-		member->alignment[DL_PTR_SIZE_64BIT] = 8;
+		member->set_size( 4, 8 );
+		member->set_align( 4, 8 );
 		return 1;
 	}
 
 	if( is_array )
 	{
 		member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, DL_TYPE_STORAGE_STRUCT );
-		member->size[DL_PTR_SIZE_32BIT] = 8;
-		member->size[DL_PTR_SIZE_64BIT] = 16;
-		member->alignment[DL_PTR_SIZE_32BIT] = 4;
-		member->alignment[DL_PTR_SIZE_64BIT] = 8;
+		member->set_size( 8, 16 );
+		member->set_align( 4, 8 );
 		return 1;
 	}
 
@@ -610,18 +594,14 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 		member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, DL_TYPE_STORAGE_STRUCT );
 		// hack here is used to later set the size, this can be removed if we store inline array length
 		// in the same space as bitfield bits and offset.
-		member->size[DL_PTR_SIZE_32BIT] = inline_array_len;
-		member->size[DL_PTR_SIZE_64BIT] = inline_array_len;
-		member->alignment[DL_PTR_SIZE_32BIT] = 0;
-		member->alignment[DL_PTR_SIZE_64BIT] = 0;
+		member->set_size( inline_array_len, inline_array_len );
+		member->set_align( 0, 0 );
 		return 1;
 	}
 
 	member->type = dl_make_type( DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STRUCT );
-	member->size[DL_PTR_SIZE_32BIT] = 0; // size and align of the actual type here!
-	member->size[DL_PTR_SIZE_64BIT] = 0;
-	member->alignment[DL_PTR_SIZE_32BIT] = 0;
-	member->alignment[DL_PTR_SIZE_64BIT] = 0;
+	member->set_size( 0, 0 );
+	member->set_align( 0, 0 );
 	return 1;
 }
 
@@ -1000,12 +980,9 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 					member->size[DL_PTR_SIZE_64BIT] *= sub_type->size[DL_PTR_SIZE_64BIT];
 				}
 				else
-				{
-					member->size[DL_PTR_SIZE_32BIT] = sub_type->size[DL_PTR_SIZE_32BIT];
-					member->size[DL_PTR_SIZE_64BIT] = sub_type->size[DL_PTR_SIZE_64BIT];
-				}
-				member->alignment[DL_PTR_SIZE_32BIT] = sub_type->alignment[DL_PTR_SIZE_32BIT];
-				member->alignment[DL_PTR_SIZE_64BIT] = sub_type->alignment[DL_PTR_SIZE_64BIT];
+					member->copy_size( sub_type->size );
+
+				member->copy_align( sub_type->alignment );
 			}
 
 			bitfield_group_start = 0x0;

@@ -11,14 +11,14 @@
 			{ "TESTENUM2_VALUE2" : 1337 }, 
 			  "TESTENUM2_VALUE3", 
 			{ "TESTENUM2_VALUE4" : 1337 }
-		],
+		]/*,
 		
 		"NamedValue" : [ 
 			{ "    " : { "value" : 7, "header_name" : "NAMED_VALUE_4SPACE" } }, 
 			{ "!?#!" : { "value" : 8, "header_name" : "NAMED_VALUE_MIXED" } }, 
 			  "NAMED_VALUE_NORMAL", 
 			{ "NAMED_VALUE_VALUE" : 1337 }
-		]
+		]*/
 	},
 	
 	"types" : {
@@ -156,14 +156,14 @@
 		                                                                                                 "TESTENUM1_VALUE2", 
 		                                                                                                 "TESTENUM1_VALUE4" ] } ] },
 		                                                                                           
-		"NamedEnums" : { 
-			"members" : [ 
-				{ "name" : "e1", "type" : "NamedValue" }, 
-				{ "name" : "e2", "type" : "NamedValue" }, 
-				{ "name" : "e3", "type" : "NamedValue" },
-				{ "name" : "e4", "type" : "NamedValue" } 
-			]
-		},
+		// "NamedEnums" : { 
+		//	"members" : [ 
+		//		{ "name" : "e1", "type" : "NamedValue" }, 
+		//		{ "name" : "e2", "type" : "NamedValue" }, 
+		//		{ "name" : "e3", "type" : "NamedValue" },
+		//		{ "name" : "e4", "type" : "NamedValue" } 
+		//	]
+		// },
 		
 		"BugTest4" : {
 			"members" : [

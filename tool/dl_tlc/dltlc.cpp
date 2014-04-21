@@ -13,8 +13,10 @@
 static int verbose = 0;
 static int unpack = 0;
 static int show_info = 0;
+static int c_header = 0;
 
 static FILE* output = stdout;
+static const char* output_path = 0x0;
 
 std::vector<const char*> inputs;
 
@@ -22,11 +24,12 @@ std::vector<const char*> inputs;
 
 static const getopt_option_t option_list[] =
 {
-	{ "help",    'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message", 0x0 },
-	{ "output",  'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'o', "output to file", "file" },
-	{ "unpack",  'u', GETOPT_OPTION_TYPE_FLAG_SET, &unpack,      1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
-	{ "info",    'i', GETOPT_OPTION_TYPE_FLAG_SET, &show_info,   1, "make dl_pack show info about a packed instance.", 0x0 },
-	{ "verbose", 'v', GETOPT_OPTION_TYPE_FLAG_SET, &verbose,     1, "verbose output", 0x0 },
+	{ "help",     'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message", 0x0 },
+	{ "output",   'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'o', "output to file", "file" },
+	{ "unpack",   'u', GETOPT_OPTION_TYPE_FLAG_SET, &unpack,      1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
+	{ "info",     'i', GETOPT_OPTION_TYPE_FLAG_SET, &show_info,   1, "make dl_pack show info about a packed instance.", 0x0 },
+	{ "verbose",  'v', GETOPT_OPTION_TYPE_FLAG_SET, &verbose,     1, "verbose output", 0x0 },
+	{ "c-header", 'c', GETOPT_OPTION_TYPE_FLAG_SET, &c_header,    1, "", 0x0 },
 	GETOPT_OPTIONS_END
 };
 
@@ -65,6 +68,8 @@ static int parse_args( int argc, const char** argv )
 					fprintf( stderr, "failed to open output: \"%s\"\n", go_ctx.current_opt_arg );
 					return 1;
 				}
+
+				output_path = go_ctx.current_opt_arg;
 
 				break;
 
@@ -159,6 +164,32 @@ static void write_tl_as_text( dl_ctx_t ctx, FILE* out )
 	if( err != DL_ERROR_OK )
 	{
 		fprintf( stderr, "failed to write typelib-txt size with error \"%s\"\n", dl_error_to_string( err ) );
+		return;
+	}
+
+	fwrite( outdata, res_size, 1, out );
+	free( outdata );
+}
+
+static void write_tl_as_c_header( dl_ctx_t ctx, const char* module_name, FILE* out )
+{
+	dl_error_t err;
+
+	// ... query result size ...
+	size_t res_size;
+	err = dl_context_write_type_library_c_header( ctx, module_name, 0x0, 0, &res_size );
+	if( err != DL_ERROR_OK )
+	{
+		fprintf( stderr, "failed to query c-header size for typelib with error \"%s\"\n", dl_error_to_string( err ) );
+		return;
+	}
+
+	char* outdata = (char*)malloc( res_size );
+
+	err = dl_context_write_type_library_c_header( ctx, module_name, outdata, res_size, 0x0 );
+	if( err != DL_ERROR_OK )
+	{
+		fprintf( stderr, "failed to write c-header for typelib with error \"%s\"\n", dl_error_to_string( err ) );
 		return;
 	}
 
@@ -339,6 +370,23 @@ int main( int argc, const char** argv )
 		show_tl_info( ctx );
 	else if( unpack )
 		write_tl_as_text( ctx, output );
+	else if( c_header )
+	{
+		if( output == stdout )
+			write_tl_as_c_header( ctx, "STDOUT", output );
+		else
+		{
+			const char* module_name = output_path;
+			const char* iter = output_path;
+			while( *iter )
+			{
+				if( *iter == '/' || *iter == '\\' )
+					module_name = iter + 1;
+				++iter;
+			}
+			write_tl_as_c_header( ctx, module_name, output );
+		}
+	}
 	else
 		write_tl_as_binary( ctx, output );
 
