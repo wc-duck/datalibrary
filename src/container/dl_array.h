@@ -4,12 +4,6 @@
 #define CONTAINER_ARRAY_H_INCLUDED
 
 #include <dl/dl_defines.h>
-
-#include "dl_staticdata.h"
-#include "dl_traits.h"
-
-#include "../dl_types.h" // TODO: Ugly fugly for types
-
 #include <new>
 
 /*
@@ -17,24 +11,23 @@ Class: CArrayNoResizeBase
 An implementation of an array that cannot grow. Requires the user to provide a storage class. Alignment should be taken care of by supplied storage class. The array has an allocated size and an actual size.
 */
 
-template <typename T, typename TSTORAGE>
-class CArrayNoReAllocBase
+template <typename T, int SIZE>
+class CArrayStatic
 {
-	TSTORAGE m_Storage;
+	T m_Storage[SIZE];
 	size_t m_nElements;
-	M_DECLARE_ARGTYPES_CLASS(T, TArg, TArgConst);
 public:
 	/*
 	Constructor: CArrayNoResizeBase
 	Constructs an array
 	*/
-	CArrayNoReAllocBase(){m_nElements = 0;}
+	CArrayStatic(){m_nElements = 0;}
 
 	/*
 	Destructor: CArrayNoResizeBase
 	Constructs an array that is 
 	*/
-	~CArrayNoReAllocBase(){Reset();}
+	~CArrayStatic(){Reset();}
 
 	/*
 	Function: Reset()
@@ -51,16 +44,16 @@ public:
 	*/
 	inline void SetSize(size_t _NewSize)
 	{
-		DL_ASSERT(_NewSize <= m_Storage.AllocSize());
+		DL_ASSERT(_NewSize <= SIZE);
 		if(_NewSize < m_nElements) // destroy the rest
 		{
 			for(size_t i=_NewSize; i<m_nElements; i++)
-				m_Storage.Base()[i].~T();
+				m_Storage[i].~T();
 		}
 		else if(_NewSize > m_nElements) // create new objects
 		{
 			for(size_t i=m_nElements; i<_NewSize; i++)
-				new(&(m_Storage.Base()[i])) T;
+				new(&(m_Storage[i])) T;
 		}
 		m_nElements = _NewSize;
 	}
@@ -77,7 +70,7 @@ public:
 	Function: Full()
 	Returns true if the array is full
 	*/
-	inline bool Full()  { return m_nElements == m_Storage.AllocSize(); }
+	inline bool Full()  { return m_nElements == SIZE; }
 
 	/*
 	Function: Empty()
@@ -89,7 +82,7 @@ public:
 	Function: Capacity()
 	Returns the amount of items that fit in the array.
 	*/
-	inline size_t Capacity() { return m_Storage.AllocSize(); }
+	inline size_t Capacity() { return SIZE; }
 
 	/*
 	Function: Add()
@@ -98,10 +91,10 @@ public:
 	Parameters:
 	_Element - Element to add
 	*/
-	void Add(TArgConst _Element)
+	void Add(const T& _Element)
 	{
 		DL_ASSERT(!Full() && "Array is full");
-		new(&(m_Storage.Base()[m_nElements])) T(_Element);
+		new(&(m_Storage[m_nElements])) T(_Element);
 		m_nElements++;
 	}
 
@@ -112,7 +105,7 @@ public:
 	void Decr()
 	{
 		DL_ASSERT(m_nElements != 0 && "Array is empty");
-		m_Storage.Base()[m_nElements--].~T();
+		m_Storage[m_nElements--].~T();
 	}
 
 	/*
@@ -127,7 +120,7 @@ public:
 	T& operator[](size_t _iEl)
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
-		return m_Storage.Base()[_iEl];
+		return m_Storage[_iEl];
 	}
 
 	/*
@@ -142,7 +135,7 @@ public:
 	const T& operator[](size_t _iEl) const
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
-		return m_Storage.Base()[_iEl];
+		return m_Storage[_iEl];
 	}
 
 	/*
@@ -152,22 +145,54 @@ public:
 	Returns:
 	Returns array base pointer.
 	*/
-	inline T* GetBasePtr() { return m_Storage.Base(); }
+	inline T* GetBasePtr() { return m_Storage; }
 };
 
-
 /*
-Class: CArrayStatic
-Specialization of <CArrayNoResizeBase> providing its own storage within itself.
+	Class: CStackStatic
+		Implementation of a stack containing its own static memory.
 
-Parameters:
-	SIZE	- Size in number of elements of the array.
-	T		- Type to store.
+	Parameters:
+		T         - Type of elements in stack
+		SIZE      - Number of elements in stack
 */
-
-template <typename T, int SIZE, int ALIGNMENT=0>
-class CArrayStatic : public CArrayNoReAllocBase<T, TStaticData<T, SIZE, ALIGNMENT> >
+template <typename T, int SIZE>
+class CStackStatic
 {
+	CArrayStatic<T, SIZE> m_Data;
+public:
+	/*
+		Function: Push
+	*/
+	void Push(const T& _Elem) { m_Data.Add(_Elem); }
+
+	/*
+		Function: Pop
+
+		Note:
+			A call to top on an empty stack is invalid!
+	*/
+	void Pop() { m_Data.Decr(); }
+
+	/*
+		Function: Top
+			Return a reference to the current top-element on the stack.
+
+		Note:
+			A call to top on an empty stack is invalid!
+	*/
+	T& Top() { DL_ASSERT( !Empty() && "Stack is empty" ); return m_Data[m_Data.Len() - 1]; }
+
+	/*
+		Function: Empty
+	*/
+	bool Empty() { return Len() == 0; }
+
+	/*
+		Function: Len
+			Return the number of elements currently in the stack.
+	*/
+	size_t Len() { return m_Data.Len(); }
 };
 
 #endif //CONTAINER_ARRAY_H_INCLUDED

@@ -843,8 +843,6 @@ static int dl_load_txt_on_bool( void* ctx, int value )
 	return 1;
 }
 
-static inline uint32_t align_up( const uint32_t in, uint32_t alignment ) { return ( in + alignment - 1 ) & ~( alignment - 1 ); }
-
 static dl_member_desc* dl_load_txt_find_first_bitfield_member( dl_member_desc* start, dl_member_desc* end )
 {
 	while( start <= end )

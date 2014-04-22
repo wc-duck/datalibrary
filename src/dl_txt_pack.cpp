@@ -6,7 +6,6 @@
 #include <dl/dl_txt.h>
 
 #include "container/dl_array.h"
-#include "container/dl_stack.h"
 
 #include <yajl/yajl_parse.h>
 
