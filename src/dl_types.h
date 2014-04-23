@@ -173,12 +173,6 @@ struct dl_enum_desc
 	uint32_t value_start;
 };
 
-typedef struct
-{
-	dl_typeid_t type_id;
-	uint32_t    offset;
-} dl_type_lookup_t;
-
 struct dl_context
 {
 	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
