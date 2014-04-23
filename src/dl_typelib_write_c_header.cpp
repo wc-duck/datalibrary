@@ -61,10 +61,22 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	free( tids );
 }
 
-static const char* dl_context_builtin_to_string( dl_type_t storage )
+static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid )
 {
 	switch( storage )
 	{
+		case DL_TYPE_STORAGE_STRUCT:
+		{
+			dl_type_info_t sub_type;
+			dl_reflect_get_type_info( ctx, tid, &sub_type );
+			return sub_type.name;
+		}
+		case DL_TYPE_STORAGE_ENUM:
+		{
+			dl_enum_info_t sub_type;
+			dl_reflect_get_enum_info( ctx, tid, &sub_type );
+			return sub_type.name;
+		}
 		case DL_TYPE_STORAGE_INT8:   return "int8_t";
 		case DL_TYPE_STORAGE_UINT8:  return "uint8_t";
 		case DL_TYPE_STORAGE_INT16:  return "int16_t";
@@ -76,26 +88,6 @@ static const char* dl_context_builtin_to_string( dl_type_t storage )
 		case DL_TYPE_STORAGE_FP32:   return "float";
 		case DL_TYPE_STORAGE_FP64:   return "double";
 		case DL_TYPE_STORAGE_STR:    return "const char*";
-		default:
-			return 0x0;
-	}
-}
-
-static unsigned int dl_context_builtin_size( dl_type_t storage )
-{
-	switch( storage )
-	{
-		case DL_TYPE_STORAGE_INT8:   return 1;
-		case DL_TYPE_STORAGE_UINT8:  return 1;
-		case DL_TYPE_STORAGE_INT16:  return 2;
-		case DL_TYPE_STORAGE_UINT16: return 2;
-		case DL_TYPE_STORAGE_INT32:  return 4;
-		case DL_TYPE_STORAGE_UINT32: return 4;
-		case DL_TYPE_STORAGE_INT64:  return 8;
-		case DL_TYPE_STORAGE_UINT64: return 8;
-		case DL_TYPE_STORAGE_FP32:   return 4;
-		case DL_TYPE_STORAGE_FP64:   return 8;
-		case DL_TYPE_STORAGE_STR:    return DL_PTR_SIZE_HOST == DL_PTR_SIZE_32BIT ? 4 : 8;
 		default:
 			return 0x0;
 	}
@@ -133,42 +125,17 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				}
 				break;
 				default:
-					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", dl_context_builtin_to_string( storage ), member->name );
+					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name );
 					break;
 			}
 
 			break;
 		case DL_TYPE_ATOM_BITFIELD:
-		{
-			uint32_t bits = DL_EXTRACT_BITS( member->type, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED );
-			dl_binary_writer_write_string_fmt( writer, "    %s %s : %u;\n", dl_context_builtin_to_string( storage ), member->name, bits );
-		}
+			dl_binary_writer_write_string_fmt( writer, "    %s %s : %u;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name, member->bits );
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 		{
-			const char* type_str = "<unknown>";
-
-			switch( storage )
-			{
-				case DL_TYPE_STORAGE_STRUCT:
-				{
-					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					type_str = sub_type.name;
-				}
-				break;
-				case DL_TYPE_STORAGE_ENUM:
-				{
-					dl_enum_info_t sub_type;
-					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					type_str = sub_type.name;
-				}
-				break;
-				default:
-					type_str = dl_context_builtin_to_string( storage );
-				break;
-			}
-
+			const char* type_str = dl_context_type_to_string( ctx, storage, member->type_id );
 			dl_binary_writer_write_string_fmt( writer, "    struct\n    {\n" );
 			dl_binary_writer_write_string_fmt( writer, "        %s* data;\n", type_str );
 			dl_binary_writer_write_string_fmt( writer, "        uint32_t count;\n" );
@@ -184,26 +151,8 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 		{
-			switch( storage )
-			{
-				case DL_TYPE_STORAGE_STRUCT:
-				{
-					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    %s %s[%u];\n", sub_type.name, member->name, member->size / sub_type.size );
-				}
-				break;
-				case DL_TYPE_STORAGE_ENUM:
-				{
-					dl_enum_info_t sub_type;
-					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    %s %s[%u];\n", sub_type.name, member->name, member->size / 4 );
-				}
-				break;
-				default:
-					dl_binary_writer_write_string_fmt( writer, "    %s %s[%u];\n", dl_context_builtin_to_string( storage ), member->name, member->size / dl_context_builtin_size( storage ) );
-					break;
-			}
+			const char* type_name = dl_context_type_to_string( ctx, storage, member->type_id );
+			dl_binary_writer_write_string_fmt( writer, "    %s %s[%u];\n", type_name, member->name, member->array_count );
 		}
 		break;
 		default:

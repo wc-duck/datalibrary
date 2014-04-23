@@ -46,6 +46,7 @@ typedef struct dl_member_info
 	unsigned int alignment;
 	unsigned int offset;
 	unsigned int array_count;
+	unsigned int bits;
 } dl_member_info_t;
 
 /*

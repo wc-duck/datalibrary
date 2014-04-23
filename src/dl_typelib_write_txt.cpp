@@ -6,20 +6,22 @@
 
 #include <yajl/yajl_gen.h>
 
-static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...)
-{
-	va_list args;
-	va_start( args, fmt );
-	int res = vsnprintf( buf, buf_size, fmt, args );
-	buf[buf_size - 1] = '\0';
-	va_end( args );
-	return res;
-}
-
-static const char* dl_context_builtin_to_string( dl_type_t storage )
+static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid )
 {
 	switch( storage )
 	{
+		case DL_TYPE_STORAGE_STRUCT:
+		{
+			dl_type_info_t sub_type;
+			dl_reflect_get_type_info( ctx, tid, &sub_type );
+			return sub_type.name;
+		}
+		case DL_TYPE_STORAGE_ENUM:
+		{
+			dl_enum_info_t sub_type;
+			dl_reflect_get_enum_info( ctx, tid, &sub_type );
+			return sub_type.name;
+		}
 		case DL_TYPE_STORAGE_INT8:   return "int8_t";
 		case DL_TYPE_STORAGE_UINT8:  return "uint8_t";
 		case DL_TYPE_STORAGE_INT16:  return "int16_t";
@@ -36,27 +38,6 @@ static const char* dl_context_builtin_to_string( dl_type_t storage )
 	}
 }
 
-static unsigned int dl_context_builtin_size( dl_type_t storage )
-{
-	switch( storage )
-	{
-		case DL_TYPE_STORAGE_INT8:   return 1;
-		case DL_TYPE_STORAGE_UINT8:  return 1;
-		case DL_TYPE_STORAGE_INT16:  return 2;
-		case DL_TYPE_STORAGE_UINT16: return 2;
-		case DL_TYPE_STORAGE_INT32:  return 4;
-		case DL_TYPE_STORAGE_UINT32: return 4;
-		case DL_TYPE_STORAGE_INT64:  return 8;
-		case DL_TYPE_STORAGE_UINT64: return 8;
-		case DL_TYPE_STORAGE_FP32:   return 4;
-		case DL_TYPE_STORAGE_FP64:   return 8;
-		case DL_TYPE_STORAGE_STR:    return DL_PTR_SIZE_HOST == DL_PTR_SIZE_32BIT ? 4 : 8;
-		default:
-			return 0x0;
-	}
-}
-
-
 struct dl_write_text_context
 {
 	char*  buffer;
@@ -64,9 +45,15 @@ struct dl_write_text_context
 	size_t write_pos;
 };
 
-static void dl_gen_string( yajl_gen gen, const char* str )
+static void dl_gen_string( yajl_gen gen, const char* fmt, ... )
 {
-	yajl_gen_string( gen, (const unsigned char*)str, strlen( str ) );
+	va_list args;
+	va_start( args, fmt );
+	char buffer[2048];
+	int res = vsnprintf( buffer, DL_ARRAY_LENGTH( buffer ), fmt, args );
+	buffer[ DL_ARRAY_LENGTH( buffer ) - 1 ] = '\0';
+	va_end( args );
+	yajl_gen_string( gen, (const unsigned char*)buffer, res );
 }
 
 static void dl_internal_write_text_callback( void* ctx, const char* str, size_t len )
@@ -184,108 +171,30 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, yajl_gen gen, dl_member_i
 
 	dl_type_t atom    = (dl_type_t)(DL_TYPE_ATOM_MASK & member->type);
 	dl_type_t storage = (dl_type_t)(DL_TYPE_STORAGE_MASK & member->type);
+
+	dl_gen_string( gen, "type" );
 	switch( atom )
 	{
 		case DL_TYPE_ATOM_POD:
-		{
-			dl_gen_string( gen, "type" );
-			switch( storage )
+			if( storage == DL_TYPE_STORAGE_PTR )
 			{
-				case DL_TYPE_STORAGE_STRUCT:
-				{
-					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_gen_string( gen, sub_type.name );
-				}
-				break;
-				case DL_TYPE_STORAGE_PTR:
-				{
-					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					char buffer[1024];
-					dl_internal_str_format( buffer, DL_ARRAY_LENGTH( buffer ), "%s*", sub_type.name );
-					dl_gen_string( gen, buffer );
-				}
-				break;
-				case DL_TYPE_STORAGE_ENUM:
-				{
-					dl_enum_info_t sub_type;
-					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					dl_gen_string( gen, sub_type.name );
-				}
-				break;
-				default:
-					dl_gen_string( gen, dl_context_builtin_to_string( storage ) );
-					break;
+				dl_type_info_t sub_type;
+				dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
+				dl_gen_string( gen, "%s*", sub_type.name );
 			}
-		}
+			else
+				dl_gen_string( gen, dl_context_type_to_string( ctx, storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_BITFIELD:
-		{
-			dl_gen_string( gen, "type" );
 			dl_gen_string( gen, "bitfield" );
-
-			uint32_t bits = DL_EXTRACT_BITS( member->type, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED );
-
 			dl_gen_string( gen, "bits" );
-			yajl_gen_integer( gen, bits );
-		}
+			yajl_gen_integer( gen, member->bits );
 		break;
 		case DL_TYPE_ATOM_ARRAY:
-		{
-			char buffer[1024];
-			switch( storage )
-			{
-				case DL_TYPE_STORAGE_STRUCT:
-				{
-					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_internal_str_format( buffer, DL_ARRAY_LENGTH( buffer ), "%s[]", sub_type.name );
-				}
-				break;
-				case DL_TYPE_STORAGE_ENUM:
-				{
-					dl_enum_info_t sub_type;
-					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					dl_internal_str_format( buffer, DL_ARRAY_LENGTH( buffer ), "%s[]", sub_type.name );
-				}
-				break;
-				default:
-					dl_internal_str_format( buffer, DL_ARRAY_LENGTH( buffer ), "%s[]", dl_context_builtin_to_string( storage ) );
-					break;
-			}
-
-			dl_gen_string( gen, "type" );
-			dl_gen_string( gen, buffer );
-		}
+			dl_gen_string( gen, "%s[]", dl_context_type_to_string( ctx, storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
-		{
-			char buffer[1024];
-			switch( storage )
-			{
-				case DL_TYPE_STORAGE_STRUCT:
-				{
-					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_internal_str_format( buffer, DL_ARRAY_LENGTH( buffer ), "%s[%u]", sub_type.name, member->size / sub_type.size );
-				}
-				break;
-				case DL_TYPE_STORAGE_ENUM:
-				{
-					dl_enum_info_t sub_type;
-					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					dl_internal_str_format( buffer, DL_ARRAY_LENGTH( buffer ), "%s[%u]", sub_type.name, member->size / 4 );
-				}
-				break;
-				default:
-					dl_internal_str_format( buffer, DL_ARRAY_LENGTH( buffer ), "%s[%u]", dl_context_builtin_to_string( storage ), member->size / dl_context_builtin_size( storage ) );
-					break;
-			}
-
-			dl_gen_string( gen, "type" );
-			dl_gen_string( gen, buffer );
-		}
+			dl_gen_string( gen, "%s[%u]", dl_context_type_to_string( ctx, storage, member->type_id ), member->array_count );
 		break;
 		default:
 			DL_ASSERT( false );

@@ -19,9 +19,6 @@ def M_BITRANGE(_MinBit, _MaxBit):
 def M_ZERO_BITS(_Target, _Start, _Bits):
     return _Target & ~M_BITRANGE(_Start, _Start + _Bits - 1)
 
-def M_EXTRACT_BITS(_Val, _Start, _Bits):
-    return (_Val >> _Start) & M_BITMASK(_Bits)
-
 def M_INSERT_BITS(_Target, _Val, _Start, _Bits):
     return M_ZERO_BITS(_Target, _Start, _Bits) | ( ( M_BITMASK(_Bits) & _Val ) << _Start)
 
@@ -114,12 +111,11 @@ class DLContext:
                      ('size',        c_uint32),
                      ('alignment',   c_uint32),
                      ('offset',      c_uint32), 
-                     ('array_count', c_uint32) ]
+                     ('array_count', c_uint32),
+                     ('bits',        c_uint32) ]
         
-        def AtomType(self):       return self.type & DL_TYPE_ATOM_MASK
-        def StorageType(self):    return self.type & DL_TYPE_STORAGE_MASK
-        def BitFieldBits(self):   return M_EXTRACT_BITS(self.type, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED)
-        def BitFieldOffset(self): return M_EXTRACT_BITS(self.type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED)
+        def AtomType(self):    return self.type & DL_TYPE_ATOM_MASK
+        def StorageType(self): return self.type & DL_TYPE_STORAGE_MASK
     
     class dl_type(object):
         def __init__(self):
@@ -392,7 +388,7 @@ class DLContext:
         for member in member_info:
             members.append( member.name )            
             if member.AtomType() == DL_TYPE_ATOM_BITFIELD: # TODO: Do not like this!
-                c_members.append ( ( member.name, self.__get_ctypes_type( member ), member.BitFieldBits() ) )
+                c_members.append ( ( member.name, self.__get_ctypes_type( member ), member.bits ) )
             else:
                 c_members.append ( ( member.name, self.__get_ctypes_type( member ) ) )
                 
