@@ -48,8 +48,8 @@ enum
 	#define DL_UNUSED
 #endif
 
-static const uint32_t DL_UNUSED DL_TYPELIB_VERSION    = 3; // format version for type-libraries.
-static const uint32_t DL_UNUSED DL_INSTANCE_VERSION   = 1; // format version for instances.
+static const uint32_t DL_UNUSED DL_TYPELIB_VERSION         = 4; // format version for type-libraries.
+static const uint32_t DL_UNUSED DL_INSTANCE_VERSION        = 1; // format version for instances.
 static const uint32_t DL_UNUSED DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
 static const uint32_t DL_UNUSED DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
 static const uint32_t DL_UNUSED DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
@@ -70,10 +70,9 @@ struct dl_typelib_header
 	uint32_t version;
 
 	uint32_t type_count;		// number of types in typelibrary
-	uint32_t types_size;		// number of bytes that are types
-
 	uint32_t enum_count;		// number of enums in typelibrary
-	uint32_t enums_size;		// number of bytes that are enums
+	uint32_t member_count;
+	uint32_t enum_value_count;
 
 	uint32_t default_value_size;
 };
