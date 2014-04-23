@@ -63,7 +63,6 @@ enum dl_pack_state
 template<unsigned int BITS>
 class CFlagField
 {
-	DL_STATIC_ASSERT( BITS % 32 == 0, only_even_32_bits );
 	uint32_t storage[ BITS / 32 ];
 
 	enum { BITS_PER_STORAGE = sizeof(uint32_t) * 8, BITS_FOR_FIELD = 5 };
@@ -934,7 +933,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 							break;
 							default:
 								DL_ASSERT(member->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-								dl_binary_writer_write( pack_ctx->writer, *(uint8_t**)member_default_value, count * DLPodSize(member->type) );
+								dl_binary_writer_write( pack_ctx->writer, *(uint8_t**)member_default_value, count * dl_pod_size(member->type) );
 						}
 					}
 					break;

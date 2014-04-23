@@ -57,7 +57,6 @@ DL_FORCEINLINE double dl_swap_endian_fp64( double f )
 	return conv.m_fp64;
 }
 
-DL_STATIC_ASSERT(sizeof(dl_type_t) == 4, dl_type_need_to_be_4_bytes);
 DL_FORCEINLINE dl_type_t dl_swap_endian_dl_type( dl_type_t val ) { return (dl_type_t)dl_swap_endian_uint32( val ); }
 
 #endif // DL_DL_SWAP_H_INCLUDED

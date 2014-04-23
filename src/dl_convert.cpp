@@ -473,7 +473,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 					{
 						DL_ASSERT(Member->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
 
-						uintptr_t PodSize   = DLPodSize(Member->type);
+						uintptr_t PodSize   = dl_pod_size(Member->type);
 						uint32_t  ArraySize = Member->size[conv_ctx.m_SourcePtrSize];
 
 						switch(PodSize)

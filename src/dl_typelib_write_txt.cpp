@@ -246,8 +246,6 @@ static void dl_context_write_txt_types( dl_ctx_t ctx, yajl_gen gen )
 
 dl_error_t dl_context_write_txt_type_library( dl_ctx_t dl_ctx, char* out_lib, size_t out_lib_size, size_t* produced_bytes )
 {
-	(void)dl_ctx;
-
 	dl_write_text_context write_ctx = { out_lib, out_lib_size, 0 };
 	uint8_t storage[ 1024 ];
 	yajl_alloc_funcs alloc_catch = { dl_internal_unpack_malloc, dl_internal_unpack_realloc_func, dl_internal_unpack_free, storage };

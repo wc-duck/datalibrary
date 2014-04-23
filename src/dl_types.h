@@ -18,17 +18,6 @@
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 #define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: implement me plox!
 
-#define DL_JOIN_TOKENS(a,b) DL_JOIN_TOKENS_DO_JOIN(a,b)
-#define DL_JOIN_TOKENS_DO_JOIN(a,b) DL_JOIN_TOKENS_DO_JOIN2(a,b)
-#define DL_JOIN_TOKENS_DO_JOIN2(a,b) a##b
-
-namespace dl_staticassert
-{
-	template <bool x> struct STATIC_ASSERTION_FAILURE;
-	template <> struct STATIC_ASSERTION_FAILURE<true> { enum { value = 1 }; };
-};
-#define DL_STATIC_ASSERT(_Expr, _Msg) enum { DL_JOIN_TOKENS(_static_assert_enum_##_Msg, __LINE__) = sizeof(::dl_staticassert::STATIC_ASSERTION_FAILURE< (bool)( _Expr ) >) }
-
 #if defined( __LP64__ )
 	#define DL_INT64_FMT_STR  "%ld"
 	#define DL_UINT64_FMT_STR "%lu"
@@ -42,14 +31,6 @@ namespace dl_staticassert
 	#define DL_UINT64_FMT_STR "%llu"
 	#define DL_PINT_FMT_STR   "%u"
 #endif // defined( __LP64__ ) || defined( _WIN64 )
-
-template<class T>
-struct TAlignmentOf
-{
-        struct CAlign { ~CAlign() {}; unsigned char m_Dummy; T m_T; };
-        enum { ALIGNOF = sizeof(CAlign) - sizeof(T) };
-};
-#define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
 
 enum
 {
@@ -274,7 +255,7 @@ static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx
 	return 0x0;
 }
 
-static inline size_t DLPodSize( dl_type_t type )
+static inline size_t dl_pod_size( dl_type_t type )
 {
 	switch( type & DL_TYPE_STORAGE_MASK )
 	{
@@ -306,7 +287,7 @@ static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl
 		case DL_TYPE_STORAGE_STRUCT: return dl_internal_find_type( ctx, type_id )->alignment[ptr_size];
 		case DL_TYPE_STORAGE_STR:
 		case DL_TYPE_STORAGE_PTR:    return sizeof(void*);
-		default:                     return DLPodSize( type );
+		default:                     return dl_pod_size( type );
 	}
 }
 

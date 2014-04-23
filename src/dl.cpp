@@ -684,7 +684,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						dl_binary_writer_align( &store_ctx->writer, size );
 						break;
 					default:
-						size = DLPodSize( member->type );
+						size = dl_pod_size( member->type );
 						dl_binary_writer_align( &store_ctx->writer, size );
 				}
 

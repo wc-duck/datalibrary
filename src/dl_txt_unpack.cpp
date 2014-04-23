@@ -211,7 +211,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 					{
 						DL_ASSERT( member->IsSimplePod() );
 
-						uintptr_t Size  = DLPodSize( member->type ); // the size of the inline-array could be saved in the aux-data only used by bit-field!
+						uintptr_t Size  = dl_pod_size( member->type ); // the size of the inline-array could be saved in the aux-data only used by bit-field!
 						uintptr_t Count = member->size[DL_PTR_SIZE_HOST] / Size;
 
 						for(uintptr_t elem_index = 0; elem_index < Count; ++elem_index)
@@ -263,7 +263,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 					break;
 					default: // default is a standard pod-type
 					{
-						uintptr_t Size = DLPodSize( member->type );
+						uintptr_t Size = dl_pod_size( member->type );
 						for( uintptr_t elem_index = 0; elem_index < Count; ++elem_index )
 							dl_internal_write_pod_member( _Ctx->m_JsonGen, member->type, array_data + (elem_index * Size) );
 					}
