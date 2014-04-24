@@ -170,22 +170,18 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 						const dl_type_desc* sub_type = dl_internal_find_type( _Ctx->m_Ctx, member->type_id );
 						if( sub_type == 0x0 ) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", member->name ); return; }
 
-						uintptr_t Size  = sub_type->size[DL_PTR_SIZE_HOST];
-						uintptr_t Count = member->size[DL_PTR_SIZE_HOST] / Size;
-
-						for( uintptr_t elem_index = 0; elem_index < Count; ++elem_index )
-							dl_internal_write_instance(_Ctx, sub_type, member_data + (elem_index * Size), data_base);
+						uintptr_t size  = sub_type->size[DL_PTR_SIZE_HOST];
+						for( uintptr_t elem_index = 0; elem_index < member->inline_array_cnt(); ++elem_index )
+							dl_internal_write_instance(_Ctx, sub_type, member_data + (elem_index * size), data_base);
 					}
 					break;
 
 					case DL_TYPE_STORAGE_STR:
 					{
-						uintptr_t Size  = sizeof(char*);
-						uintptr_t Count = member->size[DL_PTR_SIZE_HOST] / Size;
-
-						for( uintptr_t elem_index = 0; elem_index < Count; ++elem_index )
+						uintptr_t size  = sizeof(char*);
+						for( uintptr_t elem_index = 0; elem_index < member->inline_array_cnt(); ++elem_index )
 						{
-							uintptr_t offset = *(uintptr_t*)( member_data + (elem_index * Size) );
+							uintptr_t offset = *(uintptr_t*)( member_data + (elem_index * size) );
 							char* str        = (char*)( data_base + offset );
 							yajl_gen_string( _Ctx->m_JsonGen, (unsigned char*)str, (unsigned int)strlen(str) );
 						}
@@ -194,10 +190,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 
 					case DL_TYPE_STORAGE_ENUM:
 					{
-						uintptr_t Size  = sizeof(uint32_t);
-						uintptr_t Count = member->size[DL_PTR_SIZE_HOST] / Size;
-
-						for( uintptr_t elem_index = 0; elem_index < Count; ++elem_index )
+						for( uintptr_t elem_index = 0; elem_index < member->inline_array_cnt(); ++elem_index )
 						{
 							uint32_t* enum_data = (uint32_t*)member_data;
 
@@ -210,12 +203,9 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 					default: // default is a standard pod-type
 					{
 						DL_ASSERT( member->IsSimplePod() );
-
-						uintptr_t Size  = dl_pod_size( member->type ); // the size of the inline-array could be saved in the aux-data only used by bit-field!
-						uintptr_t Count = member->size[DL_PTR_SIZE_HOST] / Size;
-
-						for(uintptr_t elem_index = 0; elem_index < Count; ++elem_index)
-							dl_internal_write_pod_member( _Ctx->m_JsonGen, member->type, member_data + (elem_index * Size) );
+						uintptr_t size = dl_pod_size( member->type );
+						for(uintptr_t elem_index = 0; elem_index < member->inline_array_cnt(); ++elem_index)
+							dl_internal_write_pod_member( _Ctx->m_JsonGen, member->type, member_data + (elem_index * size) );
 					}
 					break;
 				}

@@ -79,39 +79,24 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 
 	for( uint32_t nMember = 0; nMember < pType->member_count; ++nMember )
 	{
-		const dl_member_desc* Member = dl_get_type_member( dl_ctx, pType, nMember );
+		const dl_member_desc* member = dl_get_type_member( dl_ctx, pType, nMember );
 
-		out_members[nMember].name        = Member->name;
-		out_members[nMember].type        = Member->type;
-		out_members[nMember].type_id     = Member->type_id;
-		out_members[nMember].size        = Member->size[DL_PTR_SIZE_HOST];
-		out_members[nMember].alignment   = Member->alignment[DL_PTR_SIZE_HOST];
-		out_members[nMember].offset      = Member->offset[DL_PTR_SIZE_HOST];
+		out_members[nMember].name        = member->name;
+		out_members[nMember].type        = member->type;
+		out_members[nMember].type_id     = member->type_id;
+		out_members[nMember].size        = member->size[DL_PTR_SIZE_HOST];
+		out_members[nMember].alignment   = member->alignment[DL_PTR_SIZE_HOST];
+		out_members[nMember].offset      = member->offset[DL_PTR_SIZE_HOST];
 		out_members[nMember].array_count = 0;
 		out_members[nMember].bits        = 0;
 
-		switch(Member->AtomType())
+		switch(member->AtomType())
 		{
 			case DL_TYPE_ATOM_INLINE_ARRAY:
-				switch(Member->StorageType())
-				{
-					// TODO: This switch could be skipped if inline-array count were built in to Member->m_Type
-					case DL_TYPE_STORAGE_STRUCT:
-					{
-						const dl_type_desc* pSubType = dl_internal_find_type( dl_ctx, Member->type_id );
-						if(pSubType == 0x0)
-							return DL_ERROR_TYPE_NOT_FOUND;
-
-						out_members[nMember].array_count = Member->size[DL_PTR_SIZE_HOST] / pSubType->size[DL_PTR_SIZE_HOST];
-					}
-					break;
-					case DL_TYPE_STORAGE_STR: out_members[nMember].array_count = (unsigned int)(Member->size[DL_PTR_SIZE_HOST] / sizeof(char*)); break;
-					default:
-						out_members[nMember].array_count = Member->size[DL_PTR_SIZE_HOST] / (uint32_t)dl_pod_size(Member->type); break;
-				}
+				out_members[nMember].array_count = member->inline_array_cnt();
 				break;
 			case DL_TYPE_ATOM_BITFIELD:
-				out_members[nMember].bits = DL_EXTRACT_BITS( Member->type, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED );
+				out_members[nMember].bits = member->BitFieldBits();
 				break;
 			default:
 				break;

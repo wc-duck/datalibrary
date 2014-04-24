@@ -149,6 +149,16 @@ struct dl_member_desc
 	{
 		type = (dl_type_t)DL_INSERT_BITS( type, offset, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
 	}
+
+	uint32_t inline_array_cnt() const
+	{
+		return DL_EXTRACT_BITS( type, DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT, DL_TYPE_INLINE_ARRAY_CNT_BITS_USED );
+	}
+
+	void set_inline_array_cnt( uint32_t bits )
+	{
+		type = (dl_type_t)DL_INSERT_BITS( type, bits, DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT, DL_TYPE_INLINE_ARRAY_CNT_BITS_USED );
+	}
 };
 
 struct dl_type_desc
@@ -223,7 +233,7 @@ DL_FORCEINLINE bool dl_internal_is_align( const void* ptr, size_t alignment ) { 
 	return a bitfield offset on a particular platform (currently endian-ness is used to set them apart, that might break ;) )
 	the bitfield offset are counted from least significant bit or most significant bit on different platforms.
 */
-inline unsigned int dl_bf_offset( dl_endian_t endian, unsigned int bf_size, unsigned int offset, unsigned int bits ) { return endian == DL_ENDIAN_LITTLE ? offset : ( bf_size * 8) - offset - bits; }
+inline unsigned int dl_bf_offset( dl_endian_t endian, unsigned int bf_size, unsigned int offset, unsigned int bits ) { return endian == DL_ENDIAN_LITTLE ? offset : ( bf_size * 8 ) - offset - bits; }
 
 DL_FORCEINLINE dl_endian_t dl_other_endian( dl_endian_t endian ) { return endian == DL_ENDIAN_LITTLE ? DL_ENDIAN_BIG : DL_ENDIAN_LITTLE; }
 

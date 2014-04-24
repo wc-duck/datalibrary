@@ -547,12 +547,8 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 					dl_binary_writer_write( &store_ctx->writer, instance, member->size[DL_PTR_SIZE_HOST] ); // TODO: I Guess that this is a bug! Will it fix ptrs well?
 					break;
 				case DL_TYPE_STORAGE_STR:
-				{
-					uint32_t count = (uint32_t)(member->size[DL_PTR_SIZE_HOST] / sizeof(char*));
-
-					for( uint32_t elem = 0; elem < count; ++elem )
+					for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
 						dl_internal_store_string( instance + (elem * sizeof(char*)), store_ctx );
-				}
 				break;
 				default: // default is a standard pod-type
 					DL_ASSERT( member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM );

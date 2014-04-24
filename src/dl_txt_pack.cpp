@@ -887,8 +887,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 							{
 								char** array_value = (char**)member_default_value;
 
-								uint32_t count = (uint32_t)(member->size[DL_PTR_SIZE_HOST] / sizeof(char*));
-								for( uint32_t elem = 0; elem < count; ++elem )
+								for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
 								{
 									dl_binary_writer_seek_end( pack_ctx->writer );
 									uintptr_t str_pos = dl_binary_writer_tell( pack_ctx->writer );

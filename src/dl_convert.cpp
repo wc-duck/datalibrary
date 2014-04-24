@@ -234,16 +234,14 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
-						// TODO: This might be optimized if we look at all the data in i inline-array of strings as 1 instance continious in memory.
+						// TODO: This might be optimized if we look at all the data in i inline-array of strings as 1 instance continuous in memory.
 						// I am not sure if that is true for all cases right now!
 
 						uint32_t PtrSize = (uint32_t)dl_internal_ptr_size(convert_ctx.m_SourcePtrSize);
-						uint32_t Count = Member->size[convert_ctx.m_SourcePtrSize] / PtrSize;
-
-						for (uintptr_t iElem = 0; iElem < Count; ++iElem)
+						for (uintptr_t iElem = 0; iElem < Member->inline_array_cnt(); ++iElem)
 						{
 							uintptr_t Offset = DLInternalReadPtrData(data + (iElem * PtrSize), convert_ctx.m_SourceEndian, convert_ctx.m_SourcePtrSize);
-							convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, Count, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
+							convert_ctx.m_lInstances.Add(SInstance(base_data + Offset, 0x0, Member->inline_array_cnt(), dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
 						}
 					}
 					break;
@@ -447,20 +445,18 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 						if(pSubType == 0x0)
 							return DL_ERROR_TYPE_NOT_FOUND;
 
-						uintptr_t MemberSize  = Member->size[conv_ctx.m_SourcePtrSize];
 						uintptr_t SubtypeSize = pSubType->size[conv_ctx.m_SourcePtrSize];
-						for (uintptr_t ElemOffset = 0; ElemOffset < MemberSize; ElemOffset += SubtypeSize)
-							dl_internal_convert_write_struct( dl_ctx, pMemberData + ElemOffset, pSubType, conv_ctx, writer );
+						for( uint32_t i = 0; i < Member->inline_array_cnt(); ++i )
+							dl_internal_convert_write_struct( dl_ctx, pMemberData + i * SubtypeSize, pSubType, conv_ctx, writer );
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
 						uintptr_t PtrSizeSource = dl_internal_ptr_size(conv_ctx.m_SourcePtrSize);
 						uintptr_t PtrSizeTarget = dl_internal_ptr_size(conv_ctx.m_TargetPtrSize);
-						uint32_t Count = Member->size[conv_ctx.m_SourcePtrSize] / (uint32_t)PtrSizeSource;
 						uintptr_t Pos = dl_binary_writer_tell( writer );
 
-						for (uintptr_t iElem = 0; iElem < Count; ++iElem)
+						for (uintptr_t iElem = 0; iElem < Member->inline_array_cnt(); ++iElem)
 						{
 							uintptr_t OldOffset = DLInternalReadPtrData(pMemberData + (iElem * PtrSizeSource), conv_ctx.m_SourceEndian, conv_ctx.m_SourcePtrSize);
 							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(Pos + (iElem * PtrSizeTarget), OldOffset));
@@ -472,19 +468,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 					default:
 					{
 						DL_ASSERT(Member->IsSimplePod() || StorageType == DL_TYPE_STORAGE_ENUM);
-
-						uintptr_t PodSize   = dl_pod_size(Member->type);
-						uint32_t  ArraySize = Member->size[conv_ctx.m_SourcePtrSize];
-
-						switch(PodSize)
-						{
-							case 1: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof( uint8_t), sizeof( uint8_t) ); break;
-							case 2: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof(uint16_t), sizeof(uint16_t) ); break;
-							case 4: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof(uint32_t), sizeof(uint32_t) ); break;
-							case 8: dl_binary_writer_write_array( writer, pMemberData, ArraySize / sizeof(uint64_t), sizeof(uint64_t) ); break;
-							default:
-								DL_ASSERT(false && "Not supported pod-size!");
-						}
+						dl_binary_writer_write_array( writer, pMemberData, Member->inline_array_cnt(), dl_pod_size( Member->type ) );
 					}
 					break;
 				}

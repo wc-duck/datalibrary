@@ -561,6 +561,7 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 				member->type_id = 0;
 				member->size[DL_PTR_SIZE_32BIT] *= inline_array_len;
 				member->size[DL_PTR_SIZE_64BIT] *= inline_array_len;
+				member->set_inline_array_cnt( inline_array_len );
 				return 1;
 			}
 
@@ -596,6 +597,7 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 		// in the same space as bitfield bits and offset.
 		member->set_size( inline_array_len, inline_array_len );
 		member->set_align( 0, 0 );
+		member->set_inline_array_cnt( inline_array_len );
 		return 1;
 	}
 
