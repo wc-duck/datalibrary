@@ -95,199 +95,199 @@ TEST_F(DLText, member_missing)
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_MISSING, dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
 }
 
-//TEST_F(DLText, default_value_pod)
-//{
-//	// default-values should be set correctly!
-//
-//	const char* TextData = "{ \"type\" : \"PodsDefaults\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	PodsDefaults P1;
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, PodsDefaults::TYPE_ID, &P1, sizeof(P1), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(2,     P1.i8);
-//	EXPECT_EQ(3,     P1.i16);
-//	EXPECT_EQ(4,     P1.i32);
-//	EXPECT_EQ(5,     P1.i64);
-//	EXPECT_EQ(6u,    P1.u8);
-//	EXPECT_EQ(7u,    P1.u16);
-//	EXPECT_EQ(8u,    P1.u32);
-//	EXPECT_EQ(9u,    P1.u64);
-//	EXPECT_EQ(10.0f, P1.f32);
-//	EXPECT_EQ(11.0,  P1.f64);
-//}
-//
-//TEST_F(DLText, default_value_string)
-//{
-//	// default-values should be set correctly!
-//
-//	const char* TextData = "{ \"type\" : \"DefaultStr\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultStr P1[10]; // this is so ugly!
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
-//
-//	EXPECT_STREQ("cowbells ftw!", P1[0].Str);
-//}
-//
-//TEST_F(DLText, default_value_ptr)
-//{
-//	// default-values should be set correctly!
-//
-//	const char* TextData = "{ \"type\" : \"DefaultPtr\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultPtr P1 = { 0 }; // this is so ugly!
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultPtr::TYPE_ID, &P1, sizeof(DefaultPtr), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(0x0, P1.Ptr);
-//}
-//
-//TEST_F(DLText, default_value_struct)
-//{
-//	const char* TextData = "{ \"type\" : \"DefaultStruct\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultStruct P1; // this is so ugly!
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStruct::TYPE_ID, &P1, sizeof(DefaultStruct), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(13u, P1.Struct.Int1);
-//	EXPECT_EQ(37u, P1.Struct.Int2);
-//}
-//
-//TEST_F(DLText, default_value_enum)
-//{
-//	const char* TextData = "{ \"type\" : \"DefaultEnum\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultEnum P1;
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultEnum::TYPE_ID, &P1, sizeof(DefaultEnum), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(TESTENUM1_VALUE3, P1.Enum);
-//}
-//
-//TEST_F(DLText, default_value_inline_array_pod)
-//{
-//	// default-values should be set correctly!
-//
-//	const char* TextData = "{ \"type\" : \"DefaultInlArrayPod\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultInlArrayPod P1;
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayPod::TYPE_ID, &P1, sizeof(DefaultInlArrayPod), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(1u, P1.Arr[0]);
-//	EXPECT_EQ(3u, P1.Arr[1]);
-//	EXPECT_EQ(3u, P1.Arr[2]);
-//	EXPECT_EQ(7u, P1.Arr[3]);
-//}
-//
-//TEST_F(DLText, default_value_inline_array_enum)
-//{
-//	// default-values should be set correctly!
-//
-//	const char* TextData = "{ \"type\" : \"DefaultInlArrayEnum\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultInlArrayEnum P1;
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayEnum::TYPE_ID, &P1, sizeof(DefaultInlArrayEnum), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(TESTENUM1_VALUE3, P1.Arr[0]);
-//	EXPECT_EQ(TESTENUM1_VALUE1, P1.Arr[1]);
-//	EXPECT_EQ(TESTENUM1_VALUE2, P1.Arr[2]);
-//	EXPECT_EQ(TESTENUM1_VALUE4, P1.Arr[3]);
-//}
-//
-//TEST_F(DLText, default_value_inline_array_string)
-//{
-//	// default-values should be set correctly!
-//
-//	const char* TextData = "{ \"type\" : \"DefaultInlArrayStr\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//
-//	DefaultInlArrayStr P1[10];
-//
-//	// load binary
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
-//
-//	EXPECT_STREQ("cow",   P1[0].Arr[0]);
-//	EXPECT_STREQ("bells", P1[0].Arr[1]);
-//	EXPECT_STREQ("are",   P1[0].Arr[2]);
-//	EXPECT_STREQ("cool",  P1[0].Arr[3]);
-//}
-//
-//TEST_F(DLText, default_value_array_pod)
-//{
-//	const char* TextData = "{ \"type\" : \"DefaultArrayPod\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultArrayPod P1[10];
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayPod::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(4u, P1[0].Arr.count);
-//
-//	EXPECT_EQ(1u, P1[0].Arr[0]);
-//	EXPECT_EQ(3u, P1[0].Arr[1]);
-//	EXPECT_EQ(3u, P1[0].Arr[2]);
-//	EXPECT_EQ(7u, P1[0].Arr[3]);
-//}
-//
-//TEST_F(DLText, default_value_array_enum)
-//{
-//	const char* TextData = "{ \"type\" : \"DefaultArrayEnum\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultArrayEnum P1[10];
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayEnum::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(4u, P1[0].Arr.count);
-//
-//	EXPECT_EQ(TESTENUM1_VALUE3, P1[0].Arr[0]);
-//	EXPECT_EQ(TESTENUM1_VALUE1, P1[0].Arr[1]);
-//	EXPECT_EQ(TESTENUM1_VALUE2, P1[0].Arr[2]);
-//	EXPECT_EQ(TESTENUM1_VALUE4, P1[0].Arr[3]);
-//}
-//
-//TEST_F(DLText, default_value_array_string)
-//{
-//	// default-values should be set correctly!
-//
-//	const char* TextData = "{ \"type\" : \"DefaultArrayStr\", \"data\" : {} }";
-//
-//	unsigned char OutDataText[1024];
-//	DefaultArrayStr P1[10];
-//
-//	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
-//	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
-//
-//	EXPECT_EQ(4u, P1[0].Arr.count);
-//
-//	EXPECT_STREQ("cow",   P1[0].Arr[0]);
-//	EXPECT_STREQ("bells", P1[0].Arr[1]);
-//	EXPECT_STREQ("are",   P1[0].Arr[2]);
-//	EXPECT_STREQ("cool",  P1[0].Arr[3]);
-//}
+TEST_F(DLText, default_value_pod)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"PodsDefaults\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	PodsDefaults P1;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, PodsDefaults::TYPE_ID, &P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(2,     P1.i8);
+	EXPECT_EQ(3,     P1.i16);
+	EXPECT_EQ(4,     P1.i32);
+	EXPECT_EQ(5,     P1.i64);
+	EXPECT_EQ(6u,    P1.u8);
+	EXPECT_EQ(7u,    P1.u16);
+	EXPECT_EQ(8u,    P1.u32);
+	EXPECT_EQ(9u,    P1.u64);
+	EXPECT_EQ(10.0f, P1.f32);
+	EXPECT_EQ(11.0,  P1.f64);
+}
+
+TEST_F(DLText, default_value_string)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultStr\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultStr P1[10]; // this is so ugly!
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_STREQ("cowbells ftw!", P1[0].Str);
+}
+
+TEST_F(DLText, default_value_ptr)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultPtr\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultPtr P1 = { 0 }; // this is so ugly!
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultPtr::TYPE_ID, &P1, sizeof(DefaultPtr), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(0x0, P1.Ptr);
+}
+
+TEST_F(DLText, default_value_struct)
+{
+	const char* TextData = "{ \"type\" : \"DefaultStruct\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultStruct P1; // this is so ugly!
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStruct::TYPE_ID, &P1, sizeof(DefaultStruct), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(13u, P1.Struct.Int1);
+	EXPECT_EQ(37u, P1.Struct.Int2);
+}
+
+TEST_F(DLText, default_value_enum)
+{
+	const char* TextData = "{ \"type\" : \"DefaultEnum\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultEnum P1;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultEnum::TYPE_ID, &P1, sizeof(DefaultEnum), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(TESTENUM1_VALUE3, P1.Enum);
+}
+
+TEST_F(DLText, default_value_inline_array_pod)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultInlArrayPod\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultInlArrayPod P1;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayPod::TYPE_ID, &P1, sizeof(DefaultInlArrayPod), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(1u, P1.Arr[0]);
+	EXPECT_EQ(3u, P1.Arr[1]);
+	EXPECT_EQ(3u, P1.Arr[2]);
+	EXPECT_EQ(7u, P1.Arr[3]);
+}
+
+TEST_F(DLText, default_value_inline_array_enum)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultInlArrayEnum\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultInlArrayEnum P1;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayEnum::TYPE_ID, &P1, sizeof(DefaultInlArrayEnum), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(TESTENUM1_VALUE3, P1.Arr[0]);
+	EXPECT_EQ(TESTENUM1_VALUE1, P1.Arr[1]);
+	EXPECT_EQ(TESTENUM1_VALUE2, P1.Arr[2]);
+	EXPECT_EQ(TESTENUM1_VALUE4, P1.Arr[3]);
+}
+
+TEST_F(DLText, default_value_inline_array_string)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultInlArrayStr\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+
+	DefaultInlArrayStr P1[10];
+
+	// load binary
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_STREQ("cow",   P1[0].Arr[0]);
+	EXPECT_STREQ("bells", P1[0].Arr[1]);
+	EXPECT_STREQ("are",   P1[0].Arr[2]);
+	EXPECT_STREQ("cool",  P1[0].Arr[3]);
+}
+
+TEST_F(DLText, default_value_array_pod)
+{
+	const char* TextData = "{ \"type\" : \"DefaultArrayPod\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultArrayPod P1[10];
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayPod::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(4u, P1[0].Arr.count);
+
+	EXPECT_EQ(1u, P1[0].Arr[0]);
+	EXPECT_EQ(3u, P1[0].Arr[1]);
+	EXPECT_EQ(3u, P1[0].Arr[2]);
+	EXPECT_EQ(7u, P1[0].Arr[3]);
+}
+
+TEST_F(DLText, default_value_array_enum)
+{
+	const char* TextData = "{ \"type\" : \"DefaultArrayEnum\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultArrayEnum P1[10];
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayEnum::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(4u, P1[0].Arr.count);
+
+	EXPECT_EQ(TESTENUM1_VALUE3, P1[0].Arr[0]);
+	EXPECT_EQ(TESTENUM1_VALUE1, P1[0].Arr[1]);
+	EXPECT_EQ(TESTENUM1_VALUE2, P1[0].Arr[2]);
+	EXPECT_EQ(TESTENUM1_VALUE4, P1[0].Arr[3]);
+}
+
+TEST_F(DLText, default_value_array_string)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultArrayStr\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+	DefaultArrayStr P1[10];
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayStr::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ(4u, P1[0].Arr.count);
+
+	EXPECT_STREQ("cow",   P1[0].Arr[0]);
+	EXPECT_STREQ("bells", P1[0].Arr[1]);
+	EXPECT_STREQ("are",   P1[0].Arr[2]);
+	EXPECT_STREQ("cool",  P1[0].Arr[3]);
+}
 
 //TEST_F( DLText, special_named_enum )
 //{
@@ -315,7 +315,7 @@ TEST_F(DLText, member_missing)
 //	EXPECT_EQ(    9, NAMED_VALUE_NORMAL );
 //	EXPECT_EQ( 1337, NAMED_VALUE_VALUE );
 //}
-
+//
 //TEST_F( DLText, invalid_enum_value )
 //{
 //	const char* text_data = "{"

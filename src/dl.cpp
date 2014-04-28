@@ -29,10 +29,12 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 	ctx->error_msg_func = create_params->error_msg_func;
 	ctx->error_msg_ctx  = create_params->error_msg_ctx;
 
-	ctx->type_count       = 0;
-	ctx->member_count     = 0;
-	ctx->enum_count       = 0;
-	ctx->enum_value_count = 0;
+	ctx->type_count        = 0;
+	ctx->member_count      = 0;
+	ctx->enum_count        = 0;
+	ctx->enum_value_count  = 0;
+	ctx->default_data      = 0;
+	ctx->default_data_size = 0;
 
 	*dl_ctx = ctx;
 
@@ -79,12 +81,12 @@ static void dl_internal_patch_ptr( const uint8_t* ptr, const uint8_t* base_data 
 		read_me->real_data = base_data + read_me->offset;
 };
 
-static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t           dl_ctx,
-												 SPatchedInstances* patched_instances,
-												 const uint8_t*     instance,
-												 const dl_type_desc*     type,
-												 const uint8_t*     base_data,
-												 bool               is_member_struct )
+static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t            dl_ctx,
+												 SPatchedInstances*  patched_instances,
+												 const uint8_t*      instance,
+												 const dl_type_desc* type,
+												 const uint8_t*      base_data,
+												 bool                is_member_struct )
 {
 	// TODO: Optimize this please, linear search might not be the best if many subinstances is in file!
 	if( !is_member_struct )
@@ -204,56 +206,60 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 	if( dl_ctx->default_data != 0x0 )
 		return DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS;
 
-	dl_ctx->default_data = (uint8_t*)dl_ctx->alloc_func( default_data_size * 2, sizeof(void*), dl_ctx->alloc_ctx ); // TODO: times 2 here need to be fixed!
+	// TODO: times 2 here need to be fixed! Can be removed now if we store instances as 64bit.
+	dl_ctx->default_data = (uint8_t*)dl_ctx->alloc_func( default_data_size * 2, sizeof(void*), dl_ctx->alloc_ctx );
+	dl_ctx->default_data_size = default_data_size;
 
-	uint8_t* dst = dl_ctx->default_data;
+	(void)first_new_type;
+	memcpy( dl_ctx->default_data, default_data, default_data_size );
+//	uint8_t* dst = dl_ctx->default_data;
 
 	// ptr-patch and convert to native
-	for( unsigned int type_index = first_new_type; type_index < dl_ctx->type_count; ++type_index )
-	{
-		dl_type_desc* type = dl_ctx->type_descs + type_index;
-
-		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
-		{
-			dl_member_desc* member = (dl_member_desc*)dl_get_type_member( dl_ctx, type, member_index );
-			if( member->default_value_offset == UINT32_MAX )
-				continue;
-
-			dst                          = dl_internal_align_up( dst, member->alignment[DL_PTR_SIZE_HOST] );
-			uint8_t* src                 = (uint8_t*)default_data + member->default_value_offset;
-			uintptr_t base_offset        = (uintptr_t)dst - (uintptr_t)dl_ctx->default_data;
-			member->default_value_offset = (uint32_t)base_offset;
-
-			uint32_t old_offsets[2] = { member->offset[0], member->offset[1] };
-			member->offset[0] = 0;
-			member->offset[1] = 0;
-
-			dl_type_desc dummy;
-			dummy.size[0]      = member->size[0];
-			dummy.size[1]      = member->size[1];
-			dummy.alignment[0] = member->alignment[0];
-			dummy.alignment[1] = member->alignment[1];
-			dummy.member_count = 1;
-			dummy.member_start = type->member_start + member_index;
-
-			size_t needed_size;
-			dl_internal_convert_no_header( dl_ctx,
-										   src, (unsigned char*)default_data,
-										   dst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
-										   &needed_size,
-										   DL_ENDIAN_LITTLE,  DL_ENDIAN_HOST,
-										   DL_PTR_SIZE_32BIT, DL_PTR_SIZE_HOST,
-										   &dummy, base_offset );
-
-			SPatchedInstances patch_instances;
-			dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, dst, &dummy, dl_ctx->default_data, false );
-
-			member->offset[0] = old_offsets[0];
-			member->offset[1] = old_offsets[1];
-
-			dst += needed_size;
-		}
-	}
+//	for( unsigned int type_index = first_new_type; type_index < dl_ctx->type_count; ++type_index )
+//	{
+//		dl_type_desc* type = dl_ctx->type_descs + type_index;
+//
+//		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
+//		{
+//			dl_member_desc* member = (dl_member_desc*)dl_get_type_member( dl_ctx, type, member_index );
+//			if( member->default_value_offset == UINT32_MAX )
+//				continue;
+//
+//			dst                          = dl_internal_align_up( dst, member->alignment[DL_PTR_SIZE_HOST] );
+//			uint8_t* src                 = (uint8_t*)default_data + member->default_value_offset;
+//			uintptr_t base_offset        = (uintptr_t)dst - (uintptr_t)dl_ctx->default_data;
+//			member->default_value_offset = (uint32_t)base_offset;
+//
+//			uint32_t old_offsets[2] = { member->offset[0], member->offset[1] };
+//			member->offset[0] = 0;
+//			member->offset[1] = 0;
+//
+//			dl_type_desc dummy;
+//			dummy.size[0]      = member->size[0];
+//			dummy.size[1]      = member->size[1];
+//			dummy.alignment[0] = member->alignment[0];
+//			dummy.alignment[1] = member->alignment[1];
+//			dummy.member_count = 1;
+//			dummy.member_start = type->member_start + member_index;
+//
+//			size_t needed_size;
+//			dl_internal_convert_no_header( dl_ctx,
+//										   src, src, // (unsigned char*)default_data,
+//										   dst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
+//										   &needed_size,
+//										   DL_ENDIAN_LITTLE,  DL_ENDIAN_HOST,
+//										   DL_PTR_SIZE_64BIT, DL_PTR_SIZE_HOST,
+//										   &dummy, base_offset );
+//
+////			SPatchedInstances patch_instances;
+////			dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, dst, &dummy, dl_ctx->default_data, false );
+//
+//			member->offset[0] = old_offsets[0];
+//			member->offset[1] = old_offsets[1];
+//
+//			dst += needed_size;
+//		}
+//	}
 
 	return DL_ERROR_OK;
 }

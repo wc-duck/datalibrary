@@ -15,7 +15,7 @@ dl_error_t dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_li
 	header.enum_count = dl_ctx->enum_count;
 	header.member_count = dl_ctx->member_count;
 	header.enum_value_count = dl_ctx->enum_value_count;
-	header.default_value_size = 0;
+	header.default_value_size = (uint32_t)dl_ctx->default_data_size;
 
 	dl_binary_writer_write( &writer, &header, sizeof( dl_typelib_header ) );
 	dl_binary_writer_write( &writer, dl_ctx->type_ids, sizeof( dl_typeid_t ) * dl_ctx->type_count );
@@ -24,6 +24,7 @@ dl_error_t dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_li
 	dl_binary_writer_write( &writer, dl_ctx->enum_descs, sizeof( dl_enum_desc ) * dl_ctx->enum_count );
 	dl_binary_writer_write( &writer, dl_ctx->member_descs, sizeof( dl_member_desc ) * dl_ctx->member_count );
 	dl_binary_writer_write( &writer, dl_ctx->enum_value_descs, sizeof( dl_enum_value_desc ) * dl_ctx->enum_value_count );
+	dl_binary_writer_write( &writer, dl_ctx->default_data, dl_ctx->default_data_size );
 
 	// ... write default data ...
 

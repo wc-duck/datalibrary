@@ -1,4 +1,6 @@
 #include <dl/dl_typelib.h>
+#include <dl/dl_txt.h>
+
 #include <yajl/yajl_parse.h>
 
 #include "dl_types.h"
@@ -96,6 +98,7 @@ static dl_member_desc* dl_alloc_member( dl_ctx_t ctx )
 	dl_member_desc* member = ctx->member_descs + member_index;
 	memset( member, 0x0, sizeof( dl_member_desc ) );
 	member->default_value_offset = 0xFFFFFFFF;
+	member->default_value_size = 0;
 	return member;
 }
 
@@ -124,7 +127,10 @@ static void dl_load_txt_tl_handle_default( dl_load_txt_tl_ctx* state )
 {
 	if( state->cur_default_value_depth == 0 )
 	{
-		printf("def value: \"%.*s\"\n", (int)( yajl_get_bytes_consumed( state->yajl ) - state->def_value_start ), state->src_str + state->def_value_start );
+		uint32_t haxx_value = ( (uint32_t)state->def_value_start ) | (uint32_t)( ( yajl_get_bytes_consumed( state->yajl ) - state->def_value_start ) << 16 );
+		// haxx
+		state->active_member->default_value_offset = haxx_value;
+
 		state->pop();
 	}
 }
@@ -236,7 +242,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "Enumname \"%.*s\" is (currently) to long!", str_len, str_val );
 
 			// TODO: typeid should be patched when type is done by using all members etc.
-			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len, 0 );
+			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len );
 
 			dl_enum_desc* e = dl_alloc_enum( state->ctx, tid );
 			e->value_start = state->ctx->enum_value_count;
@@ -257,7 +263,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 
 			// ... alloc new type ...
 			// TODO: typeid should be patched when type is done by using all members etc.
-			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len, 0 );
+			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len );
 
 			dl_type_desc* type = dl_alloc_type( state->ctx, tid );
 			type->member_start = state->ctx->member_count;
@@ -572,7 +578,7 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 		}
 	}
 
-	member->type_id = dl_internal_hash_string( type_name, 0 );
+	member->type_id = dl_internal_hash_string( type_name );
 
 	if( is_ptr )
 	{
@@ -845,6 +851,82 @@ static int dl_load_txt_on_bool( void* ctx, int value )
 	return 1;
 }
 
+static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...)
+{
+	va_list args;
+	va_start( args, fmt );
+	int res = vsnprintf( buf, buf_size, fmt, args );
+	buf[buf_size - 1] = '\0';
+	va_end( args );
+	return res;
+}
+
+static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, dl_member_desc* member )
+{
+	if( member->default_value_offset == 0xFFFFFFFF )
+		return;
+
+	uint32_t def_start = member->default_value_offset & 0xFFFF;
+	uint32_t def_len   = member->default_value_offset >> 16;
+
+	char def_buffer[2048]; // TODO: no hardcode =/
+
+	// TODO: check that this is not outside the buffers
+	dl_type_desc*   def_type   = ctx->type_descs + ctx->type_count;
+	dl_member_desc* def_member = ctx->member_descs + ctx->member_count;
+	ctx->type_ids[ctx->type_count] = dl_internal_hash_string( "a_type_here" );
+
+	// TODO: check that typename do not exist in the ctx!
+
+	strncpy( def_type->name, "a_type_here", DL_TYPE_NAME_MAX_LEN );
+	def_type->size[DL_PTR_SIZE_HOST]      = member->size[DL_PTR_SIZE_HOST];
+	def_type->alignment[DL_PTR_SIZE_HOST] = member->alignment[DL_PTR_SIZE_HOST];
+	def_type->member_count = 1;
+	def_type->member_start = ctx->member_count;
+
+	memcpy( def_member, member, sizeof( dl_member_desc ) );
+	def_member->offset[0] = 0;
+	def_member->offset[1] = 0;
+
+	++ctx->type_count;
+	++ctx->member_count;
+
+	dl_internal_str_format( def_buffer, 2048, "{\"type\":\"a_type_here\",\"data\":{\"%s\"%.*s}}", member->name, (int)def_len, lib_data + def_start );
+
+	size_t prod_bytes;
+	dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes );
+
+	uint8_t* pack_buffer = (uint8_t*)ctx->alloc_func( (unsigned int)prod_bytes, sizeof(void*), ctx->alloc_ctx );
+
+	dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0 );
+
+	// TODO: convert packed instance to typelib endian/ptrsize here!
+
+	size_t inst_size = prod_bytes - sizeof( dl_data_header );
+
+	if( ctx->default_data == 0x0 )
+	{
+		ctx->default_data = (uint8_t*)ctx->alloc_func( (uint32_t)(ctx->default_data_size + inst_size), sizeof(void*), ctx->alloc_ctx );
+	}
+	else
+	{
+		// TODO: real realloc here!
+		uint8_t* old = ctx->default_data;
+		ctx->default_data = (uint8_t*)ctx->alloc_func( (uint32_t)(ctx->default_data_size + inst_size), sizeof(void*), ctx->alloc_ctx );
+		memcpy( ctx->default_data, old, ctx->default_data_size );
+	}
+	memcpy( ctx->default_data + ctx->default_data_size, pack_buffer + sizeof( dl_data_header ), inst_size );
+
+	ctx->free_func( pack_buffer, ctx->alloc_ctx );
+
+	member->default_value_offset = (uint32_t)ctx->default_data_size;
+	member->default_value_size   = (uint32_t)inst_size;
+	ctx->default_data_size += inst_size;
+
+	--ctx->type_count;
+	--ctx->member_count;
+}
+
 static dl_member_desc* dl_load_txt_find_first_bitfield_member( dl_member_desc* start, dl_member_desc* end )
 {
 	while( start <= end )
@@ -1042,6 +1124,7 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	};
 
 	unsigned int start_type = dl_ctx->type_count;
+	unsigned int start_member = dl_ctx->member_count;
 
 	dl_load_txt_tl_ctx state;
 	state.stack_item = 0;
@@ -1072,10 +1155,10 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 
 	// ... calculate size of types ...
 	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
-	{
-		// how to handle recursive types and sub-types that might not already be done?
 		dl_load_txt_calc_type_size_and_align( dl_ctx, dl_ctx->type_descs + i );
-	}
+
+	for( unsigned int i = start_member; i < dl_ctx->member_count; ++i )
+		dl_load_txt_build_default_data( dl_ctx, lib_data, dl_ctx->member_descs + i );
 
 	return DL_ERROR_OK;
 }

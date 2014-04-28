@@ -596,7 +596,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 		{
 			SDLPackState& state = pCtx->state_stack.Top();
 
-			unsigned int member_id = dl_internal_find_member( pCtx->dl_ctx, state.type, dl_internal_hash_buffer(str_val, str_len, 0) );
+			unsigned int member_id = dl_internal_find_member( pCtx->dl_ctx, state.type, dl_internal_hash_buffer(str_val, str_len) );
 
 			DL_PACK_ERROR_AND_FAIL_IF( member_id > state.type->member_count, 
 									   pCtx, 
@@ -851,93 +851,85 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 				uintptr_t mem_pos  = PackState.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
 				uint8_t*  member_default_value = pack_ctx->dl_ctx->default_data + member->default_value_offset;
 
-				dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
+				uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
+				uint8_t* subdata = member_default_value + member_size;
 
-				dl_type_t atom_type    = member->AtomType();
-				dl_type_t storage_type = member->StorageType();
-
-				switch( atom_type )
+				if( member_size == member->default_value_size )
 				{
-					case DL_TYPE_ATOM_POD:
+					dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
+					dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+				}
+				else
+				{
+					// ... sub ptrs, copy and patch ...
+					dl_binary_writer_seek_end( pack_ctx->writer );
+					uintptr_t subdata_pos = dl_binary_writer_tell( pack_ctx->writer );
+
+					dl_binary_writer_write( pack_ctx->writer, subdata, member->default_value_size - member_size );
+
+					// ... patch ptrs ...
+					dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
+
+					dl_type_t atom_type    = member->AtomType();
+					dl_type_t storage_type = member->StorageType();
+
+					// TODO: this code should really be able to use a general patch-ptrs function!
+					//       as is now this code do not handle default-values with arrays of structs with sub-ptrs.
+					//       using the general patching code would solve that.
+					//       Just make the patch function take the base-member and an offset to its sub-data.
+					switch( atom_type )
 					{
-						switch( storage_type )
-						{
-							case DL_TYPE_STORAGE_STR:
+						case DL_TYPE_ATOM_POD:
+							switch( storage_type )
 							{
-								dl_binary_writer_seek_end( pack_ctx->writer );
-								uintptr_t str_pos = dl_binary_writer_tell( pack_ctx->writer );
-								char* str = *(char**)member_default_value;
-								dl_binary_writer_write_string( pack_ctx->writer, str, strlen( str ) );
-								dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
-								dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
+								case DL_TYPE_STORAGE_STR:
+									dl_binary_writer_write_pint( pack_ctx->writer, subdata_pos );
+								break;
+								default:
+									DL_ASSERT(false);
 							}
 							break;
-							case DL_TYPE_STORAGE_PTR: dl_binary_writer_write_pint( pack_ctx->writer, (uintptr_t)-1 ); break; // can only default to null!
-							default:
-								DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
-								dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
-						}
-					}
-					break;
-					case DL_TYPE_ATOM_INLINE_ARRAY:
-					{
-						switch( storage_type )
-						{
-							case DL_TYPE_STORAGE_STR:
+						case DL_TYPE_ATOM_INLINE_ARRAY:
+							switch( storage_type )
 							{
-								char** array_value = (char**)member_default_value;
-
-								for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
+								case DL_TYPE_STORAGE_STR:
 								{
-									dl_binary_writer_seek_end( pack_ctx->writer );
-									uintptr_t str_pos = dl_binary_writer_tell( pack_ctx->writer );
-									dl_binary_writer_write_string( pack_ctx->writer, array_value[elem], strlen( array_value[elem] ) );
-									dl_binary_writer_seek_set( pack_ctx->writer, mem_pos + sizeof(char*) * elem );
-									dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
+									uintptr_t* array_value = (uintptr_t*)member_default_value;
+									for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
+										dl_binary_writer_write_pint( pack_ctx->writer, mem_pos + array_value[elem] );
 								}
+								break;
+								default:
+									DL_ASSERT(false);
 							}
 							break;
-							default:
-								DL_ASSERT( member->IsSimplePod() || DL_TYPE_STORAGE_ENUM );
-								dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
-						}
-					}
-					break;
-					case DL_TYPE_ATOM_ARRAY:
-					{
-						uint32_t count = *(uint32_t*)(member_default_value + sizeof(void*));
-
-						dl_binary_writer_write_pint( pack_ctx->writer, dl_binary_writer_needed_size( pack_ctx->writer ) );
-						dl_binary_writer_write_uint32( pack_ctx->writer, count);
-						dl_binary_writer_seek_end( pack_ctx->writer );
-
-						switch( storage_type )
+						case DL_TYPE_ATOM_ARRAY:
 						{
-							case DL_TYPE_STORAGE_STR:
+							uint32_t* offset = (uint32_t*)member_default_value;
+							uintptr_t array_offset = ((uint64_t*)offset)[0];
+							uint32_t count = offset[2];
+							dl_binary_writer_write_pint( pack_ctx->writer, subdata_pos + array_offset - member_size );
+							dl_binary_writer_write_uint32( pack_ctx->writer, count );
+
+							switch( storage_type )
 							{
-
-								uintptr_t array_pos = dl_binary_writer_tell( pack_ctx->writer );
-								dl_binary_writer_reserve( pack_ctx->writer, count * sizeof(char*) );
-
-								char** array_value = *(char***)member_default_value;
-								for( uint32_t i = 0; i < count; ++i )
+								case DL_TYPE_STORAGE_STR:
 								{
-									dl_binary_writer_seek_end( pack_ctx->writer );
-									uintptr_t str_pos = dl_binary_writer_tell( pack_ctx->writer );
-									dl_binary_writer_write_string( pack_ctx->writer, array_value[i], strlen( array_value[i] ) );
-									dl_binary_writer_seek_set( pack_ctx->writer, array_pos + sizeof(char*) * i );
-									dl_binary_writer_write_pint( pack_ctx->writer, str_pos );
+									uintptr_t* array_value = (uintptr_t*)(member_default_value + array_offset);
+									dl_binary_writer_seek_set( pack_ctx->writer, subdata_pos + array_offset - member_size );
+									for( uint32_t elem = 0; elem < count; ++elem )
+										dl_binary_writer_write_pint( pack_ctx->writer, subdata_pos + array_value[elem] - member_size );
 								}
+								break;
+								default:
+									break;
 							}
-							break;
-							default:
-								DL_ASSERT(member->IsSimplePod() || DL_TYPE_STORAGE_ENUM);
-								dl_binary_writer_write( pack_ctx->writer, *(uint8_t**)member_default_value, count * dl_pod_size(member->type) );
 						}
+						break;
+						default:
+							DL_ASSERT(false);
+							break;
 					}
-					break;
-					default:
-						DL_ASSERT(false && "WHoo?");
 				}
 			}
 

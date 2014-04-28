@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include <dl/dl.h>
+#include "dl_hash.h"
 
 #include <string.h> // for memcpy
 #include <stdio.h>  // for vsnprintf
@@ -104,6 +105,7 @@ struct dl_member_desc
 	uint32_t    alignment[2];
 	uint32_t    offset[2];
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
+	uint32_t    default_value_size;
 
 	dl_type_t AtomType()       const { return dl_type_t( type & DL_TYPE_ATOM_MASK); }
 	dl_type_t StorageType()    const { return dl_type_t( type & DL_TYPE_STORAGE_MASK); }
@@ -207,6 +209,7 @@ struct dl_context
 	dl_enum_value_desc enum_value_descs[256];
 
 	uint8_t* default_data;
+	size_t   default_data_size;
 };
 
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
@@ -306,22 +309,6 @@ static inline const dl_enum_desc* dl_internal_find_enum( dl_ctx_t dl_ctx, dl_typ
 			return &dl_ctx->enum_descs[i];
 
 	return 0x0;
-}
-
-DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8_t* buffer, size_t bytes, uint32_t base_hash )
-{
-	uint32_t hash = base_hash + 5381;
-	for (unsigned int i = 0; i < bytes; i++)
-		hash = (hash * uint32_t(33)) + *((uint8_t*)buffer + i);
-	return hash - 5381;
-}
-
-DL_FORCEINLINE static uint32_t dl_internal_hash_string( const char* str, uint32_t base_hash = 0 )
-{
-	uint32_t hash = base_hash + 5381;
-	for (unsigned int i = 0; str[i] != 0; i++)
-		hash = (hash * uint32_t(33)) + str[i];
-	return hash - 5381; // So empty string == 0
 }
 
 static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_type_desc* type, unsigned int member_index )
