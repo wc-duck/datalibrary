@@ -896,7 +896,7 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, 
 	size_t prod_bytes;
 	dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes );
 
-	uint8_t* pack_buffer = (uint8_t*)ctx->alloc_func( (unsigned int)prod_bytes, sizeof(void*), ctx->alloc_ctx );
+	uint8_t* pack_buffer = (uint8_t*)dl_alloc( &ctx->alloc, prod_bytes );
 
 	dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0 );
 
@@ -904,20 +904,10 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, 
 
 	size_t inst_size = prod_bytes - sizeof( dl_data_header );
 
-	if( ctx->default_data == 0x0 )
-	{
-		ctx->default_data = (uint8_t*)ctx->alloc_func( (uint32_t)(ctx->default_data_size + inst_size), sizeof(void*), ctx->alloc_ctx );
-	}
-	else
-	{
-		// TODO: real realloc here!
-		uint8_t* old = ctx->default_data;
-		ctx->default_data = (uint8_t*)ctx->alloc_func( (uint32_t)(ctx->default_data_size + inst_size), sizeof(void*), ctx->alloc_ctx );
-		memcpy( ctx->default_data, old, ctx->default_data_size );
-	}
+	ctx->default_data = (uint8_t*)dl_realloc( &ctx->alloc, ctx->default_data, ctx->default_data_size + inst_size, ctx->default_data_size );
 	memcpy( ctx->default_data + ctx->default_data_size, pack_buffer + sizeof( dl_data_header ), inst_size );
 
-	ctx->free_func( pack_buffer, ctx->alloc_ctx );
+	dl_free( &ctx->alloc, pack_buffer );
 
 	member->default_value_offset = (uint32_t)ctx->default_data_size;
 	member->default_value_size   = (uint32_t)inst_size;

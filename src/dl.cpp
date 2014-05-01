@@ -6,26 +6,19 @@
 
 #include <dl/dl.h>
 
-#include <stdlib.h> // malloc, free
-
-// TODO: bug! dl_internal_default_alloc do not follow alignment.
-static void* dl_internal_default_alloc( unsigned int size, unsigned int alignment, void* alloc_ctx ) { (void)alignment; (void)alloc_ctx; return malloc(size); }
-static void  dl_internal_default_free ( void* ptr, void* alloc_ctx ) {  (void)alloc_ctx; free(ptr); }
-
 dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_params )
 {
-	dl_alloc_func the_alloc = create_params->alloc_func != 0x0 ? create_params->alloc_func : dl_internal_default_alloc;
-	dl_free_func  the_free  = create_params->free_func  != 0x0 ? create_params->free_func  : dl_internal_default_free;
-	dl_context*   ctx       = (dl_context*)the_alloc( sizeof(dl_context), sizeof(void*), create_params->alloc_ctx );
+	dl_allocator alloc;
+	dl_allocator_initialize( &alloc, create_params->alloc_func, create_params->realloc_func, create_params->free_func, create_params->alloc_ctx );
+
+	dl_context* ctx = (dl_context*)dl_alloc( &alloc, sizeof( dl_context ) );
 
 	if(ctx == 0x0)
 		return DL_ERROR_OUT_OF_LIBRARY_MEMORY;
 
 	memset(ctx, 0x0, sizeof(dl_context));
+	memcpy(&ctx->alloc, &alloc, sizeof( dl_allocator ) );
 
-	ctx->alloc_func     = the_alloc;
-	ctx->free_func      = the_free;
-	ctx->alloc_ctx      = create_params->alloc_ctx;
 	ctx->error_msg_func = create_params->error_msg_func;
 	ctx->error_msg_ctx  = create_params->error_msg_ctx;
 
@@ -43,8 +36,8 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 
 dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 {
-	dl_ctx->free_func( dl_ctx->default_data, dl_ctx->alloc_ctx );
-	dl_ctx->free_func( dl_ctx, dl_ctx->alloc_ctx );
+	dl_free( &dl_ctx->alloc, dl_ctx->default_data );
+	dl_free( &dl_ctx->alloc, dl_ctx );
 	return DL_ERROR_OK;
 }
 
@@ -55,7 +48,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
                                           size_t*        needed_size,
                                           dl_endian_t    src_endian,      dl_endian_t    out_endian,
                                           dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
-                                          const dl_type_desc* root_type,       size_t         base_offset );
+                                          const dl_type_desc* root_type,       size_t    base_offset );
 
 struct SPatchedInstances
 {
@@ -197,7 +190,6 @@ static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t            dl_ctx,
 }
 
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
-														  unsigned int   first_new_type,
 														  const uint8_t* default_data,
 														  unsigned int   default_data_size )
 {
@@ -207,59 +199,10 @@ static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 		return DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS;
 
 	// TODO: times 2 here need to be fixed! Can be removed now if we store instances as 64bit.
-	dl_ctx->default_data = (uint8_t*)dl_ctx->alloc_func( default_data_size * 2, sizeof(void*), dl_ctx->alloc_ctx );
+	dl_ctx->default_data = (uint8_t*)dl_alloc( &dl_ctx->alloc, default_data_size * 2 );
 	dl_ctx->default_data_size = default_data_size;
 
-	(void)first_new_type;
 	memcpy( dl_ctx->default_data, default_data, default_data_size );
-//	uint8_t* dst = dl_ctx->default_data;
-
-	// ptr-patch and convert to native
-//	for( unsigned int type_index = first_new_type; type_index < dl_ctx->type_count; ++type_index )
-//	{
-//		dl_type_desc* type = dl_ctx->type_descs + type_index;
-//
-//		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
-//		{
-//			dl_member_desc* member = (dl_member_desc*)dl_get_type_member( dl_ctx, type, member_index );
-//			if( member->default_value_offset == UINT32_MAX )
-//				continue;
-//
-//			dst                          = dl_internal_align_up( dst, member->alignment[DL_PTR_SIZE_HOST] );
-//			uint8_t* src                 = (uint8_t*)default_data + member->default_value_offset;
-//			uintptr_t base_offset        = (uintptr_t)dst - (uintptr_t)dl_ctx->default_data;
-//			member->default_value_offset = (uint32_t)base_offset;
-//
-//			uint32_t old_offsets[2] = { member->offset[0], member->offset[1] };
-//			member->offset[0] = 0;
-//			member->offset[1] = 0;
-//
-//			dl_type_desc dummy;
-//			dummy.size[0]      = member->size[0];
-//			dummy.size[1]      = member->size[1];
-//			dummy.alignment[0] = member->alignment[0];
-//			dummy.alignment[1] = member->alignment[1];
-//			dummy.member_count = 1;
-//			dummy.member_start = type->member_start + member_index;
-//
-//			size_t needed_size;
-//			dl_internal_convert_no_header( dl_ctx,
-//										   src, src, // (unsigned char*)default_data,
-//										   dst, 1337, // need to check this size ;) Should be the remainder of space in m_pDefaultInstances.
-//										   &needed_size,
-//										   DL_ENDIAN_LITTLE,  DL_ENDIAN_HOST,
-//										   DL_PTR_SIZE_64BIT, DL_PTR_SIZE_HOST,
-//										   &dummy, base_offset );
-//
-////			SPatchedInstances patch_instances;
-////			dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, dst, &dummy, dl_ctx->default_data, false );
-//
-//			member->offset[0] = old_offsets[0];
-//			member->offset[1] = old_offsets[1];
-//
-//			dst += needed_size;
-//		}
-//	}
 
 	return DL_ERROR_OK;
 }
@@ -362,7 +305,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->member_count += header.member_count;
 	dl_ctx->enum_value_count += header.enum_value_count;
 
-	return dl_internal_load_type_library_defaults( dl_ctx, dl_ctx->type_count - header.type_count, lib_data + defaults_offset, header.default_value_size );
+	return dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
 }
 
 dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  type_id,

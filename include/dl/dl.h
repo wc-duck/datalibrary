@@ -145,9 +145,53 @@ DL_FORCEINLINE dl_endian_t dl_endian_host()
 
 #define DL_ENDIAN_HOST dl_endian_host()
 
-typedef void* (*dl_alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
+/*
+	Function: dl_alloc_func
+		Callback used by DL to allocate memory internally.
+
+	Parameters:
+		size      - number of bytes to allocate.
+		alloc_ctx - same ptr that was passed to dl_context_create via dl_create_params.alloc_ctx.
+
+	Return:
+		Pointer to newly allocated memory.
+*/
+typedef void* (*dl_alloc_func)( size_t size, void* alloc_ctx );
+
+/*
+	Function: dl_realloc_func.
+		Callback used by DL to reallocate a buffer to a different size.
+
+	Parameters:
+		ptr       - pointer to memory to reallocate, if 0x0 dl_realloc_func should act as dl_alloc_func.
+		size      - number of bytes to allocate.
+		old_size  - previous size of allocation.
+		alloc_ctx - same ptr that was passed to dl_context_create via dl_create_params.alloc_ctx.
+
+	Return:
+		Pointer to newly allocated/reallocated memory.
+*/
+typedef void* (*dl_realloc_func)( void* ptr, size_t size, size_t old_size, void* alloc_ctx );
+
+/*
+	Function: dl_free_func
+		Callback used by DL to free memory allocated by either dl_alloc_func or dl_realloc_func.
+
+	Parameters:
+		ptr       - pointer to memory to free, if 0x0 this should be a no-op.
+		alloc_ctx - same ptr that was passed to dl_context_create via dl_create_params.alloc_ctx.
+*/
 typedef void  (*dl_free_func) ( void* ptr, void* alloc_ctx );
-typedef void  (*dl_error_msg_handler)( const char* msg, void* userdata );
+
+/*
+	Function: dl_error_msg_handler
+		Callback used by DL to report error-messages.
+
+	Parameters:
+		msg     - error message that DL log.
+		msg_ctx - same ptr that was passed to dl_context_create via dl_create_params.error_msg_ctx.
+*/
+typedef void  (*dl_error_msg_handler)( const char* msg, void* msg_ctx );
 
 /*
 	Struct: dl_create_params_t
@@ -155,19 +199,27 @@ typedef void  (*dl_error_msg_handler)( const char* msg, void* userdata );
 		This struct is open to change in later versions of dl.
 
 	Members:
-		alloc_func - function called by dl to allocate memory, set to 0x0 to use malloc
-		free_func  - function called by dl to free memory, set to 0x0 to use free
-		alloc_ctx  - parameter passed to alloc_func/free_func for userdata.
+		alloc_func   - function called by dl to allocate memory, set to 0x0 to use malloc
+		realloc_func - function called by dl to reallocate a memory buffer, set to 0x0 to use realloc.
+		free_func    - function called by dl to free memory, set to 0x0 to use free
+		alloc_ctx    - parameter passed to alloc_func/free_func for userdata.
 
 		error_msg_func - callback used to report errors in more detail than error-codes
 		                 to the user, set to 0x0 to ignore error-strings.
 		error_msg_ctx  - data passed to error_msg_func as user-data.
+
+	Note:
+		As a user you might replace the internal memory allocation function by using alloc_func, realloc_func
+		and free_func.
+		If you set alloc_func you are required to set free_func as well and can optionally set realloc_func.
+		If no realloc_func is set but alloc_func and free_func is set DL will fallback on alloc_func + memcpy.
 */
 typedef struct dl_create_params
 {
-	dl_alloc_func alloc_func;
-	dl_free_func  free_func;
-	void*         alloc_ctx;
+	dl_alloc_func   alloc_func;
+	dl_realloc_func realloc_func;
+	dl_free_func    free_func;
+	void*           alloc_ctx;
 
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
@@ -187,9 +239,10 @@ typedef struct dl_create_params
 		p.alloc_func = my_func
 */
 #define DL_CREATE_PARAMS_SET_DEFAULT( params ) \
-		params.alloc_func = 0x0; \
-		params.free_func  = 0x0; \
-		params.alloc_ctx  = 0x0; \
+		params.alloc_func   = 0x0; \
+		params.realloc_func = 0x0; \
+		params.free_func    = 0x0; \
+		params.alloc_ctx    = 0x0; \
 		params.error_msg_func = 0x0; \
 		params.error_msg_ctx  = 0x0;
 

@@ -11,6 +11,7 @@
 
 #include <dl/dl.h>
 #include "dl_hash.h"
+#include "dl_alloc.h"
 
 #include <string.h> // for memcpy
 #include <stdio.h>  // for vsnprintf
@@ -187,9 +188,11 @@ struct dl_enum_desc
 
 struct dl_context
 {
-	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
-	void  (*free_func) ( void* ptr, void* alloc_ctx );
-	void* alloc_ctx;
+	dl_allocator alloc;
+
+//	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
+//	void  (*free_func) ( void* ptr, void* alloc_ctx );
+//	void* alloc_ctx;
 
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
