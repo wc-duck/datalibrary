@@ -13,16 +13,13 @@ function dl_type_lib( tlc_file, dl_shared_lib, dltlc )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header    = out_file .. ".h"
-	local out_cs_header = out_file .. ".cs"
 	local out_lib       = out_file .. ".bin"
 	local out_lib_h     = out_file .. ".bin.h"
 
-	local DL_TLC = PYTHON .. " tool/dl_tlc/dl_tlc.py --dldll=" .. dl_shared_lib
 	local HAXX   = PYTHON .. " ../wc_games/wc_engine/units/util/tools/bin2hex.py"
 
 	AddJob( out_lib,       "tlc " .. out_lib,       dltlc  .. " -o " .. out_lib .. " " .. tlc_file,       tlc_file )
 	AddJob( out_lib_h,     "tlc " .. out_lib_h,	HAXX   .. " -o " .. out_lib_h .. " " .. out_lib,      out_lib )
-	AddJob( out_cs_header, "tlc " .. out_cs_header,	DL_TLC .. " -s " .. out_cs_header .. " " .. tlc_file, tlc_file )
 	AddJob( out_header,    "tlc " .. out_header,    dltlc .. " -c -o " .. out_header .. " " .. tlc_file,  tlc_file )
 
 	AddDependency( tlc_file, dltlc )
