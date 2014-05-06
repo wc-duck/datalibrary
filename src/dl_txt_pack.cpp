@@ -2,6 +2,7 @@
 
 #include "dl_types.h"
 #include "dl_binary_writer.h"
+#include "dl_patch_ptr.h"
 
 #include <dl/dl_txt.h>
 
@@ -814,8 +815,6 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 	}
 }
 
-#include "dl_patch_ptr.h"
-
 static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
@@ -868,12 +867,6 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 					dl_binary_writer_write( pack_ctx->writer, subdata, member->default_value_size - member_size );
 
 					// TODO: test with multiple default values with subptrs in one struct.
-
-					// TODO: test with array of struct with sub-ptrs.
-
-					// TODO: test default value with inline array of struct
-
-					// TODO: test default value with inline array of struct with sub-ptrs
 
 					uint8_t* member_data = pack_ctx->writer->data + mem_pos;
 					uintptr_t member_to_subdata_offset = subdata_pos - mem_pos;

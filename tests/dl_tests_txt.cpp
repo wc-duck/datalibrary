@@ -233,6 +233,30 @@ TEST_F(DLText, default_value_inline_array_string)
 	EXPECT_STREQ("cool",  P1[0].Arr[3]);
 }
 
+TEST_F(DLText, default_value_inline_array_array)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultInlArrayArray\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+
+	DefaultInlArrayArray P1[10];
+
+	// load binary
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayArray::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ( 2u, P1[0].Arr[0].u32_arr.count );
+	EXPECT_EQ( 2u, P1[0].Arr[1].u32_arr.count );
+
+	EXPECT_EQ( 1u, P1[0].Arr[0].u32_arr[0] );
+	EXPECT_EQ( 3u, P1[0].Arr[0].u32_arr[1] );
+	EXPECT_EQ( 3u, P1[0].Arr[1].u32_arr[0] );
+	EXPECT_EQ( 7u, P1[0].Arr[1].u32_arr[1] );
+}
+
 TEST_F(DLText, default_value_array_pod)
 {
 	const char* TextData = "{ \"type\" : \"DefaultArrayPod\", \"data\" : {} }";
@@ -287,6 +311,31 @@ TEST_F(DLText, default_value_array_string)
 	EXPECT_STREQ("bells", P1[0].Arr[1]);
 	EXPECT_STREQ("are",   P1[0].Arr[2]);
 	EXPECT_STREQ("cool",  P1[0].Arr[3]);
+}
+
+TEST_F(DLText, default_value_array_array)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultArrayArray\", \"data\" : {} }";
+
+	unsigned char OutDataText[1024];
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+
+	DefaultArrayArray P1[10];
+
+	// load binary
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayArray::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_EQ( 2u, P1[0].Arr.count );
+	EXPECT_EQ( 2u, P1[0].Arr[0].u32_arr.count );
+	EXPECT_EQ( 2u, P1[0].Arr[1].u32_arr.count );
+
+	EXPECT_EQ( 1u, P1[0].Arr[0].u32_arr[0] );
+	EXPECT_EQ( 3u, P1[0].Arr[0].u32_arr[1] );
+	EXPECT_EQ( 3u, P1[0].Arr[1].u32_arr[0] );
+	EXPECT_EQ( 7u, P1[0].Arr[1].u32_arr[1] );
 }
 
 //TEST_F( DLText, special_named_enum )

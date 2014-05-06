@@ -37,18 +37,34 @@ static uintptr_t dl_internal_patch_ptr( uint8_t* ptrptr, uintptr_t patch_distanc
 	return *ptr;
 }
 
-void dl_internal_patch_str_array( uint8_t* array_data, uint32_t count, uintptr_t patch_distance )
-{
-	for( uint32_t index = 0; index < count; ++index )
-		dl_internal_patch_ptr( array_data + index * sizeof(char*), patch_distance );
-}
-
 void dl_internal_patch_struct( dl_ctx_t            ctx,
 							   const dl_type_desc* type,
 							   uint8_t*            struct_data,
 							   uintptr_t           base_address,
 							   uintptr_t           patch_distance,
 							   dl_patched_ptrs*    patched_ptrs );
+
+void dl_internal_patch_str_array( uint8_t* array_data, uint32_t count, uintptr_t patch_distance )
+{
+	for( uint32_t index = 0; index < count; ++index )
+		dl_internal_patch_ptr( array_data + index * sizeof(char*), patch_distance );
+}
+
+void dl_internal_patch_struct_array( dl_ctx_t            ctx,
+									 const dl_type_desc* type,
+									 uint8_t*            array_data,
+									 uint32_t            count,
+									 uintptr_t           patch_distance,
+									 uintptr_t           base_address,
+									 dl_patched_ptrs*    patched_ptrs )
+{
+	uint32_t size = dl_internal_align_up( type->size[DL_PTR_SIZE_HOST], type->alignment[DL_PTR_SIZE_HOST] );
+	for( uint32_t index = 0; index < count; ++index )
+	{
+		uint8_t* struct_data = array_data + index * size;
+		dl_internal_patch_struct( ctx, type, struct_data, base_address, patch_distance, patched_ptrs );
+	}
+}
 
 static void dl_internal_patch_member( dl_ctx_t              ctx,
 								      const dl_member_desc* member,
@@ -107,8 +123,11 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 				break;
 
 				case DL_TYPE_STORAGE_STRUCT:
-					DL_ASSERT( false ); // this need patching if it has sub-ptrs, i.e. this is broken!
-					break;
+				{
+					const dl_type_desc* type = dl_internal_find_type( ctx, member->type_id );
+					dl_internal_patch_struct_array( ctx, type, member_data, member->inline_array_cnt(), patch_distance, base_address, patched_ptrs );
+				}
+				break;
 				default:
 					break;
 			}
@@ -135,12 +154,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 					case DL_TYPE_STORAGE_STRUCT:
 					{
 						const dl_type_desc* type = dl_internal_find_type( ctx, member->type_id );
-						uint32_t size = dl_internal_align_up( type->size[DL_PTR_SIZE_HOST], type->alignment[DL_PTR_SIZE_HOST] );
-						for( uint32_t index = 0; index < count; ++index )
-						{
-							uint8_t* struct_data = array_data + index * size;
-							dl_internal_patch_struct( ctx, type, struct_data, base_address, patch_distance, patched_ptrs );
-						}
+						dl_internal_patch_struct_array( ctx, type, array_data, count, patch_distance, base_address, patched_ptrs );
 					}
 					break;
 					default:
