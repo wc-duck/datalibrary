@@ -190,10 +190,6 @@ struct dl_context
 {
 	dl_allocator alloc;
 
-//	void* (*alloc_func)( unsigned int size, unsigned int alignment, void* alloc_ctx );
-//	void  (*free_func) ( void* ptr, void* alloc_ctx );
-//	void* alloc_ctx;
-
 	dl_error_msg_handler error_msg_func;
 	void*                error_msg_ctx;
 

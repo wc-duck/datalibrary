@@ -814,6 +814,8 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 	}
 }
 
+#include "dl_patch_ptr.h"
+
 static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
@@ -854,12 +856,10 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 				uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
 				uint8_t* subdata = member_default_value + member_size;
 
-				if( member_size == member->default_value_size )
-				{
-					dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
-					dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
-				}
-				else
+				dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
+				dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+
+				if( member_size != member->default_value_size )
 				{
 					// ... sub ptrs, copy and patch ...
 					dl_binary_writer_seek_end( pack_ctx->writer );
@@ -867,69 +867,17 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 
 					dl_binary_writer_write( pack_ctx->writer, subdata, member->default_value_size - member_size );
 
-					// ... patch ptrs ...
-					dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
+					// TODO: test with multiple default values with subptrs in one struct.
 
-					dl_type_t atom_type    = member->AtomType();
-					dl_type_t storage_type = member->StorageType();
+					// TODO: test with array of struct with sub-ptrs.
 
-					// TODO: this code should really be able to use a general patch-ptrs function!
-					//       as is now this code do not handle default-values with arrays of structs with sub-ptrs.
-					//       using the general patching code would solve that.
-					//       Just make the patch function take the base-member and an offset to its sub-data.
-					switch( atom_type )
-					{
-						case DL_TYPE_ATOM_POD:
-							switch( storage_type )
-							{
-								case DL_TYPE_STORAGE_STR:
-									dl_binary_writer_write_pint( pack_ctx->writer, subdata_pos );
-								break;
-								default:
-									DL_ASSERT(false);
-							}
-							break;
-						case DL_TYPE_ATOM_INLINE_ARRAY:
-							switch( storage_type )
-							{
-								case DL_TYPE_STORAGE_STR:
-								{
-									uintptr_t* array_value = (uintptr_t*)member_default_value;
-									for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
-										dl_binary_writer_write_pint( pack_ctx->writer, mem_pos + array_value[elem] );
-								}
-								break;
-								default:
-									DL_ASSERT(false);
-							}
-							break;
-						case DL_TYPE_ATOM_ARRAY:
-						{
-							uint32_t* offset = (uint32_t*)member_default_value;
-							uintptr_t array_offset = ((uint64_t*)offset)[0];
-							uint32_t count = offset[2];
-							dl_binary_writer_write_pint( pack_ctx->writer, subdata_pos + array_offset - member_size );
-							dl_binary_writer_write_uint32( pack_ctx->writer, count );
+					// TODO: test default value with inline array of struct
 
-							switch( storage_type )
-							{
-								case DL_TYPE_STORAGE_STR:
-								{
-									uintptr_t* array_value = (uintptr_t*)(member_default_value + array_offset);
-									dl_binary_writer_seek_set( pack_ctx->writer, subdata_pos + array_offset - member_size );
-									for( uint32_t elem = 0; elem < count; ++elem )
-										dl_binary_writer_write_pint( pack_ctx->writer, subdata_pos + array_value[elem] - member_size );
-								}
-								break;
-								default:
-									break;
-							}
-						}
-						break;
-						default:
-							DL_ASSERT(false);
-							break;
-					}
+					// TODO: test default value with inline array of struct with sub-ptrs
+
+					uint8_t* member_data = pack_ctx->writer->data + mem_pos;
+					uintptr_t member_to_subdata_offset = subdata_pos - mem_pos;
+					dl_internal_patch_member( pack_ctx->dl_ctx, member, member_data, (uintptr_t)pack_ctx->writer->data, subdata_pos - member_to_subdata_offset );
 				}
 			}
 

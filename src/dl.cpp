@@ -1,6 +1,7 @@
 #include "dl_types.h"
 #include "dl_swap.h"
 #include "dl_binary_writer.h"
+#include "dl_patch_ptr.h"
 
 #include "container/dl_array.h"
 
@@ -49,145 +50,6 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
                                           dl_endian_t    src_endian,      dl_endian_t    out_endian,
                                           dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
                                           const dl_type_desc* root_type,       size_t    base_offset );
-
-struct SPatchedInstances
-{
-	CArrayStatic<const uint8_t*, 1024> m_lpPatched;
-
-	bool IsPatched(const uint8_t* _pInstance)
-	{
-		for (unsigned int iPatch = 0; iPatch < m_lpPatched.Len(); ++iPatch)
-			if(m_lpPatched[iPatch] == _pInstance)
-				return true;
-		return false;
-	}
-};
-
-static void dl_internal_patch_ptr( const uint8_t* ptr, const uint8_t* base_data )
-{
-	union conv_union { uintptr_t offset; const uint8_t* real_data; };
-	conv_union* read_me = (conv_union*)ptr;
-
-	if (read_me->offset == DL_NULL_PTR_OFFSET[DL_PTR_SIZE_HOST])
-		read_me->real_data = 0x0;
-	else
-		read_me->real_data = base_data + read_me->offset;
-};
-
-static dl_error_t dl_internal_patch_loaded_ptrs( dl_ctx_t            dl_ctx,
-												 SPatchedInstances*  patched_instances,
-												 const uint8_t*      instance,
-												 const dl_type_desc* type,
-												 const uint8_t*      base_data,
-												 bool                is_member_struct )
-{
-	// TODO: Optimize this please, linear search might not be the best if many subinstances is in file!
-	if( !is_member_struct )
-	{
-		if(patched_instances->IsPatched(instance))
-			return DL_ERROR_OK;
-
-		patched_instances->m_lpPatched.Add(instance);
-	}
-
-	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
-	{
-		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
-		const uint8_t*   member_data = instance + member->offset[DL_PTR_SIZE_HOST];
-
-		dl_type_t atom_type    = member->AtomType();
-		dl_type_t storage_type = member->StorageType();
-
-		switch( atom_type )
-		{
-			case DL_TYPE_ATOM_POD:
-			{
-				switch( storage_type )
-				{
-					case DL_TYPE_STORAGE_STR:
-						dl_internal_patch_ptr( member_data, base_data );
-						break;
-					case DL_TYPE_STORAGE_STRUCT:
-						dl_internal_patch_loaded_ptrs( dl_ctx,
-													   patched_instances,
-													   member_data,
-													   dl_internal_find_type( dl_ctx, member->type_id ),
-													   base_data,
-													   true );
-					break;
-					case DL_TYPE_STORAGE_PTR:
-					{
-						uint8_t** ptr = (uint8_t**)member_data;
-						dl_internal_patch_ptr(member_data, base_data);
-
-						if(*ptr != 0x0)
-							dl_internal_patch_loaded_ptrs( dl_ctx,
-														   patched_instances,
-														   *ptr,
-														   dl_internal_find_type( dl_ctx, member->type_id ),
-														   base_data,
-														   false );
-					}
-					break;
-					default:
-						// ignore
-						break;
-				}
-			}
-			break;
-			case DL_TYPE_ATOM_ARRAY:
-			{
-				if( storage_type == DL_TYPE_STORAGE_STR || storage_type == DL_TYPE_STORAGE_STRUCT )
-				{
-					dl_internal_patch_ptr( member_data, base_data );
-					const uint8_t* array_data = *(const uint8_t**)member_data;
-
-					uint32_t count = *(uint32_t*)( member_data + sizeof(void*) );
-
-					if( count > 0 )
-					{
-						if(storage_type == DL_TYPE_STORAGE_STRUCT)
-						{
-							// patch sub-ptrs!
-							const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
-							uint32_t size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
-
-							for( uint32_t elem_offset = 0; elem_offset < count * size; elem_offset += size )
-								dl_internal_patch_loaded_ptrs( dl_ctx, patched_instances, array_data + elem_offset, sub_type, base_data, true );
-						}
-						else
-						{
-							for( size_t elem_offset = 0; elem_offset < count * sizeof(char*); elem_offset += sizeof(char*) )
-								dl_internal_patch_ptr( array_data + elem_offset, base_data );
-						}
-					}
-				}
-				else // pod
-					dl_internal_patch_ptr( member_data, base_data );
-			}
-			break;
-
-			case DL_TYPE_ATOM_INLINE_ARRAY:
-			{
-				if( storage_type == DL_TYPE_STORAGE_STR )
-				{
-					for( size_t elem_offset = 0; elem_offset < member->size[DL_PTR_SIZE_HOST]; elem_offset += sizeof(char*) )
-						dl_internal_patch_ptr( member_data + elem_offset, base_data );
-				}
-			}
-			break;
-
-			case DL_TYPE_ATOM_BITFIELD:
-			// ignore
-			break;
-
-		default:
-			DL_ASSERT(false && "Unknown atom type");
-			break;
-		}
-	}
-	return DL_ERROR_OK;
-}
 
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 														  const uint8_t* default_data,
@@ -335,8 +197,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	// memmove is needed!
 	memmove( instance, packed_instance + sizeof(dl_data_header), header->instance_size );
 
-	SPatchedInstances patch_instances;
-	dl_internal_patch_loaded_ptrs( dl_ctx, &patch_instances, (uint8_t*)instance, root_type, (uint8_t*)instance, false );
+	dl_internal_patch_instance( dl_ctx, root_type, (uint8_t*)instance, 0x0, (uintptr_t)instance );
 
 	if( consumed )
 		*consumed = (size_t)header->instance_size + sizeof(dl_data_header);
@@ -344,28 +205,26 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	return DL_ERROR_OK;
 }
 
-dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t type,
+dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t type_id,
 												   unsigned char* packed_instance, size_t      packed_instance_size,
 												   void**         loaded_instance, size_t*     consumed)
 {
 	dl_data_header* header = (dl_data_header*)packed_instance;
 
 	if( packed_instance_size < sizeof(dl_data_header) ) return DL_ERROR_MALFORMED_DATA;
-	if( header->id == DL_INSTANCE_ID_SWAPED )          return DL_ERROR_ENDIAN_MISMATCH;
-	if( header->id != DL_INSTANCE_ID )                 return DL_ERROR_MALFORMED_DATA;
-	if( header->version != DL_INSTANCE_VERSION )       return DL_ERROR_VERSION_MISMATCH;
-	if( header->root_instance_type != type )           return DL_ERROR_TYPE_MISMATCH;
+	if( header->id == DL_INSTANCE_ID_SWAPED )           return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->id != DL_INSTANCE_ID )                  return DL_ERROR_MALFORMED_DATA;
+	if( header->version != DL_INSTANCE_VERSION )        return DL_ERROR_VERSION_MISMATCH;
+	if( header->root_instance_type != type_id )         return DL_ERROR_TYPE_MISMATCH;
 
-	const dl_type_desc* pType = dl_internal_find_type(dl_ctx, header->root_instance_type);
-	if( pType == 0x0 )
+	const dl_type_desc* type = dl_internal_find_type(dl_ctx, header->root_instance_type);
+	if( type == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	uint8_t* intstance_ptr = packed_instance + sizeof(dl_data_header);
+	uint8_t* instance_ptr = packed_instance + sizeof(dl_data_header);
+	dl_internal_patch_instance( dl_ctx, type, instance_ptr, 0x0, (uintptr_t)instance_ptr );
 
-	SPatchedInstances patched_instances;
-	dl_internal_patch_loaded_ptrs( dl_ctx, &patched_instances, intstance_ptr, pType, intstance_ptr, false );
-
-	*loaded_instance = intstance_ptr;
+	*loaded_instance = instance_ptr;
 
 	if( consumed )
 		*consumed = header->instance_size + sizeof(dl_data_header);

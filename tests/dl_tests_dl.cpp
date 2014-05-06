@@ -750,6 +750,7 @@ TYPED_TEST(DLBase, ptr_chain_circle)
 	EXPECT_EQ(New->Next->Next,             New->Next->Next->Next->Prev);
 }
 
+/*
 TYPED_TEST(DLBase, array_struct_with_ptr_holder )
 {
 	Pods2 p1, p2, p3;
@@ -832,6 +833,7 @@ TYPED_TEST(DLBase, array_struct_circular_ptr_holder_array )
 	EXPECT_EQ( l3->arr[0].ptr, l3 );
 	EXPECT_EQ( l3->arr[1].ptr, l1 );
 }
+*/
 
 TYPED_TEST(DLBase, array_pod_empty)
 {
