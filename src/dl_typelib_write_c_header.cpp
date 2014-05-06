@@ -25,6 +25,7 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 	dl_binary_writer_write_string_fmt( writer, "#define %s_INCLUDED\n\n", module_name_uppercase );
 
 	dl_binary_writer_write_string_fmt( writer, "#include <stdint.h>\n\n", module_name_uppercase );
+	dl_binary_writer_write_string_fmt( writer, "#include <stddef.h> // for size_t\n\n", module_name_uppercase );
 }
 
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )
