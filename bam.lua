@@ -31,50 +31,6 @@ function dl_type_lib( tlc_file, dl_shared_lib, dltlc )
 	AddDependency( tlc_file, dl_shared_lib )
 end
 
-function csharp_settings()
-	local settings = {}
-	settings.exe = {}
-	settings.lib = {}
-
-	if family == "unix" then
-		settings.exe.exe = "gmcs "
-		settings.exe.fix_path = function( path ) return path end
-	else
-		settings.exe.exe = "c:/WINDOWS/Microsoft.NET/Framework/v3.5/csc /nologo " -- path here need to be fetched from system!
-		settings.exe.fix_path = function( path ) return string.gsub( path, "/", "\\" ) end
-	end
-
-	settings.lib.exe      = settings.exe.exe .. "/target:library "
-	settings.lib.fix_path = settings.exe.fix_path
-
-	settings.exe.flags      = NewFlagTable()
-	settings.exe.libpaths   = NewFlagTable()
-	settings.exe.references = NewFlagTable()
-	settings.exe.outpath    = PathJoin( BUILD_PATH, 'csharp' )
-	settings.exe.output     = function( settings, path ) return PathJoin( settings.outpath, PathFilename( PathBase( path ) ) .. ".exe" ) end
-	settings.lib.flags      = NewFlagTable()
-	settings.lib.libpaths   = NewFlagTable()
-	settings.lib.references = NewFlagTable()
-	settings.lib.outpath    = PathJoin( BUILD_PATH, 'csharp' )
-	settings.lib.output     = function( settings, path ) return PathJoin( settings.outpath, PathFilename( PathBase( path ) ) .. ".dll" ) end
-
-	-- these settings might go in a separate function
-	settings.exe.flags:Add( "/warnaserror" )
-	settings.lib.flags:Add( "/warnaserror" )
-
-	return settings
-end
-
-function csharp_compile( settings, src )
-	local compiled = settings.output( settings, src )
-	local flags = settings.flags:ToString() .. settings.references:ToString() .. settings.libpaths:ToString()
-	AddJob( compiled, "C# " .. compiled, settings.exe .. flags .. " /out:" .. settings.fix_path( compiled ) .. " " .. settings.fix_path( src ), src )
-	return compiled
-end
-
-function csharp_exe( settings, src )     return csharp_compile( settings.exe, src ) end 
-function csharp_library( settings, src ) return csharp_compile( settings.lib, src ) end 
-
 function DefaultSettings( platform, config )
 	local settings = {}
 	
@@ -290,8 +246,6 @@ if not build_settings then error( config .. " is not a supported configuration" 
 
 build_settings = settings[ build_platform ][ config ]
 
--- sync_externals()
-
 dl_settings    = make_dl_settings   ( build_settings )
 dl_so_settings = make_dl_so_settings( build_settings )
 test_settings  = make_test_settings ( build_settings )
@@ -330,33 +284,14 @@ if ScriptArgs["test_filter"] then
 	cs_test_args = " -run=" .. ScriptArgs["test_filter"]
 end
 
-cs_settings     = csharp_settings()
-cs_libdl_lib    = csharp_library( cs_settings, "bind/cs/libdl.cs" )
-cs_unittest_lib = csharp_library( cs_settings, "local/generated/unittest.cs" )
-
-cs_settings.lib.references:Add("/reference:libdl.dll")
-cs_settings.lib.references:Add("/reference:unittest.dll")
-cs_settings.lib.references:Add("/reference:nunit.framework.dll")
-cs_settings.lib.libpaths:Add("/lib:local/csharp")
-if family == "windows" then
-	cs_settings.lib.libpaths:Add("/lib:extern\\cs\\NUnit-2.5.9.10348\\bin\\net-2.0\\framework")
-else
-	cs_settings.lib.libpaths:Add("/lib:/usr/lib/cli/nunit.framework-2.4")
-end
-
-cs_test_lib     = csharp_library( cs_settings, "tests/csharp_bindings/dl_tests.cs", "local/generated/unittest.cs" )
-AddDependency( cs_test_lib, cs_libdl_lib, cs_unittest_lib )
-
 if family == "windows" then
 	AddJob( "test",          "unittest c",        string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests,    "local/generated/unittest.bin" )
-	AddJob( "test_cs",       "unittest c#",       "extern\\cs\\NUnit-2.5.9.10348\\bin\\net-2.0\\nunit-console /nologo local\\csharp\\dl_tests.dll" .. cs_test_args, "local/csharp/dl_tests.dll", "local/generated/unittest.bin" ) 
 else
 	local valgrind_flags = " -v --leak-check=full --track-origins=yes "
 
 	AddJob( "test",          "unittest c",        dl_tests .. test_args,                                 dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind" .. valgrind_flags .. dl_tests .. test_args, dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_gdb",      "unittest gdb",      "gdb --args " .. dl_tests .. test_args,                dl_tests,    "local/generated/unittest.bin" )
-	AddJob( "test_cs",       "unittest c#",       "nunit-console " .. cs_test_lib .. cs_test_args,       cs_test_lib, "local/generated/unittest.bin" )
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
