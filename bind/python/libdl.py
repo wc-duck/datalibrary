@@ -142,8 +142,8 @@ class DLContext:
         c_type = self.type_cache[ type_name ].c_type
         
         atom_type = member_info.AtomType()
-              
-        if   atom_type == DL_TYPE_ATOM_POD:
+
+        if atom_type == DL_TYPE_ATOM_POD:
             if storage_type == DL_TYPE_STORAGE_PTR:
                 return POINTER( c_type )
             return c_type 
@@ -349,20 +349,23 @@ class DLContext:
         if err != 0:
             raise DLError( 'Call to %s failed with error %s' % ( func_name, self.dl.dl_error_to_string( err ) ), err )
         
-    def context_destroy( self ):                 self.dl_dll_call( 'dl_context_destroy' )
-    def context_load_type_library(self, *args):  self.dl_dll_call( 'dl_context_load_type_library', *args )
-    def instance_load( self, *args ):            self.dl_dll_call( 'dl_instance_load',             *args )
-    def instance_store( self, *args ):           self.dl_dll_call( 'dl_instance_store',            *args )
-    def convert( self, *args ):                  self.dl_dll_call( 'dl_convert',                   *args )
-    def txt_pack( self, *args ):                 self.dl_dll_call( 'dl_txt_pack',                  *args )
-    def txt_unpack( self, *args ):               self.dl_dll_call( 'dl_txt_unpack',                *args )
-    def reflect_context_info( self, *args):      self.dl_dll_call( 'dl_reflect_context_info',      *args )
-    def reflect_loaded_types( self, *args ):     self.dl_dll_call( 'dl_reflect_loaded_types',      *args )
-    def reflect_loaded_enums( self, *args ):     self.dl_dll_call( 'dl_reflect_loaded_enums',      *args )
-    def reflect_get_type_info( self, *args ):    self.dl_dll_call( 'dl_reflect_get_type_info',     *args )
-    def reflect_get_type_members( self, *args ): self.dl_dll_call( 'dl_reflect_get_type_members',  *args )
-    def reflect_get_enum_info( self, *args ):    self.dl_dll_call( 'dl_reflect_get_enum_info',     *args )
-    def reflect_get_enum_values( self, *args ):  self.dl_dll_call( 'dl_reflect_get_enum_values',   *args )
+    def context_destroy( self ):                  self.dl_dll_call( 'dl_context_destroy' )
+    def context_load_type_library(self, *args):   self.dl_dll_call( 'dl_context_load_type_library', *args )
+    def load_txt_type_library(self, *args):       self.dl_dll_call( 'dl_context_load_txt_type_library', *args )
+    def write_type_library(self, *args):          self.dl_dll_call( 'dl_context_write_type_library', *args )
+    def write_type_library_c_header(self, *args): self.dl_dll_call( 'dl_context_write_type_library_c_header', *args )
+    def instance_load( self, *args ):             self.dl_dll_call( 'dl_instance_load',             *args )
+    def instance_store( self, *args ):            self.dl_dll_call( 'dl_instance_store',            *args )
+    def convert( self, *args ):                   self.dl_dll_call( 'dl_convert',                   *args )
+    def txt_pack( self, *args ):                  self.dl_dll_call( 'dl_txt_pack',                  *args )
+    def txt_unpack( self, *args ):                self.dl_dll_call( 'dl_txt_unpack',                *args )
+    def reflect_context_info( self, *args):       self.dl_dll_call( 'dl_reflect_context_info',      *args )
+    def reflect_loaded_types( self, *args ):      self.dl_dll_call( 'dl_reflect_loaded_types',      *args )
+    def reflect_loaded_enums( self, *args ):      self.dl_dll_call( 'dl_reflect_loaded_enums',      *args )
+    def reflect_get_type_info( self, *args ):     self.dl_dll_call( 'dl_reflect_get_type_info',     *args )
+    def reflect_get_type_members( self, *args ):  self.dl_dll_call( 'dl_reflect_get_type_members',  *args )
+    def reflect_get_enum_info( self, *args ):     self.dl_dll_call( 'dl_reflect_get_enum_info',     *args )
+    def reflect_get_enum_values( self, *args ):   self.dl_dll_call( 'dl_reflect_get_enum_values',   *args )
         
     def __del__(self):
         self.context_destroy()
@@ -401,7 +404,6 @@ class DLContext:
                 break;
 
         c_type, py_type = None, None
-    
         # build py-type
         if complete:
             c_type  = type( 'c.'  + type_info.name, (Structure, ),    { 'TYPE_ID' : typeid, '_fields_'    : c_members } )
@@ -411,18 +413,8 @@ class DLContext:
         self.type_cache[type_info.name] = self.dl_cache_entry( typeid, members, c_type, py_type )
         
         setattr( self.types, type_info.name, py_type )
-        
-    def LoadTypeLibrary(self, _DataBuffer):
-        '''
-            Loads a binary typelibrary into the dl_ctx
-            
-            _DataBuffer -- string with the binary file loaded.
-        '''
-        
-        self.context_load_type_library( _DataBuffer, len(_DataBuffer) )
-        
-        # load all types in type-library
-        
+
+    def _load_types(self):
         ctx_info = self.dl_type_context_info()
         self.reflect_context_info( byref(ctx_info) )
         
@@ -450,18 +442,57 @@ class DLContext:
             values = {}
             for value in enum_values:
                 values[value.name] = value.value
-            
+
             setattr( self.enums, enum_info.name, type( enum_info.name, (), values )() )
+
+    def LoadTypeLibrary(self, _DataBuffer):
+        '''
+            Loads a binary typelibrary into the dl_ctx
+
+            _DataBuffer -- string with the binary file loaded.
+        '''
         
-        # Add ability to read all arrays of numbers to numpy-arrays, even read normal numbers to numpy?
+        self.context_load_type_library( _DataBuffer, len(_DataBuffer) )
+        self._load_types()
     
     def LoadTypeLibraryFromFile(self, lib_file):
         '''
             Loads a binary typelibrary into the dl_ctx
-            
+
             lib_file -- filename of file to load typelibrary from.
         '''
         self.LoadTypeLibrary(open(lib_file, 'rb').read())
+
+    def LoadTypeLibraryTxt(self, data_buffer):
+        '''
+            Loads a text typelibrary into the dl_ctx
+
+            data_buffer -- string with the binary file loaded.
+        '''
+        self.load_txt_type_library( data_buffer, len(data_buffer) )
+        self._load_types()
+
+    def LoadTypeLibraryTxtFromFile(self, lib_file):
+        '''
+            Loads a text typelibrary into the dl_ctx
+
+            lib_file -- filename of file to load typelibrary from.
+        '''
+        self.LoadTypeLibraryTxt(open(lib_file, 'rb').read())
+
+    def Save(self):
+        store_size = c_size_t(0)
+        self.write_type_library( 0, 0, byref(store_size) )
+        packed_data = ( c_ubyte * store_size.value )()
+        self.write_type_library( packed_data, store_size, c_void_p(0) )
+        return string_at( packed_data, len(packed_data) )
+
+    def CHeader(self, module_name):
+        store_size = c_size_t(0)
+        self.write_type_library_c_header( module_name, 0, 0, byref(store_size) )
+        packed_data = ( c_ubyte * store_size.value )()
+        self.write_type_library_c_header( module_name, packed_data, store_size, c_void_p(0) )
+        return string_at( packed_data, len(packed_data) )
     
     def LoadInstance(self, type_name, data_buffer):
         '''
