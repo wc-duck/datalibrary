@@ -3,6 +3,10 @@
 #ifndef DL_DL_TYPELIB_H_INCLUDED
 #define DL_DL_TYPELIB_H_INCLUDED
 
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
 /*
 	File: dl_typelib.h
 
@@ -27,7 +31,7 @@
 	Note:
 		This function do not have the same rules of memory allocation and might allocate memory behind the scenes.
  */
-dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size );
+dl_error_t DL_DLL_EXPORT dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size );
 
 /*
 	Function: dl_context_write_type_library
@@ -48,7 +52,7 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	Note:
 		This function do not have the same rules of memory allocation and might allocate memory behind the scenes.
  */
-dl_error_t dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_lib, size_t out_lib_size, size_t* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_lib, size_t out_lib_size, size_t* produced_bytes );
 
 /*
  	 Function: dl_context_write_type_library
@@ -69,7 +73,7 @@ dl_error_t dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_li
 	Note:
 		This function do not have the same rules of memory allocation and might allocate memory behind the scenes.
 */
-dl_error_t dl_context_write_txt_type_library( dl_ctx_t dl_ctx, char* out_lib, size_t out_lib_size, size_t* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_context_write_txt_type_library( dl_ctx_t dl_ctx, char* out_lib, size_t out_lib_size, size_t* produced_bytes );
 
 /*
 	Function: dl_context_write_type_library
@@ -91,6 +95,11 @@ dl_error_t dl_context_write_txt_type_library( dl_ctx_t dl_ctx, char* out_lib, si
 	Note:
 		This function do not have the same rules of memory allocation and might allocate memory behind the scenes.
 */
-dl_error_t dl_context_write_type_library_c_header( dl_ctx_t dl_ctx, const char* module_name, char* out_header, size_t out_header_size, size_t* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_context_write_type_library_c_header( dl_ctx_t dl_ctx, const char* module_name, char* out_header, size_t out_header_size, size_t* produced_bytes );
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
 
 #endif // DL_DL_TYPELIB_H_INCLUDED
