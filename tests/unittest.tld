@@ -4,21 +4,24 @@
 	"usercode" : [ "#include \"../../tests/dl_test_included.h\"" ],
 	
 	"enums" : {
-		"TestEnum1" : [ "TESTENUM1_VALUE1", "TESTENUM1_VALUE2", "TESTENUM1_VALUE3", "TESTENUM1_VALUE4" ],
-		
-		"TestEnum2" : [ 
-			{ "TESTENUM2_VALUE1" : 7 }, 
-			{ "TESTENUM2_VALUE2" : 1337 }, 
-			  "TESTENUM2_VALUE3", 
-			{ "TESTENUM2_VALUE4" : 1337 }
-		]/*,
-		
-		"NamedValue" : [ 
-			{ "    " : { "value" : 7, "header_name" : "NAMED_VALUE_4SPACE" } }, 
-			{ "!?#!" : { "value" : 8, "header_name" : "NAMED_VALUE_MIXED" } }, 
-			  "NAMED_VALUE_NORMAL", 
-			{ "NAMED_VALUE_VALUE" : 1337 }
-		]*/
+		"TestEnum1" : {
+			"TESTENUM1_VALUE1" : 0,
+			"TESTENUM1_VALUE2" : 1,
+			"TESTENUM1_VALUE3" : 2,
+			"TESTENUM1_VALUE4" : 3
+		},
+
+		"TestEnum2" : {
+			"TESTENUM2_VALUE1" : 7,
+			"TESTENUM2_VALUE2" : 1337,
+			"TESTENUM2_VALUE3" : 1338,
+			"TESTENUM2_VALUE4" : 1337
+		},
+
+		"multi_alias_enum" : {
+			"MULTI_ALIAS1" : { "value" : 7, "aliases" : [ "alias1", "alias2", "alias3" ] },
+			"MULTI_ALIAS2" : { "value" : 8, "aliases" : [ "alias4" ] }
+		}
 	},
 	
 	"types" : {
@@ -168,14 +171,14 @@
 								  }
 	                            ] },
 
-		// "NamedEnums" : { 
-		//	"members" : [ 
-		//		{ "name" : "e1", "type" : "NamedValue" }, 
-		//		{ "name" : "e2", "type" : "NamedValue" }, 
-		//		{ "name" : "e3", "type" : "NamedValue" },
-		//		{ "name" : "e4", "type" : "NamedValue" } 
-		//	]
-		// },
+		"with_alias_enum" : {
+			"members" : [
+				{ "name" : "e1", "type" : "multi_alias_enum" },
+				{ "name" : "e2", "type" : "multi_alias_enum" },
+				{ "name" : "e3", "type" : "multi_alias_enum" },
+				{ "name" : "e4", "type" : "multi_alias_enum" }
+			]
+		},
 		
 		"BugTest4" : {
 			"members" : [

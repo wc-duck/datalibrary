@@ -72,6 +72,7 @@ struct dl_typelib_header
 	uint32_t enum_count;		// number of enums in typelibrary
 	uint32_t member_count;
 	uint32_t enum_value_count;
+	uint32_t enum_alias_count;
 
 	uint32_t default_value_size;
 };
@@ -184,7 +185,7 @@ struct dl_type_desc
 
 struct dl_enum_value_desc
 {
-	char     name[DL_ENUM_VALUE_NAME_MAX_LEN];
+	uint32_t main_alias;
 	uint32_t value;
 };
 
@@ -193,6 +194,14 @@ struct dl_enum_desc
 	char     name[DL_ENUM_NAME_MAX_LEN];
 	uint32_t value_count;
 	uint32_t value_start;
+	uint32_t alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
+	uint32_t alias_start; /// offset into alias list where aliases for this enum-value start.
+};
+
+struct dl_enum_alias_desc
+{
+	char name[DL_ENUM_VALUE_NAME_MAX_LEN];
+	uint32_t value_index; ///< index of the value this alias belong to.
 };
 
 struct dl_context
@@ -206,6 +215,7 @@ struct dl_context
 	unsigned int enum_count;
 	unsigned int member_count;
 	unsigned int enum_value_count;
+	unsigned int enum_alias_count;
 
 	// TODO: dynamic alloc all type-data!
 	dl_typeid_t type_ids[128];      ///< list of all loaded typeid:s in the same order they appear in type_descs
@@ -215,6 +225,7 @@ struct dl_context
 	dl_member_desc     member_descs[1024]; ///< list of all loaded descriptors for members in types.
 	dl_enum_desc       enum_descs[128];
 	dl_enum_value_desc enum_value_descs[256];
+	dl_enum_alias_desc enum_alias_descs[256];
 
 	uint8_t* default_data;
 	size_t   default_data_size;
@@ -329,6 +340,11 @@ static inline const dl_enum_value_desc* dl_get_enum_value( dl_ctx_t ctx, const d
 	return ctx->enum_value_descs + e->value_start + value_index;
 }
 
+static inline const dl_enum_alias_desc* dl_get_enum_alias( dl_ctx_t ctx, const dl_enum_desc* e, unsigned int alias_index )
+{
+	return &ctx->enum_alias_descs[ e->alias_start + alias_index ];
+}
+
 static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_desc* type, dl_typeid_t name_hash )
 {
 	for(unsigned int i = 0; i < type->member_count; ++i)
@@ -340,12 +356,12 @@ static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_
 
 static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, const char* name, size_t name_len, uint32_t* value )
 {
-	for( unsigned int j = 0; j < e->value_count; ++j )
+	for( unsigned int j = 0; j < e->alias_count; ++j )
 	{
-		const dl_enum_value_desc* v = dl_get_enum_value( ctx, e, j );
-		if( strncmp( v->name, name, name_len ) == 0 )
+		const dl_enum_alias_desc* a = dl_get_enum_alias( ctx, e, j );
+		if( strncmp( a->name, name, name_len ) == 0 )
 		{
-			*value = v->value;
+			*value = ctx->enum_value_descs[ a->value_index ].value;
 			return true;
 		}
 	}
@@ -363,7 +379,7 @@ static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid
 	{
 		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, j );
 		if( v->value == value )
-			return v->name;
+			return dl_ctx->enum_alias_descs[v->main_alias].name;
 	}
 
 	return "UnknownEnum!";

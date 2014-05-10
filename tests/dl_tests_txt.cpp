@@ -338,49 +338,43 @@ TEST_F(DLText, default_value_array_array)
 	EXPECT_EQ( 7u, P1[0].Arr[1].u32_arr[1] );
 }
 
-//TEST_F( DLText, special_named_enum )
-//{
-//	const char* text_data = "{"
-//								"\"type\" : \"NamedEnums\","
-//								"\"data\" : {"
-//									"\"e1\" : \"    \","
-//									"\"e2\" : \"!?#!\","
-//									"\"e3\" : \"NAMED_VALUE_NORMAL\","
-//									"\"e4\" : \"NAMED_VALUE_VALUE\""
-//							    "}"
-//						    "}";
-//
-//	NamedEnums loaded;
-//	unsigned char out_data_text[1024];
-//
-//	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
-//	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, NamedEnums::TYPE_ID, &loaded, sizeof(loaded), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
-//
-//	EXPECT_EQ( NAMED_VALUE_4SPACE, loaded.e1 );
-//	EXPECT_EQ( NAMED_VALUE_MIXED,  loaded.e2 );
-//	EXPECT_EQ( NAMED_VALUE_NORMAL, loaded.e3 );
-//	EXPECT_EQ( NAMED_VALUE_VALUE,  loaded.e4 );
-//
-//	EXPECT_EQ(    9, NAMED_VALUE_NORMAL );
-//	EXPECT_EQ( 1337, NAMED_VALUE_VALUE );
-//}
-//
-//TEST_F( DLText, invalid_enum_value )
-//{
-//	const char* text_data = "{"
-//									"\"type\" : \"NamedEnums\","
-//									"\"data\" : {"
-//										"\"e1\" : \"I do not exist!\","
-//										"\"e2\" : \"!?#!\","
-//										"\"e3\" : \"NAMED_VALUE_NORMAL\","
-//										"\"e4\" : \"NAMED_VALUE_VALUE\""
-//								    "}"
-//							    "}";
-//
-//	unsigned char out_data_text[1024];
-//
-//	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_INVALID_ENUM_VALUE, dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
-//}
+TEST_F( DLText, test_alias )
+{
+	const char* text_data = "{"
+								"\"type\" : \"with_alias_enum\","
+								"\"data\" : {"
+									"\"e1\" : \"MULTI_ALIAS1\","
+									"\"e2\" : \"alias1\","
+									"\"e3\" : \"alias2\","
+									"\"e4\" : \"alias4\""
+							    "}"
+						    "}";
+	with_alias_enum loaded;
+	unsigned char out_data_text[1024];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, with_alias_enum::TYPE_ID, &loaded, sizeof(loaded), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+
+	EXPECT_EQ( MULTI_ALIAS1, loaded.e1 );
+	EXPECT_EQ( MULTI_ALIAS1, loaded.e2 );
+	EXPECT_EQ( MULTI_ALIAS1, loaded.e3 );
+	EXPECT_EQ( MULTI_ALIAS2, loaded.e4 );
+}
+
+TEST_F( DLText, invalid_enum_value )
+{
+	const char* text_data = "{"
+								"\"type\" : \"with_alias_enum\","
+								"\"data\" : {"
+									"\"e1\" : \"MULTI_ALIAS1\","
+									"\"e2\" : \"I do not exist\","
+									"\"e3\" : \"alias2\","
+									"\"e4\" : \"alias4\""
+							    "}"
+						    "}";
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_INVALID_ENUM_VALUE, dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
 
 TEST_F( DLText, basic_bool_all_true )
 {

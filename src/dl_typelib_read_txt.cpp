@@ -20,9 +20,11 @@ enum dl_load_txt_tl_state
 
 	DL_LOAD_TXT_TL_STATE_ENUMS,
 	DL_LOAD_TXT_TL_STATE_ENUMS_MAP,
-	DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST,
-	DL_LOAD_TXT_TL_STATE_ENUM_MAP,
-	DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP,
+	DL_LOAD_TXT_TL_STATE_ENUM_VALUE_MAP,
+	DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ITEM,
+	DL_LOAD_TXT_TL_STATE_ENUM_VALUE_VALUE,
+	DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST,
+	DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST_ITEM,
 
 	DL_LOAD_TXT_TL_STATE_TYPES,
 	DL_LOAD_TXT_TL_STATE_TYPES_MAP,
@@ -61,8 +63,6 @@ struct dl_load_txt_tl_ctx
 	dl_enum_desc*       active_enum;
 	dl_enum_value_desc* active_enum_value;
 
-	uint32_t curr_enum_val;
-
 	void push( dl_load_txt_tl_state s )
 	{
 		stack[++stack_item] = s;
@@ -71,6 +71,11 @@ struct dl_load_txt_tl_ctx
 	void pop()
 	{
 		--stack_item;
+	}
+
+	dl_load_txt_tl_state state()
+	{
+		return stack[stack_item];
 	}
 };
 
@@ -111,7 +116,13 @@ static dl_enum_desc* dl_alloc_enum( dl_ctx_t ctx, dl_typeid_t tid )
 	++ctx->enum_count;
 
 	ctx->enum_ids[ enum_index ] = tid;
-	return ctx->enum_descs + enum_index;
+
+	dl_enum_desc* e = &ctx->enum_descs[enum_index];
+	e->value_start = ctx->enum_value_count;
+	e->value_count = 0;
+	e->alias_count = 0;
+	e->alias_start = ctx->enum_alias_count;
+	return e;
 }
 
 static dl_enum_value_desc* dl_alloc_enum_value( dl_ctx_t ctx )
@@ -121,7 +132,25 @@ static dl_enum_value_desc* dl_alloc_enum_value( dl_ctx_t ctx )
 	unsigned int value_index = ctx->enum_value_count;
 	++ctx->enum_value_count;
 
-	return ctx->enum_value_descs + value_index;
+	dl_enum_value_desc* value = ctx->enum_value_descs + value_index;
+	value->main_alias = 0;
+
+	return value;
+}
+
+static dl_enum_alias_desc* dl_alloc_enum_alias( dl_ctx_t ctx, const unsigned char* name, size_t name_len )
+{
+	// TODO: handle full.
+
+	unsigned int alias_index = ctx->enum_alias_count;
+	++ctx->enum_alias_count;
+
+	dl_enum_alias_desc* alias = &ctx->enum_alias_descs[ alias_index ];
+	alias->value_index = 0xFFFFFFFF;
+	memcpy( alias->name, name, name_len );
+	alias->name[ name_len ] = 0;
+
+	return alias;
 }
 
 static void dl_load_txt_tl_handle_default( dl_load_txt_tl_ctx* state )
@@ -155,7 +184,7 @@ static int dl_load_txt_tl_on_map_start( void* ctx )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_ROOT:  state->push( DL_LOAD_TXT_TL_STATE_ROOT_MAP );  break;
 		case DL_LOAD_TXT_TL_STATE_ENUMS: state->push( DL_LOAD_TXT_TL_STATE_ENUMS_MAP ); break;
@@ -182,33 +211,22 @@ static int dl_load_txt_tl_on_map_start( void* ctx )
 		}
 		break;
 
-		case DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST:
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_MAP:
 		{
-			DL_ASSERT( state->active_type == 0x0 );
-			DL_ASSERT( state->active_member == 0x0 );
-			DL_ASSERT( state->active_enum != 0x0 );
-			DL_ASSERT( state->active_enum_value == 0x0 );
-
-			state->active_enum_value = dl_alloc_enum_value( state->ctx );
-
-			state->push( DL_LOAD_TXT_TL_STATE_ENUM_MAP );
+			// start to parse values
 		}
 		break;
 
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
-			DL_ASSERT( state->active_type == 0x0 );
-			DL_ASSERT( state->active_member == 0x0 );
-			DL_ASSERT( state->active_enum != 0x0 );
-			DL_ASSERT( state->active_enum_value != 0x0 );
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ITEM:
+		{
 
-			state->push( DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP );
-			break;
+		}
+		break;
 
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			++state->cur_default_value_depth;
 			break;
 		default:
-			printf("%u\n", state->stack[state->stack_item] );
 			DL_ASSERT( false );
 			return 0;
 	}
@@ -219,7 +237,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_ROOT_MAP:
 		{
@@ -246,13 +264,11 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len );
 
 			dl_enum_desc* e = dl_alloc_enum( state->ctx, tid );
-			e->value_start = state->ctx->enum_value_count;
-			e->value_count = 0;
 			memcpy( e->name, str_val, str_len );
 			e->name[ str_len ] = 0;
 
 			state->active_enum = e;
-			state->curr_enum_val = 0;
+			state->push( DL_LOAD_TXT_TL_STATE_ENUM_VALUE_MAP );
 		}
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPES_MAP:
@@ -318,25 +334,40 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			state->push( s );
 		}
 		break;
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_MAP:
 		{
-			if( str_len >= DL_ENUM_VALUE_NAME_MAX_LEN )
-				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "enum value name \"%.*s\" is (currently) to long!", str_len, str_val );
+			// alloc new value
+			dl_enum_value_desc* value = dl_alloc_enum_value( state->ctx );
 
-			dl_enum_value_desc* value = state->active_enum_value;
-			memcpy( value->name, str_val, str_len );
-			value->name[ str_len ] = 0;
+			// alloc an alias for the base name
+			dl_enum_alias_desc* alias = dl_alloc_enum_alias( state->ctx, str_val, str_len );
+			alias->value_index = (uint32_t)(value - state->ctx->enum_value_descs);
+			value->main_alias  = (uint32_t)(alias - state->ctx->enum_alias_descs);
+
+			++state->active_enum->alias_count;
+			++state->active_enum->value_count;
+
+			state->active_enum_value = value;
+			state->push( DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ITEM );
 		}
 		break;
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ITEM:
 		{
+			dl_load_state_name_map map[] = { { "value",   DL_LOAD_TXT_TL_STATE_ENUM_VALUE_VALUE },
+											 { "aliases", DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST } };
+			dl_load_txt_tl_state s = dl_load_state_from_string( map, DL_ARRAY_LENGTH( map ), str_val, str_len );
 
+			if( s == DL_LOAD_TXT_TL_STATE_INVALID )
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR,
+										"Got key \"%.*s\", in enum def, expected \"value\" or \"aliases\"!",
+										str_len, str_val );
+			state->push( s );
 		}
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			break;
 		default:
-			printf("unhandled map key %lu %u \"%.*s\"\n", state->stack_item, state->stack[state->stack_item], (int)str_len, (const char*)str_val);
+			printf("unhandled map key %lu %u \"%.*s\"\n", state->stack_item, state->state(), (int)str_len, (const char*)str_val);
 			// DL_ASSERT( false );
 			return 0;
 	}
@@ -348,7 +379,7 @@ static int dl_load_txt_tl_on_map_end( void* ctx )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_ROOT_MAP:
 			state->pop(); // pop stack
@@ -386,25 +417,25 @@ static int dl_load_txt_tl_on_map_end( void* ctx )
 
 			state->pop(); // pop DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP
 			break;
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
+
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_MAP:
 		{
 			DL_ASSERT( state->active_type == 0x0 );
 			DL_ASSERT( state->active_member == 0x0 );
 			DL_ASSERT( state->active_enum != 0x0 );
-			DL_ASSERT( state->active_enum_value != 0x0 );
-
-			state->active_enum_value = 0x0;
-			state->pop(); // pop DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP
+			DL_ASSERT( state->active_enum_value == 0x0 );
+			state->active_enum = 0x0;
+			state->pop(); // pop DL_LOAD_TXT_TL_STATE_ENUM_VALUE_MAP
 		}
 		break;
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ITEM:
 		{
 			DL_ASSERT( state->active_type == 0x0 );
 			DL_ASSERT( state->active_member == 0x0 );
 			DL_ASSERT( state->active_enum != 0x0 );
 			DL_ASSERT( state->active_enum_value != 0x0 );
-
-			state->pop(); // pop DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP
+			state->active_enum_value = 0x0;
+			state->pop(); // pop DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP
 		}
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
@@ -618,19 +649,17 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_MODULE_NAME: state->pop(); break;
 		case DL_LOAD_TXT_TL_STATE_USERCODE: break;
-		case DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST:
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST_ITEM:
 		{
 			if( str_len >= DL_ENUM_VALUE_NAME_MAX_LEN )
-				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "enum value name \"%.*s\" is (currently) to long!", str_len, str_val );
-
-			dl_enum_value_desc* v = dl_alloc_enum_value( state->ctx );
-			memcpy( v->name, str_val, str_len );
-			v->name[ str_len ] = 0;
-			v->value = state->curr_enum_val++;
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "enum value alias \"%.*s\" is (currently) to long!", str_len, str_val );
+			dl_enum_alias_desc* alias = dl_alloc_enum_alias( state->ctx, str_val, str_len );
+			alias->value_index = (uint32_t)(state->active_enum_value - state->ctx->enum_value_descs);
+			++state->active_enum->alias_count;
 		}
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME:
@@ -657,11 +686,6 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 			state->pop();
 		}
 		break;
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
-		{
-			// do it!
-		}
-		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			dl_load_txt_tl_handle_default( state );
 			break;
@@ -677,7 +701,7 @@ static int dl_load_txt_on_integer( void * ctx, long long integer )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS:
 		{
@@ -712,41 +736,47 @@ static int dl_load_txt_on_integer( void * ctx, long long integer )
 			state->pop();
 		}
 		break;
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP:
-		case DL_LOAD_TXT_TL_STATE_ENUM_MAP_SUBMAP:
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ITEM:
 		{
 			DL_ASSERT( state->active_type       == 0x0 );
 			DL_ASSERT( state->active_member     == 0x0 );
 			DL_ASSERT( state->active_enum       != 0x0 );
 			DL_ASSERT( state->active_enum_value != 0x0 );
-
 			state->active_enum_value->value = (uint32_t)integer;
-			state->curr_enum_val = (uint32_t)integer + 1;
+			state->active_enum_value = 0x0;
+			state->pop();
+		}
+		break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_VALUE:
+		{
+			DL_ASSERT( state->active_type       == 0x0 );
+			DL_ASSERT( state->active_member     == 0x0 );
+			DL_ASSERT( state->active_enum       != 0x0 );
+			DL_ASSERT( state->active_enum_value != 0x0 );
+			state->active_enum_value->value = (uint32_t)integer;
+			state->pop();
 		}
 		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			dl_load_txt_tl_handle_default( state );
 			break;
 		default:
-			printf("%u\n", state->stack[state->stack_item]);
 			DL_ASSERT( false );
 			return 0;
 	}
 	return 1;
 }
 
-static int dl_load_txt_on_double( void * ctx, double dbl )
+static int dl_load_txt_on_double( void * ctx, double /*dbl*/ )
 {
-	(void)dbl;
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			dl_load_txt_tl_handle_default( state );
 			break;
 		default:
-			printf("%u\n", state->stack[state->stack_item]);
 			DL_ASSERT( false );
 			return 0;
 	}
@@ -757,10 +787,10 @@ static int dl_load_txt_on_array_start( void* ctx )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
-		case DL_LOAD_TXT_TL_STATE_ENUMS_MAP:
-			state->push( DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST );
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST:
+			state->push(DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST_ITEM );
 			break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST:
 			break;
@@ -781,20 +811,12 @@ static int dl_load_txt_on_array_end( void* ctx )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
-		case DL_LOAD_TXT_TL_STATE_ENUMS_VALUE_LIST:
-		{
-			dl_enum_desc* e = state->active_enum;
-			DL_ASSERT( e != 0x0 );
-			DL_ASSERT( state->active_enum_value == 0x0 );
-
-			e->value_count = state->ctx->enum_value_count - e->value_start;
-
-			state->active_enum = 0x0;
-			state->pop();
-		}
-		break;
+		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST_ITEM:
+			state->pop(); // DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST_ITEM
+			state->pop(); // DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST
+			break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_LIST:
 			state->pop();
 			break;
@@ -817,7 +839,7 @@ static int dl_load_txt_on_null( void* ctx )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			dl_load_txt_tl_handle_default( state );
@@ -834,7 +856,7 @@ static int dl_load_txt_on_bool( void* ctx, int value )
 {
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
-	switch( state->stack[state->stack_item] )
+	switch( state->state() )
 	{
 		case DL_LOAD_TXT_TL_STATE_TYPE_EXTERN:
 		{
@@ -1120,7 +1142,6 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_de
 			case DL_TYPE_STORAGE_STRUCT:
 			{
 				const dl_type_desc* subtype = dl_internal_find_type( ctx, member->type_id );
-//				printf("subtype %s\n", subtype->name);
 				if( dl_context_load_txt_type_has_subdata( ctx, subtype ) )
 					return true;
 			}
@@ -1136,10 +1157,7 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_de
 static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type )
 {
 	if( dl_context_load_txt_type_has_subdata( ctx, type ) )
-	{
-//		printf("whoo? %s\n", type->name);
 		type->flags |= (uint32_t)DL_TYPE_FLAG_HAS_SUBDATA;
-	}
 }
 
 dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size )
@@ -1189,8 +1207,9 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 
 	if( my_yajl_status != yajl_status_ok )
 	{
-		printf("%s\n", yajl_get_error( state.yajl, 1, (const unsigned char*)lib_data, lib_data_size ) );
 		yajl_free( state.yajl );
+		if( state.error_code == DL_ERROR_OK )
+			return DL_ERROR_INTERNAL_ERROR;
 		return state.error_code;
 	}
 

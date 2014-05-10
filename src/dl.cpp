@@ -27,6 +27,7 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 	ctx->member_count      = 0;
 	ctx->enum_count        = 0;
 	ctx->enum_value_count  = 0;
+	ctx->enum_alias_count  = 0;
 	ctx->default_data      = 0;
 	ctx->default_data_size = 0;
 
@@ -82,6 +83,7 @@ static void dl_internal_read_typelibrary_header( dl_typelib_header* header, cons
 		header->enum_count       = dl_swap_endian_uint32( header->enum_count );
 		header->member_count     = dl_swap_endian_uint32( header->member_count );
 		header->enum_value_count = dl_swap_endian_uint32( header->enum_value_count );
+		header->enum_alias_count = dl_swap_endian_uint32( header->enum_alias_count );
 
 		header->default_value_size   = dl_swap_endian_uint32( header->default_value_size );
 	}
@@ -137,7 +139,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	size_t enums_offset        = types_offset        + sizeof( dl_type_desc ) * header.type_count;
 	size_t members_offset      = enums_offset        + sizeof( dl_enum_desc ) * header.enum_count;
 	size_t enum_values_offset  = members_offset      + sizeof( dl_member_desc ) * header.member_count;
-	size_t defaults_offset     = enum_values_offset  + sizeof( dl_enum_value_desc ) * header.enum_value_count;
+	size_t enum_aliases_offset = enum_values_offset  + sizeof( dl_enum_value_desc ) * header.enum_value_count;
+	size_t defaults_offset     = enum_aliases_offset + sizeof( dl_enum_alias_desc ) * header.enum_alias_count;
 
 	memcpy( dl_ctx->type_ids         + dl_ctx->type_count,         lib_data + types_lookup_offset, sizeof( dl_typeid_t ) * header.type_count );
 	memcpy( dl_ctx->enum_ids         + dl_ctx->enum_count,         lib_data + enums_lookup_offset, sizeof( dl_typeid_t ) * header.enum_count );
@@ -145,6 +148,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	memcpy( dl_ctx->enum_descs       + dl_ctx->enum_count,         lib_data + enums_offset,        sizeof( dl_enum_desc ) * header.enum_count );
 	memcpy( dl_ctx->member_descs     + dl_ctx->member_count,       lib_data + members_offset,      sizeof( dl_member_desc ) * header.member_count );
 	memcpy( dl_ctx->enum_value_descs + dl_ctx->enum_value_count,   lib_data + enum_values_offset,  sizeof( dl_enum_value_desc ) * header.enum_value_count );
+	memcpy( dl_ctx->enum_alias_descs + dl_ctx->enum_alias_count,   lib_data + enum_aliases_offset, sizeof( dl_enum_alias_desc ) * header.enum_alias_count );
 
 	if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
 	{
@@ -166,6 +170,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->enum_count += header.enum_count;
 	dl_ctx->member_count += header.member_count;
 	dl_ctx->enum_value_count += header.enum_value_count;
+	dl_ctx->enum_alias_count += header.enum_alias_count;
 
 	return dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
 }

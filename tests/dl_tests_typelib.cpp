@@ -72,7 +72,7 @@ TEST( DLTypeLibTxt, simple_read_write )
 	printf("%s\n", single_member_typelib);
 
 	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib) ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }

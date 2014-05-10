@@ -2,7 +2,10 @@
 	"module" : "small",
 
 	"enums" : {
-		"simple_enum" : [ "SIMPLE_VAL1", "SIMPLE_VAL2" ]
+		"simple_enum" : {
+			"SIMPLE_VAL1" : 0,
+			"SIMPLE_VAL2" : 1
+		}
 	},
 	
 	"types" : {

@@ -116,7 +116,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_
 	for( uint32_t value = 0; value < e->value_count; ++value )
 	{
 		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, value );
-		out_values[value].name  = v->name;
+		out_values[value].name  = dl_ctx->enum_alias_descs[v->main_alias].name;
 		out_values[value].value = v->value;
 	}
 
