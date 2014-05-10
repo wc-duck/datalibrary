@@ -1092,7 +1092,7 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 	return true;
 }
 
-static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_type_desc* type )
+static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_desc* type )
 {
 	unsigned int mem_start = type->member_start;
 	unsigned int mem_end   = type->member_start + type->member_count;
@@ -1108,14 +1108,25 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_type_desc* ty
 		{
 			case DL_TYPE_ATOM_ARRAY:
 				return true;
+			default:
+				break;
 		}
 
 		switch( storage )
 		{
 			case DL_TYPE_STORAGE_STR:
-				return true;
 			case DL_TYPE_STORAGE_PTR:
 				return true;
+			case DL_TYPE_STORAGE_STRUCT:
+			{
+				const dl_type_desc* subtype = dl_internal_find_type( ctx, member->type_id );
+//				printf("subtype %s\n", subtype->name);
+				if( dl_context_load_txt_type_has_subdata( ctx, subtype ) )
+					return true;
+			}
+			break;
+			default:
+				break;
 		}
 	}
 
@@ -1125,7 +1136,10 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_type_desc* ty
 static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type )
 {
 	if( dl_context_load_txt_type_has_subdata( ctx, type ) )
+	{
+//		printf("whoo? %s\n", type->name);
 		type->flags |= (uint32_t)DL_TYPE_FLAG_HAS_SUBDATA;
+	}
 }
 
 dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size )

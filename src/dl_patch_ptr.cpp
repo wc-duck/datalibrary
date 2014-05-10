@@ -175,10 +175,13 @@ void dl_internal_patch_struct( dl_ctx_t            ctx,
 							   uintptr_t           patch_distance,
 							   dl_patched_ptrs*    patched_ptrs )
 {
-	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+	if( type->flags & DL_TYPE_FLAG_HAS_SUBDATA )
 	{
-		const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
-		dl_internal_patch_member( ctx, member, struct_data + member->offset[DL_PTR_SIZE_HOST], base_address, patch_distance, patched_ptrs );
+		for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+		{
+			const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
+			dl_internal_patch_member( ctx, member, struct_data + member->offset[DL_PTR_SIZE_HOST], base_address, patch_distance, patched_ptrs );
+		}
 	}
 }
 
