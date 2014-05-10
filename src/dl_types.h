@@ -3,15 +3,16 @@
 #ifndef DL_DL_TYPES_H_INCLUDED
 #define DL_DL_TYPES_H_INCLUDED
 
-#ifdef __cplusplus
-	#define __STDC_LIMIT_MACROS
-#endif
+//#ifdef __cplusplus
+//	#define __STDC_LIMIT_MACROS
+//#endif
 
 #include <stdint.h>
 
 #include <dl/dl.h>
 #include "dl_hash.h"
 #include "dl_alloc.h"
+#include "dl_swap.h"
 
 #include <stdio.h>  // for vsnprintf
 #include <stdarg.h> // for va_list
@@ -40,8 +41,6 @@ enum
 	DL_ENUM_NAME_MAX_LEN       = 32,
 	DL_ENUM_VALUE_NAME_MAX_LEN = 32,
 };
-
-#include "dl_swap.h"
 
 #if defined( __GNUC__ )
 	#define DL_UNUSED __attribute__((unused))
