@@ -1092,6 +1092,42 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 	return true;
 }
 
+static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_type_desc* type )
+{
+	unsigned int mem_start = type->member_start;
+	unsigned int mem_end   = type->member_start + type->member_count;
+
+	// do the type have subdata?
+	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
+	{
+		dl_member_desc* member = ctx->member_descs + member_index;
+		dl_type_t atom = member->AtomType();
+		dl_type_t storage = member->StorageType();
+
+		switch( atom )
+		{
+			case DL_TYPE_ATOM_ARRAY:
+				return true;
+		}
+
+		switch( storage )
+		{
+			case DL_TYPE_STORAGE_STR:
+				return true;
+			case DL_TYPE_STORAGE_PTR:
+				return true;
+		}
+	}
+
+	return false;
+}
+
+static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type )
+{
+	if( dl_context_load_txt_type_has_subdata( ctx, type ) )
+		type->flags |= (uint32_t)DL_TYPE_FLAG_HAS_SUBDATA;
+}
+
 dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size )
 {
 	// ... parse it ...
@@ -1152,6 +1188,9 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 
 	for( unsigned int i = start_member; i < dl_ctx->member_count; ++i )
 		dl_load_txt_build_default_data( dl_ctx, lib_data, dl_ctx->member_descs + i );
+
+	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
+		dl_context_load_txt_type_set_flags( dl_ctx, dl_ctx->type_descs + i );
 
 	return DL_ERROR_OK;
 }

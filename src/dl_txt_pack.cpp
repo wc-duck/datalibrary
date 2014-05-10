@@ -535,22 +535,22 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 }
 
 // TODO: This function is not optimal on any part and should be removed, store this info in the member as one bit!
-static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type )
+static bool dl_internal_has_sub_ptr( dl_ctx_t dl_ctx, dl_typeid_t type_id )
 {
-	const dl_type_desc* le_type = dl_internal_find_type( dl_ctx, type );
+	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
 
-	if(le_type == 0) // not sturct
+	if(type == 0) // not sturct
 		return false;
 
-	for(unsigned int i = 0; i < le_type->member_count; ++i)
-	{
-		dl_type_t st = dl_get_type_member( dl_ctx, le_type, i )->StorageType();
-		dl_type_t at = dl_get_type_member( dl_ctx, le_type, i )->AtomType();
-		if( st == DL_TYPE_STORAGE_STR || at == DL_TYPE_ATOM_ARRAY )
-			return true;
-	}
+//	for(unsigned int i = 0; i < le_type->member_count; ++i)
+//	{
+//		dl_type_t st = dl_get_type_member( dl_ctx, le_type, i )->StorageType();
+//		dl_type_t at = dl_get_type_member( dl_ctx, le_type, i )->AtomType();
+//		if( st == DL_TYPE_STORAGE_STR || at == DL_TYPE_ATOM_ARRAY )
+//			return true;
+//	}
 
-	return false;
+	return type->flags & DL_TYPE_FLAG_HAS_SUBDATA;
 }
 
 static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str_val, size_t str_len )
