@@ -3,9 +3,9 @@
 #ifndef DL_DL_TYPES_H_INCLUDED
 #define DL_DL_TYPES_H_INCLUDED
 
-//#ifdef __cplusplus
-//	#define __STDC_LIMIT_MACROS
-//#endif
+#ifdef __cplusplus
+	#define __STDC_LIMIT_MACROS
+#endif
 
 #include <stdint.h>
 
@@ -13,12 +13,11 @@
 #include "dl_hash.h"
 #include "dl_alloc.h"
 #include "dl_swap.h"
+#include "dl_assert.h"
 
-#include <stdio.h>  // for vsnprintf
 #include <stdarg.h> // for va_list
 
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
-#define DL_ASSERT( expr, ... ) do { if(!(expr)) printf("ASSERT FAIL! %s %s %u\n", #expr, __FILE__, __LINE__); } while( false ) // TODO: implement me plox!
 
 #if defined( __LP64__ )
 	#define DL_INT64_FMT_STR  "%ld"
