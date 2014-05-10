@@ -184,6 +184,12 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		dl_type_info_t type_info;
 		dl_reflect_get_type_info( ctx, tids[type_index], &type_info );
 
+		// if the type is "extern" no header struct should be generated for it.
+		// TODO: generate some checks that the extern struct matches the one defined in dl by generating
+		//       static asserts on size/alignment and member offset?
+		if( type_info.is_extern )
+			continue;
+
 		dl_member_info_t* members = (dl_member_info_t*)malloc( type_info.member_count * sizeof( dl_member_info_t ) );
 		dl_reflect_get_type_members( ctx, tids[type_index], members, type_info.member_count );
 

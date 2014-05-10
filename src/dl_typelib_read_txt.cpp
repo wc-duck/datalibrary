@@ -84,6 +84,7 @@ static dl_type_desc* dl_alloc_type( dl_ctx_t ctx, dl_typeid_t tid )
 	ctx->type_ids[ type_index ] = tid;
 	dl_type_desc* type = ctx->type_descs + type_index;
 	memset( type, 0x0, sizeof( dl_type_desc ) );
+	type->flags = DL_TYPE_FLAG_DEFAULT;
 
 	return type;
 }
@@ -831,15 +832,17 @@ static int dl_load_txt_on_null( void* ctx )
 
 static int dl_load_txt_on_bool( void* ctx, int value )
 {
-	(void)value;
 	dl_load_txt_tl_ctx* state = (dl_load_txt_tl_ctx*)ctx;
 
 	switch( state->stack[state->stack_item] )
 	{
 		case DL_LOAD_TXT_TL_STATE_TYPE_EXTERN:
-			// handle me :)
+		{
+			if( value )
+				state->active_type->flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
 			state->pop();
-			break;
+		}
+		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			dl_load_txt_tl_handle_default( state );
 			break;

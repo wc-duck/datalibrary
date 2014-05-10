@@ -108,6 +108,17 @@ TEST_F(DLReflect, get_type_info)
 	CHECK_TYPE_INFO_CORRECT( circular_array_ptr_holder, 1u );
 }
 
+TEST_F(DLReflect, is_extern_reflected)
+{
+	dl_type_info_t info;
+	memset( &info, 0x0, sizeof(dl_type_info_t) );
+
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, Pods_TYPE_ID, &info ) );
+	EXPECT_FALSE( info.is_extern );
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, vec3_test_TYPE_ID, &info ) );
+	EXPECT_TRUE( info.is_extern );
+}
+
 TEST_F(DLReflect, type_lookup)
 {
 	dl_typeid_t type_id = 0;

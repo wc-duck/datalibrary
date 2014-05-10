@@ -42,16 +42,17 @@ dl_error_t dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_ty
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type, dl_type_info_t* out_type )
+dl_error_t dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type_id, dl_type_info_t* out_type )
 {
-	const dl_type_desc* pType = dl_internal_find_type(dl_ctx, type);
-	if(pType == 0x0)
+	const dl_type_desc* type = dl_internal_find_type(dl_ctx, type_id);
+	if(type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	out_type->name         = pType->name;
-	out_type->size         = pType->size[DL_PTR_SIZE_HOST];
-	out_type->alignment    = pType->alignment[DL_PTR_SIZE_HOST];
-	out_type->member_count = pType->member_count;
+	out_type->name         = type->name;
+	out_type->size         = type->size[DL_PTR_SIZE_HOST];
+	out_type->alignment    = type->alignment[DL_PTR_SIZE_HOST];
+	out_type->member_count = type->member_count;
+	out_type->is_extern    = ( type->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
 
 	return DL_ERROR_OK;
 }

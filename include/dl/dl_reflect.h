@@ -31,6 +31,7 @@ typedef struct dl_type_info
 	unsigned int size;
 	unsigned int alignment;
 	unsigned int member_count;
+	unsigned int is_extern : 1;
 } dl_type_info_t;
 
 /*

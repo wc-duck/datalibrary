@@ -13,7 +13,6 @@
 #include "dl_hash.h"
 #include "dl_alloc.h"
 
-#include <string.h> // for memcpy
 #include <stdio.h>  // for vsnprintf
 #include <stdarg.h> // for va_list
 
@@ -164,13 +163,25 @@ struct dl_member_desc
 	}
 };
 
+/**
+ *
+ */
+enum dl_type_flags
+{
+	DL_TYPE_FLAG_HAS_SUBDATA = 1 << 0, ///< the type has subdata and need pointer patching.
+	DL_TYPE_FLAG_IS_EXTERNAL = 1 << 1, ///< the type is marked as "external", this says that the type is not emitted in headers and expected to get defined by the user.
+
+	DL_TYPE_FLAG_DEFAULT = 0,
+};
+
 struct dl_type_desc
 {
-	char      name[DL_TYPE_NAME_MAX_LEN];
-	uint32_t  size[2];
-	uint32_t  alignment[2];
-	uint32_t  member_count;
-	uint32_t  member_start;
+	char     name[DL_TYPE_NAME_MAX_LEN];
+	uint32_t flags;
+	uint32_t size[2];
+	uint32_t alignment[2];
+	uint32_t member_count;
+	uint32_t member_start;
 };
 
 struct dl_enum_value_desc

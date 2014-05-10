@@ -30,17 +30,6 @@ DL_FORCEINLINE uint64_t dl_swap_endian_uint64( uint64_t val )
 	return conv.m_u64;
 }
 
-DL_FORCEINLINE uintptr_t dl_swap_endian_pint( uintptr_t p )
-{
-#if defined( __LP64__ ) || defined( _WIN64 )
-	return dl_swap_endian_uint64( p );
-#else
-	return dl_swap_endian_uint32( p );
-#endif
-}
-
-DL_FORCEINLINE void* dl_swap_endian_ptr( void* ptr ) { return (void*)dl_swap_endian_pint( (uintptr_t)ptr ); }
-
 DL_FORCEINLINE float dl_swap_endian_fp32( float f )
 {
 	union { uint32_t m_u32; float m_fp32; } conv;
