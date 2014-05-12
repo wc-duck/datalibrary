@@ -35,7 +35,6 @@ enum dl_load_txt_tl_state
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_MAP,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_TYPE,
-	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT,
 	DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_COMMENT,
 
@@ -335,7 +334,6 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		{
 			dl_load_state_name_map map[] = { { "name",    DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME },
 											 { "type",    DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_TYPE },
-											 { "bits",    DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS },
 											 { "default", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT },
 											 { "comment", DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_COMMENT } };
 
@@ -535,6 +533,21 @@ dl_type_t dl_make_type( dl_type_t atom, dl_type_t storage )
 	return (dl_type_t)( (unsigned int)atom | (unsigned int)storage );
 }
 
+static size_t dl_read_uint( const char* str, const char* end, unsigned int* out )
+{
+	const char* iter = str;
+	char num[256];
+	size_t num_len = 0;
+	while( isdigit(*iter) && iter != end )
+	{
+		num[num_len++] = *iter;
+		++iter;
+	}
+	num[num_len] = '\0';
+	*out = (unsigned int)atol( num );
+	return num_len;
+}
+
 static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str_len, dl_member_desc* member )
 {
 	// ... strip whitespace ...
@@ -568,19 +581,9 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 				is_array = true;
 			else
 			{
-				char num[256];
-				size_t num_len = 0;
-				while( isdigit(*iter) && iter != end )
-				{
-					num[num_len++] = *iter;
-					++iter;
-				}
-				num[num_len] = '\0';
-
+				iter += dl_read_uint( iter, end, &inline_array_len );
 				if( *iter != ']' )
 					DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "parse error!?!" );
-
-				inline_array_len = (unsigned int)atol( num );
 				is_inline_array = true;
 			}
 		}
@@ -588,8 +591,16 @@ static int dl_parse_type( dl_load_txt_tl_ctx* state, const char* str, size_t str
 
 	if( strcmp( "bitfield", type_name ) == 0 )
 	{
+		if( *iter != ':' )
+			DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
+
+		++iter;
+
 		member->type = dl_make_type( DL_TYPE_ATOM_BITFIELD, DL_TYPE_STORAGE_UINT8 );
 		member->type_id = 0;
+		unsigned int bits;
+		iter += dl_read_uint( iter, end, &bits );
+		member->SetBitFieldBits( bits );
 
 		// type etc?
 		return 1;
@@ -725,22 +736,6 @@ static int dl_load_txt_on_integer( void * ctx, long long integer )
 
 	switch( state->state() )
 	{
-		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_BITS:
-		{
-			DL_ASSERT( state->active_type       != 0x0 );
-			DL_ASSERT( state->active_member     != 0x0 );
-			DL_ASSERT( state->active_enum       == 0x0 );
-			DL_ASSERT( state->active_enum_value == 0x0 );
-
-			dl_member_desc* member = state->active_member;
-
-			if( member->BitFieldBits() != 0 )
-				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "member has \"bits\" set multiple times!" );
-
-			member->SetBitFieldBits( (unsigned int)integer );
-			state->pop();
-		}
-		break;
 		case DL_LOAD_TXT_TL_STATE_TYPE_ALIGN:
 		{
 			DL_ASSERT( state->active_type       != 0x0 );

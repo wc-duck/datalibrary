@@ -62,29 +62,29 @@
 		
 		"TestBits" : {
 			"members" : [ 
-				{ "name" : "Bit1", "type" : "bitfield", "bits" : 1 },
-				{ "name" : "Bit2", "type" : "bitfield", "bits" : 2 },
-				{ "name" : "Bit3", "type" : "bitfield", "bits" : 3 },
+				{ "name" : "Bit1", "type" : "bitfield:1" },
+				{ "name" : "Bit2", "type" : "bitfield:2" },
+				{ "name" : "Bit3", "type" : "bitfield:3" },
 				{ "name" : "make_it_uneven", "type" : "uint8" },
-				{ "name" : "Bit4", "type" : "bitfield", "bits" : 1 },
-				{ "name" : "Bit5", "type" : "bitfield", "bits" : 2 },
-				{ "name" : "Bit6", "type" : "bitfield", "bits" : 3 }
+				{ "name" : "Bit4", "type" : "bitfield:1" },
+				{ "name" : "Bit5", "type" : "bitfield:2" },
+				{ "name" : "Bit6", "type" : "bitfield:3" }
 			]
 		},
 		
 		"MoreBits" : {
 			"members" : [ 
-				{ "name" : "Bit1", "type" : "bitfield", "bits" : 15 },
-				{ "name" : "Bit2", "type" : "bitfield", "bits" : 7 }
+				{ "name" : "Bit1", "type" : "bitfield:15" },
+				{ "name" : "Bit2", "type" : "bitfield:7" }
 			]
 		},
 		
 		"BitBitfield64" : {
 			"members" : [
-				{ "name" : "Package",  "type" : "bitfield", "bits" : 7 },
-				{ "name" : "FileType", "type" : "bitfield", "bits" : 9 },
-				{ "name" : "PathHash", "type" : "bitfield", "bits" : 16 },
-				{ "name" : "FileHash", "type" : "bitfield", "bits" : 32 }
+				{ "name" : "Package",  "type" : "bitfield:7" },
+				{ "name" : "FileType", "type" : "bitfield:9" },
+				{ "name" : "PathHash", "type" : "bitfield:16" },
+				{ "name" : "FileHash", "type" : "bitfield:32" }
 			]
 		},
 		
