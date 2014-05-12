@@ -69,10 +69,53 @@ TEST( DLTypeLibTxt, simple_read_write )
 		}
 	});
 
-	printf("%s\n", single_member_typelib);
-
 	// ... load typelib ...
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
+}
+
+TEST( DLTypeLibTxt, missing_type )
+{
+	dl_ctx_t ctx;
+
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &ctx, &p ) );
+
+	const char single_member_typelib[] = STRINGIFY({
+		"module" : "small",
+		"types" : {
+			"single_int" : { "members" : [ { "name" : "member", "type" : "i_do_not_exist" } ] }
+		}
+	});
+
+	// ... load typelib ...
+	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
+}
+
+TEST( DLTypeLibTxt, missing_comma )
+{
+	dl_ctx_t ctx;
+
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &ctx, &p ) );
+
+	const char single_member_typelib[] = STRINGIFY({
+		"module" : "small",
+		"types" : {
+			"single_int" : { "members" : [
+			                   { "name" : "member1", "type" : "uint8" }
+			                   { "name" : "member2", "type" : "uint8" }
+			                 ] }
+		}
+	});
+
+	// ... load typelib ...
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }

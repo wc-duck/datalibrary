@@ -1050,11 +1050,11 @@ static void dl_load_txt_fixup_enum_members( dl_ctx_t ctx, dl_type_desc* type )
 /**
  * return true if the calculation was successful.
  */
-bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
+dl_error_t dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 {
 	// ... is the type already processed ...
 	if( type->size[0] > 0 )
-		return true;
+		return DL_ERROR_OK;
 
 	dl_load_txt_fixup_bitfield_members( ctx, type );
 	dl_load_txt_fixup_enum_members( ctx, type );
@@ -1081,8 +1081,8 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 				const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
 				if( sub_type == 0x0 )
 				{
-					printf("%s->%s need lookup = NOT FOUND!\n", type->name, member->name);
-					continue;
+					dl_log_error( ctx, "%s.%s is set to a type that is not present in typelibrary!", type->name, member->name);
+					return DL_ERROR_TYPE_NOT_FOUND;
 				}
 
 				if( sub_type->size[0] == 0 )
@@ -1128,7 +1128,7 @@ bool dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
 	type->alignment[DL_PTR_SIZE_32BIT] = align[DL_PTR_SIZE_32BIT];
 	type->alignment[DL_PTR_SIZE_64BIT] = align[DL_PTR_SIZE_64BIT];
 
-	return true;
+	return DL_ERROR_OK;
 }
 
 static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_desc* type )
@@ -1219,14 +1219,41 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	yajl_config( state.yajl, yajl_allow_comments, 1 );
 
 	yajl_status my_yajl_status = yajl_parse( state.yajl, (const unsigned char*)lib_data, lib_data_size );
-
-	DL_ASSERT( state.stack_item == 0 );
+	size_t bytes_consumed = yajl_get_bytes_consumed( state.yajl );
 
 	if( my_yajl_status != yajl_status_ok )
 	{
+		unsigned int line = 0;
+		unsigned int column = 0;
+		if( bytes_consumed != 0 ) // error occured!
+		{
+
+			const char* ch  = lib_data;
+			const char* end = lib_data + bytes_consumed;
+
+			while( ch != end )
+			{
+				if( *ch == '\n' )
+				{
+					++line;
+					column = 0;
+				}
+				else
+					++column;
+
+				++ch;
+			}
+
+			dl_log_error( dl_ctx, "At line %u, column %u", line, column);
+		}
+
+		char* error_str = (char*)yajl_get_error( state.yajl, 1 /* verbose */, (const unsigned char*)lib_data, (unsigned int)lib_data_size );
+		dl_log_error( dl_ctx, "%s", error_str );
+		yajl_free_error( state.yajl, (unsigned char*)error_str );
+
 		yajl_free( state.yajl );
 		if( state.error_code == DL_ERROR_OK )
-			return DL_ERROR_INTERNAL_ERROR;
+			return DL_ERROR_TXT_PARSE_ERROR;
 		return state.error_code;
 	}
 
@@ -1234,7 +1261,11 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 
 	// ... calculate size of types ...
 	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
-		dl_load_txt_calc_type_size_and_align( dl_ctx, dl_ctx->type_descs + i );
+	{
+		dl_error_t err = dl_load_txt_calc_type_size_and_align( dl_ctx, dl_ctx->type_descs + i );
+		if( err != DL_ERROR_OK )
+			return err;
+	}
 
 	for( unsigned int i = start_member; i < dl_ctx->member_count; ++i )
 		dl_load_txt_build_default_data( dl_ctx, lib_data, dl_ctx->member_descs + i );

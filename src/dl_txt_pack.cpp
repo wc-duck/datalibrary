@@ -955,7 +955,7 @@ static dl_error_t dl_internal_txt_pack( SDLPackContext* pack_ctx, const char* te
 		dl_internal_pack_alloc,
 		dl_internal_pack_realloc,
 		dl_internal_pack_free,
-		0x0
+		0x0,
 	};
 
 	yajl_callbacks callbacks = {
