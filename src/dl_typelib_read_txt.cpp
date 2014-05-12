@@ -5,7 +5,6 @@
 
 #include "dl_types.h"
 
-#include <stdio.h> // remove
 #include <stdlib.h> // atol
 #include <ctype.h>
 
@@ -79,9 +78,25 @@ struct dl_load_txt_tl_ctx
 	}
 };
 
+template <typename T>
+static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap )
+{
+	size_t old_cap = *cap;
+	size_t new_cap = old_cap * 2;
+	if( old_cap == 0 )
+		new_cap = 8;
+	*cap = new_cap;
+	return (T*)dl_realloc( alloc, ptr, new_cap * sizeof( T ), old_cap * sizeof( T ) );
+}
+
 static dl_type_desc* dl_alloc_type( dl_ctx_t ctx, dl_typeid_t tid )
 {
-	// TODO: handle full.
+	if( ctx->type_capacity <= ctx->type_count )
+	{
+		size_t cap = ctx->type_capacity;
+		ctx->type_ids   = dl_grow_array( &ctx->alloc, ctx->type_ids, &cap );
+		ctx->type_descs = dl_grow_array( &ctx->alloc, ctx->type_descs, &ctx->type_capacity );
+	}
 
 	unsigned int type_index = ctx->type_count;
 	++ctx->type_count;
@@ -96,7 +111,8 @@ static dl_type_desc* dl_alloc_type( dl_ctx_t ctx, dl_typeid_t tid )
 
 static dl_member_desc* dl_alloc_member( dl_ctx_t ctx )
 {
-	// TODO: handle full.
+	if( ctx->member_capacity <= ctx->member_count )
+		ctx->member_descs = dl_grow_array( &ctx->alloc, ctx->member_descs, &ctx->member_capacity );
 
 	unsigned int member_index = ctx->member_count;
 	++ctx->member_count;
@@ -110,7 +126,12 @@ static dl_member_desc* dl_alloc_member( dl_ctx_t ctx )
 
 static dl_enum_desc* dl_alloc_enum( dl_ctx_t ctx, dl_typeid_t tid )
 {
-	// TODO: handle full.
+	if( ctx->enum_capacity <= ctx->enum_count )
+	{
+		size_t cap = ctx->enum_capacity;
+		ctx->enum_ids   = dl_grow_array( &ctx->alloc, ctx->enum_ids, &cap );
+		ctx->enum_descs = dl_grow_array( &ctx->alloc, ctx->enum_descs, &ctx->enum_capacity );
+	}
 
 	unsigned int enum_index = ctx->enum_count;
 	++ctx->enum_count;
@@ -127,7 +148,8 @@ static dl_enum_desc* dl_alloc_enum( dl_ctx_t ctx, dl_typeid_t tid )
 
 static dl_enum_value_desc* dl_alloc_enum_value( dl_ctx_t ctx )
 {
-	// TODO: handle full.
+	if( ctx->enum_value_capacity <= ctx->enum_value_count )
+		ctx->enum_value_descs = dl_grow_array( &ctx->alloc, ctx->enum_value_descs, &ctx->enum_value_capacity );
 
 	unsigned int value_index = ctx->enum_value_count;
 	++ctx->enum_value_count;
@@ -140,7 +162,8 @@ static dl_enum_value_desc* dl_alloc_enum_value( dl_ctx_t ctx )
 
 static dl_enum_alias_desc* dl_alloc_enum_alias( dl_ctx_t ctx, const unsigned char* name, size_t name_len )
 {
-	// TODO: handle full.
+	if( ctx->enum_alias_capacity <= ctx->enum_alias_count )
+		ctx->enum_alias_descs = dl_grow_array( &ctx->alloc, ctx->enum_alias_descs, &ctx->enum_alias_capacity );
 
 	unsigned int alias_index = ctx->enum_alias_count;
 	++ctx->enum_alias_count;
@@ -984,7 +1007,7 @@ static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type
 		}
 
 		// TODO: handle higher bit-counts than 64!
-		dl_type_t storage;
+		dl_type_t storage = DL_TYPE_STORAGE_UINT8;
 		if     ( group_bits <= 8  ) storage = DL_TYPE_STORAGE_UINT8;
 		else if( group_bits <= 16 ) storage = DL_TYPE_STORAGE_UINT16;
 		else if( group_bits <= 32 ) storage = DL_TYPE_STORAGE_UINT32;

@@ -217,15 +217,20 @@ struct dl_context
 	unsigned int enum_value_count;
 	unsigned int enum_alias_count;
 
-	// TODO: dynamic alloc all type-data!
-	dl_typeid_t type_ids[128];      ///< list of all loaded typeid:s in the same order they appear in type_descs
-	dl_typeid_t enum_ids[128];      ///< list of all loaded typeid:s for enums in the same order they appear in enum_descs
+	size_t type_capacity;
+	size_t enum_capacity;
+	size_t member_capacity;
+	size_t enum_value_capacity;
+	size_t enum_alias_capacity;
 
-	dl_type_desc       type_descs[128];    ///< list of all loaded descriptors for types.
-	dl_member_desc     member_descs[1024]; ///< list of all loaded descriptors for members in types.
-	dl_enum_desc       enum_descs[128];
-	dl_enum_value_desc enum_value_descs[256];
-	dl_enum_alias_desc enum_alias_descs[256];
+	dl_typeid_t* type_ids; ///< list of all loaded typeid:s in the same order they appear in type_descs
+	dl_typeid_t* enum_ids; ///< list of all loaded typeid:s for enums in the same order they appear in enum_descs
+
+	dl_type_desc*       type_descs;    ///< list of all loaded descriptors for types.
+	dl_member_desc*     member_descs; ///< list of all loaded descriptors for members in types.
+	dl_enum_desc*       enum_descs;
+	dl_enum_value_desc* enum_value_descs;
+	dl_enum_alias_desc* enum_alias_descs;
 
 	uint8_t* default_data;
 	size_t   default_data_size;
