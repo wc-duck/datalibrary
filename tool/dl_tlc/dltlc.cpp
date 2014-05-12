@@ -270,9 +270,9 @@ static void show_tl_info( dl_ctx_t ctx )
 	char header_fmt[256];
 	char item_fmt[256];
 	char member_fmt[256];
-	snprintf( header_fmt, 256, "%-10s  %%-%lus %5s %s %s\n", "typeid", max_name_len, "size", "align", "offset" );
-	snprintf( item_fmt,   256, "0x%%08X  %%-%lus %%5u %%5u\n", max_name_len );
-	snprintf( member_fmt, 256, "   - %%-%lus        %%5u %%5u %%5u\n", max_name_len );
+	snprintf( header_fmt, 256, "%-10s  %%-%lus %5s %s %s\n", "typeid", (long unsigned int)max_name_len, "size", "align", "offset" );
+	snprintf( item_fmt,   256, "0x%%08X  %%-%lus %%5u %%5u\n", (long unsigned int)max_name_len );
+	snprintf( member_fmt, 256, "   - %%-%lus        %%5u %%5u %%5u\n", (long unsigned int)max_name_len );
 
 	printf("types:\n");
 	int header_len = printf( header_fmt, "name");

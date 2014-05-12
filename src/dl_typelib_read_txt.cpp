@@ -390,8 +390,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT:
 			break;
 		default:
-			printf("unhandled map key %lu %u \"%.*s\"\n", state->stack_item, state->state(), (int)str_len, (const char*)str_val);
-			// DL_ASSERT( false );
+			DL_ASSERT( false );
 			return 0;
 	}
 
