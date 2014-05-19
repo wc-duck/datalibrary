@@ -9,7 +9,7 @@ EXTERNALS_PATH = 'external'
 GTEST_PATH = PathJoin( EXTERNALS_PATH, 'gtest' )
 YAJL_PATH  = PathJoin( EXTERNALS_PATH, 'yajl' )
 
-function dl_type_lib( tlc_file, dl_shared_lib, dltlc )
+function dl_type_lib( tlc_file, dltlc )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header    = out_file .. ".h"
@@ -25,7 +25,6 @@ function dl_type_lib( tlc_file, dl_shared_lib, dltlc )
 	AddDependency( tlc_file, dltlc )
 	AddDependency( tlc_file, CollectRecursive( "tool/dl_tlc/*.py" ) )
 	AddDependency( tlc_file, CollectRecursive( "bind/python/*.py" ) )
-	AddDependency( tlc_file, dl_shared_lib )
 end
 
 function DefaultSettings( platform, config )
@@ -268,9 +267,9 @@ elseif build_platform == "winx64" then
 	tl_build_so = "local/win32/" .. config .. "/dl.dll"
 end
 
-tl1 = dl_type_lib( "tests/unittest.tld",  tl_build_so, dltlc )
-tl2 = dl_type_lib( "tests/unittest2.tld", tl_build_so, dltlc ) 
-tl3 = dl_type_lib( "tests/small.tld",     tl_build_so, dltlc ) 
+tl1 = dl_type_lib( "tests/unittest.tld",  dltlc )
+tl2 = dl_type_lib( "tests/unittest2.tld", dltlc ) 
+tl3 = dl_type_lib( "tests/small.tld",     dltlc ) 
 
 local    test_args = ""
 local py_test_args = ""

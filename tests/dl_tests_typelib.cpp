@@ -119,3 +119,35 @@ TEST( DLTypeLibTxt, missing_comma )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }
+
+TEST( DLTypeLibTxt, crash1 )
+{
+	dl_ctx_t ctx;
+
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &ctx, &p ) );
+
+	const char single_member_typelib[] = STRINGIFY({
+		"enums": {
+			"anim_spline_type": { "ANIM_SPLINE_TYPE_ONCE": 0, "ANIM_SPLINE_TYPE_PING_PONG": 1 },
+		    "timer_type": { "LOOP": 1, "ONCE": 0 }
+		  },
+		  "types": {
+		    "a": { "members": [ { "type": "uint8", "name": "a" } ] },
+		    "b": { "members": [ { "type": "uint8", "name": "a" } ] },
+		    "c": { "members": [ { "type": "uint8", "name": "a", "default": true } ] },
+		    "d": { "members": [ { "type": "uint8", "name": "a" } ] },
+		    "e": { "members": [ { "type": "uint8", "name": "a" } ] },
+		    "f": { "members": [ { "type": "uint8", "name": "a" } ] },
+		    "g": { "members": [ { "type": "uint8", "name": "a" } ] },
+		    "h": { "members": [ { "type": "uint8", "name": "a" } ] }
+		  },
+		  "module": "component_init_data"
+	});
+
+	// ... load typelib ...
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
+}

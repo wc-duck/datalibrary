@@ -104,6 +104,8 @@ static dl_type_desc* dl_alloc_type( dl_ctx_t ctx, dl_typeid_t tid )
 	dl_type_desc* type = ctx->type_descs + type_index;
 	memset( type, 0x0, sizeof( dl_type_desc ) );
 	type->flags = DL_TYPE_FLAG_DEFAULT;
+	type->member_start = ctx->member_count;
+	type->member_count = 0;
 
 	return type;
 }
@@ -305,8 +307,6 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len );
 
 			dl_type_desc* type = dl_alloc_type( state->ctx, tid );
-			type->member_start = state->ctx->member_count;
-			type->member_count = 0;
 			memcpy( type->name, str_val, str_len );
 			type->name[ str_len ] = 0;
 			type->size[ DL_PTR_SIZE_32BIT ] = 0;
@@ -903,20 +903,21 @@ static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size,
 	return res;
 }
 
-static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, dl_member_desc* member )
+static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, unsigned int member_index )
 {
-	if( member->default_value_offset == 0xFFFFFFFF )
+	if( ctx->member_descs[member_index].default_value_offset == 0xFFFFFFFF )
 		return;
+
+	// TODO: check that this is not outside the buffers
+	dl_type_desc*   def_type   = dl_alloc_type( ctx, dl_internal_hash_string( "a_type_here" ) );
+	dl_member_desc* def_member = dl_alloc_member( ctx );
+
+	dl_member_desc* member = &ctx->member_descs[member_index];
 
 	uint32_t def_start = member->default_value_offset & 0xFFFF;
 	uint32_t def_len   = member->default_value_offset >> 16;
 
 	char def_buffer[2048]; // TODO: no hardcode =/
-
-	// TODO: check that this is not outside the buffers
-	dl_type_desc*   def_type   = ctx->type_descs + ctx->type_count;
-	dl_member_desc* def_member = ctx->member_descs + ctx->member_count;
-	ctx->type_ids[ctx->type_count] = dl_internal_hash_string( "a_type_here" );
 
 	// TODO: check that typename do not exist in the ctx!
 
@@ -924,14 +925,10 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, 
 	def_type->size[DL_PTR_SIZE_HOST]      = member->size[DL_PTR_SIZE_HOST];
 	def_type->alignment[DL_PTR_SIZE_HOST] = member->alignment[DL_PTR_SIZE_HOST];
 	def_type->member_count = 1;
-	def_type->member_start = ctx->member_count;
 
 	memcpy( def_member, member, sizeof( dl_member_desc ) );
 	def_member->offset[0] = 0;
 	def_member->offset[1] = 0;
-
-	++ctx->type_count;
-	++ctx->member_count;
 
 	dl_internal_str_format( def_buffer, 2048, "{\"type\":\"a_type_here\",\"data\":{\"%s\"%.*s}}", member->name, (int)def_len, lib_data + def_start );
 
@@ -1268,7 +1265,7 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	}
 
 	for( unsigned int i = start_member; i < dl_ctx->member_count; ++i )
-		dl_load_txt_build_default_data( dl_ctx, lib_data, dl_ctx->member_descs + i );
+		dl_load_txt_build_default_data( dl_ctx, lib_data, i );
 
 	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
 		dl_context_load_txt_type_set_flags( dl_ctx, dl_ctx->type_descs + i );
