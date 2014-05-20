@@ -18,6 +18,10 @@ function dl_type_lib( tlc_file, dltlc )
 
 	local HAXX   = PYTHON .. " ../wc_games/wc_engine/units/util/tools/bin2hex.py"
 
+	if family == "windows" then
+		dltlc = string.gsub( dltlc, "/", "\\" )
+	end
+
 	AddJob( out_lib,       "tlc " .. out_lib,       dltlc  .. " -o " .. out_lib .. " " .. tlc_file,       tlc_file )
 	AddJob( out_lib_h,     "tlc " .. out_lib_h,	HAXX   .. " -o " .. out_lib_h .. " " .. out_lib,      out_lib )
 	AddJob( out_header,    "tlc " .. out_header,    dltlc .. " -c -o " .. out_header .. " " .. tlc_file,  tlc_file )
@@ -127,11 +131,11 @@ function DefaultMSVC( build_platform, config )
 	SetDriversCL(settings)
 	
 	if config == "debug" then
-		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"")
+		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"", "/EHsc")
 		settings.dll.flags:Add("/DEBUG")
 		settings.link.flags:Add("/DEBUG")
 	else
-		settings.cc.flags:Add("/Ox", "/Ot", "/MD", "/D \"NDEBUG\"")
+		settings.cc.flags:Add("/Ox", "/Ot", "/MD", "/D \"NDEBUG\"", "/EHsc")
 	end
 
 	SetupMSVCBinaries( settings, ScriptArgs["compiler"] )
@@ -251,21 +255,13 @@ gtest_settings = make_gtest_settings( build_settings )
 yajl_lib  = StaticLibrary( yajl_settings,  "yajl",  Compile( yajl_settings,  Collect( PathJoin( YAJL_PATH, "src/*.c" ) ) ) )
 gtest_lib = StaticLibrary( gtest_settings, "gtest", Compile( gtest_settings, Collect( PathJoin( GTEST_PATH, "src/gtest-all.cc" ) ) ) )
 dl_lib    = StaticLibrary( dl_settings,    "dl",    Compile( dl_settings,    Collect( "src/*.cpp" ) ), yajl_lib )
-dl_shared = SharedLibrary( dl_settings,    "dl",    Compile( dl_so_settings, Collect( "src/*.cpp" ) ), yajl_lib )
+dl_shared = SharedLibrary( dl_settings,    "dlsh",  Compile( dl_so_settings, Collect( "src/*.cpp" ) ), yajl_lib )
 
 dl_settings.cc.includes:Add('tool/dl_pack')
 getopt   = Compile( dl_settings, CollectRecursive( "tool/dl_pack/*.c" ) )
 dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.cpp") ), getopt, yajl_lib, dl_lib )
 dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecursive("tool/dl_tlc/*.cpp") ), getopt, yajl_lib, dl_lib )
 dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib, yajl_lib )
-
--- HACK BONANZA!
-tl_build_so = dl_shared
-if build_platform == "linux_x86" then
-	tl_build_so = "local/linux_x86_64/" .. config .. "/dl.so"
-elseif build_platform == "winx64" then
-	tl_build_so = "local/win32/" .. config .. "/dl.dll"
-end
 
 tl1 = dl_type_lib( "tests/unittest.tld",  dltlc )
 tl2 = dl_type_lib( "tests/unittest2.tld", dltlc ) 
@@ -294,7 +290,7 @@ dl_tests_py = "tests/python_bindings/dl_tests.py"
 AddJob( "test_py", 
 		"unittest python", 
 		PYTHON .. " " .. dl_tests_py .. " " .. dl_shared .. " " .. py_test_args, 
-		dl_tests_py, 
+		dl_tests_py,
 		dl_shared, "local/generated/unittest.bin" )
 
 -- do not run unittest as default, only run
