@@ -10,6 +10,10 @@
 
 #include <vector>
 
+#ifdef _MSC_VER
+#define snprintf _snprintf
+#endif
+
 static int verbose = 0;
 static int unpack = 0;
 static int show_info = 0;
