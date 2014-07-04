@@ -21,8 +21,8 @@ static void dl_binary_writer_write_string_fmt( dl_binary_writer* writer, const c
 static void dl_context_write_c_header_begin( dl_binary_writer* writer, const char* module_name_uppercase )
 {
 	dl_binary_writer_write_string_fmt( writer, "/* Auto generated header for dl type library */\n" );
-	dl_binary_writer_write_string_fmt( writer, "#ifndef %s_INCLUDED\n", module_name_uppercase );
-	dl_binary_writer_write_string_fmt( writer, "#define %s_INCLUDED\n\n", module_name_uppercase );
+	dl_binary_writer_write_string_fmt( writer, "#ifndef __DL_AUTOGEN_HEADER_%s_INCLUDED\n", module_name_uppercase );
+	dl_binary_writer_write_string_fmt( writer, "#define __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
 
 	dl_binary_writer_write_string_fmt( writer, "#include <stdint.h>\n\n", module_name_uppercase );
 	dl_binary_writer_write_string_fmt( writer, "#include <stddef.h> // for size_t\n\n", module_name_uppercase );
@@ -30,7 +30,7 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )
 {
-	dl_binary_writer_write_string_fmt( writer, "#endif // %s_INCLUDED\n\n", module_name_uppercase );
+	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
 }
 
 static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t ctx )
