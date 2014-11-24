@@ -45,6 +45,10 @@ struct dl_write_text_context
 	size_t write_pos;
 };
 
+#if defined( __GNUC__ )
+static void dl_gen_string( yajl_gen gen, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
+#endif
+
 static void dl_gen_string( yajl_gen gen, const char* fmt, ... )
 {
 	va_list args;
@@ -109,7 +113,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, yajl_gen gen, dl_typeid_t t
 	dl_enum_info_t enum_info;
 	dl_reflect_get_enum_info( ctx, tid, &enum_info );
 
-	dl_gen_string( gen, enum_info.name );
+	dl_gen_string( gen, "%s", enum_info.name );
 	yajl_gen_array_open( gen );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
@@ -121,7 +125,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, yajl_gen gen, dl_typeid_t t
 	{
 		if( curr_val + 1 == values[j].value )
 		{
-			dl_gen_string( gen, values[j].name );
+			dl_gen_string( gen, "%s", values[j].name );
 		}
 		else if( false /* TODO: check if we have one header-name and one value name? */ )
 		{
@@ -130,7 +134,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, yajl_gen gen, dl_typeid_t t
 		else
 		{
 			yajl_gen_map_open( gen );
-			dl_gen_string( gen, values[j].name );
+			dl_gen_string( gen, "%s", values[j].name );
 			yajl_gen_integer( gen, values[j].value );
 			yajl_gen_map_close( gen );
 		}
@@ -167,7 +171,7 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, yajl_gen gen, dl_member_i
 	yajl_gen_map_open( gen );
 
 	dl_gen_string( gen, "name" );
-	dl_gen_string( gen, member->name );
+	dl_gen_string( gen, "%s", member->name );
 
 	dl_type_t atom    = (dl_type_t)(DL_TYPE_ATOM_MASK & member->type);
 	dl_type_t storage = (dl_type_t)(DL_TYPE_STORAGE_MASK & member->type);
@@ -183,7 +187,7 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, yajl_gen gen, dl_member_i
 				dl_gen_string( gen, "%s*", sub_type.name );
 			}
 			else
-				dl_gen_string( gen, dl_context_type_to_string( ctx, storage, member->type_id ) );
+				dl_gen_string( gen, "%s", dl_context_type_to_string( ctx, storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_BITFIELD:
 			dl_gen_string( gen, "bitfield" );
@@ -208,7 +212,7 @@ static void dl_context_write_txt_type( dl_ctx_t ctx, yajl_gen gen, dl_typeid_t t
 	dl_type_info_t type_info;
 	dl_reflect_get_type_info( ctx, tid, &type_info );
 
-	dl_gen_string( gen, type_info.name );
+	dl_gen_string( gen, "%s", type_info.name );
 	yajl_gen_map_open( gen );
 
 	dl_member_info_t* members = (dl_member_info_t*)malloc( type_info.member_count * sizeof( dl_member_info_t ) );

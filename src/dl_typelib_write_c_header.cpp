@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#if defined( __GNUC__ )
+static void dl_binary_writer_write_string_fmt( dl_binary_writer* writer, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
+#endif
+
 static void dl_binary_writer_write_string_fmt( dl_binary_writer* writer, const char* fmt, ... )
 {
 	char buffer[2048];
@@ -24,8 +28,8 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 	dl_binary_writer_write_string_fmt( writer, "#ifndef __DL_AUTOGEN_HEADER_%s_INCLUDED\n", module_name_uppercase );
 	dl_binary_writer_write_string_fmt( writer, "#define __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
 
-	dl_binary_writer_write_string_fmt( writer, "#include <stdint.h>\n\n", module_name_uppercase );
-	dl_binary_writer_write_string_fmt( writer, "#include <stddef.h> // for size_t\n\n", module_name_uppercase );
+	dl_binary_writer_write_string_fmt( writer, "#include <stdint.h>\n\n" );
+	dl_binary_writer_write_string_fmt( writer, "#include <stddef.h> // for size_t\n\n" );
 }
 
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )
@@ -213,7 +217,7 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 
 		free( members );
 
-		dl_binary_writer_write_string_fmt( writer, "};\n\n", type_info.name );
+		dl_binary_writer_write_string_fmt( writer, "};\n\n" );
 	}
 
 	free( tids );

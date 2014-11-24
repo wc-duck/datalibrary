@@ -274,7 +274,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			if( s == DL_LOAD_TXT_TL_STATE_INVALID )
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR,
 										"Got key \"%.*s\", in root-map, expected \"module\", \"enums\" or \"types\"!",
-										str_len, str_val );
+										(int)str_len, str_val );
 
 			state->push( s );
 		}
@@ -282,7 +282,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 		case DL_LOAD_TXT_TL_STATE_ENUMS_MAP:
 		{
 			if( str_len >= DL_ENUM_NAME_MAX_LEN )
-				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "Enumname \"%.*s\" is (currently) to long!", str_len, str_val );
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "Enumname \"%.*s\" is (currently) to long!", (int)str_len, str_val );
 
 			// TODO: typeid should be patched when type is done by using all members etc.
 			dl_typeid_t tid = dl_internal_hash_buffer( str_val, str_len );
@@ -300,7 +300,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			// ... check that type is not already in tld ...
 
 			if( str_len >= DL_TYPE_NAME_MAX_LEN )
-				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "Typename \"%.*s\" is (currently) to long!", str_len, str_val );
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "Typename \"%.*s\" is (currently) to long!", (int)str_len, str_val );
 
 			// ... alloc new type ...
 			// TODO: typeid should be patched when type is done by using all members etc.
@@ -326,7 +326,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			if( s == DL_LOAD_TXT_TL_STATE_INVALID )
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR,
 										"Got key \"%.*s\", in type, expected \"members\"!",
-										str_len, str_val );
+										(int)str_len, str_val );
 			state->push( s );
 		}
 		break;
@@ -342,7 +342,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			if( s == DL_LOAD_TXT_TL_STATE_INVALID )
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR,
 										"Got key \"%.*s\", in member def, expected \"name\" or \"type\"!",
-										str_len, str_val );
+										(int)str_len, str_val );
 
 			if( s == DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_DEFAULT )
 			{
@@ -381,7 +381,7 @@ static int dl_load_txt_tl_on_map_key( void* ctx, const unsigned char* str_val, s
 			if( s == DL_LOAD_TXT_TL_STATE_INVALID )
 				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR,
 										"Got key \"%.*s\", in enum def, expected \"value\" or \"aliases\"!",
-										str_len, str_val );
+										(int)str_len, str_val );
 			state->push( s );
 		}
 		break;
@@ -689,7 +689,7 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 		case DL_LOAD_TXT_TL_STATE_ENUM_VALUE_ALIAS_LIST_ITEM:
 		{
 			if( str_len >= DL_ENUM_VALUE_NAME_MAX_LEN )
-				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "enum value alias \"%.*s\" is (currently) to long!", str_len, str_val );
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "enum value alias \"%.*s\" is (currently) to long!", (int)str_len, str_val );
 			dl_enum_alias_desc* alias = dl_alloc_enum_alias( state->ctx, str_val, str_len );
 			alias->value_index = (uint32_t)(state->active_enum_value - state->ctx->enum_value_descs);
 			++state->active_enum->alias_count;
@@ -698,7 +698,7 @@ static int dl_load_txt_tl_on_string( void* ctx, const unsigned char* str_val, si
 		case DL_LOAD_TXT_TL_STATE_TYPE_MEMBER_NAME:
 		{
 			if( str_len >= DL_MEMBER_NAME_MAX_LEN )
-				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "member name \"%.*s\" is (currently) to long!", str_len, str_val );
+				DL_PACK_ERROR_AND_FAIL( state, DL_ERROR_TXT_PARSE_ERROR, "member name \"%.*s\" is (currently) to long!", (int)str_len, str_val );
 
 			memcpy( state->active_member->name, str_val, str_len );
 

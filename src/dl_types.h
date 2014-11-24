@@ -236,6 +236,10 @@ struct dl_context
 	size_t   default_data_size;
 };
 
+#if defined( __GNUC__ )
+inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
+#endif
+
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
 {
 	if( dl_ctx->error_msg_func == 0x0 )

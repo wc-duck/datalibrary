@@ -323,7 +323,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 								   pack_ctx, 
 								   DL_ERROR_TXT_PARSE_ERROR, 
 								   "Could not parse %.*s as bitfield member!", 
-								   str_len, str_val );
+								   (int)str_len, str_val );
 
 		unsigned int bf_bits   = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED );
 		unsigned int bf_offset = DL_EXTRACT_BITS( state, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
@@ -395,7 +395,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 									   pack_ctx, 
 									   DL_ERROR_TXT_PARSE_ERROR, 
 									   "Could not parse %.*s as correct ID!", 
-									   str_len, str_val );
+									   (int)str_len, str_val );
 
 			dl_txt_pack_ctx_add_patch_pos( pack_ctx, (unsigned int)ID );
 
@@ -416,7 +416,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 							   pack_ctx, 
 							   DL_ERROR_TXT_PARSE_ERROR, 
 							   "Could not parse %.*s as correct integer type!", 
-							   str_len, str_val );
+							   (int)str_len, str_val );
 
 	switch( state )
 	{
@@ -482,7 +482,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 									   pack_ctx, 
 									   DL_ERROR_TYPE_NOT_FOUND, 
 									   "Could not find type %.*s in loaded types!", 
-									   str_len, str_value );
+									   (int)str_len, str_value );
 
 			dl_txt_pack_ctx_pop_state( pack_ctx ); // back to last state plox!
 		}
@@ -519,7 +519,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 				DL_PACK_ERROR_AND_FAIL( pack_ctx,
 										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
 										"Enum \"%s\" do not have the value \"%.*s\"!", 
-										enum_type->name, str_len, str_value );
+										enum_type->name, (int)str_len, str_value );
 			}
 			dl_binary_writer_write( pack_ctx->writer, &enum_value, sizeof(uint32_t) );
 			dl_txt_pack_ctx_pop_array_item( pack_ctx );
@@ -529,7 +529,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 			DL_PACK_ERROR_AND_FAIL( pack_ctx, 
 									DL_ERROR_TXT_PARSE_ERROR, 
 									"Unexpected string \"%.*s\"!", 
-									str_len, str_value );
+									(int)str_len, str_value );
 			break;
 	}
 
@@ -564,7 +564,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   pCtx, 
 									   DL_ERROR_TXT_PARSE_ERROR, 
 									   "Got key \"%.*s\", expected \"type\" or \"data\"!", 
-									   str_len, str_val );
+									   (int)str_len, str_val );
 
 			if( strncmp( (const char*)str_val, "type", str_len ) == 0 )
 			{
@@ -590,7 +590,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 				DL_PACK_ERROR_AND_FAIL( pCtx, 
 										DL_ERROR_TXT_PARSE_ERROR, 
 										"Got key \"%.*s\", expected \"type\", \"data\" or \"subdata\"!", 
-										str_len, str_val );
+										(int)str_len, str_val );
 		break;
 
 		case DL_PACK_STATE_STRUCT:
@@ -604,7 +604,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   DL_ERROR_MEMBER_NOT_FOUND, 
 									   "Type \"%s\" has no member named \"%.*s\"!", 
 									   state.type->name, 
-									   str_len, str_val );
+									   (int)str_len, str_val );
 
 			const dl_member_desc* member = dl_get_type_member( pCtx->dl_ctx, state.type, member_id );
 
@@ -612,7 +612,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   pCtx, 
 									   DL_ERROR_TXT_MEMBER_SET_TWICE, 
 									   "Trying to set Member \"%.*s\" twice!", 
-									   str_len, str_val );
+									   (int)str_len, str_val );
 
 			state.members_set.SetBit( member_id );
 
@@ -732,7 +732,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   pCtx, 
 									   DL_ERROR_TXT_PARSE_ERROR, 
 									   "Could not parse %.*s as correct ID!", 
-									   str_len, str_val );
+									   (int)str_len, str_val );
 
 			const dl_member_desc* member = 0x0;
 

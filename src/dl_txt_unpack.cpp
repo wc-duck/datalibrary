@@ -11,6 +11,9 @@
 
 #include <yajl/yajl_gen.h>
 
+#if defined( __GNUC__ )
+static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...) __attribute__((format( printf, 3, 4 )));
+#endif
 static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...)
 {
 	va_list args;
@@ -281,7 +284,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
  				}
  
 				char buffer[128];
-				yajl_gen_number( _Ctx->m_JsonGen, buffer, dl_internal_str_format( buffer, DL_ARRAY_LENGTH(buffer), "%llu", write_me ) );
+				yajl_gen_number( _Ctx->m_JsonGen, buffer, dl_internal_str_format( buffer, DL_ARRAY_LENGTH(buffer), DL_UINT64_FMT_STR, write_me ) );
 			}
 			break;
 
