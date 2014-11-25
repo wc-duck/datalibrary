@@ -1044,6 +1044,42 @@ static void dl_load_txt_fixup_enum_members( dl_ctx_t ctx, dl_type_desc* type )
 	}
 }
 
+dl_error_t dl_load_txt_verify_type( dl_ctx_t ctx, dl_type_desc* type )
+{
+	unsigned int mem_start = type->member_start;
+	unsigned int mem_end   = type->member_start + type->member_count;
+
+	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
+	{
+		dl_member_desc* member = ctx->member_descs + member_index;
+
+		// dl_type_t atom = member->AtomType();
+		dl_type_t storage = member->StorageType();
+
+		//dl_internal_find_enum
+		if( storage == DL_TYPE_STORAGE_STRUCT )
+		{
+			const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+			if( sub_type == 0x0 )
+			{
+				dl_log_error( ctx, "---%s.%s is set to a type that is not present in typelibrary!", type->name, member->name);
+				return DL_ERROR_TYPE_NOT_FOUND;
+			}
+		}
+		else if( storage == DL_TYPE_STORAGE_ENUM )
+		{
+			const dl_enum_desc* sub_type = dl_internal_find_enum( ctx, member->type_id );
+			if( sub_type == 0x0 )
+			{
+				dl_log_error( ctx, "---%s.%s is set to an enum that is not present in typelibrary!", type->name, member->name);
+				return DL_ERROR_TYPE_NOT_FOUND;
+			}
+		}
+	}
+
+	return DL_ERROR_OK;
+}
+
 /**
  * return true if the calculation was successful.
  */
@@ -1077,10 +1113,7 @@ dl_error_t dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* typ
 			{
 				const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
 				if( sub_type == 0x0 )
-				{
-					dl_log_error( ctx, "%s.%s is set to a type that is not present in typelibrary!", type->name, member->name);
-					return DL_ERROR_TYPE_NOT_FOUND;
-				}
+					continue;
 
 				if( sub_type->size[0] == 0 )
 					dl_load_txt_calc_type_size_and_align( ctx, (dl_type_desc*)sub_type );
@@ -1260,6 +1293,14 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
 	{
 		dl_error_t err = dl_load_txt_calc_type_size_and_align( dl_ctx, dl_ctx->type_descs + i );
+		if( err != DL_ERROR_OK )
+			return err;
+	}
+
+	// ... check that all types resolve ...
+	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
+	{
+		dl_error_t err = dl_load_txt_verify_type( dl_ctx, dl_ctx->type_descs + i );
 		if( err != DL_ERROR_OK )
 			return err;
 	}

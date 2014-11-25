@@ -1137,5 +1137,6 @@ TEST(DLMisc, built_in_tl_eq_bin_file)
 int main(int argc, char **argv)
 {
 	::testing::InitGoogleTest(&argc, argv);
+	::testing::GTEST_FLAG(catch_exceptions) = 0;
 	return RUN_ALL_TESTS();
 }
