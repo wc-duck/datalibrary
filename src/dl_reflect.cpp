@@ -48,7 +48,7 @@ dl_error_t dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type_id, dl_ty
 	if(type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	out_type->name         = type->name;
+	out_type->name         = dl_internal_type_name( dl_ctx, type );
 	out_type->size         = type->size[DL_PTR_SIZE_HOST];
 	out_type->alignment    = type->alignment[DL_PTR_SIZE_HOST];
 	out_type->member_count = type->member_count;
@@ -63,7 +63,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t 
 	if( e == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	out_enum_info->name        = e->name;
+	out_enum_info->name        = dl_internal_enum_name( dl_ctx, e );
 	out_enum_info->value_count = e->value_count;
 
 	return DL_ERROR_OK;
@@ -82,7 +82,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 	{
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, pType, nMember );
 
-		out_members[nMember].name        = member->name;
+		out_members[nMember].name        = dl_internal_member_name( dl_ctx, member );
 		out_members[nMember].type        = member->type;
 		out_members[nMember].type_id     = member->type_id;
 		out_members[nMember].size        = member->size[DL_PTR_SIZE_HOST];
@@ -116,7 +116,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_
 	for( uint32_t value = 0; value < e->value_count; ++value )
 	{
 		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, value );
-		out_values[value].name  = dl_ctx->enum_alias_descs[v->main_alias].name;
+		out_values[value].name  = dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias]);
 		out_values[value].value = v->value;
 	}
 

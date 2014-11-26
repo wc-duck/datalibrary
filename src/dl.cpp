@@ -23,32 +23,6 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 	ctx->error_msg_func = create_params->error_msg_func;
 	ctx->error_msg_ctx  = create_params->error_msg_ctx;
 
-	ctx->type_count        = 0;
-	ctx->member_count      = 0;
-	ctx->enum_count        = 0;
-	ctx->enum_value_count  = 0;
-	ctx->enum_alias_count  = 0;
-
-	ctx->type_ids = 0x0;
-	ctx->type_descs = 0x0;
-	ctx->type_capacity = 0;
-
-	ctx->enum_ids = 0x0;
-	ctx->enum_descs = 0x0;
-	ctx->enum_capacity = 0;
-
-	ctx->member_descs = 0x0;
-	ctx->member_capacity = 0;
-
-	ctx->enum_value_descs = 0x0;
-	ctx->enum_value_capacity = 0;
-
-	ctx->enum_alias_descs = 0x0;
-	ctx->enum_alias_capacity = 0;
-
-	ctx->default_data      = 0;
-	ctx->default_data_size = 0;
-
 	*dl_ctx = ctx;
 
 	return DL_ERROR_OK;
@@ -194,7 +168,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
 					if( sub_type == 0x0 )
 					{
-						dl_log_error( dl_ctx, "Could not find subtype for member %s", member->name );
+						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
 					dl_internal_instance_store( dl_ctx, sub_type, instance, store_ctx );

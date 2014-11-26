@@ -33,13 +33,12 @@
 	#define DL_PINT_FMT_STR   "%u"
 #endif // defined( __LP64__ ) || defined( _WIN64 )
 
-enum
-{
-	DL_MEMBER_NAME_MAX_LEN     = 32,
-	DL_TYPE_NAME_MAX_LEN       = 32,
-	DL_ENUM_NAME_MAX_LEN       = 32,
-	DL_ENUM_VALUE_NAME_MAX_LEN = 32,
-};
+//enum
+//{
+//	DL_MEMBER_NAME_MAX_LEN     = 32,
+//	DL_ENUM_NAME_MAX_LEN       = 32,
+//	DL_ENUM_VALUE_NAME_MAX_LEN = 32,
+//};
 
 #if defined( __GNUC__ )
 	#define DL_UNUSED __attribute__((unused))
@@ -75,6 +74,7 @@ struct dl_typelib_header
 	uint32_t enum_alias_count;
 
 	uint32_t default_value_size;
+	uint32_t typeinfo_strings_size;
 };
 
 struct dl_data_header
@@ -97,7 +97,7 @@ enum dl_ptr_size_t
 
 struct dl_member_desc
 {
-	char        name[DL_MEMBER_NAME_MAX_LEN];
+	uint32_t    name;
 	dl_type_t   type;
 	dl_typeid_t type_id;
 	uint32_t    size[2];
@@ -175,7 +175,7 @@ enum dl_type_flags
 
 struct dl_type_desc
 {
-	char     name[DL_TYPE_NAME_MAX_LEN];
+	uint32_t name;
 	uint32_t flags;
 	uint32_t size[2];
 	uint32_t alignment[2];
@@ -191,7 +191,7 @@ struct dl_enum_value_desc
 
 struct dl_enum_desc
 {
-	char     name[DL_ENUM_NAME_MAX_LEN];
+	uint32_t name;
 	uint32_t value_count;
 	uint32_t value_start;
 	uint32_t alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
@@ -200,7 +200,7 @@ struct dl_enum_desc
 
 struct dl_enum_alias_desc
 {
-	char name[DL_ENUM_VALUE_NAME_MAX_LEN];
+	uint32_t name;
 	uint32_t value_index; ///< index of the value this alias belong to.
 };
 
@@ -231,6 +231,10 @@ struct dl_context
 	dl_enum_desc*       enum_descs;
 	dl_enum_value_desc* enum_value_descs;
 	dl_enum_alias_desc* enum_alias_descs;
+
+	char*  typedata_strings;
+	size_t typedata_strings_size;
+	size_t typedata_strings_cap; // rename to capacity
 
 	uint8_t* default_data;
 	size_t   default_data_size;
@@ -278,12 +282,17 @@ static inline const dl_type_desc* dl_internal_find_type(dl_ctx_t dl_ctx, dl_type
     return 0x0;
 }
 
+static inline const char* dl_internal_type_name      ( dl_ctx_t ctx, const dl_type_desc*       type   ) { return &ctx->typedata_strings[type->name]; }
+static inline const char* dl_internal_member_name    ( dl_ctx_t ctx, const dl_member_desc*     member ) { return &ctx->typedata_strings[member->name]; }
+static inline const char* dl_internal_enum_name      ( dl_ctx_t ctx, const dl_enum_desc*       enum_  ) { return &ctx->typedata_strings[enum_->name]; }
+static inline const char* dl_internal_enum_alias_name( dl_ctx_t ctx, const dl_enum_alias_desc* alias  ) { return &ctx->typedata_strings[alias->name]; }
+
 static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, const char* name )
 {
 	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
 	{
 		dl_type_desc* desc = &dl_ctx->type_descs[i];
-		if( strcmp( name, desc->name ) == 0 )
+		if( strcmp( name, dl_internal_type_name( dl_ctx, desc ) ) == 0 )
 			return desc;
 	}
 	return 0x0;
@@ -357,7 +366,7 @@ static inline const dl_enum_alias_desc* dl_get_enum_alias( dl_ctx_t ctx, const d
 static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_desc* type, dl_typeid_t name_hash )
 {
 	for(unsigned int i = 0; i < type->member_count; ++i)
-		if(dl_internal_hash_string( dl_get_type_member( ctx, type, i )->name ) == name_hash)
+		if( dl_internal_hash_string( dl_internal_member_name( ctx, dl_get_type_member( ctx, type, i ) ) ) == name_hash )
 			return i;
 
 	return type->member_count + 1;
@@ -368,7 +377,7 @@ static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc
 	for( unsigned int j = 0; j < e->alias_count; ++j )
 	{
 		const dl_enum_alias_desc* a = dl_get_enum_alias( ctx, e, j );
-		if( strncmp( a->name, name, name_len ) == 0 )
+		if( strncmp( dl_internal_enum_alias_name( ctx, a ), name, name_len ) == 0 )
 		{
 			*value = ctx->enum_value_descs[ a->value_index ].value;
 			return true;
@@ -388,7 +397,7 @@ static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid
 	{
 		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, j );
 		if( v->value == value )
-			return dl_ctx->enum_alias_descs[v->main_alias].name;
+			return dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias] );
 	}
 
 	return "UnknownEnum!";

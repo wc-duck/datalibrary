@@ -91,33 +91,36 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	if( header.id      != DL_TYPELIB_ID )      return DL_ERROR_MALFORMED_DATA;
 	if( header.version != DL_TYPELIB_VERSION ) return DL_ERROR_VERSION_MISMATCH;
 
-	size_t types_lookup_offset = sizeof(dl_typelib_header);
-	size_t enums_lookup_offset = types_lookup_offset + sizeof( dl_typeid_t ) * header.type_count;
-	size_t types_offset        = enums_lookup_offset + sizeof( dl_typeid_t ) * header.enum_count;
-	size_t enums_offset        = types_offset        + sizeof( dl_type_desc ) * header.type_count;
-	size_t members_offset      = enums_offset        + sizeof( dl_enum_desc ) * header.enum_count;
-	size_t enum_values_offset  = members_offset      + sizeof( dl_member_desc ) * header.member_count;
-	size_t enum_aliases_offset = enum_values_offset  + sizeof( dl_enum_value_desc ) * header.enum_value_count;
-	size_t defaults_offset     = enum_aliases_offset + sizeof( dl_enum_alias_desc ) * header.enum_alias_count;
+	size_t types_lookup_offset     = sizeof(dl_typelib_header);
+	size_t enums_lookup_offset     = types_lookup_offset + sizeof( dl_typeid_t ) * header.type_count;
+	size_t types_offset            = enums_lookup_offset + sizeof( dl_typeid_t ) * header.enum_count;
+	size_t enums_offset            = types_offset        + sizeof( dl_type_desc ) * header.type_count;
+	size_t members_offset          = enums_offset        + sizeof( dl_enum_desc ) * header.enum_count;
+	size_t enum_values_offset      = members_offset      + sizeof( dl_member_desc ) * header.member_count;
+	size_t enum_aliases_offset     = enum_values_offset  + sizeof( dl_enum_value_desc ) * header.enum_value_count;
+	size_t defaults_offset         = enum_aliases_offset + sizeof( dl_enum_alias_desc ) * header.enum_alias_count;
+	size_t typedata_strings_offset = defaults_offset + header.default_value_size;
 
 	size_t cap;
 	cap = dl_ctx->type_capacity;
-	dl_ctx->type_ids         = dl_grow_array( &dl_ctx->alloc, dl_ctx->type_ids,         &cap,                         dl_ctx->type_count + header.type_count );
-	dl_ctx->type_descs       = dl_grow_array( &dl_ctx->alloc, dl_ctx->type_descs,       &dl_ctx->type_capacity,       dl_ctx->type_count + header.type_count );
+	dl_ctx->type_ids         = dl_grow_array( &dl_ctx->alloc, dl_ctx->type_ids,         &cap,                          dl_ctx->type_count + header.type_count );
+	dl_ctx->type_descs       = dl_grow_array( &dl_ctx->alloc, dl_ctx->type_descs,       &dl_ctx->type_capacity,        dl_ctx->type_count + header.type_count );
 	cap = dl_ctx->enum_capacity;
-	dl_ctx->enum_ids         = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_ids,         &cap,                         dl_ctx->enum_count + header.enum_count );
-	dl_ctx->enum_descs       = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_descs,       &dl_ctx->enum_capacity,       dl_ctx->enum_count + header.enum_count );
-	dl_ctx->member_descs     = dl_grow_array( &dl_ctx->alloc, dl_ctx->member_descs,     &dl_ctx->member_capacity,     dl_ctx->member_count + header.member_count );
-	dl_ctx->enum_value_descs = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_value_descs, &dl_ctx->enum_value_capacity, dl_ctx->enum_value_count + header.enum_value_count );
-	dl_ctx->enum_alias_descs = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_alias_descs, &dl_ctx->enum_alias_capacity, dl_ctx->enum_alias_count + header.enum_alias_count );
+	dl_ctx->enum_ids         = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_ids,         &cap,                          dl_ctx->enum_count + header.enum_count );
+	dl_ctx->enum_descs       = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_descs,       &dl_ctx->enum_capacity,        dl_ctx->enum_count + header.enum_count );
+	dl_ctx->member_descs     = dl_grow_array( &dl_ctx->alloc, dl_ctx->member_descs,     &dl_ctx->member_capacity,      dl_ctx->member_count + header.member_count );
+	dl_ctx->enum_value_descs = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_value_descs, &dl_ctx->enum_value_capacity,  dl_ctx->enum_value_count + header.enum_value_count );
+	dl_ctx->enum_alias_descs = dl_grow_array( &dl_ctx->alloc, dl_ctx->enum_alias_descs, &dl_ctx->enum_alias_capacity,  dl_ctx->enum_alias_count + header.enum_alias_count );
+	dl_ctx->typedata_strings = dl_grow_array( &dl_ctx->alloc, dl_ctx->typedata_strings, &dl_ctx->typedata_strings_cap, dl_ctx->typedata_strings_size + header.typeinfo_strings_size );
 
-	memcpy( dl_ctx->type_ids         + dl_ctx->type_count,         lib_data + types_lookup_offset, sizeof( dl_typeid_t ) * header.type_count );
-	memcpy( dl_ctx->enum_ids         + dl_ctx->enum_count,         lib_data + enums_lookup_offset, sizeof( dl_typeid_t ) * header.enum_count );
-	memcpy( dl_ctx->type_descs       + dl_ctx->type_count,         lib_data + types_offset,        sizeof( dl_type_desc ) * header.type_count );
-	memcpy( dl_ctx->enum_descs       + dl_ctx->enum_count,         lib_data + enums_offset,        sizeof( dl_enum_desc ) * header.enum_count );
-	memcpy( dl_ctx->member_descs     + dl_ctx->member_count,       lib_data + members_offset,      sizeof( dl_member_desc ) * header.member_count );
-	memcpy( dl_ctx->enum_value_descs + dl_ctx->enum_value_count,   lib_data + enum_values_offset,  sizeof( dl_enum_value_desc ) * header.enum_value_count );
-	memcpy( dl_ctx->enum_alias_descs + dl_ctx->enum_alias_count,   lib_data + enum_aliases_offset, sizeof( dl_enum_alias_desc ) * header.enum_alias_count );
+	memcpy( dl_ctx->type_ids         + dl_ctx->type_count,            lib_data + types_lookup_offset, sizeof( dl_typeid_t ) * header.type_count );
+	memcpy( dl_ctx->enum_ids         + dl_ctx->enum_count,            lib_data + enums_lookup_offset, sizeof( dl_typeid_t ) * header.enum_count );
+	memcpy( dl_ctx->type_descs       + dl_ctx->type_count,            lib_data + types_offset,        sizeof( dl_type_desc ) * header.type_count );
+	memcpy( dl_ctx->enum_descs       + dl_ctx->enum_count,            lib_data + enums_offset,        sizeof( dl_enum_desc ) * header.enum_count );
+	memcpy( dl_ctx->member_descs     + dl_ctx->member_count,          lib_data + members_offset,      sizeof( dl_member_desc ) * header.member_count );
+	memcpy( dl_ctx->enum_value_descs + dl_ctx->enum_value_count,      lib_data + enum_values_offset,  sizeof( dl_enum_value_desc ) * header.enum_value_count );
+	memcpy( dl_ctx->enum_alias_descs + dl_ctx->enum_alias_count,      lib_data + enum_aliases_offset, sizeof( dl_enum_alias_desc ) * header.enum_alias_count );
+	memcpy( dl_ctx->typedata_strings + dl_ctx->typedata_strings_size, lib_data + typedata_strings_offset, header.typeinfo_strings_size );
 
 	if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
 	{
@@ -130,7 +133,11 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	}
 
 	for( unsigned int i = 0; i < header.type_count; ++i )
+	{
+		dl_ctx->type_descs[ dl_ctx->type_count + i ].name += (uint32_t)dl_ctx->typedata_strings_size;
 		dl_ctx->type_descs[ dl_ctx->type_count + i ].member_start += dl_ctx->member_count;
+
+	}
 
 	for( unsigned int i = 0; i < header.enum_count; ++i )
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
@@ -140,6 +147,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->member_count += header.member_count;
 	dl_ctx->enum_value_count += header.enum_value_count;
 	dl_ctx->enum_alias_count += header.enum_alias_count;
+	dl_ctx->typedata_strings_size += header.typeinfo_strings_size;
 
 	return dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
 }

@@ -474,7 +474,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 			DL_ASSERT( pack_ctx->root_type == 0x0 );
 			// we are packing an instance, get the type plox!
 
-			char type_name[DL_MEMBER_NAME_MAX_LEN] = { 0x0 };
+			char type_name[32] = { 0x0 };
 			strncpy( type_name, (const char*)str_value, str_len );
 			pack_ctx->root_type = dl_internal_find_type_by_name( pack_ctx->dl_ctx, type_name );
 
@@ -519,7 +519,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 				DL_PACK_ERROR_AND_FAIL( pack_ctx,
 										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
 										"Enum \"%s\" do not have the value \"%.*s\"!", 
-										enum_type->name, (int)str_len, str_value );
+										dl_internal_enum_name( pack_ctx->dl_ctx, enum_type ), (int)str_len, str_value );
 			}
 			dl_binary_writer_write( pack_ctx->writer, &enum_value, sizeof(uint32_t) );
 			dl_txt_pack_ctx_pop_array_item( pack_ctx );
@@ -603,7 +603,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   pCtx, 
 									   DL_ERROR_MEMBER_NOT_FOUND, 
 									   "Type \"%s\" has no member named \"%.*s\"!", 
-									   state.type->name, 
+									   dl_internal_type_name( pCtx->dl_ctx, state.type ),
 									   (int)str_len, str_val );
 
 			const dl_member_desc* member = dl_get_type_member( pCtx->dl_ctx, state.type, member_id );
@@ -640,7 +640,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 													   pCtx, 
 													   DL_ERROR_TYPE_NOT_FOUND, 
 													   "Type of member \"%s\" not in type library!", 
-													   member->name );
+													   dl_internal_member_name( pCtx->dl_ctx, member ) );
 							dl_txt_pack_ctx_push_state_struct( pCtx, pSubType );
 						}
 						break;
@@ -692,7 +692,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 													   pCtx, 
 													   DL_ERROR_TYPE_NOT_FOUND, 
 													   "Type of array \"%s\" not in type library!", 
-													   member->name );
+													   dl_internal_member_name( pCtx->dl_ctx, member ) );
 							dl_txt_pack_ctx_push_state_struct( pCtx, pSubType );
 						}
 						break;
@@ -703,7 +703,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 								                       pCtx, 
 								                       DL_ERROR_TYPE_NOT_FOUND, 
 								                       "Enum-type of array \"%s\" not in type library!", 
-								                       member->name );
+								                       dl_internal_member_name( pCtx->dl_ctx, member ) );
 							dl_txt_pack_ctx_push_state_enum( pCtx, the_enum );
 						}
 						break;
@@ -761,7 +761,7 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 									   pCtx, 
 									   DL_ERROR_TYPE_NOT_FOUND, 
 									   "Type of ptr \"%s\" not in type library!",
-									   member->name );
+									   dl_internal_member_name( pCtx->dl_ctx, member ) );
 			dl_binary_writer_seek_end( pCtx->writer );
 			dl_binary_writer_align( pCtx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
 			dl_txt_pack_ctx_push_state_struct( pCtx, sub_type );
@@ -832,24 +832,24 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 		case DL_PACK_STATE_INSTANCE: dl_txt_pack_ctx_pop_state( pack_ctx ); break;
 		case DL_PACK_STATE_STRUCT:
 		{
-			SDLPackState& PackState = pack_ctx->state_stack.Top();
+			SDLPackState& state = pack_ctx->state_stack.Top();
 
 			// Check that all members are set!
-			for( uint32_t member_index = 0; member_index < PackState.type->member_count; ++member_index )
+			for( uint32_t member_index = 0; member_index < state.type->member_count; ++member_index )
 			{
-				const dl_member_desc* member = dl_get_type_member( pack_ctx->dl_ctx, PackState.type, member_index );
+				const dl_member_desc* member = dl_get_type_member( pack_ctx->dl_ctx, state.type, member_index );
 
-				if( PackState.members_set.IsSet( member_index ) )
+				if( state.members_set.IsSet( member_index ) )
 					continue;
 
 				DL_PACK_ERROR_AND_FAIL_IF( member->default_value_offset == UINT32_MAX,
 										   pack_ctx, 
 										   DL_ERROR_TXT_MEMBER_MISSING, 
 										   "Member \"%s\" in struct of type \"%s\" not set!", 
-										   member->name, 
-										   PackState.type->name );
+										   dl_internal_member_name( pack_ctx->dl_ctx, member ),
+										   dl_internal_type_name( pack_ctx->dl_ctx, state.type ) );
 
-				uintptr_t mem_pos  = PackState.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
+				uintptr_t mem_pos  = state.struct_start_pos + member->offset[DL_PTR_SIZE_HOST];
 				uint8_t*  member_default_value = pack_ctx->dl_ctx->default_data + member->default_value_offset;
 
 				uint32_t member_size = member->size[DL_PTR_SIZE_HOST];

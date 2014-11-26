@@ -97,13 +97,15 @@ static void dl_internal_write_pod_member( yajl_gen gen, dl_type_t pod_type, cons
 
 static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_desc* type, const uint8_t* data, const uint8_t* data_base )
 {
+	dl_ctx_t ctx = _Ctx->m_Ctx;
 	yajl_gen_map_open(_Ctx->m_JsonGen);
 
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		const dl_member_desc* member = dl_get_type_member( _Ctx->m_Ctx, type, member_index );
+		const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
 
-		yajl_gen_string( _Ctx->m_JsonGen, (const unsigned char*)member->name, (unsigned int)strlen( member->name ) );
+		const char* member_name = dl_internal_member_name( ctx, member );
+		yajl_gen_string( _Ctx->m_JsonGen, (const unsigned char*)member_name, (unsigned int)strlen( member_name ) );
 
 		const uint8_t* member_data = data + member->offset[DL_PTR_SIZE_HOST];
 
@@ -118,8 +120,8 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const dl_type_desc* pStructType = dl_internal_find_type( _Ctx->m_Ctx, member->type_id );
-						if(pStructType == 0x0) { dl_log_error( _Ctx->m_Ctx, "Subtype for member %s not found!", member->name ); return; }
+						const dl_type_desc* pStructType = dl_internal_find_type( ctx, member->type_id );
+						if(pStructType == 0x0) { dl_log_error( ctx, "Subtype for member %s not found!", member_name ); return; }
 
 						dl_internal_write_instance(_Ctx, pStructType, member_data, data_base);
 					}
@@ -148,7 +150,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 					break;
 					case DL_TYPE_STORAGE_ENUM:
 					{
-						const char* enum_name = dl_internal_find_enum_name( _Ctx->m_Ctx, member->type_id, *(uint32_t*)member_data );
+						const char* enum_name = dl_internal_find_enum_name( ctx, member->type_id, *(uint32_t*)member_data );
 						yajl_gen_string( _Ctx->m_JsonGen, (unsigned char*)enum_name, (unsigned int)strlen(enum_name) );
 					}
 					break;
@@ -170,8 +172,8 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const dl_type_desc* sub_type = dl_internal_find_type( _Ctx->m_Ctx, member->type_id );
-						if( sub_type == 0x0 ) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", member->name ); return; }
+						const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+						if( sub_type == 0x0 ) { dl_log_error( ctx, "Type for inline-array member %s not found!", dl_internal_member_name( ctx, member ) ); return; }
 
 						uintptr_t size  = sub_type->size[DL_PTR_SIZE_HOST];
 						for( uintptr_t elem_index = 0; elem_index < member->inline_array_cnt(); ++elem_index )
@@ -197,7 +199,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 						{
 							uint32_t* enum_data = (uint32_t*)member_data;
 
-							const char* enum_name = dl_internal_find_enum_name( _Ctx->m_Ctx, member->type_id, enum_data[elem_index] );
+							const char* enum_name = dl_internal_find_enum_name( ctx, member->type_id, enum_data[elem_index] );
 							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)enum_name, (unsigned int)strlen(enum_name));
 						}
 					}
@@ -224,8 +226,8 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 				{
 					case DL_TYPE_STORAGE_STRUCT:
 					{
-						const dl_type_desc* sub_type = dl_internal_find_type(_Ctx->m_Ctx, member->type_id);
-						if( sub_type == 0x0 ) { dl_log_error( _Ctx->m_Ctx, "Type for inline-array member %s not found!", member->name ); return; }
+						const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
+						if( sub_type == 0x0 ) { dl_log_error( ctx, "Type for inline-array member %s not found!", dl_internal_member_name( ctx, member ) ); return; }
 
 						uintptr_t Size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 						for(uintptr_t elem_index = 0; elem_index < Count; ++elem_index)
@@ -249,7 +251,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 
 						for( uintptr_t elem_index = 0; elem_index < Count; ++elem_index )
 						{
-							const char* enum_name = dl_internal_find_enum_name(_Ctx->m_Ctx, member->type_id, enum_data[elem_index]);
+							const char* enum_name = dl_internal_find_enum_name(ctx, member->type_id, enum_data[elem_index]);
 							yajl_gen_string( _Ctx->m_JsonGen, (unsigned char*)enum_name, (unsigned int)strlen(enum_name) );
 						}
 					}
@@ -297,14 +299,15 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 	yajl_gen_map_close(_Ctx->m_JsonGen);
 }
 
-static void dl_internal_write_root( SDLUnpackContext*  unpack_ctx, const dl_type_desc* type, const unsigned char* data )
+static void dl_internal_write_root( SDLUnpackContext* unpack_ctx, const dl_type_desc* type, const unsigned char* data )
 {
 	unpack_ctx->AddSubDataMember(0x0, data); // add root-node as a subdata to be able to look it up as id 0!
 
 	yajl_gen_map_open( unpack_ctx->m_JsonGen);
 
+		const char* type_name = dl_internal_type_name( unpack_ctx->m_Ctx, type );
 		yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)"type", 4 );
-		yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)type->name, (unsigned int)strlen(type->name) );
+		yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)type_name, (unsigned int)strlen(type_name) );
 
 		yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)"data", 4 );
 		dl_internal_write_instance( unpack_ctx, type, data, data );
@@ -330,7 +333,7 @@ static void dl_internal_write_root( SDLUnpackContext*  unpack_ctx, const dl_type
 				const dl_type_desc* sub_type = dl_internal_find_type( unpack_ctx->m_Ctx, member->type_id );
 				if( sub_type == 0x0 )
 				{
-					dl_log_error(  unpack_ctx->m_Ctx, "Type for inline-array member %s not found!", member->name );
+					dl_log_error(  unpack_ctx->m_Ctx, "Type for inline-array member %s not found!", dl_internal_member_name( unpack_ctx->m_Ctx, member ) );
 					return; // TODO: need to report error some how!
 				}
 
