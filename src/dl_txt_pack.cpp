@@ -85,7 +85,9 @@ struct SDLPackState
 		: state( pack_state )
 		, value( value )
 		, struct_start_pos( struct_start_pos )
+		, array_count_patch_pos( 0 )
 		, array_count( 0 )
+		, is_back_array(false)
 	{}
 
 	dl_pack_state   state;
@@ -111,6 +113,7 @@ struct SDLPackContext
 	dl_ctx_t            dl_ctx;
 	const dl_type_desc* root_type;
 	dl_error_t          error_code;
+	bool                data_section_found;
 
 	dl_pack_state CurrentPackState() { return state_stack.Top().state; }
 
@@ -580,6 +583,12 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 					                       pCtx, 
 					                       DL_ERROR_TXT_PARSE_ERROR, 
 					                       "Type for root-instance not set or after data-segment!" );
+				DL_PACK_ERROR_AND_FAIL_IF( pCtx->data_section_found,
+										   pCtx,
+										   DL_ERROR_TXT_MULTIPLE_DATA_SECTIONS,
+										   "Multiple \"data\" sections in text-data." );
+
+				pCtx->data_section_found = true;
 				dl_txt_pack_ctx_push_state_struct( pCtx, pCtx->root_type );
 			}
 			else if( strncmp( (const char*)str_val, "subdata", str_len ) == 0 )
@@ -1039,11 +1048,15 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	dl_txt_pack_ctx_init( &pack_ctx );
 	pack_ctx.dl_ctx = dl_ctx;
 	pack_ctx.writer = &writer;
+	pack_ctx.data_section_found = false;
 
 	dl_error_t error = dl_internal_txt_pack( &pack_ctx, txt_instance );
 
 	if(error != DL_ERROR_OK)
 		return error;
+
+	if(!pack_ctx.data_section_found)
+		return DL_ERROR_TXT_DATA_SECTION_MISSING;
 
 	// write header
 	if( out_buffer_size > 0 )

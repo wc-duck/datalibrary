@@ -484,3 +484,14 @@ TEST_F( DLText, basic_bool_in_bitfield )
 	EXPECT_EQ(1, p1.Bit6);
 	EXPECT_EQ(1, p1.make_it_uneven);
 }
+
+TEST_F( DLText, missing_field_data )
+{
+	const char* test_text = "{\"type\" : \"Pods\"}";
+
+	Pods p1;
+	memset( &p1, 0x0, sizeof(Pods) );
+
+	unsigned char out_text_data[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_DATA_SECTION_MISSING, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
