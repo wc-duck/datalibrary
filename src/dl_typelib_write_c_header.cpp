@@ -43,7 +43,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	dl_reflect_context_info( ctx, &ctx_info );
 
 	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_enums * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_enums( ctx, tids, ctx_info.num_enums );
+	dl_reflect_loaded_enumids( ctx, tids, ctx_info.num_enums );
 
 	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 	{
@@ -170,49 +170,43 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 	dl_type_context_info_t ctx_info;
 	dl_reflect_context_info( ctx, &ctx_info );
 
-	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_types * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_types( ctx, tids, ctx_info.num_types );
+	dl_type_info_t* type_info = (dl_type_info_t*)malloc( ctx_info.num_types * sizeof( dl_type_info_t ) );
+	dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
 
 	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
-	{
-		dl_type_info_t type_info;
-		dl_reflect_get_type_info( ctx, tids[type_index], &type_info );
-
-		dl_binary_writer_write_string_fmt( writer, "#define %s_TYPE_ID (0x%08X)\n", type_info.name, tids[type_index] );
-	}
+		dl_binary_writer_write_string_fmt( writer, "#define %s_TYPE_ID (0x%08X)\n", type_info[type_index].name, type_info[type_index].tid );
 
 	dl_binary_writer_write_string_fmt( writer, "\n" );
 
 	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
 	{
-		dl_type_info_t type_info;
-		dl_reflect_get_type_info( ctx, tids[type_index], &type_info );
+		dl_type_info_t* type = &type_info[type_index];
 
 		// if the type is "extern" no header struct should be generated for it.
 		// TODO: generate some checks that the extern struct matches the one defined in dl by generating
 		//       static asserts on size/alignment and member offset?
-		if( type_info.is_extern )
+		if( type->is_extern )
 			continue;
 
-		dl_member_info_t* members = (dl_member_info_t*)malloc( type_info.member_count * sizeof( dl_member_info_t ) );
-		dl_reflect_get_type_members( ctx, tids[type_index], members, type_info.member_count );
+		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof( dl_member_info_t ) );
+		dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
 
 		// ... the struct need manual align if the struct has higher align than any of its members ...
 		unsigned int max_align = 0;
-		for( unsigned int member_index = 0; member_index < type_info.member_count; ++member_index )
+		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
 			// TODO: this might fail if the compiler is run as 32 bit, expose manual align from reflect.
 			max_align = members[member_index].alignment > max_align ? members[member_index].alignment : max_align;
 
-		if( max_align < type_info.alignment )
-			dl_binary_writer_write_string_fmt( writer, "struct DL_ALIGN( %u ) %s\n{\n", type_info.alignment, type_info.name );
+		if( max_align < type->alignment )
+			dl_binary_writer_write_string_fmt( writer, "struct DL_ALIGN( %u ) %s\n{\n", type->alignment, type->name );
 		else
-			dl_binary_writer_write_string_fmt( writer, "struct %s\n{\n", type_info.name );
+			dl_binary_writer_write_string_fmt( writer, "struct %s\n{\n", type->name );
 
 		dl_binary_writer_write_string_fmt( writer, "#if defined( __cplusplus )\n" );
-		dl_binary_writer_write_string_fmt( writer, "    static const uint32_t TYPE_ID = 0x%08X;\n", tids[type_index] );
+		dl_binary_writer_write_string_fmt( writer, "    static const uint32_t TYPE_ID = 0x%08X;\n", type->tid );
 		dl_binary_writer_write_string_fmt( writer, "#endif // defined( __cplusplus )\n\n" );
 
-		for( unsigned int member_index = 0; member_index < type_info.member_count; ++member_index )
+		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
 			dl_context_write_c_header_member( writer, ctx, members + member_index );
 
 		free( members );
@@ -220,7 +214,7 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		dl_binary_writer_write_string_fmt( writer, "};\n\n" );
 	}
 
-	free( tids );
+	free( type_info );
 }
 
 dl_error_t dl_context_write_type_library_c_header( dl_ctx_t dl_ctx, const char* module_name, char* out_header, size_t out_header_size, size_t* produced_bytes )

@@ -27,6 +27,7 @@ typedef struct dl_type_context_info
 */
 typedef struct dl_type_info
 {
+	dl_typeid_t  tid;
 	const char*  name;
 	unsigned int size;
 	unsigned int alignment;
@@ -56,6 +57,7 @@ typedef struct dl_member_info
 */
 typedef struct dl_enum_info
 {
+	dl_typeid_t  tid;
 	const char*  name;
 	unsigned int value_count;
 } dl_enum_info_t;
@@ -88,7 +90,7 @@ extern "C" {
 dl_error_t DL_DLL_EXPORT dl_reflect_context_info( dl_ctx_t dl_ctx, dl_type_context_info_t* info );
 
 /*
-	Function: dl_reflect_loaded_types
+	Function: dl_reflect_loaded_typeids
 		Get the typeid:s of all loaded types in the context.
 
 	Parameters:
@@ -99,7 +101,21 @@ dl_error_t DL_DLL_EXPORT dl_reflect_context_info( dl_ctx_t dl_ctx, dl_type_conte
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_typeid_t* out_types, unsigned int out_types_size );
+dl_error_t DL_DLL_EXPORT dl_reflect_loaded_typeids( dl_ctx_t dl_ctx, dl_typeid_t* out_types, unsigned int out_types_size );
+
+/*
+	Function: dl_reflect_loaded_types
+		Get the dl_type_info_t:s of all loaded types in the context.
+
+	Parameters:
+		dl_ctx         - The dl-context to fetch loaded types from.
+		out_types      - Buffer to return loaded types in.
+		out_types_size - Size of out_types.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_type_info_t* out_types, unsigned int out_types_size );
 
 /*
 	Function: dl_reflect_loaded_enums
@@ -113,7 +129,21 @@ dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_typeid_t* 
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, unsigned int out_enums_size );
+dl_error_t DL_DLL_EXPORT dl_reflect_loaded_enumids( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, unsigned int out_enums_size );
+
+/*
+	Function: dl_reflect_loaded_enums
+		Get the dl_enum_info_t:s of all loaded enums in the context.
+
+	Parameters:
+		dl_ctx         - The dl-context to fetch loaded enums from.
+		out_enums      - Buffer to return loaded enums in.
+		out_enums_size - Size of out_enums.
+
+	Returns:
+		DL_ERROR_OK on success.
+*/
+dl_error_t DL_DLL_EXPORT dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_enum_info_t* out_enums, unsigned int out_enums_size );
 
 /*
 	Function: dl_reflect_get_type_id

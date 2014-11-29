@@ -13,7 +13,7 @@ dl_error_t dl_reflect_context_info( dl_ctx_t dl_ctx, dl_type_context_info_t* inf
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_typeid_t* out_types, unsigned int out_types_size )
+dl_error_t dl_reflect_loaded_typeids( dl_ctx_t dl_ctx, dl_typeid_t* out_types, unsigned int out_types_size )
 {
 	if( dl_ctx->type_count > out_types_size )
 		return DL_ERROR_BUFFER_TO_SMALL;
@@ -22,12 +22,51 @@ dl_error_t dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_typeid_t* out_types, uns
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, unsigned int out_enums_size )
+dl_error_t dl_reflect_loaded_enumids( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, unsigned int out_enums_size )
 {
 	if( dl_ctx->enum_count > out_enums_size )
 		return DL_ERROR_BUFFER_TO_SMALL;
 
 	memcpy( out_enums, dl_ctx->enum_ids, sizeof( dl_typeid_t ) * dl_ctx->enum_count );
+	return DL_ERROR_OK;
+}
+
+static void dl_reflect_copy_type_info( dl_ctx_t ctx, dl_type_info_t* typeinfo, const dl_type_desc* type )
+{
+	typeinfo->tid          = ctx->type_ids[ type - ctx->type_descs ];
+	typeinfo->name         = dl_internal_type_name( ctx, type );
+	typeinfo->size         = type->size[DL_PTR_SIZE_HOST];
+	typeinfo->alignment    = type->alignment[DL_PTR_SIZE_HOST];
+	typeinfo->member_count = type->member_count;
+	typeinfo->is_extern    = ( type->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
+}
+
+static void dl_reflect_copy_enum_info( dl_ctx_t ctx, dl_enum_info_t* enuminfo, const dl_enum_desc* enum_ )
+{
+	enuminfo->tid         = ctx->enum_ids[ enum_ - ctx->enum_descs ];
+	enuminfo->name        = dl_internal_enum_name( ctx, enum_ );
+	enuminfo->value_count = enum_->value_count;
+}
+
+dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_type_info_t* out_types, unsigned int out_types_size )
+{
+	if( dl_ctx->type_count > out_types_size )
+		return DL_ERROR_BUFFER_TO_SMALL;
+
+	for( uint32_t i = 0; i < dl_ctx->type_count; ++i )
+		dl_reflect_copy_type_info( dl_ctx, out_types + i, dl_ctx->type_descs + i );
+
+	return DL_ERROR_OK;
+}
+
+dl_error_t dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_enum_info_t* out_enums, unsigned int out_enums_size )
+{
+	if( dl_ctx->enum_count > out_enums_size )
+		return DL_ERROR_BUFFER_TO_SMALL;
+
+	for( uint32_t i = 0; i < dl_ctx->enum_count; ++i )
+		dl_reflect_copy_enum_info( dl_ctx, out_enums + i, dl_ctx->enum_descs + i );
+
 	return DL_ERROR_OK;
 }
 
@@ -48,12 +87,7 @@ dl_error_t dl_reflect_get_type_info( dl_ctx_t dl_ctx, dl_typeid_t type_id, dl_ty
 	if(type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	out_type->name         = dl_internal_type_name( dl_ctx, type );
-	out_type->size         = type->size[DL_PTR_SIZE_HOST];
-	out_type->alignment    = type->alignment[DL_PTR_SIZE_HOST];
-	out_type->member_count = type->member_count;
-	out_type->is_extern    = ( type->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
-
+	dl_reflect_copy_type_info( dl_ctx, out_type, type );
 	return DL_ERROR_OK;
 }
 
@@ -63,9 +97,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t 
 	if( e == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	out_enum_info->name        = dl_internal_enum_name( dl_ctx, e );
-	out_enum_info->value_count = e->value_count;
-
+	dl_reflect_copy_enum_info( dl_ctx, out_enum_info, e );
 	return DL_ERROR_OK;
 }
 

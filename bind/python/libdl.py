@@ -101,8 +101,8 @@ class DLContext:
             
     class dl_type_context_info(Structure): _fields_ = [ ('num_types', c_uint),   ('num_enums',   c_uint) ]
     class dl_instance_info(Structure):     _fields_ = [ ('load_size', c_uint),   ('ptrsize',     c_uint), ('endian',     c_uint), ('root_type',    c_uint32) ]
-    class dl_type_info(Structure):         _fields_ = [ ('name',      c_char_p), ('size',        c_uint),  ('alignment', c_uint), ('member_count', c_uint) ]
-    class dl_enum_info(Structure):         _fields_ = [ ('name',      c_char_p), ('value_count', c_uint) ]
+    class dl_type_info(Structure):         _fields_ = [ ('tid',       c_uint),   ('name',      c_char_p), ('size',       c_uint),  ('alignment', c_uint), ('member_count', c_uint) ]
+    class dl_enum_info(Structure):         _fields_ = [ ('tid',       c_uint),   ('name',      c_char_p), ('value_count', c_uint) ]
     class dl_enum_value_info(Structure):   _fields_ = [ ('name',      c_char_p), ('value',       c_uint) ]
     class dl_member_info(Structure):
         _fields_ = [ ('name',        c_char_p),
@@ -153,7 +153,7 @@ class DLContext:
                 _fields_ = [ ( 'data',  POINTER( c_type ) ), 
                              ( 'count', c_uint32 ) ]
             return dl_array
-        elif atom_type == DL_TYPE_ATOM_BITFIELD:     return c_type 
+        elif atom_type == DL_TYPE_ATOM_BITFIELD: return c_type 
         else:
             return None
         
@@ -362,9 +362,7 @@ class DLContext:
     def reflect_context_info( self, *args):       self.dl_dll_call( 'dl_reflect_context_info',      *args )
     def reflect_loaded_types( self, *args ):      self.dl_dll_call( 'dl_reflect_loaded_types',      *args )
     def reflect_loaded_enums( self, *args ):      self.dl_dll_call( 'dl_reflect_loaded_enums',      *args )
-    def reflect_get_type_info( self, *args ):     self.dl_dll_call( 'dl_reflect_get_type_info',     *args )
     def reflect_get_type_members( self, *args ):  self.dl_dll_call( 'dl_reflect_get_type_members',  *args )
-    def reflect_get_enum_info( self, *args ):     self.dl_dll_call( 'dl_reflect_get_enum_info',     *args )
     def reflect_get_enum_values( self, *args ):   self.dl_dll_call( 'dl_reflect_get_enum_values',   *args )
         
     def __del__(self):
@@ -418,32 +416,24 @@ class DLContext:
         ctx_info = self.dl_type_context_info()
         self.reflect_context_info( byref(ctx_info) )
         
-        loaded_types = (c_uint * ctx_info.num_types)()
-        self.reflect_loaded_types( byref(loaded_types), ctx_info.num_types )
-                
-        loaded_enums = (c_uint * ctx_info.num_enums)()
+        loaded_types = (self.dl_type_info * ctx_info.num_types)()
+        loaded_enums = (self.dl_enum_info * ctx_info.num_enums)()
+        self.reflect_loaded_types( byref(loaded_types), ctx_info.num_types )                
         self.reflect_loaded_enums( byref(loaded_enums), ctx_info.num_enums )
         
-        for typeid in loaded_types:
-            type_info = self.dl_type_info()
-            self.reflect_get_type_info( typeid, byref(type_info) )            
-            self.type_info_cache[ typeid ] = type_info
+        for t in loaded_types:
+            self.type_info_cache[ t.tid ] = t
+            self.__cache_type( t.tid )
         
-        for t in self.type_info_cache:
-            self.__cache_type( t )
-        
-        for typeid in loaded_enums:
-            enum_info = self.dl_enum_info()
-            self.reflect_get_enum_info( typeid, byref(enum_info) )
-            
-            enum_values = ( enum_info.value_count * self.dl_enum_value_info )()
-            self.reflect_get_enum_values( typeid, enum_values, enum_info.value_count );
+        for e in loaded_enums:
+            enum_values = ( e.value_count * self.dl_enum_value_info )()
+            self.reflect_get_enum_values( e.tid, enum_values, e.value_count );
             
             values = {}
             for value in enum_values:
                 values[value.name] = value.value
 
-            setattr( self.enums, enum_info.name, type( enum_info.name, (), values )() )
+            setattr( self.enums, e.name, type( e.name, (), values )() )
 
     def LoadTypeLibrary(self, _DataBuffer):
         '''

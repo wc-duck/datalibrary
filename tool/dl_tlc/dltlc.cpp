@@ -258,16 +258,17 @@ static void show_tl_info( dl_ctx_t ctx )
 	printf("type count:  %u\n", ctx_info.num_types );
 	printf("enum count:  %u\n\n", ctx_info.num_enums );
 
-	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_types * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_types( ctx, tids, ctx_info.num_types );
+	size_t type_size = ctx_info.num_types * sizeof( dl_type_info_t );
+	size_t enum_size = ctx_info.num_enums * sizeof( dl_enum_info_t );
+	void* info_buffer = malloc( type_size > enum_size ? type_size : enum_size );
+
+	dl_type_info_t* type_info = (dl_type_info_t*)info_buffer;
+	dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
 
 	size_t max_name_len = 0;
 	for( unsigned int i = 0; i < ctx_info.num_types; ++i )
 	{
-		dl_type_info_t type_info;
-		dl_reflect_get_type_info( ctx, tids[i], &type_info );
-
-		size_t len = strlen( type_info.name );
+		size_t len = strlen( type_info[i].name );
 		max_name_len = len > max_name_len ? len : max_name_len;
 	}
 
@@ -286,44 +287,38 @@ static void show_tl_info( dl_ctx_t ctx )
 
 	for( unsigned int i = 0; i < ctx_info.num_types; ++i )
 	{
-		dl_type_info_t type_info;
-		dl_reflect_get_type_info( ctx, tids[i], &type_info );
-
+		dl_type_info_t* type = &type_info[i];
 		// TODO: not only output data for host-platform =/
-		printf( item_fmt, tids[i], type_info.name, type_info.size, type_info.alignment );
-		show_tl_members( ctx, member_fmt, tids[i], type_info.member_count );
+		printf( item_fmt, type->tid, type->name, type->size, type->alignment );
+		show_tl_members( ctx, member_fmt, type->tid, type->member_count );
 		printf("\n");
 	}
-
-	free( tids );
-
 
 	printf("\nenums:\n");
 	for( int i = 0; i < header_len - 1; ++i )
 		printf( "-" );
 	printf( "\n" );
 
-	tids = (dl_typeid_t*)malloc( ctx_info.num_enums * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_enums( ctx, tids, ctx_info.num_enums );
+	dl_enum_info_t* enum_info = (dl_enum_info_t*)info_buffer;
+	dl_reflect_loaded_enums( ctx, enum_info, ctx_info.num_enums );
 
 	max_name_len = 0;
 	for( unsigned int i = 0; i < ctx_info.num_enums; ++i )
 	{
-		dl_enum_info_t enum_info;
-		dl_reflect_get_enum_info( ctx, tids[i], &enum_info );
+		dl_enum_info_t* enum_ = &enum_info[i];
 
-		printf("%s\n", enum_info.name);
+		printf("%s\n", enum_->name);
 
-		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
-		dl_reflect_get_enum_values( ctx, tids[i], values, enum_info.value_count );
+		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof( dl_enum_value_info_t ) );
+		dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
 
-		for( unsigned int j = 0; j < enum_info.value_count; ++j )
+		for( unsigned int j = 0; j < enum_->value_count; ++j )
 			printf("    %s = %u\n", values[j].name, values[j].value);
 
 		free( values );
 	}
 
-	free( tids );
+	free( info_buffer );
 }
 
 int main( int argc, const char** argv )

@@ -25,6 +25,7 @@ TEST_F(DLReflect, pods)
 	EXPECT_DL_ERR_OK(dl_reflect_get_type_info( Ctx, Pods::TYPE_ID, &Info ));
 	EXPECT_DL_ERR_OK(dl_reflect_get_type_members( Ctx, Pods::TYPE_ID, Members, DL_ARRAY_LENGTH(Members) ));
 
+	EXPECT_EQ   ((uint32_t)Pods::TYPE_ID, Info.tid );
 	EXPECT_STREQ("Pods", Info.name);
 	EXPECT_EQ   (10u,    Info.member_count);
 
@@ -72,10 +73,11 @@ TEST_F(DLReflect, pods)
 #define CHECK_TYPE_INFO_CORRECT( TYPE_NAME, MEM_COUNT ) { \
 	dl_type_info_t ti; \
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, TYPE_NAME::TYPE_ID, &ti ) ); \
-	EXPECT_STREQ( #TYPE_NAME,            ti.name ); \
-	EXPECT_EQ(sizeof(TYPE_NAME),         ti.size); \
-	EXPECT_EQ(DL_ALIGNMENTOF(TYPE_NAME), ti.alignment); \
-	EXPECT_EQ(MEM_COUNT,                 ti.member_count); \
+	EXPECT_EQ((uint32_t)TYPE_NAME::TYPE_ID, ti.tid); \
+	EXPECT_STREQ( #TYPE_NAME,               ti.name ); \
+	EXPECT_EQ(sizeof(TYPE_NAME),            ti.size); \
+	EXPECT_EQ(DL_ALIGNMENTOF(TYPE_NAME),    ti.alignment); \
+	EXPECT_EQ(MEM_COUNT,                    ti.member_count); \
 }
 
 TEST_F(DLReflect, get_type_info)

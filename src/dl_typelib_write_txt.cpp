@@ -156,7 +156,7 @@ static void dl_context_write_txt_enums( dl_ctx_t ctx, yajl_gen gen )
 	dl_reflect_context_info( ctx, &ctx_info );
 
 	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_enums * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_enums( ctx, tids, ctx_info.num_enums );
+	dl_reflect_loaded_enumids( ctx, tids, ctx_info.num_enums );
 
 	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 		dl_context_write_txt_enum( ctx, gen, tids[enum_index] );
@@ -238,7 +238,7 @@ static void dl_context_write_txt_types( dl_ctx_t ctx, yajl_gen gen )
 	dl_reflect_context_info( ctx, &ctx_info );
 
 	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_types * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_types( ctx, tids, ctx_info.num_types );
+	dl_reflect_loaded_typeids( ctx, tids, ctx_info.num_types );
 
 	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
 		dl_context_write_txt_type( ctx, gen, tids[type_index] );

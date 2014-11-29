@@ -750,7 +750,6 @@ TYPED_TEST(DLBase, ptr_chain_circle)
 	EXPECT_EQ(New->Next->Next,             New->Next->Next->Next->Prev);
 }
 
-/*
 TYPED_TEST(DLBase, array_struct_with_ptr_holder )
 {
 	Pods2 p1, p2, p3;
@@ -833,7 +832,6 @@ TYPED_TEST(DLBase, array_struct_circular_ptr_holder_array )
 	EXPECT_EQ( l3->arr[0].ptr, l3 );
 	EXPECT_EQ( l3->arr[1].ptr, l1 );
 }
-*/
 
 TYPED_TEST(DLBase, array_pod_empty)
 {
@@ -1112,27 +1110,27 @@ TEST(DLMisc, built_in_tl_eq_bin_file)
 	free(read_tl);
 }
 
-//TYPED_TEST( DLBase, simple_alias_test )
-//{
-//	// testing usage of externally defined types
-//	// the members m1 and m2 are of the type vec3_test
-//	// that is defined outside the .tld
-//	//
-//	// specified in the tld is vec3_test marked as extern
-//	// that make dl_tlc not emit a definition of the
-//	// struct to the header.
-//
-//	alias_test at;
-//	at.m1.x = 1.0f; at.m1.y = 2.0f; at.m1.z = 3.0f;
-//	at.m2.x = 4.0f; at.m2.y = 5.0f; at.m2.z = 6.0f;
-//
-//	alias_test loaded;
-//
-//	this->do_the_round_about( alias_test::TYPE_ID, &at, &loaded, sizeof(loaded) );
-//
-//	EXPECT_EQ( at.m1.x, loaded.m1.x ); EXPECT_EQ( at.m1.y, loaded.m1.y ); EXPECT_EQ( at.m1.z, loaded.m1.z );
-//	EXPECT_EQ( at.m2.x, loaded.m2.x ); EXPECT_EQ( at.m2.y, loaded.m2.y ); EXPECT_EQ( at.m2.z, loaded.m2.z );
-//}
+TYPED_TEST( DLBase, simple_alias_test )
+{
+	// testing usage of externally defined types
+	// the members m1 and m2 are of the type vec3_test
+	// that is defined outside the .tld
+	//
+	// specified in the tld is vec3_test marked as extern
+	// that make dl_tlc not emit a definition of the
+	// struct to the header.
+
+	alias_test at;
+	at.m1.x = 1.0f; at.m1.y = 2.0f; at.m1.z = 3.0f;
+	at.m2.x = 4.0f; at.m2.y = 5.0f; at.m2.z = 6.0f;
+
+	alias_test loaded;
+
+	this->do_the_round_about( alias_test::TYPE_ID, &at, &loaded, sizeof(loaded) );
+
+	EXPECT_EQ( at.m1.x, loaded.m1.x ); EXPECT_EQ( at.m1.y, loaded.m1.y ); EXPECT_EQ( at.m1.z, loaded.m1.z );
+	EXPECT_EQ( at.m2.x, loaded.m2.x ); EXPECT_EQ( at.m2.y, loaded.m2.y ); EXPECT_EQ( at.m2.z, loaded.m2.z );
+}
 
 int main(int argc, char **argv)
 {
