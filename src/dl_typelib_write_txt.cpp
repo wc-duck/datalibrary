@@ -57,7 +57,7 @@ static void dl_gen_string( yajl_gen gen, const char* fmt, ... )
 	int res = vsnprintf( buffer, DL_ARRAY_LENGTH( buffer ), fmt, args );
 	buffer[ DL_ARRAY_LENGTH( buffer ) - 1 ] = '\0';
 	va_end( args );
-	yajl_gen_string( gen, (const unsigned char*)buffer, res );
+	yajl_gen_string( gen, (const unsigned char*)buffer, (size_t)res );
 }
 
 static void dl_internal_write_text_callback( void* ctx, const char* str, size_t len )

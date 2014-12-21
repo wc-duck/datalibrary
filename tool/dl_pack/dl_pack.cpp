@@ -182,7 +182,7 @@ int main( int argc, const char** argv )
 				if(strlen(go_ctx.current_opt_arg) != 1 || (go_ctx.current_opt_arg[0] != '4' && go_ctx.current_opt_arg[0] != '8'))
 					M_ERROR_AND_QUIT("ptr-flag need \"4\" or \"8\", not \"%s\"!", go_ctx.current_opt_arg);
 
-				out_ptr_size = go_ctx.current_opt_arg[0] - '0';
+				out_ptr_size = (unsigned int)(go_ctx.current_opt_arg[0] - '0');
 				break;
 			case '!': M_ERROR_AND_QUIT("incorrect usage of flag \"%s\"!", go_ctx.current_opt_arg); break;
 			case '?': M_ERROR_AND_QUIT("unrecognized flag \"%s\"!", go_ctx.current_opt_arg); break;

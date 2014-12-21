@@ -19,7 +19,7 @@
 
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 
-#if defined( __LP64__ )
+#if defined( __LP64__ ) && !defined(__APPLE__)
 	#define DL_INT64_FMT_STR  "%ld"
 	#define DL_UINT64_FMT_STR "%lu"
 	#define DL_PINT_FMT_STR   "%lu"

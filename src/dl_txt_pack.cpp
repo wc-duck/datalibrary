@@ -68,8 +68,8 @@ class CFlagField
 
 	enum { BITS_PER_STORAGE = sizeof(uint32_t) * 8, BITS_FOR_FIELD = 5 };
 
-	unsigned int Field( unsigned int bit ) { return ( bit  & ~(BITS_PER_STORAGE - 1) ) >> BITS_FOR_FIELD; }
-	unsigned int Bit  ( unsigned int bit ) { return ( bit  &  (BITS_PER_STORAGE - 1) ); }
+	unsigned int Field( unsigned int bit ) { return ( bit  & ~(unsigned int)(BITS_PER_STORAGE - 1) ) >> BITS_FOR_FIELD; }
+	unsigned int Bit  ( unsigned int bit ) { return ( bit  &  (unsigned int)(BITS_PER_STORAGE - 1) ); }
 
 public:
 	CFlagField() { memset( storage, 0x00, sizeof(storage) ); }

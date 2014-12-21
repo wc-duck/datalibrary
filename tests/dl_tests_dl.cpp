@@ -1095,7 +1095,7 @@ TEST(DLMisc, built_in_tl_eq_bin_file)
 	
 	FILE* f = fopen( test_file, "rb" );
 	fseek( f, 0, SEEK_END );
-	size_t read_tl_size = ftell(f);
+	size_t read_tl_size = (size_t)ftell(f);
 	fseek( f, 0, SEEK_SET );
 	
 	unsigned char* read_tl = (unsigned char*)malloc(read_tl_size);

@@ -76,7 +76,7 @@ TEST_F(DLReflect, pods)
 	EXPECT_EQ((uint32_t)TYPE_NAME::TYPE_ID, ti.tid); \
 	EXPECT_STREQ( #TYPE_NAME,               ti.name ); \
 	EXPECT_EQ(sizeof(TYPE_NAME),            ti.size); \
-	EXPECT_EQ(DL_ALIGNMENTOF(TYPE_NAME),    ti.alignment); \
+	EXPECT_EQ((size_t)DL_ALIGNMENTOF(TYPE_NAME),    ti.alignment); \
 	EXPECT_EQ(MEM_COUNT,                    ti.member_count); \
 }
 

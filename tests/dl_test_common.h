@@ -23,11 +23,11 @@
 template<typename T>
 const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_size)
 {
-	unsigned int Pos = snprintf(buff, buff_size, "{ %f", (float)arr[0]);
+	unsigned int Pos = (unsigned int)snprintf(buff, buff_size, "{ %f", (float)arr[0]);
 
 	for(unsigned int i = 1; i < _Count && Pos < buff_size; ++i)
 	{
-		Pos += snprintf(buff + Pos, buff_size - Pos, ", %f", (float)arr[i]);
+		Pos += (unsigned int)snprintf(buff + Pos, buff_size - Pos, ", %f", (float)arr[i]);
 	}
 
 	snprintf(buff + Pos, buff_size - Pos, " }");

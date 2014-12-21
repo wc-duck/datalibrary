@@ -92,7 +92,7 @@ static void dl_internal_write_pod_member( yajl_gen gen, dl_type_t pod_type, cons
 
 	char buffer64[128];
 	int  chars = dl_internal_str_format( buffer64, 128, fmt, value.unsign );
-	yajl_gen_number( gen, buffer64, chars );
+	yajl_gen_number( gen, buffer64, (size_t)chars );
 }
 
 static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_desc* type, const uint8_t* data, const uint8_t* data_base )
@@ -286,7 +286,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
  				}
  
 				char buffer[128];
-				yajl_gen_number( _Ctx->m_JsonGen, buffer, dl_internal_str_format( buffer, DL_ARRAY_LENGTH(buffer), DL_UINT64_FMT_STR, write_me ) );
+				yajl_gen_number( _Ctx->m_JsonGen, buffer, (size_t)dl_internal_str_format( buffer, DL_ARRAY_LENGTH(buffer), DL_UINT64_FMT_STR, write_me ) );
 			}
 			break;
 
@@ -322,7 +322,7 @@ static void dl_internal_write_root( SDLUnpackContext* unpack_ctx, const dl_type_
 			{
 				unsigned char num_buffer[16];
 				int len = dl_internal_str_format( (char*)num_buffer, 16, "%u", subdata_index );
-				yajl_gen_string( unpack_ctx->m_JsonGen, num_buffer, len );
+				yajl_gen_string( unpack_ctx->m_JsonGen, num_buffer, (size_t)len );
 
 				const dl_member_desc* member    = unpack_ctx->m_lSubdataMembers[subdata_index].m_pMember;
 				const uint8_t* member_data = unpack_ctx->m_lSubdataMembers[subdata_index].m_pData;

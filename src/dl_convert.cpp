@@ -111,7 +111,7 @@ static size_t dl_internal_ptr_size(dl_ptr_size_t size_enum)
 	{
 		case DL_PTR_SIZE_32BIT: return 4;
 		case DL_PTR_SIZE_64BIT: return 8;
-		default: DL_ASSERT("unknown ptr size!"); return 0;
+		default: DL_ASSERT(false, "unknown ptr size!"); return 0;
 	}
 }
 
@@ -670,7 +670,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 
 			for(unsigned int j = 0; j < ConvCtx.m_lInstances.Len(); ++j )
 			{
-				uintptr_t OldOffset = ConvCtx.m_lInstances[j].m_pAddress - packed_instance_base;
+				uintptr_t OldOffset = (uintptr_t)(ConvCtx.m_lInstances[j].m_pAddress - packed_instance_base);
 
 				if(OldOffset == PP.m_OldOffset)
 				{

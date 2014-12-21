@@ -17,7 +17,7 @@ DL_FORCEINLINE static uint32_t dl_internal_hash_string( const char* str )
 {
 	uint32_t hash = 5381;
 	for (unsigned int i = 0; str[i] != 0; i++)
-		hash = (hash * uint32_t(33)) + str[i];
+		hash = (hash * uint32_t(33)) + uint32_t(str[i]);
 	return hash - 5381; // So empty string == 0
 }
 
