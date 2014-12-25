@@ -72,11 +72,11 @@ dl_error_t dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_enum_info_t* out_enums, 
 
 dl_error_t dl_reflect_get_type_id( dl_ctx_t dl_ctx, const char* type_name, dl_typeid_t* out_type_id )
 {
-	const dl_type_desc* pType = dl_internal_find_type_by_name( dl_ctx, type_name );
-	if(pType == 0x0)
+	const dl_type_desc* type = dl_internal_find_type_by_name( dl_ctx, type_name );
+	if(type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	*out_type_id = dl_internal_typeid_of( dl_ctx, pType );
+	*out_type_id = dl_internal_typeid_of( dl_ctx, type );
 
 	return DL_ERROR_OK;
 }
@@ -101,35 +101,35 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t 
 	return DL_ERROR_OK;
 }
 
-dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid_t type, dl_member_info_t* out_members, unsigned int members_size )
+dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid_t type_id, dl_member_info_t* out_members, unsigned int members_size )
 {
-	const dl_type_desc* pType = dl_internal_find_type( dl_ctx, type );
-	if(pType == 0x0)
+	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
+	if(type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	if(members_size < pType->member_count)
+	if(members_size < type->member_count)
 		return DL_ERROR_BUFFER_TO_SMALL;
 
-	for( uint32_t nMember = 0; nMember < pType->member_count; ++nMember )
+	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		const dl_member_desc* member = dl_get_type_member( dl_ctx, pType, nMember );
+		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
 
-		out_members[nMember].name        = dl_internal_member_name( dl_ctx, member );
-		out_members[nMember].type        = member->type;
-		out_members[nMember].type_id     = member->type_id;
-		out_members[nMember].size        = member->size[DL_PTR_SIZE_HOST];
-		out_members[nMember].alignment   = member->alignment[DL_PTR_SIZE_HOST];
-		out_members[nMember].offset      = member->offset[DL_PTR_SIZE_HOST];
-		out_members[nMember].array_count = 0;
-		out_members[nMember].bits        = 0;
+		out_members[member_index].name        = dl_internal_member_name( dl_ctx, member );
+		out_members[member_index].type        = member->type;
+		out_members[member_index].type_id     = member->type_id;
+		out_members[member_index].size        = member->size[DL_PTR_SIZE_HOST];
+		out_members[member_index].alignment   = member->alignment[DL_PTR_SIZE_HOST];
+		out_members[member_index].offset      = member->offset[DL_PTR_SIZE_HOST];
+		out_members[member_index].array_count = 0;
+		out_members[member_index].bits        = 0;
 
 		switch(member->AtomType())
 		{
 			case DL_TYPE_ATOM_INLINE_ARRAY:
-				out_members[nMember].array_count = member->inline_array_cnt();
+				out_members[member_index].array_count = member->inline_array_cnt();
 				break;
 			case DL_TYPE_ATOM_BITFIELD:
-				out_members[nMember].bits = member->BitFieldBits();
+				out_members[member_index].bits = member->BitFieldBits();
 				break;
 			default:
 				break;
