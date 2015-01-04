@@ -33,13 +33,6 @@
 	#define DL_PINT_FMT_STR   "%u"
 #endif // defined( __LP64__ ) || defined( _WIN64 )
 
-//enum
-//{
-//	DL_MEMBER_NAME_MAX_LEN     = 32,
-//	DL_ENUM_NAME_MAX_LEN       = 32,
-//	DL_ENUM_VALUE_NAME_MAX_LEN = 32,
-//};
-
 #if defined( __GNUC__ )
 	#define DL_UNUSED __attribute__((unused))
 #else

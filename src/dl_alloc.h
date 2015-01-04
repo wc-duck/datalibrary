@@ -41,18 +41,16 @@ inline void dl_free( dl_allocator* alloc, void* ptr )
  */
 inline void* dl_realloc( dl_allocator* alloc, void* ptr, size_t size, size_t old_size )
 {
-	if( alloc->realloc == 0x0 )
-	{
-		void* new_ptr = dl_alloc( alloc, size );
-		if( ptr != 0x0 )
-		{
-			memcpy( new_ptr, ptr, old_size );
-			dl_free( alloc, ptr );
-		}
-		return new_ptr;
-	}
-	else
+	if( alloc->realloc != 0x0 )
 		return alloc->realloc( ptr, size, old_size, alloc->ctx );
+
+	void* new_ptr = dl_alloc( alloc, size );
+	if( ptr != 0x0 )
+	{
+		memcpy( new_ptr, ptr, old_size );
+		dl_free( alloc, ptr );
+	}
+	return new_ptr;
 }
 
 #endif // DL_ALLOC_H_INCLUDED

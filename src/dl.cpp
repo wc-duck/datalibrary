@@ -37,6 +37,7 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 	dl_free( &dl_ctx->alloc, dl_ctx->member_descs );
 	dl_free( &dl_ctx->alloc, dl_ctx->enum_value_descs );
 	dl_free( &dl_ctx->alloc, dl_ctx->enum_alias_descs );
+	dl_free( &dl_ctx->alloc, dl_ctx->typedata_strings );
 	dl_free( &dl_ctx->alloc, dl_ctx->default_data );
 	dl_free( &dl_ctx->alloc, dl_ctx );
 	return DL_ERROR_OK;
