@@ -12,7 +12,7 @@ platform specific data ( convertion between platforms avaliable on all platforms
 ## Parts:
 
 generated headers:
-	c/c#
+	c/c++
 
 type library ( tlc ):
 	file used by dl itself to load/store/pack/unpack types.
@@ -20,14 +20,14 @@ type library ( tlc ):
 c-library:
 	heart of the library.
 
-dl_tlc:
+dltlc:
 	type-library-compiler
 
 dl_pack:
 	tool to pack/unpack/convert instances.
 
 bindings:
-	python / C#
+	python
 
 ## Suported types:
 int8, int16, int32, int64     - signed integer 8 - 64 bits
@@ -82,11 +82,11 @@ structs are defined in a typelibrary like this:
 }
 ```
 
-Save above code to example.tld and run this through dl_tlc.py to generate c-headers and
+Save above code to example.tld and run this through 'dltlc' to generate c-headers and
 a typelibrary-definition-file, we will call it example.bin.
 
 ```
-python dl_tlc -c example.h -o example.bin example.tld
+./dltlc -c example.h -o example.bin example.tld
 ```
 
 ### Create dl-context and load a type-library:
