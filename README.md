@@ -1,6 +1,7 @@
 # THE DATA LIBRARY.
 
 [![Build Status](https://travis-ci.org/wc-duck/datalibrary.svg)](https://travis-ci.org/wc-duck/datalibrary)
+[![Build status](https://ci.appveyor.com/api/projects/status/caoqg9y6c2vehtaw?svg=true)](https://ci.appveyor.com/project/wc-duck/datalibrary)
 
 ## About:
 The data library, or DL for short, is a library for serialization of data.
