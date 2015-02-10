@@ -16,19 +16,17 @@ function dl_type_lib( tlc_file, dltlc )
 	local out_lib       = out_file .. ".bin"
 	local out_lib_h     = out_file .. ".bin.h"
 
-	local HAXX   = PYTHON .. " ../wc_games/wc_engine/units/util/tools/bin2hex.py"
+	local BIN2HEX  = _bam_exe .. " -e tool/bin2hex.lua"
 
 	if family == "windows" then
 		dltlc = string.gsub( dltlc, "/", "\\" )
 	end
 
-	AddJob( out_lib,       "tlc " .. out_lib,       dltlc  .. " -o " .. out_lib .. " " .. tlc_file,       tlc_file )
-	AddJob( out_lib_h,     "tlc " .. out_lib_h,	HAXX   .. " -o " .. out_lib_h .. " " .. out_lib,      out_lib )
-	AddJob( out_header,    "tlc " .. out_header,    dltlc .. " -c -o " .. out_header .. " " .. tlc_file,  tlc_file )
+	AddJob( out_lib,    "tlc " .. out_lib,    dltlc   .. " -o "    .. out_lib    .. " "     .. tlc_file,  tlc_file )
+	AddJob( out_lib_h,  "tlc " .. out_lib_h,  BIN2HEX .. " dst="   .. out_lib_h  .. " src=" .. out_lib,   out_lib )
+	AddJob( out_header, "tlc " .. out_header, dltlc   .. " -c -o " .. out_header .. " "     .. tlc_file,  tlc_file )
 
 	AddDependency( tlc_file, dltlc )
-	AddDependency( tlc_file, CollectRecursive( "tool/dl_tlc/*.py" ) )
-	AddDependency( tlc_file, CollectRecursive( "bind/python/*.py" ) )
 end
 
 function DefaultSettings( platform, config )
