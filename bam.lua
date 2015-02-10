@@ -129,7 +129,7 @@ function DefaultMSVC( build_platform, config )
 	SetDriversCL(settings)
 	
 	if config == "debug" then
-		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"", "/EHsc")
+		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"", "/EHsc", "/GS-")
 		settings.dll.flags:Add("/DEBUG")
 		settings.link.flags:Add("/DEBUG")
 	else
