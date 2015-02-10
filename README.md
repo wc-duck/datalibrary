@@ -146,7 +146,7 @@ void store_me( dl_ctx_t dl_ctx )
 #include <dl/dl_util.h>
 #include "example.h"
 
-void store_me( dl_ctx_t dl_ctx )
+void load_me( dl_ctx_t dl_ctx )
 {
 	example* e;
 
@@ -161,6 +161,8 @@ void store_me( dl_ctx_t dl_ctx )
 	printf( "e->string  = %s\n", e->string );
 	for( unsigned int i = 0; i < e->array.count; ++i )
 		printf( "e->array[%u] = %u\n", i, e->array.data[i] );
+
+	free( e ); // by default memory for e will be allocated by malloc
 }
 ```
 
