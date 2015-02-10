@@ -11,7 +11,7 @@ install:
   - cd ..
 
 script:
-  - bam/bam compiler=$CC platform=linux_x86 config=debug -r sc test
+  - bam/bam compiler=$CC platform=linux_x86 config=debug -r sc -v test
   - bam/bam compiler=$CC platform=linux_x86 config=release -r sc test
   - bam/bam compiler=$CC platform=linux_x86_64 config=debug -r sc test
   - bam/bam compiler=$CC platform=linux_x86_64 config=release -r sc test
