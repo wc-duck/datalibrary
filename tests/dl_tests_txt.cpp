@@ -7,6 +7,8 @@
 
 #include "dl_test_common.h"
 
+// TODO: add test for default values for uint*[] with true/false.
+
 class DLText : public DL {};
 
 TEST_F(DLText, member_order)
