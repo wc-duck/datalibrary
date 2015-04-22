@@ -23,6 +23,18 @@
 
 		"per_bug_1" : { "members" : [ { "name" : "str", "type" : "string"      } ] },
 		"per_bug"   : { "members" : [ { "name" : "arr", "type" : "per_bug_1[]" } ] },
+
+		"bug_with_substr_2" : {
+			"members" : [
+				{ "name" : "str", "type" : "string" }
+			]
+		},
+		"bug_with_substr" : {
+			"members" : [
+				{ "name" : "str", "type" : "string" },
+				{ "name" : "sub", "type" : "bug_with_substr_2" }
+			]
+		},
 		
 		"vec3_test" : { "extern" : true, "members" : [ { "name" : "data", "type" : "fp32[3]" } ] },
 		"alias_test" : {

@@ -105,7 +105,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 				case DL_TYPE_STORAGE_STRUCT:
 				{
 					const dl_type_desc* type = dl_internal_find_type( ctx, member->type_id );
-					dl_internal_patch_struct( ctx, type, member_data + member->offset[DL_PTR_SIZE_HOST], base_address, patch_distance, patched_ptrs );
+					dl_internal_patch_struct( ctx, type, member_data, base_address, patch_distance, patched_ptrs );
 				}
 				break;
 				default:

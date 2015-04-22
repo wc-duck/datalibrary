@@ -1132,6 +1132,25 @@ TYPED_TEST( DLBase, simple_alias_test )
 	EXPECT_EQ( at.m2.x, loaded.m2.x ); EXPECT_EQ( at.m2.y, loaded.m2.y ); EXPECT_EQ( at.m2.z, loaded.m2.z );
 }
 
+TEST_F( DL, bug_with_substring_and_inplace_load )
+{
+	bug_with_substr t1;
+	t1.str = "str1";
+	t1.sub.str = "str2";
+
+	unsigned char packed_instance[256];
+
+	// store instance to binary
+	size_t pack_size;
+	EXPECT_DL_ERR_OK( dl_instance_store( this->Ctx, bug_with_substr::TYPE_ID, (void**)&t1, packed_instance, sizeof( packed_instance ), &pack_size ) );
+
+	bug_with_substr* loaded;
+	EXPECT_DL_ERR_OK( dl_instance_load_inplace( this->Ctx, bug_with_substr::TYPE_ID, packed_instance, pack_size, (void**)&loaded, 0x0 ) );
+
+	EXPECT_STREQ( t1.str, loaded->str );
+	EXPECT_STREQ( t1.sub.str, loaded->sub.str );
+}
+
 int main(int argc, char **argv)
 {
 	::testing::InitGoogleTest(&argc, argv);
