@@ -136,3 +136,30 @@ TEST_F(DLReflect, type_lookup)
 	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_reflect_get_type_id(Ctx, "bloobloo", &type_id) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_reflect_get_type_id(Ctx, "bopp", &type_id) );
 }
+
+TEST_F(DLReflect, type_strings)
+{
+	// tests that all strings in tlds is reflected as expected... test types/members and enums from both unittest.tld and unittest2.tld that is both loaded in Ctx.
+	dl_type_info_t Pods2_type_info;
+	dl_type_info_t BugTest1_InArray_type_info;
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, Pods2_TYPE_ID, &Pods2_type_info ) );
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, BugTest1_InArray_TYPE_ID, &BugTest1_InArray_type_info ) );
+
+	EXPECT_EQ( 2u, Pods2_type_info.member_count );
+	EXPECT_EQ( 3u, BugTest1_InArray_type_info.member_count );
+	EXPECT_STREQ( "Pods2", Pods2_type_info.name );
+	EXPECT_STREQ( "BugTest1_InArray", BugTest1_InArray_type_info.name );
+
+	// ... and members ...
+	dl_member_info_t Pods2_members[2];
+	dl_member_info_t BugTest1_InArray_members[3];
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_members( Ctx, Pods2_TYPE_ID, Pods2_members, 2 ) );
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_members( Ctx, BugTest1_InArray_TYPE_ID, BugTest1_InArray_members, 3 ) );
+
+	EXPECT_STREQ( "Int1", Pods2_members[0].name );
+	EXPECT_STREQ( "Int2", Pods2_members[1].name );
+
+	EXPECT_STREQ( "u64_1", BugTest1_InArray_members[0].name );
+	EXPECT_STREQ( "u64_2", BugTest1_InArray_members[1].name );
+	EXPECT_STREQ( "u16",   BugTest1_InArray_members[2].name );
+}

@@ -132,15 +132,21 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		for( unsigned int i = 0; i < header.enum_value_count; ++i ) dl_endian_swap_enum_value_desc( dl_ctx->enum_value_descs + dl_ctx->enum_value_count + i );
 	}
 
+	uint32_t td_str_offset = (uint32_t)dl_ctx->typedata_strings_size;
 	for( unsigned int i = 0; i < header.type_count; ++i )
 	{
-		dl_ctx->type_descs[ dl_ctx->type_count + i ].name += (uint32_t)dl_ctx->typedata_strings_size;
+		dl_ctx->type_descs[ dl_ctx->type_count + i ].name += td_str_offset;
 		dl_ctx->type_descs[ dl_ctx->type_count + i ].member_start += dl_ctx->member_count;
-
 	}
 
+	for( unsigned int i = 0; i < header.member_count; ++i )
+		dl_ctx->member_descs[ dl_ctx->member_count + i ].name += td_str_offset;
+
 	for( unsigned int i = 0; i < header.enum_count; ++i )
+	{
+		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].name += td_str_offset;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
+	}
 
 	dl_ctx->type_count += header.type_count;
 	dl_ctx->enum_count += header.enum_count;
