@@ -139,9 +139,9 @@ struct dl_member_desc
 		type = (dl_type_t)DL_INSERT_BITS( type, bits, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED );
 	}
 
-	void SetBitFieldOffset( unsigned int offset )
+	void SetBitFieldOffset( unsigned int bfoffset )
 	{
-		type = (dl_type_t)DL_INSERT_BITS( type, offset, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
+		type = (dl_type_t)DL_INSERT_BITS( type, bfoffset, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
 	}
 
 	uint32_t inline_array_cnt() const

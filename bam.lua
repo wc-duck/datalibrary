@@ -92,14 +92,21 @@ function SetupMSVCBinaries( settings, compiler )
 		return
 	end
 
+	local has_msvs14 = os.getenv('VS140COMNTOOLS') ~= nil
 	local has_msvs10 = os.getenv('VS100COMNTOOLS') ~= nil
 	local has_msvs8  = os.getenv('VS80COMNTOOLS') ~= nil
 	
 	if compiler == nil then
 		-- set default compiler
-		if     has_msvs10 then compiler = 'msvs10'
+		if     has_msvs14 then compiler = 'msvs14'
+		elseif has_msvs10 then compiler = 'msvs10'
 		elseif has_msvs8  then compiler = 'msvs8'
 		else   compiler = nil
+		end
+	elseif compiler == 'msvs14' then
+		if not has_msvs14 then
+			print( compiler  .. ' is not installed on this machine' )
+			os.exit(1)
 		end
 	elseif compiler == 'msvs10' then
 		if not has_msvs10 then
