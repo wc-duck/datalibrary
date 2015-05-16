@@ -264,9 +264,9 @@ dl_shared = SharedLibrary( dl_settings,    "dlsh",  Compile( dl_so_settings, Col
 
 dl_settings.cc.includes:Add('tool/dl_pack')
 getopt   = Compile( dl_settings, CollectRecursive( "tool/dl_pack/*.c" ) )
-dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.cpp") ), getopt, yajl_lib, dl_lib )
+dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.cpp") ), getopt, yajl_lib, dl_lib, yajl_lib )
 dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecursive("tool/dl_tlc/*.cpp") ), getopt, yajl_lib, dl_lib, yajl_lib )
-dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib, yajl_lib )
+dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, yajl_lib, gtest_lib )
 
 tl1 = dl_type_lib( "tests/unittest.tld",  dltlc )
 tl2 = dl_type_lib( "tests/unittest2.tld", dltlc ) 
