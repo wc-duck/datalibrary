@@ -3,8 +3,35 @@ compiler:
   - gcc
   - clang
 
-global:
-  - secure: "bTly315GwxokKDf+13sg/BRQffijK9CUVHA3SilDTe83Eow7s7n4VBLNoy2EY5s/gTC2un3ItQRR+m8CWaONa24InTolnfUe2jgbpddaBTNm1FTKX/GnEdOWjHjtDmWEu0mi1W9kOsngjhhdSy4+44ZW2jH+pW2pQ7LhqyV41XM="
+env:
+  global:
+    - secure: "bmjUMvuD9qjQG/Q/wdnBJd2RoRCfZfSUD4Jip0hK0RZYoUIUHtePjT6L5sP1sScg7i86bZc3Ja5BJG/cv74PQCczeaWq1qsJLj6yKRdHYU1TJlUy7uqcK71K0PC7gWQUu7CGXVsrK0waPohwTCUfOvPeHBR9TF0lhf3zr9jvhLg="
+
+addons:
+  coverity_scan:
+    project:
+      name: "wc-duck/datalibrary"
+      description: "Build submitted via Travis CI"
+    notification_email: fredrik.kihlander@gmail.com
+    build_command_prepend: "./configure; make clean"
+    build_command:   "make -j 4"
+    branch_pattern: coverity_scan
+
+See a sample project using Travis CI to run Coverity Scan build:
+
+GitHub repository
+    https://github.com/daksheshvyas/MyHelloWorld/
+Travis Build
+    https://travis-ci.org/daksheshvyas/MyHelloWorld
+
+More on using Travis CI
+
+Trouble with Travis CI?
+
+Run your build locally, and migrate to Travis CI once things are running smoothly.
+
+
+
 
 before_install:
   - sudo apt-get update -qq
