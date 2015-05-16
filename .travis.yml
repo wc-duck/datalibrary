@@ -4,7 +4,6 @@ compiler:
   - clang
 
 install:
-  - sudo apt-get -qq install libc6-dev-i386 g++-multilib
   - git clone https://github.com/matricks/bam.git
   - cd bam
   - ./make_unix.sh
