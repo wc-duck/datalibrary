@@ -33,9 +33,8 @@ const char*  g_libs[MAX_LIBS];
 
 bool add_lib_path( const char* path )
 {
-	if( g_num_lib_paths > MAX_LIB_PATHS )
+	if( g_num_lib_paths >= MAX_LIB_PATHS )
 		return false;
-	// TODO: handle to many paths here!
 	g_lib_paths[g_num_lib_paths++] = path;
 	return true;
 }
@@ -115,11 +114,10 @@ dl_ctx_t create_ctx()
 				size_t         file_size;
 				unsigned char* file_data = read_file( file, &file_size );
 				err = dl_context_load_type_library( dl_ctx, file_data, file_size );
-				if( err != DL_ERROR_OK )
-					M_ERROR_AND_FAIL( "DL error while loading type library (%s): %s", path, dl_error_to_string(err) );
-
 				free(file_data);
 				fclose(file);
+				if( err != DL_ERROR_OK )
+					M_ERROR_AND_FAIL( "DL error while loading type library (%s): %s", path, dl_error_to_string(err) );
 				break;
 			}
 		}

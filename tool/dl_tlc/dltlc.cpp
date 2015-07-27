@@ -163,15 +163,12 @@ static void write_tl_as_text( dl_ctx_t ctx, FILE* out )
 	}
 
 	char* outdata = (char*)malloc( res_size );
-
 	err = dl_context_write_txt_type_library( ctx, outdata, res_size, 0x0 );
-	if( err != DL_ERROR_OK )
-	{
+	if( err == DL_ERROR_OK )
+		fwrite( outdata, res_size, 1, out );
+	else
 		fprintf( stderr, "failed to write typelib-txt size with error \"%s\"\n", dl_error_to_string( err ) );
-		return;
-	}
 
-	fwrite( outdata, res_size, 1, out );
 	free( outdata );
 }
 
@@ -189,15 +186,12 @@ static void write_tl_as_c_header( dl_ctx_t ctx, const char* module_name, FILE* o
 	}
 
 	char* outdata = (char*)malloc( res_size );
-
 	err = dl_context_write_type_library_c_header( ctx, module_name, outdata, res_size, 0x0 );
-	if( err != DL_ERROR_OK )
-	{
+	if( err == DL_ERROR_OK )
+		fwrite( outdata, res_size, 1, out );
+	else
 		fprintf( stderr, "failed to write c-header for typelib with error \"%s\"\n", dl_error_to_string( err ) );
-		return;
-	}
 
-	fwrite( outdata, res_size, 1, out );
 	free( outdata );
 }
 
@@ -215,15 +209,12 @@ static void write_tl_as_binary( dl_ctx_t ctx, FILE* out )
 	}
 
 	unsigned char* outdata = (unsigned char*)malloc( res_size );
-
 	err = dl_context_write_type_library( ctx, outdata, res_size, 0x0 );
-	if( err != DL_ERROR_OK )
-	{
+	if( err == DL_ERROR_OK )
+		fwrite( outdata, res_size, 1, out );
+	else
 		fprintf( stderr, "failed to write typelib size with error \"%s\"\n", dl_error_to_string( err ) );
-		return;
-	}
 
-	fwrite( outdata, res_size, 1, out );
 	free( outdata );
 }
 
