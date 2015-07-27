@@ -123,30 +123,17 @@ static bool load_typelib( dl_ctx_t ctx, FILE* f )
 	size_t size = 0;
 	unsigned char* data = read_entire_stream( f, &size );
 
+	dl_error_t err;
 	if( data[2] == 'L' && data[3] == 'D' && data[0] == 'L' && data[1] == 'T' ) // TODO: endianness.
-	{
-		// ... binary lib ...
-		dl_error_t err = dl_context_load_type_library( ctx, data, size );
-		if( err != DL_ERROR_OK )
-		{
-			VERBOSE_OUTPUT( "failed to load typelib with error %s", dl_error_to_string( err ) );
-			return false;
-		}
-	}
+		err = dl_context_load_type_library( ctx, data, size ); // ... binary lib ...
 	else
-	{
-		// ... try text ...
-		dl_error_t err = dl_context_load_txt_type_library( ctx, (const char*)data, size );
-		if( err != DL_ERROR_OK )
-		{
-			VERBOSE_OUTPUT( "failed to load typelib with error %s", dl_error_to_string( err ) );
-			return false;
-		}
-	}
+		err = dl_context_load_txt_type_library( ctx, (const char*)data, size ); // ... try text ...
 
 	free( data );
 
-	return true;
+	if( err != DL_ERROR_OK )
+		VERBOSE_OUTPUT( "failed to load typelib with error %s", dl_error_to_string( err ) );
+	return err == DL_ERROR_OK;
 }
 
 static int write_tl_as_text( dl_ctx_t ctx, FILE* out )
