@@ -79,7 +79,14 @@ public:
 
 struct SDLPackState
 {
-	SDLPackState() {}
+	SDLPackState()
+		: state( (dl_pack_state)0 )
+		, value( 0x0 )
+		, struct_start_pos( 0 )
+		, array_count_patch_pos( 0 )
+		, array_count( 0 )
+		, is_back_array(false)
+	{}
 
 	SDLPackState( dl_pack_state pack_state , const void* value = 0x0, uintptr_t struct_start_pos = 0 )
 		: state( pack_state )

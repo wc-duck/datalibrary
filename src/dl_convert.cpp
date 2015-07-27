@@ -9,7 +9,13 @@
 
 struct SInstance
 {
-	SInstance() {}
+	SInstance()
+		: address(0x0)
+		, array_count(0)
+		, offset_after_patch(0)
+		, type(0x0)
+		, type_id(DL_TYPE_ATOM_MIN_BIT)
+		{}
 	SInstance( const uint8_t* address, const dl_type_desc* type, size_t array_count, dl_type_t tid )
 		: address(address)
 		, array_count(array_count)
@@ -52,7 +58,7 @@ public:
 
 	struct PatchPos
 	{
-		PatchPos() {}
+		PatchPos() : pos(0), old_offset(0) {}
 		PatchPos(uintptr_t pos, uintptr_t old_offset)
 			: pos(pos)
 			, old_offset(old_offset)
