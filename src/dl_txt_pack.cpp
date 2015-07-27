@@ -834,8 +834,8 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 		return 1;
 	}
 
-	dl_pack_state state = pack_ctx->CurrentPackState();
-	switch( state )
+	dl_pack_state curr_pack_state = pack_ctx->CurrentPackState();
+	switch( curr_pack_state )
 	{
 		case DL_PACK_STATE_SUBDATA:
 		case DL_PACK_STATE_INSTANCE: dl_txt_pack_ctx_pop_state( pack_ctx ); break;

@@ -1145,7 +1145,7 @@ TEST_F( DL, bug_with_substring_and_inplace_load )
 	EXPECT_DL_ERR_OK( dl_instance_store( this->Ctx, bug_with_substr::TYPE_ID, (void**)(void*)&t1, packed_instance, sizeof( packed_instance ), &pack_size ) );
 
 	bug_with_substr* loaded;
-	EXPECT_DL_ERR_OK( dl_instance_load_inplace( this->Ctx, bug_with_substr::TYPE_ID, packed_instance, pack_size, (void**)&loaded, 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load_inplace( this->Ctx, bug_with_substr::TYPE_ID, packed_instance, pack_size, (void**)(void*)&loaded, 0x0 ) );
 
 	EXPECT_STREQ( t1.str, loaded->str );
 	EXPECT_STREQ( t1.sub.str, loaded->sub.str );
