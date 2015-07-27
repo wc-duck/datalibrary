@@ -52,7 +52,10 @@ public:
 	// subdata!
 	struct SSubDataMember
 	{
-		SSubDataMember() {}
+		SSubDataMember()
+			: m_pMember( 0x0 )
+			, m_pData( 0x0 )
+		{}
 		SSubDataMember(const dl_member_desc* member, const uint8_t* data)
 			: m_pMember( member )
 			, m_pData( data ) {}

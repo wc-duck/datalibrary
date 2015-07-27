@@ -32,6 +32,10 @@
 // Low-level types and utilities for porting Google Test to various
 // platforms.  They are subject to change without notice.  DO NOT USE
 // THEM IN USER CODE.
+//
+// This file is fundamental to Google Test.  All other Google Test source
+// files are expected to #include this.  Therefore, it cannot #include
+// any other Google Test header.
 
 #ifndef GTEST_INCLUDE_GTEST_INTERNAL_GTEST_PORT_H_
 #define GTEST_INCLUDE_GTEST_INTERNAL_GTEST_PORT_H_
@@ -93,6 +97,7 @@
 //     GTEST_OS_LINUX_ANDROID - Google Android
 //   GTEST_OS_MAC      - Mac OS X
 //     GTEST_OS_IOS    - iOS
+//       GTEST_OS_IOS_SIMULATOR - iOS simulator
 //   GTEST_OS_NACL     - Google Native Client (NaCl)
 //   GTEST_OS_OPENBSD  - OpenBSD
 //   GTEST_OS_QNX      - QNX
@@ -240,7 +245,7 @@
 # if TARGET_OS_IPHONE
 #  define GTEST_OS_IOS 1
 #  if TARGET_IPHONE_SIMULATOR
-#   define GEST_OS_IOS_SIMULATOR 1
+#   define GTEST_OS_IOS_SIMULATOR 1
 #  endif
 # endif
 #elif defined __linux__
@@ -517,10 +522,10 @@
 #  define GTEST_ENV_HAS_TR1_TUPLE_ 1
 # endif
 
-// C++11 specifies that <tuple> provides std::tuple. Users can't use
-// gtest in C++11 mode until their standard library is at least that
-// compliant.
-# if GTEST_LANG_CXX11
+// C++11 specifies that <tuple> provides std::tuple. Use that if gtest is used
+// in C++11 mode and libstdc++ isn't very old (binaries targeting OS X 10.6
+// can build with clang but need to use gcc4.2's libstdc++).
+# if GTEST_LANG_CXX11 && (!defined(__GLIBCXX__) || __GLIBCXX__ > 20110325)
 #  define GTEST_ENV_HAS_STD_TUPLE_ 1
 # endif
 
@@ -638,7 +643,7 @@ using ::std::tuple_size;
 // abort() in a VC 7.1 application compiled as GUI in debug config
 // pops up a dialog window that cannot be suppressed programmatically.
 #if (GTEST_OS_LINUX || GTEST_OS_CYGWIN || GTEST_OS_SOLARIS || \
-     (GTEST_OS_MAC && (!GTEST_OS_IOS || GEST_OS_IOS_SIMULATOR)) || \
+     (GTEST_OS_MAC && !GTEST_OS_IOS) || GTEST_OS_IOS_SIMULATOR || \
      (GTEST_OS_WINDOWS_DESKTOP && _MSC_VER >= 1400) || \
      GTEST_OS_WINDOWS_MINGW || GTEST_OS_AIX || GTEST_OS_HPUX || \
      GTEST_OS_OPENBSD || GTEST_OS_QNX)
@@ -783,6 +788,11 @@ class Message;
 
 namespace internal {
 
+// A secret type that Google Test users don't know about.  It has no
+// definition on purpose.  Therefore it's impossible to create a
+// Secret object, which is what we want.
+class Secret;
+
 // The GTEST_COMPILE_ASSERT_ macro can be used to verify that a compile time
 // expression is true. For example, you could use it to verify the
 // size of a static array:
@@ -803,8 +813,8 @@ struct CompileAssert {
 };
 
 #define GTEST_COMPILE_ASSERT_(expr, msg) \
-  typedef ::testing::internal::CompileAssert<(bool(expr))> \
-      msg[bool(expr) ? 1 : -1]
+  typedef ::testing::internal::CompileAssert<(static_cast<bool>(expr))> \
+      msg[static_cast<bool>(expr) ? 1 : -1] GTEST_ATTRIBUTE_UNUSED_
 
 // Implementation details of GTEST_COMPILE_ASSERT_:
 //
