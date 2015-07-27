@@ -1142,7 +1142,7 @@ TEST_F( DL, bug_with_substring_and_inplace_load )
 
 	// store instance to binary
 	size_t pack_size;
-	EXPECT_DL_ERR_OK( dl_instance_store( this->Ctx, bug_with_substr::TYPE_ID, (void**)&t1, packed_instance, sizeof( packed_instance ), &pack_size ) );
+	EXPECT_DL_ERR_OK( dl_instance_store( this->Ctx, bug_with_substr::TYPE_ID, (void**)(void*)&t1, packed_instance, sizeof( packed_instance ), &pack_size ) );
 
 	bug_with_substr* loaded;
 	EXPECT_DL_ERR_OK( dl_instance_load_inplace( this->Ctx, bug_with_substr::TYPE_ID, packed_instance, pack_size, (void**)&loaded, 0x0 ) );
