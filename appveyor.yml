@@ -2,7 +2,6 @@ platform:
   - x86
 
 install:
-<<<<<<< Updated upstream
   - start /b /i /wait compat\build_bam.bat
   - bam\bam.exe platform=winx64 config=debug -r s test
   - bam\bam.exe platform=winx64 config=release -r s test
