@@ -2,11 +2,7 @@ platform:
   - x86
 
 install:
-  - c:\"Program Files (x86)"\"Microsoft Visual Studio 12.0"\VC\vcvarsall.bat
-  - git clone https://github.com/matricks/bam.git
-  - cd bam
-  - make_win64_msvc.bat
-  - cd ..
+  - start compat/build_bam.bat
   - bam\bam.exe platform=win32 config=debug -r s test
   - bam\bam.exe platform=win32 config=release -r s test
   - bam\bam.exe platform=winx64 config=debug -r s test
