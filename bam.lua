@@ -123,6 +123,8 @@ function SetupMSVCBinaries( settings, compiler )
 		os.exit(1)
 	end
 	
+	print( 'compiler used "' .. compiler .. '"')
+	
 	local wrapper_path  = "compat/" .. compiler .. "/" .. settings.platform
 	settings.cc.exe_c   = wrapper_path .. "/cl.bat"
 	settings.cc.exe_cxx = wrapper_path .. "/cl.bat"
