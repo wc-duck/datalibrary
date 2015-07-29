@@ -6,6 +6,10 @@ compiler:
 env:
   global:
    - secure: "bmjUMvuD9qjQG/Q/wdnBJd2RoRCfZfSUD4Jip0hK0RZYoUIUHtePjT6L5sP1sScg7i86bZc3Ja5BJG/cv74PQCczeaWq1qsJLj6yKRdHYU1TJlUy7uqcK71K0PC7gWQUu7CGXVsrK0waPohwTCUfOvPeHBR9TF0lhf3zr9jvhLg="
+  - DL_PLATFORM=linux_x86 DL_CONFIG=debug
+  - DL_PLATFORM=linux_x86 DL_CONFIG=release
+  - DL_PLATFORM=linux_x86_64 DL_CONFIG=debug
+  - DL_PLATFORM=linux_x86_64 DL_CONFIG=release
 
 before_install:
   - sudo apt-get update -qq
@@ -18,14 +22,9 @@ install:
   - cd ..
 
 script:
-  - bam/bam compiler=$CC platform=linux_x86 config=debug compiler=$CC -r sc
-  - bam/bam compiler=$CC platform=linux_x86 config=debug compiler=$CC -r sc test
-  - bam/bam compiler=$CC platform=linux_x86 config=release compiler=$CC -r sc
-  - bam/bam compiler=$CC platform=linux_x86 config=release compiler=$CC -r sc test
-  - bam/bam compiler=$CC platform=linux_x86_64 config=debug compiler=$CC -r sc
-  - bam/bam compiler=$CC platform=linux_x86_64 config=debug compiler=$CC -r sc test
-  - bam/bam compiler=$CC platform=linux_x86_64 config=release compiler=$CC -r sc
-  - bam/bam compiler=$CC platform=linux_x86_64 config=release compiler=$CC -r sc test
+  - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc
+  - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
+  - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test_py
 
 addons:
   coverity_scan:
