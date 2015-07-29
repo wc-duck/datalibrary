@@ -98,7 +98,7 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, d
 	}
 }
 
-static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member )
+static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member, bool* last_was_bf )
 {
 	dl_type_t atom    = (dl_type_t)(DL_TYPE_ATOM_MASK & member->type);
 	dl_type_t storage = (dl_type_t)(DL_TYPE_STORAGE_MASK & member->type);
@@ -136,7 +136,10 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 
 			break;
 		case DL_TYPE_ATOM_BITFIELD:
-			dl_binary_writer_write_string_fmt( writer, "    %s %s : %u;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name, member->bits );
+			if( *last_was_bf && storage == DL_TYPE_STORAGE_UINT64 )
+				dl_binary_writer_write_string_fmt( writer, "    uint64_t %s : %u;\n", member->name, member->bits );
+			else
+				dl_binary_writer_write_string_fmt( writer, "    %s %s : %u;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name, member->bits );
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 		{
@@ -163,6 +166,8 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 		default:
 			DL_ASSERT( false );
 	}
+
+	*last_was_bf = atom == DL_TYPE_ATOM_BITFIELD;
 }
 
 static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t ctx )
@@ -206,8 +211,9 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		dl_binary_writer_write_string_fmt( writer, "    static const uint32_t TYPE_ID = 0x%08X;\n", type->tid );
 		dl_binary_writer_write_string_fmt( writer, "#endif // defined( __cplusplus )\n\n" );
 
+		bool last_was_bf = false;
 		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
-			dl_context_write_c_header_member( writer, ctx, members + member_index );
+			dl_context_write_c_header_member( writer, ctx, members + member_index, &last_was_bf );
 
 		free( members );
 

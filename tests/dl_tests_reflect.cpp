@@ -108,6 +108,7 @@ TEST_F(DLReflect, get_type_info)
 	CHECK_TYPE_INFO_CORRECT( BugTest1_InArray, 3u );
 	CHECK_TYPE_INFO_CORRECT( circular_array, 2u );
 	CHECK_TYPE_INFO_CORRECT( circular_array_ptr_holder, 1u );
+	CHECK_TYPE_INFO_CORRECT( BitBitfield64, 4u );
 }
 
 TEST_F(DLReflect, is_extern_reflected)
