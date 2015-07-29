@@ -3,6 +3,8 @@ compiler:
   - gcc
   - clang
 
+sudo: true
+
 env:
   global:
    - secure: "bmjUMvuD9qjQG/Q/wdnBJd2RoRCfZfSUD4Jip0hK0RZYoUIUHtePjT6L5sP1sScg7i86bZc3Ja5BJG/cv74PQCczeaWq1qsJLj6yKRdHYU1TJlUy7uqcK71K0PC7gWQUu7CGXVsrK0waPohwTCUfOvPeHBR9TF0lhf3zr9jvhLg="
