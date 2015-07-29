@@ -10,6 +10,3 @@ install:
   - bam\bam.exe platform=win32 config=release -r s test
 
 build: OFF
-test: OFF
-test_script: OFF
-deploy: OFF
