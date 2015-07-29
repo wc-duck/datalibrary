@@ -25,7 +25,6 @@ install:
 script:
   - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc
   - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
-  - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test_py
 
 addons:
   coverity_scan:
