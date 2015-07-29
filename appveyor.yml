@@ -3,7 +3,6 @@ platform:
 
 install:
   - start /b /i /wait compat\build_bam.bat
-  - dir "C:\Program Files\Microsoft SDKs\Windows\"
   - set WindowsSdkDir=C:\Program Files\Microsoft SDKs\Windows\v7.1
   - bam\bam.exe platform=winx64 config=debug -r s test
   - bam\bam.exe platform=winx64 config=release -r s test
