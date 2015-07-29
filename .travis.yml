@@ -6,10 +6,11 @@ compiler:
 env:
   global:
    - secure: "bmjUMvuD9qjQG/Q/wdnBJd2RoRCfZfSUD4Jip0hK0RZYoUIUHtePjT6L5sP1sScg7i86bZc3Ja5BJG/cv74PQCczeaWq1qsJLj6yKRdHYU1TJlUy7uqcK71K0PC7gWQUu7CGXVsrK0waPohwTCUfOvPeHBR9TF0lhf3zr9jvhLg="
-  - DL_PLATFORM=linux_x86 DL_CONFIG=debug
-  - DL_PLATFORM=linux_x86 DL_CONFIG=release
-  - DL_PLATFORM=linux_x86_64 DL_CONFIG=debug
-  - DL_PLATFORM=linux_x86_64 DL_CONFIG=release
+  matrix:
+   - DL_PLATFORM=linux_x86 DL_CONFIG=debug
+   - DL_PLATFORM=linux_x86 DL_CONFIG=release
+   - DL_PLATFORM=linux_x86_64 DL_CONFIG=debug
+   - DL_PLATFORM=linux_x86_64 DL_CONFIG=release
 
 before_install:
   - sudo apt-get update -qq
