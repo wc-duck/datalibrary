@@ -1,7 +1,8 @@
 # THE DATA LIBRARY.
 
-[![Build Status](https://travis-ci.org/wc-duck/datalibrary.svg)](https://travis-ci.org/wc-duck/datalibrary)
-[![Build status](https://ci.appveyor.com/api/projects/status/caoqg9y6c2vehtaw?svg=true)](https://ci.appveyor.com/project/wc-duck/datalibrary)
+| Linux GCC/Clang | Windows MSVC |
+|-----------------|--------------|
+| [![Build Status](https://travis-ci.org/wc-duck/datalibrary.svg)](https://travis-ci.org/wc-duck/datalibrary) | [![Build status](https://ci.appveyor.com/api/projects/status/caoqg9y6c2vehtaw?svg=true)](https://ci.appveyor.com/project/wc-duck/datalibrary) |
 
 <a href="https://scan.coverity.com/projects/5151">
   <img alt="Coverity Scan Build Status"
