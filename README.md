@@ -1,13 +1,10 @@
 # THE DATA LIBRARY.
 
-| Linux GCC/Clang | Windows MSVC |
-|-----------------|--------------|
-| [![Build Status](https://travis-ci.org/wc-duck/datalibrary.svg)](https://travis-ci.org/wc-duck/datalibrary) | [![Build status](https://ci.appveyor.com/api/projects/status/caoqg9y6c2vehtaw?svg=true)](https://ci.appveyor.com/project/wc-duck/datalibrary) |
-
-<a href="https://scan.coverity.com/projects/5151">
-  <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/5151/badge.svg"/>
-</a>
+| Build           | Status |
+|-----------------|--------|
+| Linux GCC/Clang | [![Build Status](https://travis-ci.org/wc-duck/datalibrary.svg)](https://travis-ci.org/wc-duck/datalibrary) |
+| Windows MSVC    | [![Build status](https://ci.appveyor.com/api/projects/status/caoqg9y6c2vehtaw?svg=true)](https://ci.appveyor.com/project/wc-duck/datalibrary) |
+| Coverity        | [![Build status](https://scan.coverity.com/projects/5151/badge.svg)](https://scan.coverity.com/projects/5151) |
 
 ## About:
 The data library, or DL for short, is a library for serialization of data.
