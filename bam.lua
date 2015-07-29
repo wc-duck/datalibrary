@@ -125,11 +125,7 @@ function DefaultGCCLike( platform, config, compiler )
 		settings.cc.flags:Add("-O2")
 	end
 	
-	local arch = '-m64'
-	if platform == "linux_x86" then
-		settings.cc.flags:Add( "-malign-double" ) -- TODO: temporary workaround, dl should support natural alignment for double
-		arch = '-m32'
-	end
+	local arch = platform == 'linux_x86' and '-m32' or '-m64'
 	settings.cc.flags:Add( arch )
 	settings.dll.flags:Add( arch )
 	settings.link.flags:Add( arch )

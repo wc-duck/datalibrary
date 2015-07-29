@@ -88,10 +88,10 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, d
 		case DL_TYPE_STORAGE_UINT16: return "uint16_t";
 		case DL_TYPE_STORAGE_INT32:  return "int32_t";
 		case DL_TYPE_STORAGE_UINT32: return "uint32_t";
-		case DL_TYPE_STORAGE_INT64:  return "int64_t";
-		case DL_TYPE_STORAGE_UINT64: return "uint64_t";
+		case DL_TYPE_STORAGE_INT64:  return "DL_ALIGN(8) int64_t";
+		case DL_TYPE_STORAGE_UINT64: return "DL_ALIGN(8) uint64_t";
 		case DL_TYPE_STORAGE_FP32:   return "float";
-		case DL_TYPE_STORAGE_FP64:   return "double";
+		case DL_TYPE_STORAGE_FP64:   return "DL_ALIGN(8) double";
 		case DL_TYPE_STORAGE_STR:    return "const char*";
 		default:
 			return 0x0;
