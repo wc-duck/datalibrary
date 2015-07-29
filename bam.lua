@@ -29,7 +29,7 @@ function dl_type_lib( tlc_file, dltlc )
 	AddDependency( tlc_file, dltlc )
 end
 
-function DefaultSettings( platform, config )
+function DefaultSettings( platform, config, compiler )
 	local settings = {}
 	
 	settings.debug = 0
@@ -55,7 +55,7 @@ function DefaultSettings( platform, config )
 	settings.cc.includes:Add("include")
 	settings.cc.includes:Add("local")
 		
-	local output_path = PathJoin( BUILD_PATH, PathJoin( platform, config ) )
+	local output_path = PathJoin( BUILD_PATH, PathJoin( PathJoin( platform, compiler ), config ) )
 	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
 	settings.cc.Output = output_func
 	settings.lib.Output = output_func
@@ -65,9 +65,59 @@ function DefaultSettings( platform, config )
 	return settings
 end
 
-function DefaultGCC( platform, config )
-	local settings = DefaultSettings( platform, config )
-	SetDriversGCC(settings)
+function get_compiler()
+  compiler = ScriptArgs["compiler"]
+
+  if family == "windows" then
+    local has_msvs14 = os.getenv('VS140COMNTOOLS') ~= nil
+    local has_msvs10 = os.getenv('VS100COMNTOOLS') ~= nil
+    local has_msvs8  = os.getenv('VS80COMNTOOLS') ~= nil
+
+    if compiler == nil then
+      -- set default compiler
+      if     has_msvs14 then compiler = 'msvs14'
+      elseif has_msvs10 then compiler = 'msvs10'
+      elseif has_msvs8  then compiler = 'msvs8'
+      else   compiler = nil
+      end
+    elseif compiler == 'msvs14' then
+      if not has_msvs14 then
+        print( compiler  .. ' is not installed on this machine' )
+        os.exit(1)
+      end
+    elseif compiler == 'msvs10' then
+      if not has_msvs10 then
+        print( compiler  .. ' is not installed on this machine' )
+        os.exit(1)
+      end
+    elseif compiler == 'msvs8' then
+      if not has_msvs8 then
+        print( compiler  .. ' is not installed on this machine' )
+        os.exit(1)
+      end
+    else
+      print( compiler  .. ' is not installed on this machine' )
+      os.exit(1)
+    end
+  else
+    if compiler == nil then
+      compiler = 'gcc'
+    end
+  end
+
+  return compiler
+end
+
+function DefaultGCCLike( platform, config, compiler )
+	local settings = DefaultSettings( platform, config, compiler )
+
+	if compiler == 'gcc' then
+	 SetDriversGCC(settings)
+	elseif compiler == 'clang' then
+	 SetDriversClang(settings)
+	else
+	 return
+	end
 	
 	if config == "debug" then
 		settings.cc.flags:Add("-O0", "-g")
@@ -87,54 +137,8 @@ function DefaultGCC( platform, config )
 	return settings
 end
 
-function SetupMSVCBinaries( settings, compiler )
-	if family ~= "windows" then
-		return
-	end
-
-	local has_msvs14 = os.getenv('VS140COMNTOOLS') ~= nil
-	local has_msvs10 = os.getenv('VS100COMNTOOLS') ~= nil
-	local has_msvs8  = os.getenv('VS80COMNTOOLS') ~= nil
-	
-	if compiler == nil then
-		-- set default compiler
-		if     has_msvs14 then compiler = 'msvs14'
-		elseif has_msvs10 then compiler = 'msvs10'
-		elseif has_msvs8  then compiler = 'msvs8'
-		else   compiler = nil
-		end
-	elseif compiler == 'msvs14' then
-		if not has_msvs14 then
-			print( compiler  .. ' is not installed on this machine' )
-			os.exit(1)
-		end
-	elseif compiler == 'msvs10' then
-		if not has_msvs10 then
-			print( compiler  .. ' is not installed on this machine' )
-			os.exit(1)
-		end
-	elseif compiler == 'msvs8' then
-		if not has_msvs8 then
-			print( compiler  .. ' is not installed on this machine' )
-			os.exit(1)
-		end
-	else
-		print( compiler  .. ' is not installed on this machine' )
-		os.exit(1)
-	end
-	
-	print( 'compiler used "' .. compiler .. '"')
-	
-	local wrapper_path  = "compat/" .. compiler .. "/" .. settings.platform
-	settings.cc.exe_c   = wrapper_path .. "/cl.bat"
-	settings.cc.exe_cxx = wrapper_path .. "/cl.bat"
-	settings.lib.exe    = wrapper_path .. "/lib.bat"
-	settings.dll.exe    = wrapper_path .. "/link.bat"
-	settings.link.exe   = wrapper_path .. "/link.bat"
-end
-
-function DefaultMSVC( build_platform, config )
-	local settings = DefaultSettings( build_platform, config )
+function DefaultMSVC( build_platform, config, compiler )
+	local settings = DefaultSettings( build_platform, config, compiler )
 	SetDriversCL(settings)
 	
 	if config == "debug" then
@@ -145,7 +149,14 @@ function DefaultMSVC( build_platform, config )
 		settings.cc.flags:Add("/Ox", "/Ot", "/MD", "/D \"NDEBUG\"", "/EHsc")
 	end
 
-	SetupMSVCBinaries( settings, ScriptArgs["compiler"] )
+  if family == "windows" then
+    local wrapper_path  = "compat/" .. compiler .. "/" .. settings.platform
+    settings.cc.exe_c   = wrapper_path .. "/cl.bat"
+    settings.cc.exe_cxx = wrapper_path .. "/cl.bat"
+    settings.lib.exe    = wrapper_path .. "/lib.bat"
+    settings.dll.exe    = wrapper_path .. "/link.bat"
+    settings.link.exe   = wrapper_path .. "/link.bat"
+  end
 
 	return settings
 end
@@ -232,12 +243,15 @@ end
 
 ------------------------ BUILD ------------------------
 
+local compiler = get_compiler()
+print( 'compiler used "' .. compiler .. '"')
+
 settings = 
 {
-	linux_x86    = { debug = DefaultGCC(  "linux_x86",    "debug" ), release = DefaultGCC(  "linux_x86",    "release" ) },
-	linux_x86_64 = { debug = DefaultGCC(  "linux_x86_64", "debug" ), release = DefaultGCC(  "linux_x86_64", "release" ) },
-	win32        = { debug = DefaultMSVC( "win32",        "debug" ), release = DefaultMSVC( "win32",        "release" ) },
-	winx64       = { debug = DefaultMSVC( "winx64",       "debug" ), release = DefaultMSVC( "winx64",       "release" ) }
+	linux_x86    = { debug = DefaultGCCLike(  "linux_x86",    "debug", compiler ), release = DefaultGCCLike(  "linux_x86",    "release", compiler ) },
+	linux_x86_64 = { debug = DefaultGCCLike(  "linux_x86_64", "debug", compiler ), release = DefaultGCCLike(  "linux_x86_64", "release", compiler ) },
+	win32        = { debug = DefaultMSVC( "win32",        "debug", compiler ), release = DefaultMSVC( "win32",        "release", compiler ) },
+	winx64       = { debug = DefaultMSVC( "winx64",       "debug", compiler ), release = DefaultMSVC( "winx64",       "release", compiler ) }
 }
 
 build_platform = ScriptArgs["platform"]
