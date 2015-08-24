@@ -188,7 +188,8 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 					case DL_TYPE_STORAGE_STR:
 					{
 						uintptr_t offset = dl_internal_read_ptr_data( member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size );
-						convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, member->type));
+						if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
+							convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, member->type));
 					}
 					break;
 					case DL_TYPE_STORAGE_PTR:
@@ -415,8 +416,14 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 					case DL_TYPE_STORAGE_STR:
 					{
 						uintptr_t Offset = dl_internal_read_ptr_data(member_data, conv_ctx.src_endian, conv_ctx.src_ptr_size);
-						conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), Offset ) );
-						dl_binary_writer_write_ptr( writer, 0x0 );
+
+						if (Offset != DL_NULL_PTR_OFFSET[conv_ctx.src_ptr_size])
+						{
+							conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), Offset ) );
+							dl_binary_writer_write_ptr( writer, 0x0 );
+						}
+						else
+							dl_binary_writer_write_ptr( writer, (uintptr_t)-1 );
 					}
 					break;
 					case DL_TYPE_STORAGE_PTR:

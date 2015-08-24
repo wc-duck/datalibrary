@@ -342,6 +342,17 @@ TYPED_TEST(DLBase, string)
 	EXPECT_STREQ(Orig.Str2, Loaded[0].Str2);
 }
 
+TYPED_TEST(DLBase, string_null)
+{
+	Strings Orig = { 0x0, "bell" } ;
+	Strings Loaded[5]; // this is so ugly!
+
+	this->do_the_round_about( Strings::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+
+	EXPECT_STREQ(Orig.Str1, Loaded[0].Str1);
+	EXPECT_STREQ(Orig.Str2, Loaded[0].Str2);
+}
+
 TYPED_TEST(DLBase, escaped_val_in_string)
 {
 	Strings Orig = { "cow\nbell\tbopp", "\\\"\"bopp" } ;

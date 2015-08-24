@@ -132,8 +132,13 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 					case DL_TYPE_STORAGE_STR:
 					{
 						uintptr_t offset = *(uintptr_t*)member_data;
-	 					char* the_string =  (char*)(data_base + offset);
-	 					yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)the_string, (unsigned int)strlen(the_string));
+						if( offset == (uintptr_t)-1 )
+							yajl_gen_null(_Ctx->m_JsonGen);
+						else
+						{
+							char* the_string =  (char*)(data_base + offset);
+							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)the_string, (unsigned int)strlen(the_string));
+						}
 	 				}
 					break;
 					case DL_TYPE_STORAGE_PTR:

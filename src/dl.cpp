@@ -143,6 +143,11 @@ struct CDLBinStoreContext
 static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	char* str = *(char**)instance;
+	if( str == 0x0 )
+	{
+		dl_binary_writer_write( &store_ctx->writer, &DL_NULL_PTR_OFFSET[ DL_PTR_SIZE_HOST ], sizeof(uintptr_t) );
+		return;
+	}
 	uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
 	dl_binary_writer_seek_end( &store_ctx->writer );
 	uintptr_t offset = dl_binary_writer_tell( &store_ctx->writer );

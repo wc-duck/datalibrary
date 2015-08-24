@@ -1,10 +1,5 @@
 BUILD_PATH = "local"
 
-PYTHON = "python"
-if family == "windows" then -- hackery hack
-    PYTHON = "C:\\Python27\\python.exe"
-end
-
 EXTERNALS_PATH = 'external'
 GTEST_PATH = PathJoin( EXTERNALS_PATH, 'gtest' )
 YAJL_PATH  = PathJoin( EXTERNALS_PATH, 'yajl' )
@@ -301,6 +296,12 @@ else
 	AddJob( "test",          "unittest c",        dl_tests .. test_args,                                 dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind" .. valgrind_flags .. dl_tests .. test_args, dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_gdb",      "unittest gdb",      "gdb --args " .. dl_tests .. test_args,                dl_tests,    "local/generated/unittest.bin" )
+end
+
+
+PYTHON = "python"
+if family == "windows" then -- hackery hack
+    PYTHON = "C:\\Python27\\python.exe"
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
