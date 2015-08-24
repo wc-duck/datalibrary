@@ -471,6 +471,22 @@ TYPED_TEST(DLBase, inline_array_string)
 	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
 }
 
+TYPED_TEST(DLBase, inline_array_string_null)
+{
+	StringInlineArray Orig = { { (char*)"awsum", 0x0, (char*)"FTW!" } } ;
+	StringInlineArray* New;
+
+	StringInlineArray Loaded[5]; // this is so ugly!
+
+	this->do_the_round_about( StringInlineArray::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+
+	New = Loaded;
+
+	EXPECT_STREQ(Orig.Strings[0], New->Strings[0]);
+	EXPECT_STREQ(Orig.Strings[1], New->Strings[1]);
+	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
+}
+
 TYPED_TEST(DLBase, inline_array_enum)
 {
 	InlineArrayEnum Inst = { { TESTENUM2_VALUE1, TESTENUM2_VALUE2, TESTENUM2_VALUE3, TESTENUM2_VALUE4 } };

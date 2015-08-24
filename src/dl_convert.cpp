@@ -245,8 +245,9 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 						uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
 						for( uintptr_t elem = 0; elem < member->inline_array_cnt(); ++elem )
 						{
-							uintptr_t Offset = dl_internal_read_ptr_data(data + (elem * ptr_size), convert_ctx.src_endian, convert_ctx.src_ptr_size);
-							convert_ctx.instances.Add(SInstance(base_data + Offset, 0x0, member->inline_array_cnt(), dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
+							uintptr_t offset = dl_internal_read_ptr_data(data + (elem * ptr_size), convert_ctx.src_endian, convert_ctx.src_ptr_size);
+							if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
+								convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, member->inline_array_cnt(), dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
 						}
 					}
 					break;
@@ -415,11 +416,11 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
-						uintptr_t Offset = dl_internal_read_ptr_data(member_data, conv_ctx.src_endian, conv_ctx.src_ptr_size);
+						uintptr_t offset = dl_internal_read_ptr_data(member_data, conv_ctx.src_endian, conv_ctx.src_ptr_size);
 
-						if (Offset != DL_NULL_PTR_OFFSET[conv_ctx.src_ptr_size])
+						if (offset != DL_NULL_PTR_OFFSET[conv_ctx.src_ptr_size])
 						{
-							conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), Offset ) );
+							conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), offset ) );
 							dl_binary_writer_write_ptr( writer, 0x0 );
 						}
 						else
@@ -466,11 +467,15 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 
 						for (uintptr_t iElem = 0; iElem < member->inline_array_cnt(); ++iElem)
 						{
-							uintptr_t OldOffset = dl_internal_read_ptr_data(member_data + (iElem * PtrSizeSource), conv_ctx.src_endian, conv_ctx.src_ptr_size);
-							conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(Pos + (iElem * PtrSizeTarget), OldOffset));
+							uintptr_t old_offset = dl_internal_read_ptr_data(member_data + (iElem * PtrSizeSource), conv_ctx.src_endian, conv_ctx.src_ptr_size);
+							if (old_offset != DL_NULL_PTR_OFFSET[conv_ctx.src_ptr_size])
+							{
+								conv_ctx.m_lPatchOffset.Add(SConvertContext::PatchPos(Pos + (iElem * PtrSizeTarget), old_offset));
+								dl_binary_writer_write_ptr( writer, 0x0 );
+							}
+							else
+								dl_binary_writer_write_ptr( writer, (uintptr_t)-1 );
 						}
-
-						dl_binary_writer_write_zero( writer, member->size[conv_ctx.target_ptr_size] );
 					}
 					break;
 					default:

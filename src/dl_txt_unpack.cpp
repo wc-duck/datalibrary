@@ -98,6 +98,19 @@ static void dl_internal_write_pod_member( yajl_gen gen, dl_type_t pod_type, cons
 	yajl_gen_number( gen, buffer64, (size_t)chars );
 }
 
+static void dl_internal_write_string( yajl_gen gen, const uint8_t* member_data, const uint8_t* data_base )
+{
+	uintptr_t offset = *(uintptr_t*)member_data;
+	if( offset == (uintptr_t)-1 )
+	{
+		yajl_gen_null( gen );
+		return;
+	}
+
+	char* the_string =  (char*)(data_base + offset);
+	yajl_gen_string( gen, (unsigned char*)the_string, (unsigned int)strlen(the_string) );
+}
+
 static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_desc* type, const uint8_t* data, const uint8_t* data_base )
 {
 	dl_ctx_t ctx = _Ctx->m_Ctx;
@@ -131,14 +144,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 					break;
 					case DL_TYPE_STORAGE_STR:
 					{
-						uintptr_t offset = *(uintptr_t*)member_data;
-						if( offset == (uintptr_t)-1 )
-							yajl_gen_null(_Ctx->m_JsonGen);
-						else
-						{
-							char* the_string =  (char*)(data_base + offset);
-							yajl_gen_string(_Ctx->m_JsonGen, (unsigned char*)the_string, (unsigned int)strlen(the_string));
-						}
+						dl_internal_write_string( _Ctx->m_JsonGen, member_data, data_base );
 	 				}
 					break;
 					case DL_TYPE_STORAGE_PTR:
@@ -191,13 +197,8 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 
 					case DL_TYPE_STORAGE_STR:
 					{
-						uintptr_t size  = sizeof(char*);
 						for( uintptr_t elem_index = 0; elem_index < member->inline_array_cnt(); ++elem_index )
-						{
-							uintptr_t offset = *(uintptr_t*)( member_data + (elem_index * size) );
-							char* str        = (char*)( data_base + offset );
-							yajl_gen_string( _Ctx->m_JsonGen, (unsigned char*)str, (unsigned int)strlen(str) );
-						}
+							dl_internal_write_string( _Ctx->m_JsonGen, member_data + (elem_index * sizeof(char*)), data_base );
 					}
 					break;
 

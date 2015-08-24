@@ -238,7 +238,7 @@ static int dl_internal_pack_on_null( void* pack_ctx_in )
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
 	DL_ASSERT( pack_ctx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID || pack_ctx->CurrentPackState() == DL_PACK_STATE_STRING );
 	dl_binary_writer_write_ptr( pack_ctx->writer, (uintptr_t)-1 );
-	dl_txt_pack_ctx_pop_state( pack_ctx );
+	dl_txt_pack_ctx_pop_array_item( pack_ctx );
 	return 1;
 }
 
@@ -538,7 +538,7 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 		default:
 			DL_PACK_ERROR_AND_FAIL( pack_ctx, 
 									DL_ERROR_TXT_PARSE_ERROR, 
-									"Unexpected string \"%.*s\"!", 
+									"Unexpected string \"%.*s\"!",
 									(int)str_len, str_value );
 			break;
 	}
