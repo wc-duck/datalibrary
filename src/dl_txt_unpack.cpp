@@ -246,12 +246,7 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 					case DL_TYPE_STORAGE_STR:
 					{
 						for( uintptr_t elem = 0; elem < Count; ++elem )
-						{
-							union { const uint8_t* u8p; const uintptr_t* pp; } conv;
-							conv.u8p = array_data + ( elem * sizeof(char*) );
-							char* str =  (char*)( data_base + *conv.pp );
-							yajl_gen_string( _Ctx->m_JsonGen, (unsigned char*)str, (unsigned int)strlen(str) );
-						}
+							dl_internal_write_string( _Ctx->m_JsonGen, array_data + (elem * sizeof(char*)), data_base );
 					}
 					break;
 					case DL_TYPE_STORAGE_ENUM:

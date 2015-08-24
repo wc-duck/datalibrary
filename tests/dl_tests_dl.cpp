@@ -577,6 +577,20 @@ TYPED_TEST(DLBase, array_string)
 	EXPECT_STREQ(Orig.Strings[3], Loaded[0].Strings[3]);
 }
 
+TYPED_TEST(DLBase, array_string_null)
+{
+	const char* TheStringArray[] = { "I like", "the", 0x0, "cowbells of doom!" };
+	StringArray Orig = { { TheStringArray, 4 } };
+	StringArray Loaded[10]; // this is so ugly!
+
+	this->do_the_round_about( StringArray::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+
+	EXPECT_STREQ(Orig.Strings[0], Loaded[0].Strings[0]);
+	EXPECT_STREQ(Orig.Strings[1], Loaded[0].Strings[1]);
+	EXPECT_STREQ(Orig.Strings[2], Loaded[0].Strings[2]);
+	EXPECT_STREQ(Orig.Strings[3], Loaded[0].Strings[3]);
+}
+
 TYPED_TEST(DLBase, array_struct)
 {
 	Pods2 Data[4] = { { 1, 2}, { 3, 4 }, { 5, 6 }, { 7, 8 } } ;

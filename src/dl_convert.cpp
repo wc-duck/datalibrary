@@ -284,7 +284,8 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 						for( uintptr_t elem = 0; elem < count; ++elem )
 						{
 							uintptr_t elem_offset = dl_internal_read_ptr_data(array_data + (elem * ptr_size), convert_ctx.src_endian, convert_ctx.src_ptr_size);
-							convert_ctx.instances.Add(SInstance(base_data + elem_offset, 0x0, count, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
+							if(elem_offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
+								convert_ctx.instances.Add(SInstance(base_data + elem_offset, 0x0, count, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
 						}
 					}
 					break;
@@ -604,8 +605,13 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 	 			for(uintptr_t elem = 0; elem < inst.array_count; ++elem )
 	 			{
 	 				uintptr_t orig_offset = dl_internal_read_ptr_data(u8 + ( elem * type_size ), conv_ctx.src_endian, conv_ctx.src_ptr_size);
-	 				conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), orig_offset ) );
-	 				dl_binary_writer_write_ptr( writer, orig_offset );
+	 				if(orig_offset != DL_NULL_PTR_OFFSET[conv_ctx.src_ptr_size])
+	 				{
+						conv_ctx.m_lPatchOffset.Add( SConvertContext::PatchPos( dl_binary_writer_tell( writer ), orig_offset ) );
+						dl_binary_writer_write_ptr( writer, orig_offset );
+	 				}
+	 				else
+	 					dl_binary_writer_write_ptr( writer, (uintptr_t)-1 );
 	 			}
 			} break;
 

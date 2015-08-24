@@ -236,7 +236,14 @@ static void dl_txt_pack_ctx_init( SDLPackContext* pack_ctx )
 static int dl_internal_pack_on_null( void* pack_ctx_in )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
-	DL_ASSERT( pack_ctx->CurrentPackState() == DL_PACK_STATE_SUBDATA_ID || pack_ctx->CurrentPackState() == DL_PACK_STATE_STRING );
+	dl_pack_state state = pack_ctx->CurrentPackState();
+	DL_ASSERT( state == DL_PACK_STATE_SUBDATA_ID || state == DL_PACK_STATE_STRING || state == DL_PACK_STATE_STRING_ARRAY );
+	if( state == DL_PACK_STATE_STRING_ARRAY )
+	{
+		uintptr_t array_elem_pos = dl_binary_writer_push_back_alloc( pack_ctx->writer, sizeof( char* ) );
+		dl_binary_writer_seek_set( pack_ctx->writer, array_elem_pos );
+	}
+
 	dl_binary_writer_write_ptr( pack_ctx->writer, (uintptr_t)-1 );
 	dl_txt_pack_ctx_pop_array_item( pack_ctx );
 	return 1;
