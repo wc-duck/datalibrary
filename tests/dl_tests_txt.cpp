@@ -136,6 +136,22 @@ TEST_F(DLText, default_value_string)
 	EXPECT_STREQ("cowbells ftw!", P1[0].Str);
 }
 
+TEST_F(DLText, default_value_with_data_in_struct)
+{
+	// default-values should be set correctly!
+
+	const char* TextData = "{ \"type\" : \"DefaultWithOtherDataBefore\", \"data\" : { \"t1\" : \"apa\" } }";
+
+	unsigned char OutDataText[1024];
+	DefaultWithOtherDataBefore P1[10]; // this is so ugly!
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultWithOtherDataBefore::TYPE_ID, P1, sizeof(P1), OutDataText, 1024, 0x0));
+
+	EXPECT_STREQ("apa", P1[0].t1);
+	EXPECT_STREQ("who", P1[0].Str);
+}
+
 TEST_F(DLText, default_value_ptr)
 {
 	// default-values should be set correctly!

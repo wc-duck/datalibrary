@@ -892,8 +892,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 					// TODO: test with multiple default values with subptrs in one struct.
 
 					uint8_t* member_data = pack_ctx->writer->data + mem_pos;
-					uintptr_t member_to_subdata_offset = subdata_pos - mem_pos;
-					dl_internal_patch_member( pack_ctx->dl_ctx, member, member_data, (uintptr_t)pack_ctx->writer->data, subdata_pos - member_to_subdata_offset );
+					dl_internal_patch_member( pack_ctx->dl_ctx, member, member_data, (uintptr_t)pack_ctx->writer->data, subdata_pos - member_size );
 				}
 			}
 

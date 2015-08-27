@@ -136,10 +136,10 @@
 		/*
 			And a multiline comment here
 		*/
-		"DefaultStr"  :         { "members" : [ { "name" : "Str",    "type" : "string",    "default" : "cowbells ftw!"              } ] },
-		"DefaultEnum" :         { "members" : [ { "name" : "Enum",   "type" : "TestEnum1", "default" : "TESTENUM1_VALUE3"           } ] },
-		"DefaultStruct" :       { "members" : [ { "name" : "Struct", "type" : "Pods2",     "default" : { "Int1" : 13, "Int2" : 37 } } ] },
-		"DefaultPtr"  :         { "members" : [ { "name" : "Ptr",    "type" : "Pods*",     "default" : null                         } ] },
+		"DefaultStr" :      { "members" : [ { "name" : "Str",    "type" : "string",    "default" : "cowbells ftw!"              } ] },
+		"DefaultEnum" :     { "members" : [ { "name" : "Enum",   "type" : "TestEnum1", "default" : "TESTENUM1_VALUE3"           } ] },
+		"DefaultStruct" :   { "members" : [ { "name" : "Struct", "type" : "Pods2",     "default" : { "Int1" : 13, "Int2" : 37 } } ] },
+		"DefaultPtr"  :     { "members" : [ { "name" : "Ptr",    "type" : "Pods*",     "default" : null                         } ] },
 		
 		/**
 			another comment
@@ -170,6 +170,13 @@
 									"default" : [ { "u32_arr" : [ 1, 3 ] }, { "u32_arr" : [ 3, 7 ] } ]
 								  }
 	                            ] },
+
+		"DefaultWithOtherDataBefore" : { 
+			"members" : [
+				{ "name" : "t1",  "type" : "string" },
+				{ "name" : "Str", "type" : "string", "default" : "who" }
+			]
+		},
 
 		"with_alias_enum" : {
 			"members" : [
