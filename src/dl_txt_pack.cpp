@@ -841,6 +841,7 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 {
 	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
+	dl_binary_writer* writer = pack_ctx->writer;
 
 	if( pack_ctx->state_stack.Len() == 1 ) // end of top-instance!
 	{
@@ -878,21 +879,20 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 				uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
 				uint8_t* subdata = member_default_value + member_size;
 
-				dl_binary_writer_seek_set( pack_ctx->writer, mem_pos );
-				dl_binary_writer_write( pack_ctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+				dl_binary_writer_seek_set( writer, mem_pos );
+				dl_binary_writer_write( writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
 
 				if( member_size != member->default_value_size )
 				{
 					// ... sub ptrs, copy and patch ...
-					dl_binary_writer_seek_end( pack_ctx->writer );
-					uintptr_t subdata_pos = dl_binary_writer_tell( pack_ctx->writer );
+					dl_binary_writer_seek_end( writer );
+					uintptr_t subdata_pos = dl_binary_writer_tell( writer );
 
-					dl_binary_writer_write( pack_ctx->writer, subdata, member->default_value_size - member_size );
+					dl_binary_writer_write( writer, subdata, member->default_value_size - member_size );
 
-					// TODO: test with multiple default values with subptrs in one struct.
-
-					uint8_t* member_data = pack_ctx->writer->data + mem_pos;
-					dl_internal_patch_member( pack_ctx->dl_ctx, member, member_data, (uintptr_t)pack_ctx->writer->data, subdata_pos - member_size );
+					uint8_t* member_data = writer->data + mem_pos;
+					if( !writer->dummy )
+						dl_internal_patch_member( pack_ctx->dl_ctx, member, member_data, (uintptr_t)writer->data, subdata_pos - member_size );
 				}
 			}
 
