@@ -101,10 +101,10 @@ struct SDLPackState
 
 	union
 	{
-		const void*         value;
-		const dl_type_desc* type;
-		const dl_member_desc*    member;
-		const dl_enum_desc*      enum_type;
+		const void*           value;
+		const dl_type_desc*   type;
+		const dl_member_desc* member;
+		const dl_enum_desc*   enum_type;
 	};
 
 	uintptr_t       struct_start_pos;
@@ -211,7 +211,7 @@ static void dl_txt_pack_ctx_add_patch_pos( SDLPackContext* pack_ctx, unsigned in
 
 	pack_ctx->patch_pos[pp_index].id        = id;
 	pack_ctx->patch_pos[pp_index].write_pos = dl_binary_writer_tell( pack_ctx->writer );
-	pack_ctx->patch_pos[pp_index].member    = pack_ctx->state_stack.Top().member;	
+	pack_ctx->patch_pos[pp_index].member    = pack_ctx->state_stack.Top().member;
 }
 
 static void dl_txt_pack_ctx_register_sub_element( SDLPackContext* pack_ctx, unsigned int elem, uintptr_t pos )
@@ -906,9 +906,21 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 	return 1;
 }
 
-static int dl_internal_pack_on_array_start( void* pack_ctx )
+static int dl_internal_pack_on_array_start( void* pack_ctx_in )
 {
-	(void)pack_ctx;
+	SDLPackContext* pack_ctx = (SDLPackContext*)pack_ctx_in;
+	// TODO: this check is really not something to be proud of, but solving the problem in a good way
+	//       is harder to do than would be motivated since this file is up for a rewrite!
+	//       See issue: https://github.com/wc-duck/datalibrary/issues/15
+	dl_pack_state state = pack_ctx->state_stack.m_Data[pack_ctx->state_stack.Len() - 2].state;
+	switch( state )
+	{
+		case DL_PACK_STATE_ARRAY:
+		case DL_PACK_STATE_STRING_ARRAY:
+			break;
+		default:
+			return 0;
+	}
 	return 1;
 }
 

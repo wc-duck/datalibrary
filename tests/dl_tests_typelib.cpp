@@ -172,3 +172,23 @@ TEST( DLTypeLibTxt, nonexisting_type )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }
+
+TEST( DLTypeLibTxt, invalid_default_value_array )
+{
+	dl_ctx_t ctx;
+
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &ctx, &p ) );
+
+	const char single_member_typelib[] = STRINGIFY({
+		"types" : {
+			"note_t"  : { "members" : [ { "name" : "points", "type" : "int32", "default" : [] } ] }
+		}
+	});
+
+	// ... load typelib ...
+	EXPECT_DL_ERR_EQ( DL_ERROR_INVALID_DEFAULT_VALUE, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
+}

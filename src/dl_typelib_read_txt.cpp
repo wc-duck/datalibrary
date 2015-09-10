@@ -898,10 +898,10 @@ static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size,
 	return res;
 }
 
-static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, unsigned int member_index )
+static bool dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, unsigned int member_index )
 {
 	if( ctx->member_descs[member_index].default_value_offset == 0xFFFFFFFF )
-		return;
+		return true;
 
 	// TODO: check that this is not outside the buffers
 	dl_type_desc*   def_type   = dl_alloc_type( ctx, dl_internal_hash_string( "a_type_here" ) );
@@ -929,7 +929,15 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, 
 	dl_internal_str_format( def_buffer, 2048, "{\"type\":\"a_type_here\",\"data\":{\"%s\"%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, lib_data + def_start );
 
 	size_t prod_bytes;
-	dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes );
+	dl_error_t err;
+	err = dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes );
+	if( err != DL_ERROR_OK )
+	{
+		dl_log_error( ctx, "failed to pack default-value for member \"%s\" with error \"%s\"",
+											dl_internal_member_name( ctx, member ),
+											dl_error_to_string( err ) );
+		return false;
+	}
 
 	uint8_t* pack_buffer = (uint8_t*)dl_alloc( &ctx->alloc, prod_bytes );
 
@@ -951,6 +959,7 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, 
 	--ctx->type_count;
 	--ctx->member_count;
 	ctx->typedata_strings_size = name_start;
+	return true;
 }
 
 static dl_member_desc* dl_load_txt_find_first_bitfield_member( dl_member_desc* start, dl_member_desc* end )
@@ -1304,7 +1313,8 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_da
 	}
 
 	for( unsigned int i = start_member; i < dl_ctx->member_count; ++i )
-		dl_load_txt_build_default_data( dl_ctx, lib_data, i );
+		if( !dl_load_txt_build_default_data( dl_ctx, lib_data, i ) )
+			return DL_ERROR_INVALID_DEFAULT_VALUE;
 
 	for( unsigned int i = start_type; i < dl_ctx->type_count; ++i )
 		dl_context_load_txt_type_set_flags( dl_ctx, dl_ctx->type_descs + i );

@@ -159,8 +159,8 @@ public:
 template <typename T, int SIZE>
 class CStackStatic
 {
-	CArrayStatic<T, SIZE> m_Data;
 public:
+	CArrayStatic<T, SIZE> m_Data;
 	/*
 		Function: Push
 	*/
