@@ -293,8 +293,7 @@ static int dl_internal_pack_on_bool( void* pack_ctx_in, int value )
 			break;
 
 			default:
-				DL_ASSERT(false && "This should not happen!");
-				break;
+				DL_PACK_ERROR_AND_FAIL( pack_ctx, DL_ERROR_TXT_PARSE_ERROR, "Invalid format, unexpected bool!" );
 		}
 
 		dl_txt_pack_ctx_pop_state( pack_ctx );
@@ -424,8 +423,7 @@ static int dl_internal_pack_on_number( void* pack_ctx_in, const char* str_val, s
 		return 1;
 
 		default:
-			DL_ASSERT(false && "This should not happen!");
-			return 0;
+			DL_PACK_ERROR_AND_FAIL( pack_ctx, DL_ERROR_TXT_PARSE_ERROR, "Invalid format, unexpected number!" );
 	}
 
 	union { int64_t sign; uint64_t unsign; } value;
@@ -912,6 +910,9 @@ static int dl_internal_pack_on_array_start( void* pack_ctx_in )
 	// TODO: this check is really not something to be proud of, but solving the problem in a good way
 	//       is harder to do than would be motivated since this file is up for a rewrite!
 	//       See issue: https://github.com/wc-duck/datalibrary/issues/15
+	if( pack_ctx->state_stack.Len() < 2 )
+		return 0;
+
 	dl_pack_state state = pack_ctx->state_stack.m_Data[pack_ctx->state_stack.Len() - 2].state;
 	switch( state )
 	{

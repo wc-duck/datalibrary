@@ -9,6 +9,8 @@
 
 // TODO: add test for default values for uint*[] with true/false.
 
+#define STRINGIFY( ... ) #__VA_ARGS__
+
 class DLText : public DL {};
 
 TEST_F(DLText, member_order)
@@ -393,6 +395,26 @@ TEST_F( DLText, invalid_enum_value )
 	unsigned char out_data_text[1024];
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_INVALID_ENUM_VALUE, dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
+
+TEST_F( DLText, invalid_data_format )
+{
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( [] ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "type" : "Pods", "data" : [] }   ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "type" : "Pods", "data" : 1 }    ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "type" : "Pods", "data" : true } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
+
+TEST_F( DLText, invalid_type_format )
+{
+	unsigned char out_data_text[1024];
+	// EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( [] ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "type" : {},   "data" : {} }   ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "type" : [],   "data" : {} }   ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "type" : 1,    "data" : {} }   ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "type" : true, "data" : {} }   ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
+
 
 TEST_F( DLText, basic_bool_all_true )
 {
