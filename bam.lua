@@ -124,6 +124,7 @@ function DefaultGCCLike( platform, config, compiler )
 	settings.cc.flags:Add( arch )
 	settings.dll.flags:Add( arch )
 	settings.link.flags:Add( arch )
+	settings.link.libs:Add( 'rt' )
 	
 	return settings
 end
