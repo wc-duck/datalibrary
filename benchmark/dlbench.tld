@@ -1,0 +1,8 @@
+{
+	"module" : "benchmark",
+	"types"  : {
+		"fp32_array"       : { "members" : [ { "name" : "arr",  "type" : "fp32[]"       } ] },
+		"fp32_array_array" : { "members" : [ { "name" : "arr",  "type" : "fp32_array[]" } ] },
+		"str_array"        : { "members" : [ { "name" : "arr",  "type" : "string[]"     } ] }
+	}
+}
