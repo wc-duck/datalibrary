@@ -30,6 +30,17 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 
 	dl_binary_writer_write_string_fmt( writer, "#include <stdint.h>\n\n" );
 	dl_binary_writer_write_string_fmt( writer, "#include <stddef.h> // for size_t\n\n" );
+
+	dl_binary_writer_write_string_fmt( writer, "#ifndef __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n" );
+	dl_binary_writer_write_string_fmt( writer, "#define __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  if defined(_MSC_VER)\n" );
+	dl_binary_writer_write_string_fmt( writer, "#    define DL_ALIGN(x) __declspec(align(x))\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  elif defined(__GNUC__)\n" );
+	dl_binary_writer_write_string_fmt( writer, "#    define DL_ALIGN(x) __attribute__((aligned(x)))\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  else\n" );
+	dl_binary_writer_write_string_fmt( writer, "#    error \"Unsupported compiler\"\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  endif\n" );
+	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n\n" );
 }
 
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )

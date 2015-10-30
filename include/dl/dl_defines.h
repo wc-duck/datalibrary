@@ -6,12 +6,10 @@
 #if defined(_MSC_VER)
 	#define DL_FORCEINLINE __forceinline
 	#define DL_DLL_EXPORT  __declspec(dllexport)
-	#define DL_ALIGN(x)    __declspec(align(x))
 	#define DL_RESTRICT    __restrict
 #elif defined(__GNUC__)
 	#define DL_FORCEINLINE inline __attribute__((always_inline))
 	#define DL_DLL_EXPORT
-	#define DL_ALIGN(x)    __attribute__((aligned(x)))
 	#define DL_RESTRICT    __restrict__
 #else
 	#error No supported compiler
