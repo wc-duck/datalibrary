@@ -77,7 +77,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	free( tids );
 }
 
-static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid )
+static void dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid, char* out_buff, uint32_t buff_size )
 {
 	switch( storage )
 	{
@@ -85,34 +85,39 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, d
 		{
 			dl_type_info_t sub_type;
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
-			return sub_type.name;
+			strcpy_s(out_buff, buff_size, sub_type.name);
+			return;
 		}
 		case DL_TYPE_STORAGE_ENUM:
 		{
 			dl_enum_info_t sub_type;
 			dl_reflect_get_enum_info( ctx, tid, &sub_type );
-			return sub_type.name;
+			strcpy_s(out_buff, buff_size, sub_type.name);
+			return;
 		}
-		case DL_TYPE_STORAGE_INT8:   return "int8_t";
-		case DL_TYPE_STORAGE_UINT8:  return "uint8_t";
-		case DL_TYPE_STORAGE_INT16:  return "int16_t";
-		case DL_TYPE_STORAGE_UINT16: return "uint16_t";
-		case DL_TYPE_STORAGE_INT32:  return "int32_t";
-		case DL_TYPE_STORAGE_UINT32: return "uint32_t";
-		case DL_TYPE_STORAGE_INT64:  return "DL_ALIGN(8) int64_t";
-		case DL_TYPE_STORAGE_UINT64: return "DL_ALIGN(8) uint64_t";
-		case DL_TYPE_STORAGE_FP32:   return "float";
-		case DL_TYPE_STORAGE_FP64:   return "DL_ALIGN(8) double";
-		case DL_TYPE_STORAGE_STR:    return "const char*";
+		case DL_TYPE_STORAGE_INT8:   strcpy_s(out_buff, buff_size, "int8_t"); return;
+		case DL_TYPE_STORAGE_UINT8:  strcpy_s(out_buff, buff_size, "uint8_t"); return;
+		case DL_TYPE_STORAGE_INT16:  strcpy_s(out_buff, buff_size, "int16_t"); return;
+		case DL_TYPE_STORAGE_UINT16: strcpy_s(out_buff, buff_size, "uint16_t"); return;
+		case DL_TYPE_STORAGE_INT32:  strcpy_s(out_buff, buff_size, "int32_t"); return;
+		case DL_TYPE_STORAGE_UINT32: strcpy_s(out_buff, buff_size, "uint32_t"); return;
+		case DL_TYPE_STORAGE_INT64:  strcpy_s(out_buff, buff_size, "DL_ALIGN(8) int64_t"); return;
+		case DL_TYPE_STORAGE_UINT64: strcpy_s(out_buff, buff_size, "DL_ALIGN(8) uint64_t"); return;
+		case DL_TYPE_STORAGE_FP32:   strcpy_s(out_buff, buff_size, "float"); return;
+		case DL_TYPE_STORAGE_FP64:   strcpy_s(out_buff, buff_size, "DL_ALIGN(8) double"); return;
+		case DL_TYPE_STORAGE_STR:    strcpy_s(out_buff, buff_size, "const char*"); return;
 		default:
-			return 0x0;
+			strcpy_s(out_buff, buff_size, "UNKNOWN");
+			return;
 	}
 }
 
+static const uint32_t MAX_TEMP_STRING_LENGTH = 512;
 static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member, bool* last_was_bf )
 {
 	dl_type_t atom    = (dl_type_t)(DL_TYPE_ATOM_MASK & member->type);
 	dl_type_t storage = (dl_type_t)(DL_TYPE_STORAGE_MASK & member->type);
+	char temp_string[MAX_TEMP_STRING_LENGTH];
 
 	switch( atom )
 	{
@@ -141,7 +146,8 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				}
 				break;
 				default:
-					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name );
+					dl_context_type_to_string(ctx, storage, member->type_id, temp_string, MAX_TEMP_STRING_LENGTH);
+					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", temp_string, member->name );
 					break;
 			}
 
@@ -150,28 +156,31 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 			if( *last_was_bf && storage == DL_TYPE_STORAGE_UINT64 )
 				dl_binary_writer_write_string_fmt( writer, "    uint64_t %s : %u;\n", member->name, member->bits );
 			else
-				dl_binary_writer_write_string_fmt( writer, "    %s %s : %u;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name, member->bits );
+			{
+				dl_context_type_to_string(ctx, storage, member->type_id, temp_string, MAX_TEMP_STRING_LENGTH);
+				dl_binary_writer_write_string_fmt(writer, "    %s %s : %u;\n", temp_string, member->name, member->bits);
+			}
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 		{
-			const char* type_str = dl_context_type_to_string( ctx, storage, member->type_id );
+			dl_context_type_to_string(ctx, storage, member->type_id, temp_string, MAX_TEMP_STRING_LENGTH );
 			dl_binary_writer_write_string_fmt( writer, "    struct\n    {\n" );
-			dl_binary_writer_write_string_fmt( writer, "        %s* data;\n", type_str );
+			dl_binary_writer_write_string_fmt( writer, "        %s* data;\n", temp_string );
 			dl_binary_writer_write_string_fmt( writer, "        uint32_t count;\n" );
 			dl_binary_writer_write_string_fmt( writer, "    #if defined( __cplusplus )\n" );
-			dl_binary_writer_write_string_fmt( writer, "              %s& operator[] ( size_t index )       { return data[index]; }\n", type_str );
+			dl_binary_writer_write_string_fmt( writer, "              %s& operator[] ( size_t index )       { return data[index]; }\n", temp_string );
 			if( storage == DL_TYPE_STORAGE_STR )
-				dl_binary_writer_write_string_fmt( writer, "        %s& operator[] ( size_t index ) const { return data[index]; }\n", type_str );
+				dl_binary_writer_write_string_fmt( writer, "        %s& operator[] ( size_t index ) const { return data[index]; }\n", temp_string );
 			else
-				dl_binary_writer_write_string_fmt( writer, "        const %s& operator[] ( size_t index ) const { return data[index]; }\n", type_str );
+				dl_binary_writer_write_string_fmt( writer, "        const %s& operator[] ( size_t index ) const { return data[index]; }\n", temp_string );
 			dl_binary_writer_write_string_fmt( writer, "    #endif // defined( __cplusplus )\n" );
 			dl_binary_writer_write_string_fmt( writer, "    } %s;\n", member->name );
 		}
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 		{
-			const char* type_name = dl_context_type_to_string( ctx, storage, member->type_id );
-			dl_binary_writer_write_string_fmt( writer, "    %s %s[%u];\n", type_name, member->name, member->array_count );
+			dl_context_type_to_string( ctx, storage, member->type_id, temp_string, MAX_TEMP_STRING_LENGTH );
+			dl_binary_writer_write_string_fmt( writer, "    %s %s[%u];\n", temp_string, member->name, member->array_count );
 		}
 		break;
 		default:
