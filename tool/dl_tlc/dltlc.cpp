@@ -14,31 +14,37 @@
 #define snprintf _snprintf
 #endif
 
+struct dltlc_args
+{
+	const char* input;
+	const char* output;
+
+	int unpack;
+	int show_info;
+	int c_header;
+};
+
 static int verbose = 0;
-static int unpack = 0;
-static int show_info = 0;
-static int c_header = 0;
-
-static FILE* output = stdout;
-static const char* output_path = 0x0;
-
 std::vector<const char*> inputs;
 
 #define VERBOSE_OUTPUT(fmt, ...) if( verbose ) { fprintf(stderr, fmt "\n", ##__VA_ARGS__); }
 
-static const getopt_option_t option_list[] =
-{
-	{ "help",     'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,        'h', "displays this help-message", 0x0 },
-	{ "output",   'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,        'o', "output to file", "file" },
-	{ "unpack",   'u', GETOPT_OPTION_TYPE_FLAG_SET, &unpack,      1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
-	{ "info",     'i', GETOPT_OPTION_TYPE_FLAG_SET, &show_info,   1, "make dl_pack show info about a packed instance.", 0x0 },
-	{ "verbose",  'v', GETOPT_OPTION_TYPE_FLAG_SET, &verbose,     1, "verbose output", 0x0 },
-	{ "c-header", 'c', GETOPT_OPTION_TYPE_FLAG_SET, &c_header,    1, "", 0x0 },
-	GETOPT_OPTIONS_END
-};
 
-static int parse_args( int argc, const char** argv )
+static int parse_args( int argc, const char** argv, dltlc_args* args )
 {
+	memset( args, 0x0, sizeof(dltlc_args) );
+
+	const getopt_option_t option_list[] =
+	{
+		{ "help",     'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,            'h', "displays this help-message", 0x0 },
+		{ "output",   'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,            'o', "output to file", "file" },
+		{ "unpack",   'u', GETOPT_OPTION_TYPE_FLAG_SET, &args->unpack,    1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
+		{ "info",     'i', GETOPT_OPTION_TYPE_FLAG_SET, &args->show_info, 1, "make dl_pack show info about a packed instance.", 0x0 },
+		{ "verbose",  'v', GETOPT_OPTION_TYPE_FLAG_SET, &verbose,         1, "verbose output", 0x0 },
+		{ "c-header", 'c', GETOPT_OPTION_TYPE_FLAG_SET, &args->c_header,  1, "", 0x0 },
+		GETOPT_OPTIONS_END
+	};
+
 	getopt_context_t go_ctx;
 	getopt_create_context( &go_ctx, argc, argv, option_list );
 
@@ -60,21 +66,14 @@ static int parse_args( int argc, const char** argv )
 			}
 
 			case 'o':
-				if( output != stdout )
+				// if( output != stdout )
+				if( args->output != 0x0 )
 				{
 					fprintf( stderr, "specified -o/--output twice!\n" );
 					return 1;
 				}
 
-				output = fopen( go_ctx.current_opt_arg, "wb" );
-				if( output == 0 )
-				{
-					fprintf( stderr, "failed to open output: \"%s\"\n", go_ctx.current_opt_arg );
-					return 1;
-				}
-
-				output_path = go_ctx.current_opt_arg;
-
+				args->output = go_ctx.current_opt_arg;
 				break;
 
 			case '!':
@@ -89,6 +88,12 @@ static int parse_args( int argc, const char** argv )
 				inputs.push_back( go_ctx.current_opt_arg );
 				break;
 		}
+	}
+
+	if( args->show_info + args->c_header + args->unpack > 1 )
+	{
+		fprintf( stderr, "more than one of, -u,--unpack, -i,--info or -c,--c_header was specified!\n" );
+		return 1;
 	}
 
 	return 2;
@@ -304,7 +309,8 @@ static void show_tl_info( dl_ctx_t ctx )
 
 int main( int argc, const char** argv )
 {
-	int ret = parse_args( argc, argv );
+	dltlc_args args;
+	int ret = parse_args( argc, argv, &args );
 	if( ret < 2 )
 		return ret;
 
@@ -348,18 +354,25 @@ int main( int argc, const char** argv )
 
 	int res = 0;
 
-	if( show_info )
+	FILE* output = args.output == 0x0 ? stdout : fopen( args.output, "wb" );
+	if( output == 0x0 )
+	{
+		fprintf( stderr, "failed to open output: \"%s\"\n", args.output );
+		return 1;
+	}
+
+	if( args.show_info )
 		show_tl_info( ctx );
-	else if( unpack )
+	else if( args.unpack )
 		res = write_tl_as_text( ctx, output );
-	else if( c_header )
+	else if( args.c_header )
 	{
 		if( output == stdout )
 			res = write_tl_as_c_header( ctx, "STDOUT", output );
 		else
 		{
-			const char* module_name = output_path;
-			const char* iter = output_path;
+			const char* module_name = args.output;
+			const char* iter = args.output;
 			while( *iter )
 			{
 				if( *iter == '/' || *iter == '\\' )
@@ -371,6 +384,9 @@ int main( int argc, const char** argv )
 	}
 	else
 		res = write_tl_as_binary( ctx, output );
+
+	if( output != stdout )
+		fclose( output );
 
 	dl_context_destroy( ctx );
 
