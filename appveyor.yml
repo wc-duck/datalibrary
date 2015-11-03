@@ -1,12 +1,24 @@
 platform:
   - x86
 
+environment:
+  matrix:
+    - MSVS: msvs10
+      PLATFORM: win32
+      CONFIG: debug
+    - MSVS: msvs10
+      PLATFORM: win32
+      CONFIG: release
+    - MSVS: msvs10
+      PLATFORM: winx64
+      CONFIG: debug
+    - MSVS: msvs10
+      PLATFORM: winx64
+      CONFIG: release
+
 install:
   - start /b /i /wait compat\build_bam.bat
   - set WindowsSdkDir=C:\Program Files\Microsoft SDKs\Windows\v7.1
-  - bam\bam.exe platform=winx64 config=debug -r s test
-  - bam\bam.exe platform=winx64 config=release -r s test
-  - bam\bam.exe platform=win32 config=debug -r s test
-  - bam\bam.exe platform=win32 config=release -r s test
+  - bam\bam.exe platform=%PLATFORM% config=%CONFIG% compiler=%MSVS% -r s test
 
 build: OFF

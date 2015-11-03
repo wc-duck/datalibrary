@@ -3,8 +3,6 @@
 #include "dl_test_common.h"
 #include <dl/dl_typelib.h>
 
-#include <stdio.h>
-
 #define STRINGIFY( ... ) #__VA_ARGS__
 
 TEST( DLTypeLib, simple_read_write )
@@ -170,6 +168,38 @@ TEST( DLTypeLibTxt, nonexisting_type )
 
 	// ... load typelib ...
 	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
+}
+
+TEST( DLTypeLibTxt, struct_with_no_members1 )
+{
+	dl_ctx_t ctx;
+
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &ctx, &p ) );
+
+	const char single_member_typelib[] = STRINGIFY({ "types" : { "no_members"  : {} } });
+
+	// ... load typelib ...
+	EXPECT_DL_ERR_EQ( DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
+}
+
+TEST( DLTypeLibTxt, struct_with_no_members2 )
+{
+	dl_ctx_t ctx;
+
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &ctx, &p ) );
+
+	const char single_member_typelib[] = STRINGIFY({ "types" : { "no_members"  : { "members" : [] } } });
+
+	// ... load typelib ...
+	EXPECT_DL_ERR_EQ( DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_destroy( ctx ) );
 }
 

@@ -30,6 +30,17 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 
 	dl_binary_writer_write_string_fmt( writer, "#include <stdint.h>\n\n" );
 	dl_binary_writer_write_string_fmt( writer, "#include <stddef.h> // for size_t\n\n" );
+
+	dl_binary_writer_write_string_fmt( writer, "#ifndef __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n" );
+	dl_binary_writer_write_string_fmt( writer, "#define __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  if defined(_MSC_VER)\n" );
+	dl_binary_writer_write_string_fmt( writer, "#    define DL_ALIGN(x) __declspec(align(x))\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  elif defined(__GNUC__)\n" );
+	dl_binary_writer_write_string_fmt( writer, "#    define DL_ALIGN(x) __attribute__((aligned(x)))\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  else\n" );
+	dl_binary_writer_write_string_fmt( writer, "#    error \"Unsupported compiler\"\n" );
+	dl_binary_writer_write_string_fmt( writer, "#  endif\n" );
+	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n\n" );
 }
 
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )
@@ -66,7 +77,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	free( tids );
 }
 
-static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid )
+static void dl_context_write_type( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid, dl_binary_writer* writer )
 {
 	switch( storage )
 	{
@@ -74,27 +85,30 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, d
 		{
 			dl_type_info_t sub_type;
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
-			return sub_type.name;
+			dl_binary_writer_write_string_fmt(writer, "struct %s", sub_type.name);
+			return;
 		}
 		case DL_TYPE_STORAGE_ENUM:
 		{
 			dl_enum_info_t sub_type;
 			dl_reflect_get_enum_info( ctx, tid, &sub_type );
-			return sub_type.name;
+			dl_binary_writer_write_string_fmt(writer, "%s", sub_type.name);
+			return;
 		}
-		case DL_TYPE_STORAGE_INT8:   return "int8_t";
-		case DL_TYPE_STORAGE_UINT8:  return "uint8_t";
-		case DL_TYPE_STORAGE_INT16:  return "int16_t";
-		case DL_TYPE_STORAGE_UINT16: return "uint16_t";
-		case DL_TYPE_STORAGE_INT32:  return "int32_t";
-		case DL_TYPE_STORAGE_UINT32: return "uint32_t";
-		case DL_TYPE_STORAGE_INT64:  return "DL_ALIGN(8) int64_t";
-		case DL_TYPE_STORAGE_UINT64: return "DL_ALIGN(8) uint64_t";
-		case DL_TYPE_STORAGE_FP32:   return "float";
-		case DL_TYPE_STORAGE_FP64:   return "DL_ALIGN(8) double";
-		case DL_TYPE_STORAGE_STR:    return "const char*";
+		case DL_TYPE_STORAGE_INT8:   dl_binary_writer_write_string_fmt(writer, "int8_t"); return;
+		case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_string_fmt(writer, "uint8_t"); return;
+		case DL_TYPE_STORAGE_INT16:  dl_binary_writer_write_string_fmt(writer, "int16_t"); return;
+		case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_string_fmt(writer, "uint16_t"); return;
+		case DL_TYPE_STORAGE_INT32:  dl_binary_writer_write_string_fmt(writer, "int32_t"); return;
+		case DL_TYPE_STORAGE_UINT32: dl_binary_writer_write_string_fmt(writer, "uint32_t"); return;
+		case DL_TYPE_STORAGE_INT64:  dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) int64_t"); return;
+		case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) uint64_t"); return;
+		case DL_TYPE_STORAGE_FP32:   dl_binary_writer_write_string_fmt(writer, "float"); return;
+		case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) double"); return;
+		case DL_TYPE_STORAGE_STR:    dl_binary_writer_write_string_fmt(writer, "const char*"); return;
 		default:
-			return 0x0;
+			dl_binary_writer_write_string_fmt(writer, "UNKNOWN");
+			return;
 	}
 }
 
@@ -130,7 +144,9 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				}
 				break;
 				default:
-					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name );
+					dl_binary_writer_write_string_fmt(writer, "    ");
+					dl_context_write_type(ctx, storage, member->type_id, writer);
+					dl_binary_writer_write_string_fmt(writer, " %s; \n", member->name );
 					break;
 			}
 
@@ -139,28 +155,44 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 			if( *last_was_bf && storage == DL_TYPE_STORAGE_UINT64 )
 				dl_binary_writer_write_string_fmt( writer, "    uint64_t %s : %u;\n", member->name, member->bits );
 			else
-				dl_binary_writer_write_string_fmt( writer, "    %s %s : %u;\n", dl_context_type_to_string( ctx, storage, member->type_id ), member->name, member->bits );
+			{
+				dl_binary_writer_write_string_fmt(writer, "    ");
+				dl_context_write_type(ctx, storage, member->type_id, writer);
+				dl_binary_writer_write_string_fmt(writer, " %s : %u;\n", member->name, member->bits);
+			}
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 		{
-			const char* type_str = dl_context_type_to_string( ctx, storage, member->type_id );
 			dl_binary_writer_write_string_fmt( writer, "    struct\n    {\n" );
-			dl_binary_writer_write_string_fmt( writer, "        %s* data;\n", type_str );
+			dl_binary_writer_write_string_fmt(writer, "        ");
+			dl_context_write_type(ctx, storage, member->type_id, writer);
+			dl_binary_writer_write_string_fmt(writer, "* data;\n");
 			dl_binary_writer_write_string_fmt( writer, "        uint32_t count;\n" );
 			dl_binary_writer_write_string_fmt( writer, "    #if defined( __cplusplus )\n" );
-			dl_binary_writer_write_string_fmt( writer, "              %s& operator[] ( size_t index )       { return data[index]; }\n", type_str );
-			if( storage == DL_TYPE_STORAGE_STR )
-				dl_binary_writer_write_string_fmt( writer, "        %s& operator[] ( size_t index ) const { return data[index]; }\n", type_str );
+			dl_binary_writer_write_string_fmt(writer, "              ");
+			dl_context_write_type(ctx, storage, member->type_id, writer);
+			dl_binary_writer_write_string_fmt(writer, "& operator[] (size_t index)       { return data[index]; }\n");
+			if (storage == DL_TYPE_STORAGE_STR)
+			{
+				dl_binary_writer_write_string_fmt(writer, "        ");
+				dl_context_write_type(ctx, storage, member->type_id, writer);
+				dl_binary_writer_write_string_fmt(writer, "& operator[] (size_t index) const { return data[index]; }\n");
+			}
 			else
-				dl_binary_writer_write_string_fmt( writer, "        const %s& operator[] ( size_t index ) const { return data[index]; }\n", type_str );
+			{
+				dl_binary_writer_write_string_fmt(writer, "        const ");
+				dl_context_write_type(ctx, storage, member->type_id, writer);
+				dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
+			}
 			dl_binary_writer_write_string_fmt( writer, "    #endif // defined( __cplusplus )\n" );
 			dl_binary_writer_write_string_fmt( writer, "    } %s;\n", member->name );
 		}
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 		{
-			const char* type_name = dl_context_type_to_string( ctx, storage, member->type_id );
-			dl_binary_writer_write_string_fmt( writer, "    %s %s[%u];\n", type_name, member->name, member->array_count );
+			dl_binary_writer_write_string_fmt(writer, "    ");
+			dl_context_write_type(ctx, storage, member->type_id, writer);
+			dl_binary_writer_write_string_fmt( writer, " %s[%u];\n", member->name, member->array_count );
 		}
 		break;
 		default:

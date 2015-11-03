@@ -6,12 +6,10 @@
 #if defined(_MSC_VER)
 	#define DL_FORCEINLINE __forceinline
 	#define DL_DLL_EXPORT  __declspec(dllexport)
-	#define DL_ALIGN(x)    __declspec(align(x))
 	#define DL_RESTRICT    __restrict
 #elif defined(__GNUC__)
 	#define DL_FORCEINLINE inline __attribute__((always_inline))
 	#define DL_DLL_EXPORT
-	#define DL_ALIGN(x)    __attribute__((aligned(x)))
 	#define DL_RESTRICT    __restrict__
 #else
 	#error No supported compiler
@@ -25,8 +23,7 @@
 	typedef uint32_t dl_typeid_t;
 #endif
 
-#define DL_BIT(_Bit)						( 1ULL << (_Bit) )
-#define DL_BITMASK(_Bits)                   ( DL_BIT(_Bits) - 1ULL )
+#define DL_BITMASK(_Bits)                   ( (1ULL << (_Bits)) - 1ULL )
 #define DL_BITRANGE(_MinBit,_MaxBit)		( ((1ULL << (_MaxBit)) | ((1ULL << (_MaxBit))-1ULL)) ^ ((1ULL << (_MinBit))-1ULL) )
 
 #define DL_ZERO_BITS(_Target, _Start, _Bits)         ( (_Target) & ~DL_BITRANGE(_Start, (_Start) + (_Bits) - 1ULL) )

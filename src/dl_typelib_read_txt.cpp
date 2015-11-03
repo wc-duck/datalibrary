@@ -1096,6 +1096,12 @@ dl_error_t dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* typ
 	if( type->size[0] > 0 )
 		return DL_ERROR_OK;
 
+	if( type->member_count == 0 )
+	{
+		dl_log_error( ctx, "type \"%s\" has no members!", dl_internal_type_name( ctx, type ) );
+		return DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE;
+	}
+
 	dl_load_txt_fixup_bitfield_members( ctx, type );
 	dl_load_txt_fixup_enum_members( ctx, type );
 
