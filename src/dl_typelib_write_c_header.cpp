@@ -92,7 +92,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t 
 		{
 			dl_enum_info_t sub_type;
 			dl_reflect_get_enum_info( ctx, tid, &sub_type );
-			dl_binary_writer_write_string_fmt(writer, "%s", sub_type.name);
+			dl_binary_writer_write_string_fmt(writer, "enum %s", sub_type.name);
 			return;
 		}
 		case DL_TYPE_STORAGE_INT8:   dl_binary_writer_write_string_fmt(writer, "int8_t"); return;
@@ -126,7 +126,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				{
 					dl_type_info_t sub_type;
 					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", sub_type.name, member->name );
+					dl_binary_writer_write_string_fmt( writer, "    struct %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				case DL_TYPE_STORAGE_PTR:
@@ -140,7 +140,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				{
 					dl_enum_info_t sub_type;
 					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", sub_type.name, member->name );
+					dl_binary_writer_write_string_fmt( writer, "    enum %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				default:
