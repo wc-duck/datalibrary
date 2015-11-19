@@ -169,6 +169,15 @@ TEST_F(DLText, default_value_ptr)
 	EXPECT_EQ(0x0, P1.Ptr);
 }
 
+TEST_F(DLText, zero_as_ptr_fail)
+{
+	// when referring to the root item, item 0, the types need to match.
+
+	const char* TextData = "{ \"type\" : \"DefaultPtr\", \"data\" : { \"Ptr\" : 0 } }";
+	unsigned char OutDataText[1024];
+	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_INVALID_MEMBER_TYPE, dl_txt_pack(Ctx, TextData, OutDataText, 1024, 0x0));
+}
+
 TEST_F(DLText, default_value_struct)
 {
 	const char* TextData = "{ \"type\" : \"DefaultStruct\", \"data\" : {} }";

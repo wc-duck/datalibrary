@@ -759,11 +759,13 @@ static int dl_internal_pack_on_map_key( void* pack_ctx, const unsigned char* str
 
 			// check that we have referenced this before so we know its type!
 			for( unsigned int patch_pos = 0; patch_pos < pCtx->patch_pos_count; ++patch_pos )
+			{
 				if(pCtx->patch_pos[patch_pos].id == ID)
 				{
 					member = pCtx->patch_pos[patch_pos].member;
 					break;
 				}
+			}
 
 			DL_PACK_ERROR_AND_FAIL_IF( member == 0, 
 									   pCtx,
@@ -823,7 +825,7 @@ static int dl_internal_pack_on_map_start( void* pack_ctx )
 	return 1;
 }
 
-static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
+static int dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 {
 	// patch subdata
 	for(unsigned int patch_pos = 0; patch_pos < pack_ctx->patch_pos_count; ++patch_pos)
@@ -831,9 +833,22 @@ static void dl_internal_txt_pack_finalize( SDLPackContext* pack_ctx )
 		unsigned int id      = pack_ctx->patch_pos[patch_pos].id;
 		uintptr_t member_pos = pack_ctx->patch_pos[patch_pos].write_pos;
 
+		if( id == 0 )
+		{
+			const dl_member_desc* member = pack_ctx->patch_pos[patch_pos].member;
+			const dl_type_desc* mem_type = dl_internal_find_type( pack_ctx->dl_ctx, member->type_id );
+			DL_PACK_ERROR_AND_FAIL_IF(  mem_type != pack_ctx->root_type,
+										pack_ctx,
+										DL_ERROR_TXT_INVALID_MEMBER_TYPE,
+										"Member \"%s\" in struct of type \"%s*\" refer to object 0 that is the root instance, but types missmatch!",
+													   dl_internal_member_name( pack_ctx->dl_ctx, member ),
+													   dl_internal_type_name( pack_ctx->dl_ctx, mem_type ) );
+		}
+
 		dl_binary_writer_seek_set( pack_ctx->writer, member_pos );
 		dl_binary_writer_write_pint( pack_ctx->writer, pack_ctx->subdata_elems_pos[id] );
 	}
+	return 1;
 }
 
 static int dl_internal_pack_on_map_end( void* pack_ctx_in )
@@ -843,8 +858,7 @@ static int dl_internal_pack_on_map_end( void* pack_ctx_in )
 
 	if( pack_ctx->state_stack.Len() == 1 ) // end of top-instance!
 	{
-		dl_internal_txt_pack_finalize( pack_ctx );
-		return 1;
+		return dl_internal_txt_pack_finalize( pack_ctx );
 	}
 
 	dl_pack_state curr_pack_state = pack_ctx->CurrentPackState();
