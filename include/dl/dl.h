@@ -46,7 +46,7 @@ typedef struct dl_context* dl_ctx_t;
 
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
 */
-enum dl_error_t
+typedef enum
 {
 	DL_ERROR_OK,
 	DL_ERROR_MALFORMED_DATA,
@@ -70,6 +70,7 @@ enum dl_error_t
 	DL_ERROR_TXT_DATA_SECTION_MISSING,
 	DL_ERROR_TXT_MEMBER_MISSING,
 	DL_ERROR_TXT_MEMBER_SET_TWICE,
+	DL_ERROR_TXT_INVALID_MEMBER_TYPE,
 	DL_ERROR_TXT_INVALID_ENUM_VALUE,
 
 	DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE,
@@ -78,13 +79,13 @@ enum dl_error_t
 	DL_ERROR_UTIL_FILE_TYPE_MISMATCH,
 
 	DL_ERROR_INTERNAL_ERROR
-};
+} dl_error_t;
 
 /*
 	Enum: dl_type_t
 		Enumeration that describes a specific type in DL.
 */
-enum dl_type_t
+typedef enum
 {
 	// Type-layout
 	DL_TYPE_ATOM_MIN_BIT             = 0,
@@ -133,13 +134,13 @@ enum dl_type_t
 	DL_TYPE_STORAGE_ENUM   = DL_INSERT_BITS(0x00000000, 14, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
 
 	DL_TYPE_FORCE_32_BIT = 0x7FFFFFFF
-};
+} dl_type_t;
 
-enum dl_endian_t
+typedef enum
 {
 	DL_ENDIAN_BIG,
 	DL_ENDIAN_LITTLE,
-};
+} dl_endian_t;
 
 DL_FORCEINLINE dl_endian_t dl_endian_host()
 {

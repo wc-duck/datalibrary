@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include <dl/dl.h>
 #include <dl/dl_txt.h>
@@ -30,6 +31,8 @@
 		}
 		return freq;
 	}
+
+	#define CURRENT_FUNCTION_STRING __FUNCSIG__
 #else
 	#include <time.h>
 	#include <unistd.h>
@@ -42,6 +45,8 @@
 	}
 
 	inline uint64_t cpu_freq() { return 1000000000; }
+
+	#define CURRENT_FUNCTION_STRING __PRETTY_FUNCTION__
 #endif
 
 inline float cpu_ticks_to_ms( uint64_t ticks ) { return (float)ticks / (float)(cpu_freq() / 1000 ); }
@@ -113,7 +118,7 @@ static char* dlbench_pack_instance_to_txt( dl_ctx_t ctx, uint32_t type, void* in
 	printf("%s - %d iterations in %f ms\n" \
 			"  - avg %f ms\n" \
 			"  - min %f ms\n" \
-			"  - max %f ms\n" , __PRETTY_FUNCTION__, _iters, cpu_ticks_to_ms( total ), cpu_ticks_to_ms( total ) / (double)_iters, cpu_ticks_to_ms( min_time ), cpu_ticks_to_ms( max_time ) ); \
+			"  - max %f ms\n" , CURRENT_FUNCTION_STRING, _iters, cpu_ticks_to_ms( total ), cpu_ticks_to_ms( total ) / (double)_iters, cpu_ticks_to_ms( min_time ), cpu_ticks_to_ms( max_time ) ); \
 }
 
 struct dlbench_txt_pack_bench

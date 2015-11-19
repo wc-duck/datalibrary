@@ -282,6 +282,8 @@ tl2 = dl_type_lib( "tests/unittest2.tld", dltlc )
 tl3 = dl_type_lib( "tests/small.tld",     dltlc ) 
 tlbench = dl_type_lib( "benchmark/dlbench.tld", dltlc ) 
 
+dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ), tl1, tl2 )
+
 local    test_args = ""
 local py_test_args = ""
 local cs_test_args = ""
@@ -315,5 +317,5 @@ AddJob( "test_py",
 		dl_shared, "local/generated/unittest.bin" )
 
 -- do not run unittest as default, only run
-PseudoTarget( "dl_default", dl_pack, dltlc, dl_tests, dl_shared, dlbench )
+PseudoTarget( "dl_default", dl_pack, dltlc, dl_tests, dl_shared, dlbench, dl_test_valid_c )
 DefaultTarget( "dl_default" )

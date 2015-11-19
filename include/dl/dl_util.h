@@ -28,12 +28,12 @@ extern "C" {
 	DL_UTIL_FILE_TYPE_TEXT   - File must be an text instance.
 	DL_UTIL_FILE_TYPE_AUTO   - Let the function decide if binary or text.
 */
-enum dl_util_file_type_t
+typedef enum
 {
 	DL_UTIL_FILE_TYPE_BINARY = 1 << 0,
 	DL_UTIL_FILE_TYPE_TEXT   = 1 << 1,
 	DL_UTIL_FILE_TYPE_AUTO   = DL_UTIL_FILE_TYPE_BINARY  | DL_UTIL_FILE_TYPE_TEXT
-};
+} dl_util_file_type_t;
 
 /*
 	Function: dl_util_load_from_file
