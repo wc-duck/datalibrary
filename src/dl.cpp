@@ -61,7 +61,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	if( root_type == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	// TODO: Temporary disabled due to CL doing some magic stuff!!! 
+	// TODO: Temporary disabled due to CL doing some magic stuff!!!
 	// Structs allocated on qstack seems to be unaligned!!!
 	// if( !dl_internal_is_align( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
 	//	return DL_ERROR_BAD_ALIGNMENT;
@@ -230,8 +230,18 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 			switch( storage_type )
 			{
 				case DL_TYPE_STORAGE_STRUCT:
-					dl_binary_writer_write( &store_ctx->writer, instance, member->size[DL_PTR_SIZE_HOST] ); // TODO: I Guess that this is a bug! Will it fix ptrs well?
-					break;
+				{
+					const dl_type_desc* sub_type = dl_internal_find_type(dl_ctx, member->type_id);
+					if (sub_type == 0x0)
+					{
+						dl_log_error(dl_ctx, "Could not find subtype for member %s", dl_internal_member_name(dl_ctx, member));
+						return DL_ERROR_TYPE_NOT_FOUND;
+					}
+
+					for (uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem)
+						dl_internal_instance_store(dl_ctx, sub_type, instance + (elem * sub_type->size[DL_PTR_SIZE_HOST]), store_ctx);
+				}
+				break;
 				case DL_TYPE_STORAGE_STR:
 					for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
 						dl_internal_store_string( instance + (elem * sizeof(char*)), store_ctx );
