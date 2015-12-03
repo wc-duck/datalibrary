@@ -471,6 +471,21 @@ TYPED_TEST(DLBase, inline_array_string)
 	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
 }
 
+TYPED_TEST(DLBase, inline_array_subptr_patched)
+{
+	InlineArrayWithSubString Orig = { { { (char*)"apa" }, { (char*)"kossa" } } };
+	InlineArrayWithSubString* New;
+
+	InlineArrayWithSubString Loaded[5]; // this is so ugly!
+
+	this->do_the_round_about( InlineArrayWithSubString::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+
+	New = Loaded;
+
+	EXPECT_STREQ( Orig.Array[0].Str, New->Array[0].Str );
+	EXPECT_STREQ( Orig.Array[1].Str, New->Array[1].Str );
+}
+
 TYPED_TEST(DLBase, inline_array_string_null)
 {
 	StringInlineArray Orig = { { (char*)"awsum", 0x0, (char*)"FTW!" } } ;

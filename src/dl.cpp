@@ -158,6 +158,32 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 
 static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
+static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
+{
+	switch( storage_type )
+	{
+		case DL_TYPE_STORAGE_STRUCT:
+		{
+			uintptr_t size_ = sub_type->size[DL_PTR_SIZE_HOST];
+			if( sub_type->flags & DL_TYPE_FLAG_HAS_SUBDATA )
+			{
+				for (uint32_t elem = 0; elem < count; ++elem)
+					dl_internal_instance_store(dl_ctx, sub_type, instance + (elem * size_), store_ctx);
+			}
+			else
+				dl_binary_writer_write( &store_ctx->writer, instance, count * size_ );
+		}
+		break;
+		case DL_TYPE_STORAGE_STR:
+			for( uint32_t elem = 0; elem < count; ++elem )
+				dl_internal_store_string( instance + (elem * sizeof(char*)), store_ctx );
+			break;
+		default: // default is a standard pod-type
+			dl_binary_writer_write( &store_ctx->writer, instance, count * size );
+			break;
+	}
+}
+
 static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	dl_type_t atom_type    = dl_type_t(member->type & DL_TYPE_ATOM_MASK);
@@ -227,30 +253,21 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 		{
-			switch( storage_type )
+			const dl_type_desc* sub_type = 0x0;
+			uint32_t count = member->inline_array_cnt();
+			if( storage_type == DL_TYPE_STORAGE_STRUCT )
 			{
-				case DL_TYPE_STORAGE_STRUCT:
+				sub_type = dl_internal_find_type(dl_ctx, member->type_id);
+				if (sub_type == 0x0)
 				{
-					const dl_type_desc* sub_type = dl_internal_find_type(dl_ctx, member->type_id);
-					if (sub_type == 0x0)
-					{
-						dl_log_error(dl_ctx, "Could not find subtype for member %s", dl_internal_member_name(dl_ctx, member));
-						return DL_ERROR_TYPE_NOT_FOUND;
-					}
-
-					for (uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem)
-						dl_internal_instance_store(dl_ctx, sub_type, instance + (elem * sub_type->size[DL_PTR_SIZE_HOST]), store_ctx);
+					dl_log_error(dl_ctx, "Could not find subtype for member %s", dl_internal_member_name(dl_ctx, member));
+					return DL_ERROR_TYPE_NOT_FOUND;
 				}
-				break;
-				case DL_TYPE_STORAGE_STR:
-					for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
-						dl_internal_store_string( instance + (elem * sizeof(char*)), store_ctx );
-				break;
-				default: // default is a standard pod-type
-					DL_ASSERT( member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM );
-					dl_binary_writer_write( &store_ctx->writer, instance, member->size[DL_PTR_SIZE_HOST] );
-					break;
 			}
+			else if( storage_type != DL_TYPE_STORAGE_STR )
+				count = member->size[DL_PTR_SIZE_HOST];
+
+			dl_internal_store_array( dl_ctx, storage_type, sub_type, instance, count, 1, store_ctx );
 		}
 		return DL_ERROR_OK;
 
@@ -294,21 +311,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 
 				uint8_t* data = *(uint8_t**)data_ptr;
 
-				switch(storage_type)
-				{
-					case DL_TYPE_STORAGE_STRUCT:
-						for ( unsigned int elem = 0; elem < count; ++elem )
-							dl_internal_instance_store( dl_ctx, sub_type, data + (elem * size), store_ctx );
-						break;
-					case DL_TYPE_STORAGE_STR:
-						for ( unsigned int elem = 0; elem < count; ++elem )
-							dl_internal_store_string( data + (elem * size), store_ctx );
-						break;
-					default:
-						for ( unsigned int elem = 0; elem < count; ++elem )
-							dl_binary_writer_write( &store_ctx->writer, data + (elem * size), size ); break;
-				}
-
+				dl_internal_store_array( dl_ctx, storage_type, sub_type, data, count, size, store_ctx );
 				dl_binary_writer_seek_set( &store_ctx->writer, pos );
 			}
 

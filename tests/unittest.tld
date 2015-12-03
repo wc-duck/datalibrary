@@ -51,6 +51,9 @@
 		"WithInlineStructArray"       : { "members" : [ { "name" : "Array",    "type" : "Pods2[3]" } ] },
 		"WithInlineStructStructArray" : { "members" : [ { "name" : "Array",    "type" : "WithInlineStructArray[2]" } ] },
 		
+		"SubString"                   : { "members" : [ { "name" : "Str",      "type" : "string" } ] },
+		"InlineArrayWithSubString"    : { "members" : [ { "name" : "Array",    "type" : "SubString[2]" } ] },
+		
 		"PodArray1"    : { "members" : [ { "name" : "u32_arr", "type" : "uint32[]" } ] }, 
 		"PodArray2"    : { "members" : [ { "name" : "sub_arr", "type" : "PodArray1[]" } ] }, 
 		
