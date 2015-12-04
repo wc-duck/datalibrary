@@ -531,10 +531,14 @@ static int dl_internal_pack_on_string( void* pack_ctx_in, const unsigned char* s
 			const dl_enum_desc* enum_type = pack_ctx->state_stack.Top().enum_type;
 			if( !dl_internal_find_enum_value( pack_ctx->dl_ctx, enum_type, (const char*)str_value, str_len, &enum_value ) )
 			{
-				DL_PACK_ERROR_AND_FAIL( pack_ctx,
-										DL_ERROR_TXT_INVALID_ENUM_VALUE, 
-										"Enum \"%s\" do not have the value \"%.*s\"!", 
-										dl_internal_enum_name( pack_ctx->dl_ctx, enum_type ), (int)str_len, str_value );
+				dl_log_error( pack_ctx->dl_ctx, "Enum \"%s\" do not have the value \"%.*s\", valid values are:", dl_internal_enum_name( pack_ctx->dl_ctx, enum_type ), (int)str_len, str_value );
+				for( uint32_t value = 0; value < enum_type->value_count; ++value )
+				{
+					const dl_enum_value_desc* v = dl_get_enum_value( pack_ctx->dl_ctx, enum_type, value );
+					dl_log_error( pack_ctx->dl_ctx, " - %s", dl_internal_enum_alias_name( pack_ctx->dl_ctx, &pack_ctx->dl_ctx->enum_alias_descs[v->main_alias]) );
+				}
+				pack_ctx->error_code = DL_ERROR_TXT_INVALID_ENUM_VALUE;
+				return 0x0;
 			}
 			dl_binary_writer_write( pack_ctx->writer, &enum_value, sizeof(uint32_t) );
 			dl_txt_pack_ctx_pop_array_item( pack_ctx );
