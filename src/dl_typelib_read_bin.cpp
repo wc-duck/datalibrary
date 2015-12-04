@@ -148,6 +148,12 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
 	}
 
+	for( unsigned int i = 0; i < header.enum_alias_count; ++i )
+	{
+		dl_ctx->enum_alias_descs[ dl_ctx->enum_alias_count + i ].name += td_str_offset;
+		dl_ctx->enum_alias_descs[ dl_ctx->enum_alias_count + i ].value_index += dl_ctx->enum_alias_count;
+	}
+
 	dl_ctx->type_count += header.type_count;
 	dl_ctx->enum_count += header.enum_count;
 	dl_ctx->member_count += header.member_count;
