@@ -253,13 +253,13 @@ const char* getopt_create_help_string( getopt_context_t* ctx, char* buffer, size
 	for( ; opt_index < ctx->num_opts; ++opt_index )
 	{
 		const getopt_option_t* opt = ctx->opts + opt_index;
-
+		size_t outpos;
 		char long_name[64];
 		int chars_written = str_format( long_name, 64, "--%s", opt->name );
 		if( chars_written < 0 )
 			return buffer;
 
-		size_t outpos = (size_t)chars_written;
+		outpos = (size_t)chars_written;
 
 		if( opt->type == GETOPT_OPTION_TYPE_REQUIRED )
 			str_format(long_name + outpos, 64 - outpos, "=<%s>", opt->value_desc);
