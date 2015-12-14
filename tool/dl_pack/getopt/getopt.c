@@ -3,6 +3,8 @@
 
    Copyright (C) 2012- Fredrik Kihlander
 
+   https://github.com/wc-duck/getopt
+
    This software is provided 'as-is', without any express or implied
    warranty.  In no event will the authors be held liable for any damages
    arising from the use of this software.
@@ -30,7 +32,7 @@
 #if !defined(_MSC_VER)
 #   include <strings.h> /* for strncasecmp */
 #else
-#	include <ctype.h> /* tolower */
+#   include <ctype.h> /* tolower */
 #endif
 
 static int str_case_cmp_len(const char* s1, const char* s2, unsigned int len)
@@ -72,10 +74,8 @@ int getopt_create_context( getopt_context_t* ctx, int argc, const char** argv, c
 
 	/* count opts */
 	ctx->num_opts = 0;
-	getopt_option_t cmp_opt;
-	memset( &cmp_opt, 0x0, sizeof(getopt_option_t) );
 	const getopt_option_t* opt = opts;
-	while( memcmp( opt, &cmp_opt, sizeof(getopt_option_t) ) != 0 )
+	while( !(opt->name == 0x0 && opt->name_short == 0) )
 	{
 		if( opt->value == '!' || 
 			opt->value == '?' || 
@@ -172,6 +172,11 @@ int getopt_next( getopt_context_t* ctx )
 								else if( ctx->current_index < ctx->argc )
 									found_arg = ctx->argv[ ctx->current_index++ ]; /* next token has been processed aswell! */
 							}
+							else if( next_token[0] != '-' )
+							{
+								ctx->current_index++; /* next token has been processed aswell! */
+								found_arg = next_token;
+							}
 						}
 					}
 					break;
@@ -254,15 +259,25 @@ const char* getopt_create_help_string( getopt_context_t* ctx, char* buffer, size
 	{
 		const getopt_option_t* opt = ctx->opts + opt_index;
 
+		size_t outpos;
 		char long_name[64];
 		int chars_written = str_format( long_name, 64, "--%s", opt->name );
 		if( chars_written < 0 )
 			return buffer;
 
-		size_t outpos = (size_t)chars_written;
+		outpos = (size_t)chars_written;
 
-		if( opt->type == GETOPT_OPTION_TYPE_REQUIRED )
-			str_format(long_name + outpos, 64 - outpos, "=<%s>", opt->value_desc);
+		switch( opt->type )
+		{
+			case GETOPT_OPTION_TYPE_REQUIRED:
+				str_format(long_name + outpos, 64 - outpos, "=<%s>", opt->value_desc);
+				break;
+			case GETOPT_OPTION_TYPE_OPTIONAL:
+				str_format(long_name + outpos, 64 - outpos, "(=%s)", opt->value_desc);
+				break;
+			default:
+				break;
+		}
 
 		if(opt->name_short == 0x0)
 			chars_written = str_format( buffer + buffer_pos, buffer_size - buffer_pos, "   %-32s - %s\n", long_name, opt->desc );
