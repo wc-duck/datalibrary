@@ -114,8 +114,6 @@ static void dl_internal_write_string( yajl_gen gen, const uint8_t* member_data, 
 static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_desc* type, const uint8_t* data, const uint8_t* data_base )
 {
 	dl_ctx_t ctx = _Ctx->m_Ctx;
-	yajl_gen_map_open(_Ctx->m_JsonGen);
-
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
 		const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
@@ -139,7 +137,9 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 						const dl_type_desc* pStructType = dl_internal_find_type( ctx, member->type_id );
 						if(pStructType == 0x0) { dl_log_error( ctx, "Subtype for member %s not found!", member_name ); return; }
 
+						yajl_gen_map_open(_Ctx->m_JsonGen);
 						dl_internal_write_instance(_Ctx, pStructType, member_data, data_base);
+						yajl_gen_map_close(_Ctx->m_JsonGen);
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:
@@ -155,10 +155,12 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 							yajl_gen_null(_Ctx->m_JsonGen);
 						else
 						{
-							unsigned int ID = _Ctx->FindSubDataMember( data_base + Offset );
-							if(ID == (unsigned int)(-1))
-								ID = _Ctx->AddSubDataMember( member, data_base + Offset );
-							yajl_gen_integer(_Ctx->m_JsonGen, long(ID));
+							unsigned int subdata_index = _Ctx->FindSubDataMember( data_base + Offset );
+							if(subdata_index == (unsigned int)(-1))
+								subdata_index = _Ctx->AddSubDataMember( member, data_base + Offset );
+							unsigned char num_buffer[16];
+							int len = subdata_index == 0 ? dl_internal_str_format( (char*)num_buffer, 16, "__root" ) : dl_internal_str_format( (char*)num_buffer, 16, "ptr_%u", subdata_index );
+							yajl_gen_string( _Ctx->m_JsonGen, num_buffer, (size_t)len );
 						}
 					}
 					break;
@@ -191,7 +193,11 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 
 						uintptr_t size  = sub_type->size[DL_PTR_SIZE_HOST];
 						for( uintptr_t elem_index = 0; elem_index < member->inline_array_cnt(); ++elem_index )
+						{
+							yajl_gen_map_open(_Ctx->m_JsonGen);
 							dl_internal_write_instance(_Ctx, sub_type, member_data + (elem_index * size), data_base);
+							yajl_gen_map_close(_Ctx->m_JsonGen);
+						}
 					}
 					break;
 
@@ -240,7 +246,11 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 
 						uintptr_t Size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 						for(uintptr_t elem_index = 0; elem_index < Count; ++elem_index)
+						{
+							yajl_gen_map_open(_Ctx->m_JsonGen);
 							dl_internal_write_instance(_Ctx, sub_type, array_data + (elem_index * Size), data_base);
+							yajl_gen_map_close(_Ctx->m_JsonGen);
+						}
 					}
 					break;
 					case DL_TYPE_STORAGE_STR:
@@ -299,8 +309,6 @@ static void dl_internal_write_instance( SDLUnpackContext* _Ctx, const dl_type_de
 				break;
 		}
 	}
-
-	yajl_gen_map_close(_Ctx->m_JsonGen);
 }
 
 static void dl_internal_write_root( SDLUnpackContext* unpack_ctx, const dl_type_desc* type, const unsigned char* data )
@@ -310,22 +318,21 @@ static void dl_internal_write_root( SDLUnpackContext* unpack_ctx, const dl_type_
 	yajl_gen_map_open( unpack_ctx->m_JsonGen);
 
 		const char* type_name = dl_internal_type_name( unpack_ctx->m_Ctx, type );
-		yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)"type", 4 );
 		yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)type_name, (unsigned int)strlen(type_name) );
 
-		yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)"data", 4 );
+		yajl_gen_map_open(unpack_ctx->m_JsonGen);
 		dl_internal_write_instance( unpack_ctx, type, data, data );
 
 		if( unpack_ctx->m_lSubdataMembers.Len() != 1 )
 		{
-			yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)"subdata", 7 );
+			yajl_gen_string( unpack_ctx->m_JsonGen, (const unsigned char*)"__subdata", 9 );
 			yajl_gen_map_open( unpack_ctx->m_JsonGen );
 
 			// start at 1 to skip root-node!
 			for( unsigned int subdata_index = 1; subdata_index <  unpack_ctx->m_lSubdataMembers.Len(); ++subdata_index )
 			{
 				unsigned char num_buffer[16];
-				int len = dl_internal_str_format( (char*)num_buffer, 16, "%u", subdata_index );
+				int len = dl_internal_str_format( (char*)num_buffer, 16, "ptr_%u", subdata_index );
 				yajl_gen_string( unpack_ctx->m_JsonGen, num_buffer, (size_t)len );
 
 				const dl_member_desc* member    = unpack_ctx->m_lSubdataMembers[subdata_index].m_pMember;
@@ -341,11 +348,13 @@ static void dl_internal_write_root( SDLUnpackContext* unpack_ctx, const dl_type_
 					return; // TODO: need to report error some how!
 				}
 
+				yajl_gen_map_open(unpack_ctx->m_JsonGen);
 				dl_internal_write_instance( unpack_ctx, sub_type, member_data, data );
+				yajl_gen_map_close(unpack_ctx->m_JsonGen);
 			}
-
 			yajl_gen_map_close( unpack_ctx->m_JsonGen );
 		}
+		yajl_gen_map_close(unpack_ctx->m_JsonGen);
 
 	yajl_gen_map_close( unpack_ctx->m_JsonGen );
 }

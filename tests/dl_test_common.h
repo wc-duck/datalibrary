@@ -16,7 +16,9 @@
 	#define snprintf _snprintf // ugly fugly.
 #endif // defined(_MSC_VER)
 
-#define EXPECT_DL_ERR_EQ(_Expect, _Res) { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; }
+#define ASSERT_DL_ERR_EQ(_Expect, _Res) { dl_error_t err = _Res; ASSERT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
+#define ASSERT_DL_ERR_OK(_Res) ASSERT_DL_ERR_EQ( DL_ERROR_OK, _Res)
+#define EXPECT_DL_ERR_EQ(_Expect, _Res) { dl_error_t err = _Res; EXPECT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
 #define EXPECT_DL_ERR_OK(_Res) EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
 #define DL_ARRAY_LENGTH(Array) (uint32_t)(sizeof(Array)/sizeof(Array[0]))
 
@@ -48,6 +50,12 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 		EXPECT_TRUE(WasEq) << Err; \
 	}
 
+static void test_log_error( const char* msg, void* )
+{
+	printf( "DLLOG: %s\n", msg );
+}
+
+
 struct DL : public ::testing::Test
 {
 	virtual ~DL() {}
@@ -66,6 +74,7 @@ struct DL : public ::testing::Test
 
 		dl_create_params_t p;
 		DL_CREATE_PARAMS_SET_DEFAULT(p);
+		p.error_msg_func = test_log_error;
 
 		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &p ) );
 		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib1, sizeof(TypeLib1)) );

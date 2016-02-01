@@ -926,7 +926,7 @@ static bool dl_load_txt_build_default_data( dl_ctx_t ctx, const char* lib_data, 
 	def_member->offset[0] = 0;
 	def_member->offset[1] = 0;
 
-	dl_internal_str_format( def_buffer, 2048, "{\"type\":\"a_type_here\",\"data\":{\"%s\"%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, lib_data + def_start );
+	dl_internal_str_format( def_buffer, sizeof(def_buffer), "{\"a_type_here\":{\"%s\"%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, lib_data + def_start );
 
 	size_t prod_bytes;
 	dl_error_t err;

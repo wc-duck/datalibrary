@@ -159,7 +159,6 @@
 									  "default" : [ { "u32_arr" : [ 1, 3 ] }, { "u32_arr" : [ 3, 7 ] } ]
 									}
 	                             ] },
-		
 		///* hard one
 		"DefaultArrayPod"  :    { "members" : [ { "name" : "Arr",  "type" : "uint32[]",    "default" : [ 1, 3, 3, 7 ] } ] },
 		"DefaultArrayStr"  :    { "members" : [ { "name" : "Arr",  "type" : "string[]",    "default" : [ "cow", "bells", "are", "cool" ] } ] },

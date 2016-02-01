@@ -69,9 +69,9 @@ static inline void dl_binary_writer_write( dl_binary_writer* writer, const void*
 		switch( size )
 		{
 			case 1: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(char*)data   ); break;
-			case 2: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(uint16*)data ); break;
-			case 4: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(uint32*)data ); break;
-			case 8: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (" DL_UINT64_FMT_STR ")", writer->pos, size, *(uint64*)data ); break;
+			case 2: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(uint16_t*)data ); break;
+			case 4: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (%u)",                    writer->pos, size, *(uint32_t*)data ); break;
+			case 8: DL_LOG_BIN_WRITER_VERBOSE ("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " (" DL_UINT64_FMT_STR ")", writer->pos, size, *(uint64_t*)data ); break;
 			default: DL_LOG_BIN_WRITER_VERBOSE("Write: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR, writer->pos, size ); break;
 		}
 		DL_ASSERT( writer->pos + size <= writer->data_size && "To small buffer!" );
@@ -158,10 +158,10 @@ static inline void dl_binary_writer_write_array( dl_binary_writer* writer, const
 		{
 			switch( elem_size )
 			{
-				case 1: { DL_LOG_BIN_WRITER_VERBOSE( "\t%c",                 ((const uint8*)  array)[i] ); } break;
-				case 2: { DL_LOG_BIN_WRITER_VERBOSE( "\t%u",                 ((const uint16*) array)[i] ); } break;
-				case 4: { DL_LOG_BIN_WRITER_VERBOSE( "\t%u",                 ((const uint32*) array)[i] ); } break;
-				case 8: { DL_LOG_BIN_WRITER_VERBOSE( "\t" DL_UINT64_FMT_STR, ((const uint64*) array)[i] ); } break;
+				case 1: { DL_LOG_BIN_WRITER_VERBOSE( "\t%c",                 ((const uint8_t*)  array)[i] ); } break;
+				case 2: { DL_LOG_BIN_WRITER_VERBOSE( "\t%u",                 ((const uint16_t*) array)[i] ); } break;
+				case 4: { DL_LOG_BIN_WRITER_VERBOSE( "\t%u",                 ((const uint32_t*) array)[i] ); } break;
+				case 8: { DL_LOG_BIN_WRITER_VERBOSE( "\t" DL_UINT64_FMT_STR, ((const uint64_t*) array)[i] ); } break;
 			}
 		}
 	}
