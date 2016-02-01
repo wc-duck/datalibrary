@@ -34,8 +34,32 @@ struct dl_txt_pack_ctx
 
 inline const char* dl_txt_skip_white( const char* str )
 {
-	while( isspace(*str) ) ++str;
-	return str;
+	while( true )
+	{
+		while( isspace(*str) ) ++str;
+		if( *str == '/' )
+		{
+			// ... skip comment ...
+			switch( str[1] )
+			{
+				case '/':
+					while( *str != '\n' ) ++str;
+					break;
+				case '*':
+					str = &str[2];
+					while( *str != '*' ) ++str;
+					if( str[1] == '/' )
+					{
+						str = &str[2];
+						break;
+					}
+			}
+
+		}
+		else
+			return str;
+	}
+	return 0x0;
 }
 
 inline void dl_txt_eat_white( dl_txt_pack_ctx* packctx )
@@ -715,9 +739,13 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 	}
 
 	dl_txt_eat_white( packctx );
-	while( *packctx->iter != ',' && *packctx->iter != '}' ) ++packctx->iter;
-	if( *packctx->iter == ',' )
-		++packctx->iter;
+	switch( *packctx->iter )
+	{
+		case ',': ++packctx->iter; break;
+		case '}': break;
+		default:
+			dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "expected , or }" );
+	}
 }
 
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )

@@ -540,26 +540,37 @@ TEST_F( DLText, missing_field_data )
 
 TEST_F( DLText, single_line_comments )
 {
-	const char* test_text = STRINGIFY(
-		{
-			"Pods" : {
-			"i16" : 2, // whoo
-			"u32" : 7,
-			"u8"  : 5,
-			"i32" : 3,
-			"f64" : 4.1234,
-			"i64" : 4,
-			"u16" : 6,
-			"u64" : 8,
-			"i8"  : 1,
-			"f32" : 3.14
-			}
-		}
-	);
+	const char* test_text =
+		"{\n"
+			"\"PodsDefaults\" : {\n"
+			"\"u8\" : 5 // whoooo\n"
+			"}\n"
+		"}";
+
+	printf("%s\n", test_text);
 
 	Pods p1;
 	memset( &p1, 0x0, sizeof(Pods) );
 
 	unsigned char out_text_data[1024];
-	EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
+TEST_F( DLText, multi_line_comments )
+{
+	const char* test_text =
+		"{\n"
+			"\"PodsDefaults\" : {\n"
+			"\"u8\" : 5 /* whoooo\n"
+			"whaaa */\n"
+			"}\n"
+		"}";
+
+	printf("%s\n", test_text);
+
+	Pods p1;
+	memset( &p1, 0x0, sizeof(Pods) );
+
+	unsigned char out_text_data[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 }
