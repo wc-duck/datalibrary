@@ -294,7 +294,7 @@ static void dl_txt_pack_eat_char( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, cha
 {
 	dl_txt_eat_white( packctx );
 	if( *packctx->iter != expect )
-		dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "expected '%c' but got '%c' at %u", expect, *(packctx)->iter, __LINE__ ); \
+		dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "expected '%c' but got '%c' at %u", expect, *(packctx)->iter, __LINE__ );
 	++packctx->iter;
 }
 
@@ -491,6 +491,17 @@ const char* dl_txt_skip_map( const char* iter )
 	return iter;
 }
 
+static const char* dl_txt_pack_skip_string( const char* str )
+{
+	while( *str != '\"' )
+	{
+		if( str[0] == '\\' && str[1] == '\"' )
+			++str;
+		++str;
+	}
+	return str;
+}
+
 static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, const char* iter )
 {
 	iter = dl_txt_skip_white( iter );
@@ -499,7 +510,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 
 	switch( member->StorageType() )
 	{
-		case DL_TYPE_STORAGE_INT8:
+		case DL_TYPE_STORAGE_INT8: // TODO: for pods there are no need to check array length!
 		case DL_TYPE_STORAGE_INT16:
 		case DL_TYPE_STORAGE_INT32:
 		case DL_TYPE_STORAGE_INT64:
@@ -509,18 +520,46 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 		case DL_TYPE_STORAGE_UINT64:
 		case DL_TYPE_STORAGE_FP32:
 		case DL_TYPE_STORAGE_FP64:
-		case DL_TYPE_STORAGE_STR: // TODO: bug, what if there is an , in the string.
 		case DL_TYPE_STORAGE_PTR:
 		case DL_TYPE_STORAGE_ENUM: // TODO: bug, but in typelib build, there can't be any , in an enum-string.
 		{
 			uint32_t array_length = 1;
-			for( ; *iter && ( *iter != ']' ); iter = dl_txt_skip_white( iter ) )
+			while(true)
 			{
-				if( *iter == ',' )
-					++array_length;
+				iter = dl_txt_skip_white( iter );
+				switch( *iter )
+				{
+					case ',':
+						++array_length;
+						break;
+					case '\0':
+					case ']':
+						return array_length;
+				}
 				++iter;
 			}
-			return array_length;
+		}
+		break;
+		case DL_TYPE_STORAGE_STR:
+		{
+			uint32_t array_length = 1;
+			while(true)
+			{
+				iter = dl_txt_skip_white( iter );
+				switch( *iter )
+				{
+					case ',':
+						++array_length;
+						break;
+					case '"':
+						iter = dl_txt_pack_skip_string( ++iter );
+						break;
+					case '\0':
+					case ']':
+						return array_length;
+				}
+				++iter;
+			}
 		}
 		break;
 		case DL_TYPE_STORAGE_STRUCT:
@@ -777,7 +816,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 {
 	if( packctx->subdata_count == 0 )
 		return DL_ERROR_OK;
-	if( packctx->subdata == 0x0 )
+	if( packctx->subdata_pos == 0x0 )
 		dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "instance has pointers but no \"__subdata\"-member" );
 
 	packctx->iter = packctx->subdata_pos;

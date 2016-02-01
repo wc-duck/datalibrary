@@ -315,42 +315,53 @@ TYPED_TEST(DLBase, struct_in_struct)
 
 TYPED_TEST(DLBase, struct_in_struct_in_struct)
 {
-	Pod2InStructInStruct Orig;
-	Pod2InStructInStruct New;
+	Pod2InStructInStruct original;
+	Pod2InStructInStruct loaded;
 
-	Orig.p2struct.Pod1.Int1 = 1337;
-	Orig.p2struct.Pod1.Int2 = 7331;
-	Orig.p2struct.Pod2.Int1 = 1234;
-	Orig.p2struct.Pod2.Int2 = 4321;
+	original.p2struct.Pod1.Int1 = 1337;
+	original.p2struct.Pod1.Int2 = 7331;
+	original.p2struct.Pod2.Int1 = 1234;
+	original.p2struct.Pod2.Int2 = 4321;
 
-	this->do_the_round_about( Pod2InStructInStruct::TYPE_ID, &Orig, &New, sizeof(Pod2InStructInStruct) );
+	this->do_the_round_about( Pod2InStructInStruct::TYPE_ID, &original, &loaded, sizeof(Pod2InStructInStruct) );
 
-	EXPECT_EQ(Orig.p2struct.Pod1.Int1, New.p2struct.Pod1.Int1);
-	EXPECT_EQ(Orig.p2struct.Pod1.Int2, New.p2struct.Pod1.Int2);
-	EXPECT_EQ(Orig.p2struct.Pod2.Int1, New.p2struct.Pod2.Int1);
-	EXPECT_EQ(Orig.p2struct.Pod2.Int2, New.p2struct.Pod2.Int2);
+	EXPECT_EQ(original.p2struct.Pod1.Int1, loaded.p2struct.Pod1.Int1);
+	EXPECT_EQ(original.p2struct.Pod1.Int2, loaded.p2struct.Pod1.Int2);
+	EXPECT_EQ(original.p2struct.Pod2.Int1, loaded.p2struct.Pod2.Int1);
+	EXPECT_EQ(original.p2struct.Pod2.Int2, loaded.p2struct.Pod2.Int2);
 }
 
 TYPED_TEST(DLBase, string)
 {
-	Strings Orig = { "cow", "bell" } ;
-	Strings Loaded[5];
+	Strings original = { "cow", "bell" } ;
+	Strings loaded[5];
 
-	this->do_the_round_about( Strings::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+	this->do_the_round_about( Strings::TYPE_ID, &original, loaded, sizeof(loaded) );
 
-	EXPECT_STREQ(Orig.Str1, Loaded[0].Str1);
-	EXPECT_STREQ(Orig.Str2, Loaded[0].Str2);
+	EXPECT_STREQ(original.Str1, loaded[0].Str1);
+	EXPECT_STREQ(original.Str2, loaded[0].Str2);
 }
 
 TYPED_TEST(DLBase, string_null)
 {
-	Strings Orig = { 0x0, "bell" } ;
-	Strings Loaded[5];
+	Strings original = { 0x0, "bell" } ;
+	Strings loaded[5];
 
-	this->do_the_round_about( Strings::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+	this->do_the_round_about( Strings::TYPE_ID, &original, loaded, sizeof(loaded) );
 
-	EXPECT_STREQ(Orig.Str1, Loaded[0].Str1);
-	EXPECT_STREQ(Orig.Str2, Loaded[0].Str2);
+	EXPECT_STREQ(original.Str1, loaded[0].Str1);
+	EXPECT_STREQ(original.Str2, loaded[0].Str2);
+}
+
+TYPED_TEST(DLBase, string_with_commas)
+{
+	Strings original = { "str,1", "str,2" } ;
+	Strings loaded[5];
+
+	this->do_the_round_about( Strings::TYPE_ID, &original, loaded, sizeof(loaded) );
+
+	EXPECT_STREQ(original.Str1, loaded[0].Str1);
+	EXPECT_STREQ(original.Str2, loaded[0].Str2);
 }
 
 /*
@@ -459,23 +470,31 @@ TYPED_TEST(DLBase, inline_array_struct_in_struct)
 
 TYPED_TEST(DLBase, inline_array_string)
 {
-	StringInlineArray Orig = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
-	StringInlineArray* New;
+	StringInlineArray original = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
+	StringInlineArray loaded[5];
 
-	StringInlineArray Loaded[5];
+	this->do_the_round_about( StringInlineArray::TYPE_ID, &original, loaded, sizeof(loaded) );
 
-	this->do_the_round_about( StringInlineArray::TYPE_ID, &Orig, Loaded, sizeof(Loaded) );
+	EXPECT_STREQ(original.Strings[0], loaded[0].Strings[0]);
+	EXPECT_STREQ(original.Strings[1], loaded[0].Strings[1]);
+	EXPECT_STREQ(original.Strings[2], loaded[0].Strings[2]);
+}
 
-	New = Loaded;
+TYPED_TEST(DLBase, inline_array_string_with_commas)
+{
+	StringInlineArray original = { { (char*)"awsum", (char*)"cowbells", (char*)"FTW!" } } ;
+	StringInlineArray loaded[5];
 
-	EXPECT_STREQ(Orig.Strings[0], New->Strings[0]);
-	EXPECT_STREQ(Orig.Strings[1], New->Strings[1]);
-	EXPECT_STREQ(Orig.Strings[2], New->Strings[2]);
+	this->do_the_round_about( StringInlineArray::TYPE_ID, &original, loaded, sizeof(loaded) );
+
+	EXPECT_STREQ(original.Strings[0], loaded[0].Strings[0]);
+	EXPECT_STREQ(original.Strings[1], loaded[0].Strings[1]);
+	EXPECT_STREQ(original.Strings[2], loaded[0].Strings[2]);
 }
 
 TYPED_TEST(DLBase, inline_array_subptr_patched)
 {
-	InlineArrayWithSubString original = { { { (char*)"apa" }, { (char*)"kossa" } } };
+	InlineArrayWithSubString original = { { { (char*)"a,pa" }, { (char*)"kos,sa" } } };
 	InlineArrayWithSubString loaded[5];
 
 	this->do_the_round_about( InlineArrayWithSubString::TYPE_ID, &original, loaded, sizeof(loaded) );
@@ -576,6 +595,20 @@ TYPED_TEST(DLBase, array_string)
 TYPED_TEST(DLBase, array_string_null)
 {
 	const char* array_data[] = { "I like", "the", 0x0, "cowbells of doom!" };
+	StringArray original = { { array_data, DL_ARRAY_LENGTH(array_data) } };
+	StringArray loaded[10];
+
+	this->do_the_round_about( StringArray::TYPE_ID, &original, loaded, sizeof(loaded) );
+
+	EXPECT_STREQ(original.Strings[0], loaded[0].Strings[0]);
+	EXPECT_STREQ(original.Strings[1], loaded[0].Strings[1]);
+	EXPECT_STREQ(original.Strings[2], loaded[0].Strings[2]);
+	EXPECT_STREQ(original.Strings[3], loaded[0].Strings[3]);
+}
+
+TYPED_TEST(DLBase, array_string_with_commas)
+{
+	const char* array_data[] = { "I li,ke", "the", "13,37 ", "cowbe,lls of doom!" }; // TODO: test string-arrays with , in strings.
 	StringArray original = { { array_data, DL_ARRAY_LENGTH(array_data) } };
 	StringArray loaded[10];
 
