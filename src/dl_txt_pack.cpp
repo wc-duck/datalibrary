@@ -9,6 +9,16 @@
 #include <stdlib.h>
 #include <setjmp.h>
 
+#if defined(_MSC_VER)
+// TODO: any better/faster way to do this, especially strtof?
+#  define strtoll _strtoi64
+#  define strtoull _strtoui64
+float strtof(const char* str, char** endptr)
+{
+	return (float)strtod( str, endptr );
+}
+#endif
+
 struct dl_txt_pack_substr
 {
 	const char* str;
@@ -809,7 +819,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	// ... finalize members ...
 	for( uint32_t i = 0; i < type->member_count; ++i )
 	{
-		if( members_set & ( 1 << i ) )
+		if( members_set & ( 1ULL << i ) )
 			continue;
 
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, i );
@@ -953,7 +963,14 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 
 	const dl_type_desc* root_type;
 
+#if defined(_MSC_VER )
+#pragma warning(push)
+#pragma warning(disable:4611)
+#endif
 	if( !setjmp( packctx.jumpbuf ) )
+#if defined(_MSC_VER )
+#pragma warning(pop)
+#endif
 	{
 		// ... find open { for top map
 		dl_txt_pack_eat_char( dl_ctx, &packctx, '{' );
@@ -979,6 +996,28 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	else
 	{
 		// ... returned from longjmp, error occurred ...
+		int line = 0;
+		int col = 0;
+		const char* last_line = txt_instance;
+		const char* iter = txt_instance;
+		while( iter != packctx.iter )
+		{
+			if( *iter == '\n' )
+			{
+				last_line = iter + 1;
+				++line;
+				col = 0;
+			}
+			else
+			{
+				++col;
+			}
+			++iter;
+		}
+
+		const char* line_end = strchr( last_line, '\n' );
+		dl_log_error( dl_ctx, "at line %d, col %d:\n%.*s\n", line, col, (int)(line_end-last_line), last_line);
+		dl_log_error( dl_ctx, "%*c^", col, ' ');
 		return packctx.err;
 	}
 

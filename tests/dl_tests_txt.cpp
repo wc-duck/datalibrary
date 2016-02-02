@@ -547,8 +547,6 @@ TEST_F( DLText, single_line_comments )
 			"}\n"
 		"}";
 
-	printf("%s\n", test_text);
-
 	Pods p1;
 	memset( &p1, 0x0, sizeof(Pods) );
 
@@ -565,8 +563,6 @@ TEST_F( DLText, multi_line_comments )
 			"whaaa */\n"
 			"}\n"
 		"}";
-
-	printf("%s\n", test_text);
 
 	Pods p1;
 	memset( &p1, 0x0, sizeof(Pods) );
