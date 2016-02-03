@@ -721,10 +721,10 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 
 			switch( member->StorageType() )
 			{
-			case DL_TYPE_STORAGE_UINT8:  old_val = (uint64_t)dl_binary_writer_read_uint8 ( packctx->writer ); break;
-			case DL_TYPE_STORAGE_UINT16: old_val = (uint64_t)dl_binary_writer_read_uint16( packctx->writer ); break;
-			case DL_TYPE_STORAGE_UINT32: old_val = (uint64_t)dl_binary_writer_read_uint32( packctx->writer ); break;
-			case DL_TYPE_STORAGE_UINT64: old_val = (uint64_t)dl_binary_writer_read_uint64( packctx->writer ); break;
+				case DL_TYPE_STORAGE_UINT8:  old_val = (uint64_t)dl_binary_writer_read_uint8 ( packctx->writer ); break;
+				case DL_TYPE_STORAGE_UINT16: old_val = (uint64_t)dl_binary_writer_read_uint16( packctx->writer ); break;
+				case DL_TYPE_STORAGE_UINT32: old_val = (uint64_t)dl_binary_writer_read_uint32( packctx->writer ); break;
+				case DL_TYPE_STORAGE_UINT64: old_val = (uint64_t)dl_binary_writer_read_uint64( packctx->writer ); break;
 				default:
 					DL_ASSERT( false && "This should not happen!" );
 					break;
@@ -967,7 +967,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 #pragma warning(push)
 #pragma warning(disable:4611)
 #endif
-	if( !setjmp( packctx.jumpbuf ) )
+	if( setjmp( packctx.jumpbuf ) == 0 )
 #if defined(_MSC_VER )
 #pragma warning(pop)
 #endif
@@ -1032,8 +1032,6 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 		header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
 		memcpy( out_buffer, &header, sizeof(dl_data_header) );
 	}
-
-	dl_binary_writer_finalize( &writer );
 
 	if( produced_bytes )
 		*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);

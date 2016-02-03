@@ -22,7 +22,6 @@ struct dl_binary_writer
 	size_t        needed_size;
 	uint8_t*      data;
 	size_t        data_size;
-	size_t        back_alloc_pos;
 };
 
 static inline void dl_binary_writer_init( dl_binary_writer* writer,
@@ -38,28 +37,16 @@ static inline void dl_binary_writer_init( dl_binary_writer* writer,
 	writer->needed_size    = 0;
 	writer->data           = out_data;
 	writer->data_size      = out_data_size;
-	writer->back_alloc_pos = out_data_size;
-}
-
-static inline void dl_binary_writer_finalize( dl_binary_writer* writer )
-{
-	DL_ASSERT( writer->back_alloc_pos == writer->data_size );
 }
 
 static inline void   dl_binary_writer_seek_set( dl_binary_writer* writer, size_t pos ) { writer->pos  = pos;                 DL_LOG_BIN_WRITER_VERBOSE("Seek Set: " DL_PINT_FMT_STR, writer->pos); }
 static inline void   dl_binary_writer_seek_end( dl_binary_writer* writer )             { writer->pos  = writer->needed_size; DL_LOG_BIN_WRITER_VERBOSE("Seek End: " DL_PINT_FMT_STR, writer->pos); }
 static inline size_t dl_binary_writer_tell( dl_binary_writer* writer )                 { return writer->pos; }
 static inline size_t dl_binary_writer_needed_size( dl_binary_writer* writer )          { return writer->needed_size; }
-static inline void   dl_binary_writer_needed_size_align_up( dl_binary_writer* writer, size_t alignment )
-{
-	DL_LOG_BIN_WRITER_VERBOSE("Align needed size: " DL_PINT_FMT_STR " -> " DL_PINT_FMT_STR, writer->pos, alignment );
-	writer->needed_size = dl_internal_align_up( writer->needed_size, alignment );
-}
 
 static inline void dl_binary_writer_update_needed_size( dl_binary_writer* writer )
 {
-	if( writer->back_alloc_pos == writer->data_size || writer->pos <= writer->back_alloc_pos )
-		writer->needed_size = writer->needed_size >= writer->pos ? writer->needed_size : writer->pos;
+	writer->needed_size = writer->needed_size >= writer->pos ? writer->needed_size : writer->pos;
 }
 
 static inline void dl_binary_writer_write( dl_binary_writer* writer, const void* data, size_t size )
@@ -169,7 +156,18 @@ static inline void dl_binary_writer_write_array( dl_binary_writer* writer, const
 	if( writer->source_endian != writer->target_endian )
 	{
 		for(size_t i = 0; i < count; ++i)
-			dl_binary_writer_write_swap( writer, (const uint8_t*)array + i * elem_size, elem_size );
+		{
+			switch( elem_size )
+			{
+				case 1: dl_binary_writer_write_1byte( writer, (const uint8_t*)array + i * elem_size ); break;
+				case 2: dl_binary_writer_write_2byte( writer, (const uint8_t*)array + i * elem_size ); break;
+				case 4: dl_binary_writer_write_4byte( writer, (const uint8_t*)array + i * elem_size ); break;
+				case 8: dl_binary_writer_write_8byte( writer, (const uint8_t*)array + i * elem_size ); break;
+				default:
+					DL_ASSERT( false && "unhandled case!" );
+					break;
+			}
+		}
 	}
 	else
 		dl_binary_writer_write( writer, array, elem_size * count );
@@ -245,70 +243,5 @@ static inline void dl_binary_writer_align( dl_binary_writer* writer, size_t alig
 	writer->pos = alignment;
 	dl_binary_writer_update_needed_size( writer );
 };
-
-static inline size_t dl_binary_writer_push_back_alloc( dl_binary_writer* writer, size_t bytes )
-{
-	// allocates a chunk of "bytes" bytes from the back of the buffer and return the
-	// offset to it. function ignores alignment and tries to pack data as tightly as possible
-	// since data that will be stored here is only temporary.
-
-	writer->back_alloc_pos -= bytes;
-	DL_LOG_BIN_WRITER_VERBOSE("push back-alloc: " DL_PINT_FMT_STR " (" DL_PINT_FMT_STR ")\n", writer->back_alloc_pos, bytes);
-	return writer->back_alloc_pos;
-}
-
-// return start of new array!
-static inline size_t dl_binary_writer_pop_back_alloc( dl_binary_writer* writer, uint32_t num_elem, uint32_t elem_size, uint32_t elem_align )
-{
-	DL_ASSERT( writer->back_alloc_pos != writer->data_size );
-	DL_ASSERT( writer->back_alloc_pos >= writer->needed_size && "back-alloc and front-alloc overlap!" );
-
-	dl_binary_writer_seek_end( writer );
-	dl_binary_writer_align( writer, elem_align );
-	dl_binary_writer_reserve( writer, elem_size * num_elem ); // Reserve( elem_size * num_elem );
-	size_t arr_pos = dl_binary_writer_tell( writer );
-
-	size_t first_elem = writer->back_alloc_pos;
-	size_t last_elem  = first_elem + elem_size * ( num_elem - 1 );
-
-	DL_LOG_BIN_WRITER_VERBOSE("First: " DL_PINT_FMT_STR " last " DL_PINT_FMT_STR, first_elem, last_elem);
-
-	unsigned char* curr_first = writer->data + first_elem;
-	unsigned char* curr_last  = writer->data + last_elem;
-
-	unsigned char swap_buffer[256]; // TODO: Handle bigger elements!
-
-	if( !writer->dummy )
-		while( curr_first < curr_last )
-		{
-			DL_ASSERT( elem_size <= DL_ARRAY_LENGTH(swap_buffer));
-
-			DL_LOG_BIN_WRITER_VERBOSE("Swap: " DL_PINT_FMT_STR " to " DL_PINT_FMT_STR, curr_first - writer->data, curr_last - writer->data );
-
-			memcpy( swap_buffer, curr_first,  elem_size );
-			memcpy( curr_first,  curr_last,   elem_size );
-			memcpy( curr_last,   swap_buffer, elem_size );
-
-			curr_first += elem_size;
-			curr_last  -= elem_size;
-		}
-
-	if( elem_size == elem_align )
-		dl_binary_writer_write( writer, writer->data + first_elem, elem_size * num_elem );
-	else
-	{
-		for( uint32_t elem = 0; elem < num_elem; ++elem )
-		{
-			dl_binary_writer_align( writer, elem_align );
-			dl_binary_writer_write( writer, writer->data + first_elem + elem * elem_size, elem_size );
-		}
-	}
-
-	writer->back_alloc_pos += elem_size * ( num_elem );
-
-	return arr_pos;
-}
-
-static inline bool dl_binary_writer_in_back_alloc_area( dl_binary_writer* writer ) { return writer->pos > writer->needed_size; }
 
 #endif // DL_DL_BINARY_WRITER_H_INCLUDED
