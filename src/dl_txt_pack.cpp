@@ -106,6 +106,11 @@ static dl_txt_pack_substr dl_txt_eat_string( dl_txt_pack_ctx* packctx )
 
 inline bool dl_long_in_range( long v, long min, long max ) { return v >= min && v <= max; }
 
+#if defined( __GNUC__ )
+static void dl_txt_pack_failed( dl_ctx_t ctx, dl_txt_pack_ctx* packctx, dl_error_t err, const char* fmt, ... ) __attribute__((format( printf, 4, 5 )));
+#endif
+
+
 static /*no inline?*/ void dl_txt_pack_failed( dl_ctx_t ctx, dl_txt_pack_ctx* packctx, dl_error_t err, const char* fmt, ... )
 {
 	if( ctx->error_msg_func )
@@ -751,7 +756,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 
 			uint64_t max_val = (uint64_t(1) << bf_bits) - uint64_t(1);
 			if( bf_value > max_val )
-				dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "bitfield value to big, %llu > %llu", bf_value, max_val );
+				dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "bitfield value to big, %u > %u", (unsigned int)bf_value, (unsigned int)max_val );
 
 			uint64_t old_val = 0;
 
@@ -824,7 +829,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 				dl_txt_pack_eat_char( dl_ctx, packctx, ':' );
 
 				if( packctx->subdata_pos )
-					dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "\"__subdata\" set twice!", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+					dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "\"__subdata\" set twice!" );
 
 				packctx->subdata_pos = packctx->iter;
 				packctx->iter = dl_txt_skip_map( packctx->iter );
@@ -860,7 +865,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, i );
 		if( member->default_value_offset == UINT32_MAX )
-			dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_MISSING_MEMBER, "member %s.%.*s is not set and has no default value", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
+			dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_MISSING_MEMBER, "member %s.%s is not set and has no default value", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
 
 		size_t   member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
 		uint8_t* member_default_value = dl_ctx->default_data + member->default_value_offset;
