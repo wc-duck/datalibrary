@@ -1,7 +1,7 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
-#include <dl/dl_txt.h>
 #include "dl_types.h"
+#include <dl/dl_txt.h>
 #include "dl_binary_writer.h"
 #include "dl_patch_ptr.h"
 
