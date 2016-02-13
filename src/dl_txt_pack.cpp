@@ -207,7 +207,7 @@ static void dl_txt_pack_eat_and_write_uint8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 {
 	dl_txt_eat_white( packctx );
 	unsigned long v = 0;
-	if( ( v = dl_txt_pack_eat_bool( packctx ) ) > 1 )
+	if( ( v = (unsigned long)dl_txt_pack_eat_bool( packctx ) ) > 1 )
 	{
 		char* next = 0x0;
 		v = strtoul( packctx->iter, &next, 0 );
@@ -224,7 +224,7 @@ static void dl_txt_pack_eat_and_write_uint16( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 {
 	dl_txt_eat_white( packctx );
 	unsigned long v = 0;
-	if( ( v = dl_txt_pack_eat_bool( packctx ) ) > 1 )
+	if( ( v = (unsigned long)dl_txt_pack_eat_bool( packctx ) ) > 1 )
 	{
 		char* next = 0x0;
 		v = strtoul( packctx->iter, &next, 0 );
@@ -241,7 +241,7 @@ static void dl_txt_pack_eat_and_write_uint32( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 {
 	dl_txt_eat_white( packctx );
 	unsigned long v = 0;
-	if( ( v = dl_txt_pack_eat_bool( packctx ) ) > 1 )
+	if( ( v = (unsigned long)dl_txt_pack_eat_bool( packctx ) ) > 1 )
 	{
 		char* next = 0x0;
 		v = strtoul( packctx->iter, &next, 0 );
@@ -256,7 +256,7 @@ static uint64_t dl_txt_pack_eat_uint64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packct
 {
 	dl_txt_eat_white( packctx );
 	unsigned long long v = 0;
-	if( ( v = dl_txt_pack_eat_bool( packctx ) ) > 1 )
+	if( ( v = (unsigned long long)dl_txt_pack_eat_bool( packctx ) ) > 1 )
 	{
 		char* next = 0x0;
 		v = strtoull( packctx->iter, &next, 0 );
@@ -322,7 +322,7 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 					case '\'':
 					case '\"':
 					case '\\':
-						dl_binary_writer_write_uint8( packctx->writer, str.str[i] );
+						dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
 						break;
 					case 'n': dl_binary_writer_write_uint8( packctx->writer, '\n' ); break;
 					case 'r': dl_binary_writer_write_uint8( packctx->writer, '\r' ); break;
@@ -335,7 +335,7 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 				}
 			}
 			else
-				dl_binary_writer_write_uint8( packctx->writer, str.str[i] );
+				dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
 		}
 		dl_binary_writer_write_uint8( packctx->writer, '\0' );
 		dl_binary_writer_seek_set( packctx->writer, curr );
@@ -834,7 +834,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 				dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		}
 
-		unsigned int member_id = dl_internal_find_member( dl_ctx, type, dl_internal_hash_buffer( (const uint8_t*)member_name.str, member_name.len) );
+		unsigned int member_id = dl_internal_find_member( dl_ctx, type, dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len) );
 		if( member_id > type->member_count )
 			dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 
@@ -925,7 +925,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 			if( packctx->subdata[i].name.len != subdata_name.len )
 				continue;
 
-			if( strncmp( packctx->subdata[i].name.str, subdata_name.str, subdata_name.len ) == 0 )
+			if( strncmp( packctx->subdata[i].name.str, subdata_name.str, (size_t)subdata_name.len ) == 0 )
 			{
 				subdata_item = i;
 				break;
@@ -965,7 +965,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 			if( packctx->subdata[i].name.len != subinstances[j].name.len )
 				continue;
 
-			if( strncmp( packctx->subdata[i].name.str, subinstances[j].name.str, subinstances[j].name.len ) == 0 )
+			if( strncmp( packctx->subdata[i].name.str, subinstances[j].name.str, (size_t)subinstances[j].name.len ) == 0 )
 			{
 				found = true;
 				dl_binary_writer_seek_set( packctx->writer, packctx->subdata[i].patch_pos );
@@ -1018,7 +1018,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 			dl_txt_pack_failed( dl_ctx, &packctx, DL_ERROR_MALFORMED_DATA, "expected map-key with root type name" );
 
 		char type_name[1024] = {0}; // TODO: make a dl_internal_find_type_by_name() that take string name.
-		strncpy( type_name, root_type_name.str, root_type_name.len );
+		strncpy( type_name, root_type_name.str, (size_t)root_type_name.len );
 		root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
 		if( root_type == 0x0 )
 			dl_txt_pack_failed( dl_ctx, &packctx, DL_ERROR_TYPE_NOT_FOUND, "no type named \"%s\" loaded", type_name );

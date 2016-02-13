@@ -965,7 +965,7 @@ TYPED_TEST(DLBase, bug3)
 	// testing bug where struct first in struct with ptr in substruct will not get patched on load.
 
 	uint32_t array_data[] = { 1337, 7331, 13, 37 };
-	BugTest3 original = { { array_data, DL_ARRAY_LENGTH( array_data ) } };
+	BugTest3 original = { { { array_data, DL_ARRAY_LENGTH( array_data ) } } };
 	BugTest3 loaded[4];
 
 	this->do_the_round_about( BugTest3::TYPE_ID, &original, &loaded, sizeof(loaded) );
