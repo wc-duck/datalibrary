@@ -84,12 +84,23 @@ static dl_txt_pack_substr dl_txt_eat_string( dl_txt_pack_ctx* packctx )
 		return res;
 
 	const char* key_start = packctx->iter + 1;
-	packctx->iter = strchr( key_start, '"' );
-	if( packctx->iter == 0x0 )
-		return res;
-	res.str = key_start;
-	res.len = (int)(packctx->iter - key_start);
-	packctx->iter = res.str + res.len + 1;
+	const char* key_end = key_start;
+	while( *key_end )
+	{
+		switch( *key_end )
+		{
+		case '"':
+			res.str = key_start;
+			res.len = (int)(key_end - key_start);
+			packctx->iter = res.str + res.len + 1;
+			return res;
+		case '\\':
+			++key_end;
+			// fallthrough
+		default:
+			++key_end;
+		}
+	}
 	return res;
 }
 
@@ -301,7 +312,32 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		size_t curr = dl_binary_writer_tell( packctx->writer );
 		dl_binary_writer_seek_end( packctx->writer );
 		size_t strpos = dl_binary_writer_tell( packctx->writer );
-		dl_binary_writer_write_string( packctx->writer, str.str, str.len );
+		for( int i = 0; i < str.len; ++i )
+		{
+			if( str.str[i] == '\\' )
+			{
+				++i;
+				switch( str.str[i] )
+				{
+					case '\'':
+					case '\"':
+					case '\\':
+						dl_binary_writer_write_uint8( packctx->writer, str.str[i] );
+						break;
+					case 'n': dl_binary_writer_write_uint8( packctx->writer, '\n' ); break;
+					case 'r': dl_binary_writer_write_uint8( packctx->writer, '\r' ); break;
+					case 't': dl_binary_writer_write_uint8( packctx->writer, '\t' ); break;
+					case 'b': dl_binary_writer_write_uint8( packctx->writer, '\b' ); break;
+					case 'f': dl_binary_writer_write_uint8( packctx->writer, '\f' ); break;
+						break;
+					default:
+						DL_ASSERT( false && "unhandled escape!" );
+				}
+			}
+			else
+				dl_binary_writer_write_uint8( packctx->writer, str.str[i] );
+		}
+		dl_binary_writer_write_uint8( packctx->writer, '\0' );
 		dl_binary_writer_seek_set( packctx->writer, curr );
 		dl_binary_writer_write( packctx->writer, &strpos, sizeof(size_t) );
 	}
