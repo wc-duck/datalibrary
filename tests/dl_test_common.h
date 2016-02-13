@@ -52,7 +52,7 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 
 static void test_log_error( const char* msg, void* )
 {
-	printf( "DLLOG: %s\n", msg );
+	printf( "%s\n", msg );
 }
 
 

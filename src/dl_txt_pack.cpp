@@ -681,7 +681,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 					{
 						dl_txt_pack_substr ptr = dl_txt_eat_string( packctx );
 						if( ptr.str == 0x0 )
-							dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "expected string" );
+							dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
 
 						if( packctx->subdata_count == DL_ARRAY_LENGTH( packctx->subdata ) )
 							dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "to many pointers! ( better error here! )" );
@@ -1052,8 +1052,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 		}
 
 		const char* line_end = strchr( last_line, '\n' );
-		dl_log_error( dl_ctx, "at line %d, col %d:\n%.*s\n", line, col, (int)(line_end-last_line), last_line);
-		dl_log_error( dl_ctx, "%*c^", col, ' ');
+		dl_log_error( dl_ctx, "at line %d, col %d:\n%.*s\n%*c^", line, col, (int)(line_end-last_line), last_line, col, ' ');
 		return packctx.err;
 	}
 
