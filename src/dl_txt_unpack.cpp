@@ -162,9 +162,9 @@ static void dl_txt_unpack_ptr( dl_binary_writer* writer, uintptr_t offset )
 	}
 }
 
-static dl_error_t dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data );
+static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data );
 
-static dl_error_t dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, dl_type_t storage, const uint8_t* array_data, uint32_t array_count, dl_typeid_t tid )
+static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, dl_type_t storage, const uint8_t* array_data, uint32_t array_count, dl_typeid_t tid )
 {
 	dl_binary_writer_write_uint8( writer, '[' );
 	switch( storage )
@@ -326,11 +326,9 @@ static dl_error_t dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpac
 			DL_ASSERT( false );
 	}
 	dl_binary_writer_write_uint8( writer, ']' );
-
-	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_member_desc* member, const uint8_t* member_data )
+static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_member_desc* member, const uint8_t* member_data )
 {
 	dl_txt_unpack_write_indent( writer, unpack_ctx );
 	dl_txt_unpack_write_string( writer, dl_internal_member_name( dl_ctx, member ) );
@@ -401,8 +399,6 @@ static dl_error_t dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpa
 		default:
 			DL_ASSERT( false );
 	}
-
-	return DL_ERROR_OK;
 }
 
 static void dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data )
@@ -493,7 +489,7 @@ static void dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unp
 	}
 }
 
-static dl_error_t dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data )
+static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data )
 {
 	dl_binary_writer_write( writer, "{\n", 2 );
 
@@ -532,7 +528,6 @@ static dl_error_t dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpa
 
 	dl_txt_unpack_write_indent( writer, unpack_ctx );
 	dl_binary_writer_write_uint8( writer, '}' );
-	return DL_ERROR_OK;
 }
 
 static dl_error_t dl_txt_unpack_root( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, dl_typeid_t root_type )
