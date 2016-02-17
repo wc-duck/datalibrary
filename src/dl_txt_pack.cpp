@@ -896,7 +896,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	if( packctx->subdata_count == 0 )
 		return DL_ERROR_OK;
 	if( packctx->subdata_pos == 0x0 )
-		dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "instance has pointers but no \"__subdata\"-member" );
+		dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TXT_MISSING_SECTION, "instance has pointers but no \"__subdata\"-member" );
 
 	packctx->iter = packctx->subdata_pos;
 
@@ -985,6 +985,42 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	return DL_ERROR_OK;
 }
 
+static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )// , char* txt_instance )
+{
+	const dl_type_desc* root_type = 0x0;
+#if defined(_MSC_VER )
+#pragma warning(push)
+#pragma warning(disable:4611)
+#endif
+	if( setjmp( packctx->jumpbuf ) == 0 )
+#if defined(_MSC_VER )
+#pragma warning(pop)
+#endif
+	{
+		// ... find open { for top map
+		dl_txt_pack_eat_char( dl_ctx, packctx, '{' );
+
+		// ... find first and only key, the type name of the type to pack ...
+		dl_txt_eat_white( packctx );
+		dl_txt_pack_substr root_type_name = dl_txt_eat_string( packctx );
+		if( root_type_name.str == 0x0 )
+			dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_MALFORMED_DATA, "expected map-key with root type name" );
+
+		char type_name[1024] = {0}; // TODO: make a dl_internal_find_type_by_name() that take string name.
+		strncpy( type_name, root_type_name.str, (size_t)root_type_name.len );
+		root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
+		if( root_type == 0x0 )
+			dl_txt_pack_failed( dl_ctx, packctx, DL_ERROR_TYPE_NOT_FOUND, "no type named \"%s\" loaded", type_name );
+
+		dl_txt_pack_eat_char( dl_ctx, packctx, ':' );
+		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
+		dl_txt_pack_eat_char( dl_ctx, packctx, '}' );
+
+		dl_txt_pack_finalize_subdata( dl_ctx, packctx );
+	}
+	return root_type;
+}
+
 dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes )
 {
 	dl_binary_writer writer;
@@ -1002,41 +1038,26 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	packctx.subdata_count = 0;
 	packctx.err = DL_ERROR_OK;
 
-	const dl_type_desc* root_type;
-
-#if defined(_MSC_VER )
-#pragma warning(push)
-#pragma warning(disable:4611)
-#endif
-	if( setjmp( packctx.jumpbuf ) == 0 )
-#if defined(_MSC_VER )
-#pragma warning(pop)
-#endif
+	const dl_type_desc* root_type = dl_txt_pack_inner( dl_ctx, &packctx );
+	if( packctx.err == DL_ERROR_OK )
 	{
-		// ... find open { for top map
-		dl_txt_pack_eat_char( dl_ctx, &packctx, '{' );
+		// write header
+		if( out_buffer_size > 0 )
+		{
+			dl_data_header header;
+			header.id                 = DL_INSTANCE_ID;
+			header.version            = DL_INSTANCE_VERSION;
+			header.root_instance_type = dl_internal_typeid_of( dl_ctx, root_type );
+			header.instance_size      = (uint32_t)dl_binary_writer_needed_size( &writer );
+			header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
+			memcpy( out_buffer, &header, sizeof(dl_data_header) );
+		}
 
-		// ... find first and only key, the type name of the type to pack ...
-		dl_txt_eat_white( &packctx );
-		dl_txt_pack_substr root_type_name = dl_txt_eat_string( &packctx );
-		if( root_type_name.str == 0x0 )
-			dl_txt_pack_failed( dl_ctx, &packctx, DL_ERROR_MALFORMED_DATA, "expected map-key with root type name" );
-
-		char type_name[1024] = {0}; // TODO: make a dl_internal_find_type_by_name() that take string name.
-		strncpy( type_name, root_type_name.str, (size_t)root_type_name.len );
-		root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
-		if( root_type == 0x0 )
-			dl_txt_pack_failed( dl_ctx, &packctx, DL_ERROR_TYPE_NOT_FOUND, "no type named \"%s\" loaded", type_name );
-
-		dl_txt_pack_eat_char( dl_ctx, &packctx, ':' );
-		dl_txt_pack_eat_and_write_struct( dl_ctx, &packctx, root_type );
-		dl_txt_pack_eat_char( dl_ctx, &packctx, '}' );
-
-		dl_txt_pack_finalize_subdata( dl_ctx, &packctx );
+		if( produced_bytes )
+			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);
 	}
 	else
 	{
-		// ... returned from longjmp, error occurred ...
 		int line = 0;
 		int col = 0;
 		const char* last_line = txt_instance;
@@ -1058,24 +1079,8 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 
 		const char* line_end = strchr( last_line, '\n' );
 		dl_log_error( dl_ctx, "at line %d, col %d:\n%.*s\n%*c^", line, col, (int)(line_end-last_line), last_line, col, ' ');
-		return packctx.err;
 	}
-
-	// write header
-	if( out_buffer_size > 0 )
-	{
-		dl_data_header header;
-		header.id                 = DL_INSTANCE_ID;
-		header.version            = DL_INSTANCE_VERSION;
-		header.root_instance_type = dl_internal_typeid_of( dl_ctx, root_type );
-		header.instance_size      = (uint32_t)dl_binary_writer_needed_size( &writer );
-		header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
-		memcpy( out_buffer, &header, sizeof(dl_data_header) );
-	}
-
-	if( produced_bytes )
-		*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);
-	return DL_ERROR_OK;
+	return packctx.err;
 }
 
 dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size )
