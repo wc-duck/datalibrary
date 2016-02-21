@@ -13,10 +13,12 @@
 // TODO: any better/faster way to do this, especially strtof?
 #  define strtoll _strtoi64
 #  define strtoull _strtoui64
-float strtof(const char* str, char** endptr)
-{
-	return (float)strtod( str, endptr );
-}
+#  if _MSC_VER < 1900 // strtof was defined first in MSVC2015
+	float strtof(const char* str, char** endptr)
+	{
+		return (float)strtod( str, endptr );
+	}
+#  endif
 #endif
 
 struct dl_txt_pack_substr
