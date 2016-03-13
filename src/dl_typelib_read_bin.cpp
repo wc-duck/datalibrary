@@ -146,6 +146,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	{
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].name += td_str_offset;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
+		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].alias_start += dl_ctx->enum_alias_count;
 	}
 
 	for( unsigned int i = 0; i < header.enum_alias_count; ++i )

@@ -2,6 +2,7 @@
 
 #include "dl_test_common.h"
 #include <dl/dl_typelib.h>
+#include <dl/dl_txt.h>
 
 #define STRINGIFY( ... ) #__VA_ARGS__
 
@@ -166,4 +167,47 @@ TEST_F( DLTypeLibTxt, invalid_default_value_array )
 
 	// ... load typelib ...
 	EXPECT_DL_ERR_EQ( DL_ERROR_INVALID_DEFAULT_VALUE, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+}
+
+static uint8_t* test_pack_txt_type_lib( const char* lib_txt, size_t lib_txt_size, size_t* out_size )
+{
+	dl_ctx_t ctx;
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	p.error_msg_func = test_log_error;
+	EXPECT_DL_ERR_OK( dl_context_create( &ctx, &p ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, lib_txt, lib_txt_size ) );
+
+	EXPECT_DL_ERR_OK( dl_context_write_type_library( ctx, 0x0, 0, out_size ) );
+	uint8_t* packed = (uint8_t*)malloc(*out_size);
+	EXPECT_DL_ERR_OK( dl_context_write_type_library( ctx, packed, *out_size, 0x0 ) );
+
+	dl_context_destroy( ctx );
+	return packed;
+}
+
+TEST_F( DLTypeLib, enum_in_2_tlds )
+{
+	// capturing bug where enum-values would not be loaded as expected in binary tld.
+	// alias-offests were not patched correctly.
+
+	const char typelib1[] = STRINGIFY({ "module" : "tl1", "enums" : { "e1" : { "e1_v1" : 1, "e1_v2" : 2 } }, "types" : { "tl1_type" : { "members" : [ { "name" : "m1", "type" : "e1" } ] } } });
+	const char typelib2[] = STRINGIFY({ "module" : "tl2", "enums" : { "e2" : { "e2_v1" : 3, "e2_v2" : 4 } }, "types" : { "tl2_type" : { "members" : [ { "name" : "m2", "type" : "e2" } ] } } });
+
+	size_t tl1_size;
+	size_t tl2_size;
+	uint8_t* tl1 = test_pack_txt_type_lib( typelib1, sizeof(typelib1)-1, &tl1_size );
+	uint8_t* tl2 = test_pack_txt_type_lib( typelib2, sizeof(typelib2)-1, &tl2_size );
+
+	EXPECT_DL_ERR_OK( dl_context_load_type_library( ctx, tl1, tl1_size ) );
+	EXPECT_DL_ERR_OK( dl_context_load_type_library( ctx, tl2, tl2_size ) );
+
+	uint8_t outbuf[256];
+	const char test1[] = STRINGIFY( { "tl1_type" : { "m1" : "e1_v1" } } );
+	const char test2[] = STRINGIFY( { "tl2_type" : { "m2" : "e2_v1" } } );
+	EXPECT_DL_ERR_OK( dl_txt_pack( ctx, test1, outbuf, sizeof(outbuf), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_txt_pack( ctx, test2, outbuf, sizeof(outbuf), 0x0 ) );
+
+	free(tl1);
+	free(tl2);
 }

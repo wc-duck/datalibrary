@@ -13,7 +13,7 @@
 // TODO: any better/faster way to do this, especially strtof?
 #  define strtoll _strtoi64
 #  define strtoull _strtoui64
-#  if _MSC_VER < 1900 // strtof was defined first in MSVC2015
+#  if _MSC_VER < 1800 // strtof was defined first in MSVC2013
 	float strtof(const char* str, char** endptr)
 	{
 		return (float)strtod( str, endptr );
