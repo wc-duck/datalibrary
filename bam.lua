@@ -116,6 +116,9 @@ function DefaultGCCLike( platform, config, compiler )
 	
 	if config == "debug" then
 		settings.cc.flags:Add("-O0", "-g")
+	elseif config == "coverage" then
+	  settings.cc.flags:Add("-O0", "-g", "--coverage")
+	  settings.link.flags:Add("--coverage")
 	else
 		settings.cc.flags:Add("-O2")
 	end
@@ -240,10 +243,23 @@ print( 'compiler used "' .. compiler .. '"')
 
 settings = 
 {
-	linux_x86    = { debug = DefaultGCCLike(  "linux_x86",    "debug", compiler ), release = DefaultGCCLike(  "linux_x86",    "release", compiler ) },
-	linux_x86_64 = { debug = DefaultGCCLike(  "linux_x86_64", "debug", compiler ), release = DefaultGCCLike(  "linux_x86_64", "release", compiler ) },
-	win32        = { debug = DefaultMSVC( "win32",        "debug", compiler ), release = DefaultMSVC( "win32",        "release", compiler ) },
-	winx64       = { debug = DefaultMSVC( "winx64",       "debug", compiler ), release = DefaultMSVC( "winx64",       "release", compiler ) }
+	linux_x86 = {
+	 debug   = DefaultGCCLike( "linux_x86", "debug",   compiler ),
+   release = DefaultGCCLike( "linux_x86", "release", compiler )
+  },
+	linux_x86_64 = {
+    debug    = DefaultGCCLike( "linux_x86_64", "debug",    compiler ),
+    coverage = DefaultGCCLike( "linux_x86_64", "coverage", compiler ),
+    release  = DefaultGCCLike( "linux_x86_64", "release",  compiler )
+  },
+	win32 = {
+    debug   = DefaultMSVC( "win32", "debug",   compiler ),
+    release = DefaultMSVC( "win32", "release", compiler )
+  },
+	winx64 = {
+    debug   = DefaultMSVC( "winx64", "debug",   compiler ),
+    release = DefaultMSVC( "winx64", "release", compiler )
+  }
 }
 
 build_platform = ScriptArgs["platform"]
