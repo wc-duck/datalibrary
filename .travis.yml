@@ -31,7 +31,7 @@ script:
   - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
 
 after_success:
-  - coveralls --gcov-options '\-lp'
+  - coveralls --exclude external --gcov-options '\-lp'
 
 addons:
   coverity_scan:
