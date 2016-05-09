@@ -3,9 +3,11 @@
 
 #include <ctype.h>
 #include <setjmp.h>
+#include "dl_types.h"
 
 struct dl_txt_read_ctx
 {
+	const char* start;
 	const char* iter;
 	dl_error_t err;
 	jmp_buf jumpbuf;
@@ -55,14 +57,17 @@ inline const char* dl_txt_skip_white( const char* str )
 					break;
 				case '*':
 					str = &str[2];
-					while( *str != '*' ) ++str;
-					if( str[1] == '/' )
+					while( true )
 					{
-						str = &str[2];
-						break;
+						while( *str != '*' ) ++str;
+						if( str[1] == '/' )
+						{
+							str = &str[2];
+							break;
+						}
+						++str;
 					}
 			}
-
 		}
 		else
 			return str;
@@ -102,12 +107,52 @@ static dl_txt_read_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
 	return res;
 }
 
-static void dl_txt_read_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, char expect )
+static void dl_txt_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, char expect )
 {
 	dl_txt_eat_white( readctx );
 	if( *readctx->iter != expect )
-		dl_txt_read_failed( dl_ctx, readctx, DL_ERROR_MALFORMED_DATA, "expected '%c' but got '%c' at %u", expect, *readctx->iter, __LINE__ );
+		dl_txt_read_failed( dl_ctx, readctx, DL_ERROR_TXT_PARSE_ERROR, "expected '%c' but got '%c' at %u", expect, *readctx->iter, __LINE__ );
 	++readctx->iter;
+}
+
+static long dl_txt_eat_bool( dl_txt_read_ctx* packctx )
+{
+	if( strncmp( packctx->iter, "true", 4 ) == 0 )
+	{
+		packctx->iter += 4;
+		return 1;
+	}
+	if( strncmp( packctx->iter, "false", 5 ) == 0 )
+	{
+		packctx->iter += 5;
+		return 0;
+	}
+	return 2;
+}
+
+static void dl_report_error_location( dl_ctx_t ctx, const char* txt, const char* error_pos )
+{
+	int line = 0;
+	int col = 0;
+	const char* last_line = txt;
+	const char* iter = txt;
+	while( iter != error_pos )
+	{
+		if( *iter == '\n' )
+		{
+			last_line = iter + 1;
+			++line;
+			col = 0;
+		}
+		else
+		{
+			++col;
+		}
+		++iter;
+	}
+
+	const char* line_end = strchr( last_line, '\n' );
+	dl_log_error( ctx, "at line %d, col %d:\n%.*s\n%*c^", line, col, (int)(line_end-last_line), last_line, col, ' ');
 }
 
 #endif // DL_TXT_READ_H_INCLUDED

@@ -141,32 +141,66 @@ TEST_F( DLTypeLibTxt, nonexisting_type )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 }
 
+static void typelibtxt_expect_error( dl_ctx_t ctx, dl_error_t expect, const char* libstr )
+{
+	EXPECT_DL_ERR_EQ( expect, dl_context_load_txt_type_library( ctx, libstr, strlen(libstr) ) );
+}
+
+TEST_F( DLTypeLibTxt, empty_types )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_OK, STRINGIFY({ "enums" : { "e" : { "a" : 1 } }, "types" : {} }) );
+}
+
+TEST_F( DLTypeLibTxt, empty_enums )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_OK, STRINGIFY({ "enums" : {}, "types" : { "t" : { "members" : [ { "name" : "ok", "type" : "int32" } ] } } }) );
+}
+
 TEST_F( DLTypeLibTxt, struct_with_no_members1 )
 {
-	const char single_member_typelib[] = STRINGIFY({ "types" : { "no_members"  : {} } });
-
-	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, STRINGIFY({ "types" : { "no_members"  : {} } }) );
 }
 
 TEST_F( DLTypeLibTxt, struct_with_no_members2 )
 {
-	const char single_member_typelib[] = STRINGIFY({ "types" : { "no_members"  : { "members" : [] } } });
-
-	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, STRINGIFY({ "types" : { "no_members"  : { "members" : [] } } }) );
 }
 
 TEST_F( DLTypeLibTxt, invalid_default_value_array )
 {
-	const char single_member_typelib[] = STRINGIFY({
-		"types" : {
-			"note_t"  : { "members" : [ { "name" : "points", "type" : "int32", "default" : [] } ] }
-		}
-	});
+	typelibtxt_expect_error( ctx, DL_ERROR_INVALID_DEFAULT_VALUE, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int32", "default" : [] } ] } } }));
+}
 
-	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_INVALID_DEFAULT_VALUE, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+TEST_F( DLTypeLibTxt, invalid_alias_array )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY( { "enums" : { "e"  : { "v" : { "value" : 1, "aliases" : [ "apa" } } } } } ) );
+	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA,  STRINGIFY( { "enums" : { "e"  : { "v" : { "aliases" : [ "apa" ] } } } } ) );
+}
+
+TEST_F( DLTypeLibTxt, invalid_type_fmt_inline_array )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int32[a]" } ] } } }) );
+}
+
+TEST_F( DLTypeLibTxt, invalid_type_fmt_bitfield )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:a" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield<1" } ] } } }) );
+}
+
+TEST_F( DLTypeLibTxt, invalid_type_fmt_pointer_to_pod )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int8*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int16*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int32*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int64*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "uint8*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "uint16*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "uint32*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "uint64*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "fp32*" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "fp64*" } ] } } }) );
 }
 
 static uint8_t* test_pack_txt_type_lib( const char* lib_txt, size_t lib_txt_size, size_t* out_size )

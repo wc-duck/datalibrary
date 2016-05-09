@@ -1,7 +1,7 @@
 {
 	"module" : "unit_test",
 	
-	"usercode" : [ "#include \"../../tests/dl_test_included.h\"" ],
+	"usercode" : "#include \"../../tests/dl_test_included.h\"",
 	
 	"enums" : {
 		"TestEnum1" : {
