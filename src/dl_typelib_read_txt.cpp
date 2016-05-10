@@ -858,7 +858,7 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 		{
 			dl_txt_eat_char( ctx, read_state, ':' );
 			dl_txt_eat_white( read_state );
-			is_extern = dl_txt_eat_bool( read_state );
+			is_extern = dl_txt_eat_bool( read_state ) == 1;
 		}
 		else
 			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'members', 'align' or 'extern'", key.len, key.str );
