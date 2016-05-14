@@ -3,6 +3,7 @@
 #include "dl_test_common.h"
 #include <dl/dl_typelib.h>
 #include <dl/dl_txt.h>
+#include <dl/dl_reflect.h>
 
 #define STRINGIFY( ... ) #__VA_ARGS__
 
@@ -24,6 +25,7 @@ struct DLTypeLib : public ::testing::Test
 };
 
 struct DLTypeLibTxt : public DLTypeLib {};
+struct DLTypeLibUnpackTxt : public DLTypeLib {};
 
 TEST_F( DLTypeLib, simple_read_write )
 {
@@ -75,17 +77,19 @@ TEST_F( DLTypeLibTxt, simple_read_write )
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 }
 
+static void typelibtxt_expect_error( dl_ctx_t ctx, dl_error_t expect, const char* libstr )
+{
+	EXPECT_DL_ERR_EQ( expect, dl_context_load_txt_type_library( ctx, libstr, strlen(libstr) ) );
+}
+
 TEST_F( DLTypeLibTxt, missing_type )
 {
-	const char single_member_typelib[] = STRINGIFY({
+	typelibtxt_expect_error( ctx, DL_ERROR_TYPE_NOT_FOUND, STRINGIFY({
 		"module" : "small",
 		"types" : {
 			"single_int" : { "members" : [ { "name" : "member", "type" : "i_do_not_exist" } ] }
 		}
-	});
-
-	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
+	}));
 }
 
 TEST_F( DLTypeLibTxt, missing_comma )
@@ -130,20 +134,12 @@ TEST_F( DLTypeLibTxt, crash1 )
 
 TEST_F( DLTypeLibTxt, nonexisting_type )
 {
-	const char single_member_typelib[] = STRINGIFY({
+	typelibtxt_expect_error( ctx, DL_ERROR_TYPE_NOT_FOUND, STRINGIFY({
 		"types" : {
 			"note_t"  : { "members" : [ { "name" : "points", "type" : "int[]" } ] },
 			"track_t" : { "members" : [ { "name" : "notes", "type" : "notes_t[]" } ] }
 		}
-	});
-
-	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
-}
-
-static void typelibtxt_expect_error( dl_ctx_t ctx, dl_error_t expect, const char* libstr )
-{
-	EXPECT_DL_ERR_EQ( expect, dl_context_load_txt_type_library( ctx, libstr, strlen(libstr) ) );
+	}));
 }
 
 TEST_F( DLTypeLibTxt, empty_types )
@@ -202,6 +198,77 @@ TEST_F( DLTypeLibTxt, invalid_type_fmt_pointer_to_pod )
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "fp32*" } ] } } }) );
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "fp64*" } ] } } }) );
 }
+
+
+TEST_F( DLTypeLibUnpackTxt, round_about )
+{
+	const char* testlib1 = STRINGIFY({
+		"enums" : {
+			"e1" : { "val1" : 1, "val2" : 2 },
+			"e2" : { "val3" : 3, "val2" : 4 }
+		},
+		"types" : {
+			"t1" : {
+				"members" : [
+					 { "name" : "m1", "type" : "int8" },
+					 { "name" : "m2", "type" : "int8" }
+				]
+			},
+			"t2" : {
+				"members" : [
+					 { "name" : "m3", "type" : "int8" },
+					 { "name" : "m4", "type" : "int8" }
+				]
+			}
+		}
+	});
+
+	// ... pack from text ...
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, testlib1, sizeof(testlib1)-1 ) );
+
+	size_t txt_size = 0;
+	char testlib_txt_buffer[2048];
+	EXPECT_DL_ERR_OK( dl_context_write_txt_type_library( ctx, testlib_txt_buffer, sizeof(testlib_txt_buffer), &txt_size ) );
+
+	dl_ctx_t ctx2;
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	p.error_msg_func = test_log_error;
+	EXPECT_DL_ERR_OK( dl_context_create( &ctx2, &p ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx2, testlib_txt_buffer, txt_size ) );
+
+	// ... check that typelib contain the enum and the type ...
+	dl_type_context_info_t info;
+	EXPECT_DL_ERR_OK( dl_reflect_context_info( ctx2, &info ) );
+	EXPECT_EQ( 2u, info.num_types );
+	EXPECT_EQ( 2u, info.num_enums );
+
+	dl_context_destroy( ctx2 );
+}
+
+TEST_F( DLTypeLibUnpackTxt, round_about_big )
+{
+	const char testlib1[] = {
+		#include "generated/unittest.txt.h"
+	};
+
+	// ... pack from text ...
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, testlib1, sizeof(testlib1)-1 ) );
+
+	size_t txt_size = 0;
+	char testlib_txt_buffer[4096*4];
+	EXPECT_DL_ERR_OK( dl_context_write_txt_type_library( ctx, testlib_txt_buffer, sizeof(testlib_txt_buffer), &txt_size ) );
+
+	dl_ctx_t ctx2;
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	p.error_msg_func = test_log_error;
+	EXPECT_DL_ERR_OK( dl_context_create( &ctx2, &p ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx2, testlib_txt_buffer, txt_size ) );
+
+	dl_context_destroy( ctx2 );
+}
+
 
 static uint8_t* test_pack_txt_type_lib( const char* lib_txt, size_t lib_txt_size, size_t* out_size )
 {

@@ -2,7 +2,6 @@ BUILD_PATH = "local"
 
 EXTERNALS_PATH = 'external'
 GTEST_PATH = PathJoin( EXTERNALS_PATH, 'gtest' )
-YAJL_PATH  = PathJoin( EXTERNALS_PATH, 'yajl' )
 
 function dl_type_lib( tlc_file, dltlc )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
@@ -10,6 +9,7 @@ function dl_type_lib( tlc_file, dltlc )
 	local out_header    = out_file .. ".h"
 	local out_lib       = out_file .. ".bin"
 	local out_lib_h     = out_file .. ".bin.h"
+	local out_lib_txt_h = out_file .. ".txt.h"
 
 	local BIN2HEX  = _bam_exe .. " -e tool/bin2hex.lua"
 
@@ -17,9 +17,10 @@ function dl_type_lib( tlc_file, dltlc )
 		dltlc = string.gsub( dltlc, "/", "\\" )
 	end
 
-	AddJob( out_lib,    "tlc " .. out_lib,    dltlc   .. " -o "    .. out_lib    .. " "     .. tlc_file,  tlc_file )
-	AddJob( out_lib_h,  "tlc " .. out_lib_h,  BIN2HEX .. " dst="   .. out_lib_h  .. " src=" .. out_lib,   out_lib )
-	AddJob( out_header, "tlc " .. out_header, dltlc   .. " -c -o " .. out_header .. " "     .. tlc_file,  tlc_file )
+	AddJob( out_lib,       "tlc " .. out_lib,    dltlc   .. " -o "    .. out_lib    .. " "     .. tlc_file,  tlc_file )
+	AddJob( out_lib_h,     "tlc " .. out_lib_h,  BIN2HEX .. " dst="   .. out_lib_h  .. " src=" .. out_lib,   out_lib )
+	AddJob( out_lib_txt_h, "tlc " .. out_lib_h,  BIN2HEX .. " dst="   .. out_lib_txt_h  .. " src=" .. tlc_file, tlc_file )
+	AddJob( out_header,    "tlc " .. out_header, dltlc   .. " -c -o " .. out_header .. " "     .. tlc_file,  tlc_file )
 
 	AddDependency( tlc_file, dltlc )
 end
@@ -165,18 +166,6 @@ function make_gtest_settings( base_settings )
 	return settings
 end
 
-function make_yajl_settings( base_settings )
-	local settings = TableDeepCopy( base_settings )
-	
-	settings.cc.includes:Add( PathJoin( YAJL_PATH, 'include' ) )
-	
-	if settings.platform == 'linux_x86_64' then
-		settings.cc.flags:Add( "-fPIC" ) -- HAXX
-	end
-	
-	return settings
-end
-
 function make_dl_settings( base_settings )
 	local settings = TableDeepCopy( base_settings )
 	
@@ -191,9 +180,6 @@ function make_dl_settings( base_settings )
 		settings.cc.flags:Add("/W4", "/WX", "/wd4324", "/wd4127")
 		settings.cc.flags_c:Add("/TP")
 	end
-
-	settings.cc.includes:Add( PathJoin( YAJL_PATH, 'include' ) )
-	
 	return settings
 end
 
@@ -278,20 +264,18 @@ build_settings = settings[ build_platform ][ config ]
 dl_settings    = make_dl_settings   ( build_settings )
 dl_so_settings = make_dl_so_settings( build_settings )
 test_settings  = make_test_settings ( build_settings )
-yajl_settings  = make_yajl_settings ( build_settings )
 gtest_settings = make_gtest_settings( build_settings )
 
-yajl_lib  = StaticLibrary( yajl_settings,  "yajl",  Compile( yajl_settings,  Collect( PathJoin( YAJL_PATH, "src/*.c" ) ) ) )
 gtest_lib = StaticLibrary( gtest_settings, "gtest", Compile( gtest_settings, Collect( PathJoin( GTEST_PATH, "src/gtest-all.cc" ) ) ) )
-dl_lib    = StaticLibrary( dl_settings,    "dl",    Compile( dl_settings,    Collect( "src/*.cpp" ) ), yajl_lib )
-dl_shared = SharedLibrary( dl_settings,    "dlsh",  Compile( dl_so_settings, Collect( "src/*.cpp" ) ), yajl_lib )
+dl_lib    = StaticLibrary( dl_settings,    "dl",    Compile( dl_settings,    Collect( "src/*.cpp" ) ) )
+dl_shared = SharedLibrary( dl_settings,    "dlsh",  Compile( dl_so_settings, Collect( "src/*.cpp" ) ) )
 
 dl_settings.cc.includes:Add('tool/dl_pack')
 getopt   = Compile( dl_settings, CollectRecursive( "tool/dl_pack/*.c" ) )
-dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.cpp") ), getopt, yajl_lib, dl_lib, yajl_lib )
-dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecursive("tool/dl_tlc/*.cpp") ), getopt, yajl_lib, dl_lib, yajl_lib )
-dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, yajl_lib, gtest_lib )
-dlbench  = Link( test_settings,  "dlbench",  Compile( test_settings, Collect("benchmark/*.cpp") ), dl_lib, yajl_lib )
+dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.cpp") ), getopt, dl_lib )
+dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecursive("tool/dl_tlc/*.cpp") ), getopt, dl_lib )
+dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib )
+dlbench  = Link( test_settings,  "dlbench",  Compile( test_settings, Collect("benchmark/*.cpp") ), dl_lib )
 
 tl1 = dl_type_lib( "tests/unittest.tld",  dltlc )
 tl2 = dl_type_lib( "tests/unittest2.tld", dltlc ) 
