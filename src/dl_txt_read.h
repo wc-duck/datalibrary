@@ -7,10 +7,10 @@
 
 struct dl_txt_read_ctx
 {
+	jmp_buf jumpbuf;
 	const char* start;
 	const char* iter;
 	dl_error_t err;
-	jmp_buf jumpbuf;
 };
 
 struct dl_txt_read_substr
