@@ -330,7 +330,7 @@ static void dl_load_txt_fixup_enum_members( dl_ctx_t ctx, dl_type_desc* type )
 					dl_set_member_size_and_align_from_builtin( DL_TYPE_STORAGE_ENUM, iter );
 				else if( iter->AtomType() == DL_TYPE_ATOM_INLINE_ARRAY )
 				{
-					unsigned int count = iter->size[0];
+					unsigned int count = iter->inline_array_cnt();
 					dl_set_member_size_and_align_from_builtin( DL_TYPE_STORAGE_ENUM, iter );
 					iter->size[DL_PTR_SIZE_32BIT] *= count;
 					iter->size[DL_PTR_SIZE_64BIT] *= count;
@@ -377,8 +377,9 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* ty
 
 				if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
 				{
-					member->size[DL_PTR_SIZE_32BIT] *= sub_type->size[DL_PTR_SIZE_32BIT];
-					member->size[DL_PTR_SIZE_64BIT] *= sub_type->size[DL_PTR_SIZE_64BIT];
+					uint32_t array_cnt = member->inline_array_cnt();
+					member->size[DL_PTR_SIZE_32BIT] = sub_type->size[DL_PTR_SIZE_32BIT] * array_cnt;
+					member->size[DL_PTR_SIZE_64BIT] = sub_type->size[DL_PTR_SIZE_64BIT] * array_cnt;
 				}
 				else
 					member->copy_size( sub_type->size );
@@ -612,6 +613,8 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	}
 	type_name[type_name_len] = '\0';
 
+	dl_type_t atom = DL_TYPE_ATOM_POD;
+
 	bool is_ptr = false;
 	bool is_array = false;
 	bool is_inline_array = false;
@@ -713,10 +716,6 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	if( is_inline_array )
 	{
 		member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, DL_TYPE_STORAGE_STRUCT );
-		// hack here is used to later set the size, this can be removed if we store inline array length
-		// in the same space as bitfield bits and offset.
-		member->set_size( inline_array_len, inline_array_len );
-		member->set_align( 0, 0 );
 		member->set_inline_array_cnt( inline_array_len );
 		return 1;
 	}
