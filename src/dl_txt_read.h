@@ -9,6 +9,7 @@ struct dl_txt_read_ctx
 {
 	jmp_buf jumpbuf;
 	const char* start;
+	const char* end;
 	const char* iter;
 	dl_error_t err;
 };
@@ -42,42 +43,52 @@ static /*no inline?*/ void dl_txt_read_failed( dl_ctx_t ctx, dl_txt_read_ctx* re
 	longjmp( readctx->jumpbuf, 1 );
 }
 
-inline const char* dl_txt_skip_white( const char* str )
+inline const char* dl_txt_skip_white( const char* str, const char* end )
 {
 	while( true )
 	{
-		while( isspace(*str) ) ++str;
+		while( str != end && isspace(*str) ) ++str;
+
+		if( str == end )
+			return "\0";
+
 		if( *str == '/' )
 		{
+			++str;
+
 			// ... skip comment ...
-			switch( str[1] )
+			switch( *str )
 			{
 				case '/':
-					while( *str != '\n' ) ++str;
+					while( str != end && *str != '\n' ) ++str;
+					if( str == end )
+						return "\0";
 					break;
 				case '*':
-					str = &str[2];
+					++str;
 					while( true )
 					{
-						while( *str != '*' ) ++str;
-						if( str[1] == '/' )
+						while( str != end && *str != '*' ) ++str;
+						if( str == end )
+							return "\0";
+						++str;
+						if( *str == '/' )
 						{
-							str = &str[2];
+							++str;
 							break;
 						}
-						++str;
 					}
 			}
 		}
 		else
 			return str;
 	}
-	return 0x0;
+	return "\0";
 }
 
 inline void dl_txt_eat_white( dl_txt_read_ctx* readctx )
 {
-	readctx->iter = dl_txt_skip_white( readctx->iter );
+	readctx->iter = dl_txt_skip_white( readctx->iter, readctx->end );
 }
 
 static dl_txt_read_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
@@ -111,7 +122,12 @@ static void dl_txt_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, char exp
 {
 	dl_txt_eat_white( readctx );
 	if( *readctx->iter != expect )
-		dl_txt_read_failed( dl_ctx, readctx, DL_ERROR_TXT_PARSE_ERROR, "expected '%c' but got '%c' at %u", expect, *readctx->iter, __LINE__ );
+	{
+		if( *readctx->iter == '\0' )
+			dl_txt_read_failed( dl_ctx, readctx, DL_ERROR_TXT_PARSE_ERROR, "expected '%c' but got <eof>", expect );
+		else
+			dl_txt_read_failed( dl_ctx, readctx, DL_ERROR_TXT_PARSE_ERROR, "expected '%c' but got '%c'", expect, *readctx->iter );
+	}
 	++readctx->iter;
 }
 
@@ -130,13 +146,13 @@ static long dl_txt_eat_bool( dl_txt_read_ctx* packctx )
 	return 2;
 }
 
-static void dl_report_error_location( dl_ctx_t ctx, const char* txt, const char* error_pos )
+static void dl_report_error_location( dl_ctx_t ctx, const char* txt, const char* end, const char* error_pos )
 {
 	int line = 0;
 	int col = 0;
 	const char* last_line = txt;
 	const char* iter = txt;
-	while( iter != error_pos )
+	while( iter != end && iter != error_pos )
 	{
 		if( *iter == '\n' )
 		{
@@ -151,8 +167,13 @@ static void dl_report_error_location( dl_ctx_t ctx, const char* txt, const char*
 		++iter;
 	}
 
-	const char* line_end = strchr( last_line, '\n' );
-	dl_log_error( ctx, "at line %d, col %d:\n%.*s\n%*c^", line, col, (int)(line_end-last_line), last_line, col, ' ');
+	if( iter == end )
+		dl_log_error( ctx, "at end of buffer");
+	else
+	{
+		const char* line_end = strchr( last_line, '\n' );
+		dl_log_error( ctx, "at line %d, col %d:\n%.*s\n%*c^", line, col, (int)(line_end-last_line), last_line, col, ' ');
+	}
 }
 
 #endif // DL_TXT_READ_H_INCLUDED

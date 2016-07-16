@@ -429,42 +429,54 @@ static uint32_t dl_txt_pack_array_item_size( dl_ctx_t dl_ctx, const dl_member_de
 	}
 }
 
-const char* dl_txt_skip_map( const char* iter )
+const char* dl_txt_skip_map( const char* iter, const char* end )
 {
-	iter = dl_txt_skip_white( iter );
-
+	iter = dl_txt_skip_white( iter, end );
 	if( *iter != '{' )
 		return "\0";
 	++iter;
 
 	int depth = 1;
-	while( *iter && depth > 0 )
+	while( iter != end && depth > 0 )
 	{
-		iter = dl_txt_skip_white( iter );
-		if(*iter == '{' )
-			++depth;
-		if(*iter == '}' )
-			--depth;
+		iter = dl_txt_skip_white( iter, end );
+		switch(*iter)
+		{
+			case 0x0: return "\0";
+			case '{': ++depth; break;
+			case '}': --depth; break;
+			default: break;
+		}
 		++iter;
 	}
 
 	return iter;
 }
 
-const char* dl_txt_pack_skip_string( const char* str )
+const char* dl_txt_pack_skip_string( const char* str, const char* end )
 {
-	while( *str != '\"' )
+	while( str != end && *str != '\"' )
 	{
-		if( str[0] == '\\' && str[1] == '\"' )
+		if( *str == '\\' )
+		{
 			++str;
+			if( str == end )
+				return 0x0;
+			++str;
+			if( str == end )
+				return 0x0;
+
+			if( *str == '\"' )
+				++str;
+		}
 		++str;
 	}
 	return str;
 }
 
-static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, const char* iter )
+static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, const char* iter, const char* end )
 {
-	iter = dl_txt_skip_white( iter );
+	iter = dl_txt_skip_white( iter, end );
 	if( *iter == ']' )
 		return 0;
 
@@ -486,7 +498,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 			uint32_t array_length = 1;
 			while(true)
 			{
-				iter = dl_txt_skip_white( iter );
+				iter = dl_txt_skip_white( iter, end );
 				switch( *iter )
 				{
 					case ',':
@@ -505,14 +517,14 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 			uint32_t array_length = 1;
 			while(true)
 			{
-				iter = dl_txt_skip_white( iter );
+				iter = dl_txt_skip_white( iter, end );
 				switch( *iter )
 				{
 					case ',':
 						++array_length;
 						break;
 					case '"':
-						iter = dl_txt_pack_skip_string( ++iter );
+						iter = dl_txt_pack_skip_string( ++iter, end );
 						break;
 					case '\0':
 					case ']':
@@ -526,7 +538,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 		{
 			uint32_t array_length = 1;
 			for( ; *iter && *iter != ']'; ++iter )
-				if( *( iter = dl_txt_skip_map( iter ) ) == ',' )
+				if( *( iter = dl_txt_skip_map( iter, end ) ) == ',' )
 					++array_length;
 			return array_length;
 		}
@@ -606,7 +618,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		case DL_TYPE_ATOM_ARRAY:
 		{
 			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
-			uint32_t array_length = dl_txt_pack_find_array_length( member, packctx->read_ctx.iter );
+			uint32_t array_length = dl_txt_pack_find_array_length( member, packctx->read_ctx.iter, packctx->read_ctx.end );
 			if( array_length == 0 )
 			{
 				dl_binary_writer_write_pint( packctx->writer, (size_t)-1 );
@@ -717,7 +729,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 					dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "\"__subdata\" set twice!" );
 
 				packctx->subdata_pos = packctx->read_ctx.iter;
-				packctx->read_ctx.iter = dl_txt_skip_map( packctx->read_ctx.iter );
+				packctx->read_ctx.iter = dl_txt_skip_map( packctx->read_ctx.iter, packctx->read_ctx.end );
 				continue;
 			}
 			else
@@ -918,7 +930,9 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 						   DL_PTR_SIZE_HOST );
 	dl_txt_pack_ctx packctx;
 	packctx.writer  = &writer;
-	packctx.read_ctx.iter = txt_instance;
+	packctx.read_ctx.start = txt_instance;
+	packctx.read_ctx.end   = txt_instance + strlen(txt_instance); // TODO: pass to function!
+	packctx.read_ctx.iter  = txt_instance;
 	packctx.subdata_pos = 0x0;
 	packctx.subdata_count = 0;
 	packctx.read_ctx.err = DL_ERROR_OK;
@@ -943,7 +957,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	}
 	else
 	{
-		dl_report_error_location( dl_ctx, txt_instance, packctx.read_ctx.iter );
+		dl_report_error_location( dl_ctx, packctx.read_ctx.start, packctx.read_ctx.end, packctx.read_ctx.iter );
 	}
 	return packctx.read_ctx.err;
 }

@@ -185,6 +185,11 @@ TEST_F( DLTypeLibTxt, invalid_type_fmt_bitfield )
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield<1" } ] } } }) );
 }
 
+TEST_F( DLTypeLibTxt, empty_typelib )
+{
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, 0x0, 0 ) );
+}
+
 TEST_F( DLTypeLibTxt, invalid_type_fmt_pointer_to_pod )
 {
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int8*" } ] } } }) );

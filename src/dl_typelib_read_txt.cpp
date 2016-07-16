@@ -462,8 +462,8 @@ static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type
 		type->flags |= (uint32_t)DL_TYPE_FLAG_HAS_SUBDATA;
 }
 
-const char* dl_txt_skip_map( const char* iter );
-const char* dl_txt_pack_skip_string( const char* str );
+const char* dl_txt_skip_map( const char* iter, const char* end );
+const char* dl_txt_pack_skip_string( const char* str, const char* end );
 
 static uint32_t dl_txt_pack_eat_uint32( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state )
 {
@@ -776,10 +776,10 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 			switch( *start )
 			{
 				case '{':
-					end = dl_txt_skip_map( start );
+					end = dl_txt_skip_map( start, read_state->end );
 					break;
 				case '\"':
-					end = dl_txt_pack_skip_string( start + 1 );
+					end = dl_txt_pack_skip_string( start + 1, read_state->end );
 					++end;
 					break;
 				case '[':
@@ -983,7 +983,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 	}
 	else
 	{
-		dl_report_error_location( ctx, read_state->start, read_state->iter );
+		dl_report_error_location( ctx, read_state->start, read_state->end, read_state->iter );
 	}
 }
 
@@ -993,6 +993,7 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t ctx, const char* lib_data,
 
 	dl_txt_read_ctx read_state;
 	read_state.start = lib_data;
+	read_state.end   = lib_data + lib_data_size;
 	read_state.iter  = lib_data;
 	read_state.err   = DL_ERROR_OK;
 
