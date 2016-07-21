@@ -323,7 +323,7 @@ static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type
 	}
 }
 
-static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
+static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_type_desc* type )
 {
 	// ... is the type already processed ...
 	if( type->size[0] > 0 )
@@ -358,13 +358,42 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* ty
 			case DL_TYPE_ATOM_POD:
 			case DL_TYPE_ATOM_INLINE_ARRAY:
 			{
+				if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
+				{
+					if( member->inline_array_cnt() == 0 )
+					{
+						const char* enum_value_name = 0x0;
+						uint32_t enum_value_name_len = 0;
+						if( sizeof(void*) == 8 )
+						{
+							enum_value_name = (const char*)( ( (uint64_t)member->size[0] ) | (uint64_t)member->size[1] << 32 );
+							enum_value_name_len = member->alignment[0];
+						}
+						else
+						{
+							enum_value_name = (const char*)(uint64_t)member->size[0];
+							enum_value_name_len = member->alignment[0];
+						}
+
+						uint32_t val;
+						if( !dl_internal_find_enum_value_from_name( ctx, enum_value_name, (size_t)enum_value_name_len, &val ) )
+							dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_INVALID_ENUM_VALUE, "%s.%s is an inline array with size %.*s, but that enum value does not exist.",
+												dl_internal_type_name( ctx, type ),
+												dl_internal_member_name( ctx, member ),
+												(int)enum_value_name_len,
+												enum_value_name );
+
+						member->set_inline_array_cnt( val );
+					}
+				}
+
 				if( storage == DL_TYPE_STORAGE_STRUCT )
 				{
 					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
 					if( sub_type == 0x0 )
 						continue;
 
-					dl_load_txt_calc_type_size_and_align( ctx, (dl_type_desc*)sub_type );
+					dl_load_txt_calc_type_size_and_align( ctx, read_state, (dl_type_desc*)sub_type );
 					member->copy_size( sub_type->size );
 					member->copy_align( sub_type->alignment );
 				}
@@ -616,6 +645,8 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	bool is_array = false;
 	bool is_inline_array = false;
 	unsigned int inline_array_len = 0;
+	const char* inline_array_enum_value = 0x0;
+	size_t inline_array_enum_value_size = 0;
 
 	if( iter != end )
 	{
@@ -630,8 +661,22 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 			{
 				char* next = 0x0;
 				inline_array_len = (unsigned int)strtoul( iter, &next, 0 );
-				if( iter == next || *next != ']' )
-					dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+				if( iter == next )
+				{
+					// ... failed to parse inline array as number, try it as an enum ..
+					while( *next != ']' && ( isalnum(*next) || *next == '_' ) ) ++next;
+
+					if( *next != ']' )
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+
+					inline_array_enum_value = iter;
+					inline_array_enum_value_size = (size_t)(next - iter);
+				}
+				else
+				{
+					if( *next != ']' )
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+				}
 				iter = next + 1;
 				is_inline_array = true;
 			}
@@ -678,7 +723,24 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	}
 
 	if( is_inline_array )
+	{
 		member->set_inline_array_cnt( inline_array_len );
+		if( inline_array_len == 0 )
+		{
+			// If the inline array size is an enum we have to lookup the size when we are sure that all enums are parsed, temporarily store pointer and string-length
+			// in size/align of member.
+			if( sizeof(void*) == 8 )
+			{
+				member->set_size( (uint32_t)( (uint64_t)inline_array_enum_value & 0xFFFFFFFF ), (uint32_t)( ( (uint64_t)inline_array_enum_value >> 32 ) & 0xFFFFFFFF ) );
+				member->set_align( (uint32_t)(inline_array_enum_value_size & 0xFFFFFFFF ), 0 );
+			}
+			else
+			{
+				member->set_size( (uint32_t)((uint64_t)inline_array_enum_value & 0xFFFFFFFF), 0 );
+				member->set_align( (uint32_t)(inline_array_enum_value_size & 0xFFFFFFFF ), 0 );
+			}
+		}
+	}
 
 	return 1;
 }
@@ -908,7 +970,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 		dl_txt_eat_char( ctx, read_state, '}' );
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
-			dl_load_txt_calc_type_size_and_align( ctx, ctx->type_descs + i );
+			dl_load_txt_calc_type_size_and_align( ctx, read_state, ctx->type_descs + i );
 
 		// fixup members
 		for( uint32_t member_index = member_start; member_index < ctx->member_count; ++member_index )

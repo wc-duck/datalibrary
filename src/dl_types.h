@@ -379,6 +379,20 @@ static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc
 	return false;
 }
 
+static inline bool dl_internal_find_enum_value_from_name( dl_ctx_t ctx, const char* name, size_t name_len, uint32_t* value )
+{
+	for( unsigned int i = 0; i < ctx->enum_alias_count; ++i )
+	{
+		const char* alias_name = dl_internal_enum_alias_name( ctx, &ctx->enum_alias_descs[i] );
+		if( strncmp( alias_name, name, name_len ) == 0 )
+		{
+			*value = ctx->enum_value_descs[ctx->enum_alias_descs[i].value_index].value;
+			return true;
+		}
+	}
+	return false;
+}
+
 static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32_t value )
 {
 	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );

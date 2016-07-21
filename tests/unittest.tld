@@ -240,6 +240,13 @@
 			"members" : [
 				{ "name" : "components", "type" : "test_array_pad_1[]" }
 			]
+		},
+		
+		"test_inline_array_size_from_enum" : {
+			"members" : [
+				{ "name" : "arr1", "type" : "int32[TESTENUM2_VALUE1]" },
+				{ "name" : "arr2", "type" : "int32[TESTENUM1_VALUE4]" }
+			]
 		}
 	}
 }
