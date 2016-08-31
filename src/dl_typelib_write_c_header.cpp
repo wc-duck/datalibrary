@@ -241,6 +241,25 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof( dl_member_info_t ) );
 		dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
 
+		if( type->is_union )
+		{
+			dl_binary_writer_write_string_fmt( writer, "enum %s_type\n"
+													   "{\n", type->name );
+
+			// ... generate an enum for union-members ...
+			for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
+			{
+				dl_binary_writer_write_string_fmt( writer, "    %s_type_%s = 0x%08X", type->name, members[member_index].name, dl_internal_hash_string(members[member_index].name) );
+
+				if( member_index < type->member_count - 1 )
+					dl_binary_writer_write_string_fmt( writer, ",\n" );
+				else
+					dl_binary_writer_write_string_fmt( writer, "\n" );
+			}
+
+			dl_binary_writer_write_string_fmt( writer, "};\n\n" );
+		}
+
 		// ... the struct need manual align if the struct has higher align than any of its members ...
 		unsigned int max_align = 0;
 		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
@@ -252,16 +271,31 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		else
 			dl_binary_writer_write_string_fmt( writer, "struct %s\n{\n", type->name );
 
-		dl_binary_writer_write_string_fmt( writer, "#if defined( __cplusplus )\n" );
-		dl_binary_writer_write_string_fmt( writer, "    static const uint32_t TYPE_ID = 0x%08X;\n", type->tid );
-		dl_binary_writer_write_string_fmt( writer, "#endif // defined( __cplusplus )\n\n" );
+		dl_binary_writer_write_string_fmt( writer, "#if defined( __cplusplus )\n"
+												   "    static const uint32_t TYPE_ID = 0x%08X;\n"
+												   "#endif // defined( __cplusplus )\n\n", type->tid );
 
-		bool last_was_bf = false;
-		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
-			dl_context_write_c_header_member( writer, ctx, members + member_index, &last_was_bf );
+		if( type->is_union )
+		{
+			dl_binary_writer_write_string_fmt( writer, "    union\n"
+													   "    {\n" );
+
+			// TODO: better indent here!
+			bool last_was_bf = false;
+			for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
+				dl_context_write_c_header_member( writer, ctx, members + member_index, &last_was_bf );
+			dl_binary_writer_write_string_fmt( writer, "    } value;\n" );
+
+			dl_binary_writer_write_string_fmt( writer, "    %s_type type;\n", type->name );
+		}
+		else
+		{
+			bool last_was_bf = false;
+			for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
+				dl_context_write_c_header_member( writer, ctx, members + member_index, &last_was_bf );
+		}
 
 		free( members );
-
 		dl_binary_writer_write_string_fmt( writer, "};\n\n" );
 	}
 

@@ -699,6 +699,8 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	uint64_t members_set = 0;
+	bool     union_member_set = false;
+	uint32_t member_name_hash = 0;
 
 	// ... find open {
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
@@ -733,10 +735,22 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 				continue;
 			}
 			else
+			{
+				if( type->flags & DL_TYPE_FLAG_IS_UNION )
+				{
+					if( union_member_set )
+					{
+						dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, "multiple members of union-type was set! %s.%.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+					}
+					union_member_set = true;
+				}
 				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+			}
 		}
 
-		unsigned int member_id = dl_internal_find_member( dl_ctx, type, dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len) );
+
+		member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
+		unsigned int member_id = dl_internal_find_member( dl_ctx, type, member_name_hash );
 		if( member_id > type->member_count )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 
@@ -755,35 +769,45 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
 	// ... finalize members ...
-	for( uint32_t i = 0; i < type->member_count; ++i )
+	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
-		if( members_set & ( 1ULL << i ) )
-			continue;
-
-		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, i );
-		if( member->default_value_offset == UINT32_MAX )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MISSING_MEMBER, "member %s.%s is not set and has no default value", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
-
-		size_t   member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
-		uint8_t* member_default_value = dl_ctx->default_data + member->default_value_offset;
-
-		uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
-		uint8_t* subdata = member_default_value + member_size;
-
-		dl_binary_writer_seek_set( packctx->writer, member_pos );
-		dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
-
-		if( member_size != member->default_value_size )
+		size_t max_member_size = dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST );
+		dl_binary_writer_seek_set( packctx->writer, instance_pos + max_member_size );
+		dl_binary_writer_align( packctx->writer, 4 );
+		dl_binary_writer_write_uint32( packctx->writer, member_name_hash );
+	}
+	else
+	{
+		for( uint32_t i = 0; i < type->member_count; ++i )
 		{
-			// ... sub ptrs, copy and patch ...
-			dl_binary_writer_seek_end( packctx->writer );
-			uintptr_t subdata_pos = dl_binary_writer_tell( packctx->writer );
+			if( members_set & ( 1ULL << i ) )
+				continue;
 
-			dl_binary_writer_write( packctx->writer, subdata, member->default_value_size - member_size );
+			const dl_member_desc* member = dl_get_type_member( dl_ctx, type, i );
+			if( member->default_value_offset == UINT32_MAX )
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MISSING_MEMBER, "member %s.%s is not set and has no default value", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
 
-			uint8_t* member_data = packctx->writer->data + member_pos;
-			if( !packctx->writer->dummy )
-				dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size );
+			size_t   member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
+			uint8_t* member_default_value = dl_ctx->default_data + member->default_value_offset;
+
+			uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
+			uint8_t* subdata = member_default_value + member_size;
+
+			dl_binary_writer_seek_set( packctx->writer, member_pos );
+			dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+
+			if( member_size != member->default_value_size )
+			{
+				// ... sub ptrs, copy and patch ...
+				dl_binary_writer_seek_end( packctx->writer );
+				uintptr_t subdata_pos = dl_binary_writer_tell( packctx->writer );
+
+				dl_binary_writer_write( packctx->writer, subdata, member->default_value_size - member_size );
+
+				uint8_t* member_data = packctx->writer->data + member_pos;
+				if( !packctx->writer->dummy )
+					dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size );
+			}
 		}
 	}
 }

@@ -156,7 +156,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx );
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
 static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
 {
@@ -335,26 +335,46 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* dl_type, uint8_t* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	bool last_was_bitfield = false;
 
-	dl_binary_writer_align( &store_ctx->writer, dl_type->alignment[DL_PTR_SIZE_HOST] );
+	dl_binary_writer_align( &store_ctx->writer, type->alignment[DL_PTR_SIZE_HOST] );
 
 	uintptr_t instance_pos = dl_binary_writer_tell( &store_ctx->writer );
-	for( uint32_t member_index = 0; member_index < dl_type->member_count; ++member_index )
+	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
-		const dl_member_desc* member = dl_get_type_member( dl_ctx, dl_type, member_index );
+		// TODO: extract to helper-function?
+		size_t max_member_size = dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST );
 
-		if( !last_was_bitfield || member->AtomType() != DL_TYPE_ATOM_BITFIELD )
+		// find member index from union type ...
+		uint32_t union_type = *((uint32_t*)(instance + max_member_size));
+		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
+
+		dl_error_t err = dl_internal_store_member( dl_ctx, member, instance + member->offset[DL_PTR_SIZE_HOST], store_ctx );
+		if( err != DL_ERROR_OK )
+			return err;
+
+		dl_binary_writer_seek_set( &store_ctx->writer, instance_pos + max_member_size );
+		dl_binary_writer_align( &store_ctx->writer, 4 );
+		dl_binary_writer_write_uint32( &store_ctx->writer, union_type );
+	}
+	else
+	{
+		for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 		{
-			dl_binary_writer_seek_set( &store_ctx->writer, instance_pos + member->offset[DL_PTR_SIZE_HOST] );
-			dl_error_t err = dl_internal_store_member( dl_ctx, member, instance + member->offset[DL_PTR_SIZE_HOST], store_ctx );
-			if( err != DL_ERROR_OK )
-				return err;
-		}
+			const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
 
-		last_was_bitfield = member->AtomType() == DL_TYPE_ATOM_BITFIELD;
+			if( !last_was_bitfield || member->AtomType() != DL_TYPE_ATOM_BITFIELD )
+			{
+				dl_binary_writer_seek_set( &store_ctx->writer, instance_pos + member->offset[DL_PTR_SIZE_HOST] );
+				dl_error_t err = dl_internal_store_member( dl_ctx, member, instance + member->offset[DL_PTR_SIZE_HOST], store_ctx );
+				if( err != DL_ERROR_OK )
+					return err;
+			}
+
+			last_was_bitfield = member->AtomType() == DL_TYPE_ATOM_BITFIELD;
+		}
 	}
 
 	return DL_ERROR_OK;
@@ -446,6 +466,7 @@ const char* dl_error_to_string( dl_error_t error )
 		DL_ERR_TO_STR(DL_ERROR_TXT_INVALID_MEMBER_TYPE);
 		DL_ERR_TO_STR(DL_ERROR_TXT_INVALID_ENUM_VALUE);
 		DL_ERR_TO_STR(DL_ERROR_TXT_MISSING_SECTION);
+		DL_ERR_TO_STR(DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET);
 
 		DL_ERR_TO_STR(DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE);
 

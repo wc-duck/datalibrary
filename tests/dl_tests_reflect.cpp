@@ -73,11 +73,11 @@ TEST_F(DLReflect, pods)
 #define CHECK_TYPE_INFO_CORRECT( TYPE_NAME, MEM_COUNT ) { \
 	dl_type_info_t ti; \
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, TYPE_NAME::TYPE_ID, &ti ) ); \
-	EXPECT_EQ((uint32_t)TYPE_NAME::TYPE_ID, ti.tid); \
-	EXPECT_STREQ( #TYPE_NAME,               ti.name ); \
-	EXPECT_EQ(sizeof(TYPE_NAME),            ti.size); \
-	EXPECT_EQ((size_t)DL_ALIGNMENTOF(TYPE_NAME),    ti.alignment); \
-	EXPECT_EQ(MEM_COUNT,                    ti.member_count); \
+	EXPECT_EQ((uint32_t)TYPE_NAME::TYPE_ID,      ti.tid); \
+	EXPECT_STREQ( #TYPE_NAME,                    ti.name ); \
+	EXPECT_EQ(sizeof(TYPE_NAME),                 ti.size); \
+	EXPECT_EQ((size_t)DL_ALIGNMENTOF(TYPE_NAME), ti.alignment); \
+	EXPECT_EQ(MEM_COUNT,                         ti.member_count); \
 }
 
 TEST_F(DLReflect, get_type_info)
@@ -109,6 +109,8 @@ TEST_F(DLReflect, get_type_info)
 	CHECK_TYPE_INFO_CORRECT( circular_array, 2u );
 	CHECK_TYPE_INFO_CORRECT( circular_array_ptr_holder, 1u );
 	CHECK_TYPE_INFO_CORRECT( BitBitfield64, 4u );
+	CHECK_TYPE_INFO_CORRECT( test_union_simple, 3u );
+	CHECK_TYPE_INFO_CORRECT( test_union_array, 2u );
 }
 
 TEST_F(DLReflect, is_extern_reflected)
@@ -120,6 +122,17 @@ TEST_F(DLReflect, is_extern_reflected)
 	EXPECT_FALSE( info.is_extern );
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, vec3_test_TYPE_ID, &info ) );
 	EXPECT_TRUE( info.is_extern );
+}
+
+TEST_F(DLReflect, is_union_reflected)
+{
+	dl_type_info_t info;
+	memset( &info, 0x0, sizeof(dl_type_info_t) );
+
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, Pods_TYPE_ID, &info ) );
+	EXPECT_FALSE( info.is_union );
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, test_union_simple_TYPE_ID, &info ) );
+	EXPECT_TRUE( info.is_union );
 }
 
 TEST_F(DLReflect, type_lookup)

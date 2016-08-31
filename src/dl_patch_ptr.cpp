@@ -203,11 +203,26 @@ void dl_internal_patch_instance( dl_ctx_t            ctx,
 {
 	dl_patched_ptrs patched;
 	patched.add( instance );
-	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
-	{
-		const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
-		uint8_t*   member_data = instance + member->offset[DL_PTR_SIZE_HOST];
 
+	if( type->flags & DL_TYPE_FLAG_IS_UNION )
+	{
+		// TODO: extract to helper-function?
+		size_t max_member_size = dl_internal_largest_member_size( ctx, type, DL_PTR_SIZE_HOST );
+
+		// find member index from union type ...
+		uint32_t union_type = *((uint32_t*)(instance + max_member_size));
+		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( ctx, type, union_type );
+		uint8_t*   member_data = instance + member->offset[DL_PTR_SIZE_HOST];
 		dl_internal_patch_member( ctx, member, member_data, base_address, patch_distance, &patched );
+	}
+	else
+	{
+		for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+		{
+			const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
+			uint8_t*   member_data = instance + member->offset[DL_PTR_SIZE_HOST];
+
+			dl_internal_patch_member( ctx, member, member_data, base_address, patch_distance, &patched );
+		}
 	}
 }

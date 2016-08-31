@@ -117,6 +117,12 @@ struct dl_member_desc
 		alignment[ DL_PTR_SIZE_64BIT ] = bit64;
 	}
 
+	void set_offset( uint32_t bit32, uint32_t bit64 )
+	{
+		offset[ DL_PTR_SIZE_32BIT ] = bit32;
+		offset[ DL_PTR_SIZE_64BIT ] = bit64;
+	}
+
 	void copy_size( const uint32_t* insize )
 	{
 		size[ DL_PTR_SIZE_32BIT ] = insize[ DL_PTR_SIZE_32BIT ];
@@ -162,6 +168,7 @@ enum dl_type_flags
 {
 	DL_TYPE_FLAG_HAS_SUBDATA = 1 << 0, ///< the type has subdata and need pointer patching.
 	DL_TYPE_FLAG_IS_EXTERNAL = 1 << 1, ///< the type is marked as "external", this says that the type is not emitted in headers and expected to get defined by the user.
+	DL_TYPE_FLAG_IS_UNION    = 1 << 2, ///< the type is a "union" type.
 
 	DL_TYPE_FLAG_DEFAULT = 0,
 };
@@ -344,6 +351,32 @@ static inline const dl_enum_desc* dl_internal_find_enum( dl_ctx_t dl_ctx, dl_typ
 static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_type_desc* type, unsigned int member_index )
 {
 	return &ctx->member_descs[ type->member_start + member_index ];
+}
+
+static inline uint32_t dl_internal_largest_member_size( dl_ctx_t ctx, const dl_type_desc* type, dl_ptr_size_t ptr_size )
+{
+	uint32_t max_member_size = 0; // TODO: calc and store this in type?
+	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+	{
+		const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
+		max_member_size = member->size[ptr_size] > max_member_size ? member->size[ptr_size] : max_member_size;
+	}
+	return max_member_size;
+}
+
+static inline const dl_member_desc* dl_internal_find_member_desc_by_name_hash( dl_ctx_t dl_ctx, const dl_type_desc* type, uint32_t name_hash )
+{
+	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+	{
+		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
+		const char* member_name = dl_internal_member_name( dl_ctx, member );
+
+		// TODO: cache hashed name in ctx, this needs to be done not to depend on saving the string-names in the ctx.
+		uint32_t member_name_hash = dl_internal_hash_string( member_name );
+		if( member_name_hash == name_hash )
+			return member;
+	}
+	return 0x0;
 }
 
 static inline const dl_enum_value_desc* dl_get_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, unsigned int value_index )

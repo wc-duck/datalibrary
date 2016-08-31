@@ -494,14 +494,28 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 	dl_binary_writer_write( writer, "{\n", 2 );
 
 	unpack_ctx->indent += 2;
-	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
-		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
+		// TODO: check if type is not set at all ...
+		size_t max_member_size = dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST );
+
+		// find member index from union type ...
+		uint32_t union_type = *((uint32_t*)(struct_data + max_member_size));
+		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
 		dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
-		if( member_index < type->member_count - 1 )
-			dl_binary_writer_write( writer, ",\n", 2 );
-		else
-			dl_binary_writer_write( writer, "\n", 1 );
+		dl_binary_writer_write( writer, "\n", 1 );
+	}
+	else
+	{
+		for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+		{
+			const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
+			dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
+			if( member_index < type->member_count - 1 )
+				dl_binary_writer_write( writer, ",\n", 2 );
+			else
+				dl_binary_writer_write( writer, "\n", 1 );
+		}
 	}
 
 	if( struct_data == unpack_ctx->packed_instance )

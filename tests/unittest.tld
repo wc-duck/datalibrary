@@ -241,5 +241,33 @@
 				{ "name" : "components", "type" : "test_array_pad_1[]" }
 			]
 		}
+	},
+
+	"unions" : {
+		"test_union_simple" : {
+			"members" : [
+				{ "name" : "item1", "type" : "int32" },
+				{ "name" : "item2", "type" : "fp32"  },
+				{ "name" : "item3", "type" : "Pods"  }
+			]
+		},
+		"test_union_inline_array" : {
+			"members" : [
+				{ "name" : "i32",    "type" : "int32" },
+				{ "name" : "inlarr", "type" : "int32[6]" }
+			]
+		},
+		"test_union_array" : {
+			"members" : [
+				{ "name" : "i32", "type" : "int32" },
+				{ "name" : "arr", "type" : "int32[]" }
+			]
+		},
+		"test_union_ptr" : {
+			"members" : [
+				{ "name" : "p1", "type" : "Pods*" },
+				{ "name" : "p2", "type" : "SubString*" }
+			]
+		}
 	}
 }

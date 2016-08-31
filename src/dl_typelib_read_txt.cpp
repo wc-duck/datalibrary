@@ -401,17 +401,33 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* ty
 		else
 			bitfield_group_start = 0x0;
 
-		member->offset[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], member->alignment[DL_PTR_SIZE_32BIT] );
-		member->offset[DL_PTR_SIZE_64BIT] = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], member->alignment[DL_PTR_SIZE_64BIT] );
-		size[DL_PTR_SIZE_32BIT] = member->offset[DL_PTR_SIZE_32BIT] + member->size[DL_PTR_SIZE_32BIT];
-		size[DL_PTR_SIZE_64BIT] = member->offset[DL_PTR_SIZE_64BIT] + member->size[DL_PTR_SIZE_64BIT];
+		if( type->flags & DL_TYPE_FLAG_IS_UNION )
+		{
+			member->set_offset( 0, 0 );
+			size[DL_PTR_SIZE_32BIT] = member->size[DL_PTR_SIZE_32BIT] > size[DL_PTR_SIZE_32BIT] ? member->size[DL_PTR_SIZE_32BIT] : size[DL_PTR_SIZE_32BIT];
+			size[DL_PTR_SIZE_64BIT] = member->size[DL_PTR_SIZE_64BIT] > size[DL_PTR_SIZE_64BIT] ? member->size[DL_PTR_SIZE_64BIT] : size[DL_PTR_SIZE_64BIT];
+		}
+		else
+		{
+			member->offset[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], member->alignment[DL_PTR_SIZE_32BIT] );
+			member->offset[DL_PTR_SIZE_64BIT] = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], member->alignment[DL_PTR_SIZE_64BIT] );
+			size[DL_PTR_SIZE_32BIT] = member->offset[DL_PTR_SIZE_32BIT] + member->size[DL_PTR_SIZE_32BIT];
+			size[DL_PTR_SIZE_64BIT] = member->offset[DL_PTR_SIZE_64BIT] + member->size[DL_PTR_SIZE_64BIT];
+		}
 
 		align[DL_PTR_SIZE_32BIT] = member->alignment[DL_PTR_SIZE_32BIT] > align[DL_PTR_SIZE_32BIT] ? member->alignment[DL_PTR_SIZE_32BIT] : align[DL_PTR_SIZE_32BIT];
 		align[DL_PTR_SIZE_64BIT] = member->alignment[DL_PTR_SIZE_64BIT] > align[DL_PTR_SIZE_64BIT] ? member->alignment[DL_PTR_SIZE_64BIT] : align[DL_PTR_SIZE_64BIT];
 	}
 
-	type->size[DL_PTR_SIZE_32BIT]      = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], align[DL_PTR_SIZE_32BIT] );
-	type->size[DL_PTR_SIZE_64BIT]      = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], align[DL_PTR_SIZE_64BIT] );
+	if( type->flags & DL_TYPE_FLAG_IS_UNION )
+	{
+		// ... add size for the union type flag ...
+		size[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], 4 ) + (uint32_t)sizeof(uint32_t);
+		size[DL_PTR_SIZE_64BIT] = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], 4 ) + (uint32_t)sizeof(uint32_t);
+	}
+
+	type->size[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], align[DL_PTR_SIZE_32BIT] );
+	type->size[DL_PTR_SIZE_64BIT] = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], align[DL_PTR_SIZE_64BIT] );
 	type->alignment[DL_PTR_SIZE_32BIT] = align[DL_PTR_SIZE_32BIT];
 	type->alignment[DL_PTR_SIZE_64BIT] = align[DL_PTR_SIZE_64BIT];
 }
@@ -829,7 +845,7 @@ static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, 
 	return member_count;
 }
 
-static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* name )
+static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* name, bool is_union )
 {
 	dl_txt_eat_char( ctx, read_state, '{' );
 	uint32_t align = 0;
@@ -883,11 +899,13 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 
 	if( is_extern )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
+	if( is_union )
+		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_UNION;
 
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
 
-static void dl_context_load_txt_type_library_read_types( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
+static void dl_context_load_txt_type_library_read_types( dl_ctx_t ctx, dl_txt_read_ctx* read_state, bool is_union )
 {
 	dl_txt_eat_char( ctx, read_state, '{' );
 	if( dl_txt_try_eat_char( read_state, '}' ) )
@@ -898,7 +916,7 @@ static void dl_context_load_txt_type_library_read_types( dl_ctx_t ctx, dl_txt_re
 		dl_txt_read_substr type_name = dl_txt_eat_and_expect_string( ctx, read_state );
 
 		dl_txt_eat_char( ctx, read_state, ':' );
-		dl_context_load_txt_type_library_read_type( ctx, read_state, &type_name );
+		dl_context_load_txt_type_library_read_type( ctx, read_state, &type_name, is_union );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
@@ -940,12 +958,16 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			{
 				dl_context_load_txt_type_library_read_enums( ctx, read_state );
 			}
+			else if( strncmp( "unions", key.str, 6 ) == 0 )
+			{
+				dl_context_load_txt_type_library_read_types( ctx, read_state, true );
+			}
 			else if( strncmp( "types", key.str, 5 ) == 0 )
 			{
-				dl_context_load_txt_type_library_read_types( ctx, read_state );
+				dl_context_load_txt_type_library_read_types( ctx, read_state, false );
 			}
 			else
-				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'module', 'usercode', 'enums' or 'types'", key.len, key.str );
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'module', 'usercode', 'enums', 'unions' or 'types'", key.len, key.str );
 
 		} while( dl_txt_try_eat_char( read_state, ',') );
 
@@ -970,7 +992,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				{
 					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
 					if( sub_type == 0x0 )
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, "3 %s", dl_internal_member_name( ctx, member ) );
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, "couldn't find type for member %s", dl_internal_member_name( ctx, member ) );
 				}
 			}
 		}
