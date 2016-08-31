@@ -175,7 +175,7 @@ TEST_F( DLTypeLibTxt, invalid_alias_array )
 
 TEST_F( DLTypeLibTxt, invalid_type_fmt_inline_array )
 {
-	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int32[a]" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_INVALID_ENUM_VALUE, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int32[a]" } ] } } }) );
 }
 
 TEST_F( DLTypeLibTxt, invalid_type_fmt_bitfield )

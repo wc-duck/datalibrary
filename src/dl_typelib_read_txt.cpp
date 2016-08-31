@@ -176,6 +176,17 @@ static const dl_builtin_type BUILTIN_TYPES[] = {
 	{ "string", DL_TYPE_STORAGE_STR },
 };
 
+static const dl_builtin_type* dl_find_builtin_type( const char* name )
+{
+	for( size_t i = 0; i < DL_ARRAY_LENGTH( BUILTIN_TYPES ); ++i )
+	{
+		const dl_builtin_type* builtin = &BUILTIN_TYPES[i];
+		if( strcmp( name, builtin->name ) == 0 )
+			return builtin;
+	}
+	return 0x0;
+}
+
 static dl_type_t dl_make_type( dl_type_t atom, dl_type_t storage )
 {
 	return (dl_type_t)( (unsigned int)atom | (unsigned int)storage );
@@ -312,42 +323,13 @@ static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type
 	}
 }
 
-static void dl_load_txt_fixup_enum_members( dl_ctx_t ctx, dl_type_desc* type )
-{
-	dl_member_desc* iter = ctx->member_descs + type->member_start;
-	dl_member_desc* end  = ctx->member_descs + type->member_start + type->member_count;
-
-	for( ; iter != end; ++iter )
-	{
-		dl_type_t storage = iter->StorageType();
-		if( storage == DL_TYPE_STORAGE_STRUCT )
-		{
-			dl_enum_desc* e = (dl_enum_desc*)dl_internal_find_enum( ctx, iter->type_id );
-			if( e != 0x0 ) // this was really an enum!
-			{
-				iter->SetStorage( DL_TYPE_STORAGE_ENUM );
-				if( iter->AtomType() == DL_TYPE_ATOM_POD )
-					dl_set_member_size_and_align_from_builtin( DL_TYPE_STORAGE_ENUM, iter );
-				else if( iter->AtomType() == DL_TYPE_ATOM_INLINE_ARRAY )
-				{
-					unsigned int count = iter->size[0];
-					dl_set_member_size_and_align_from_builtin( DL_TYPE_STORAGE_ENUM, iter );
-					iter->size[DL_PTR_SIZE_32BIT] *= count;
-					iter->size[DL_PTR_SIZE_64BIT] *= count;
-				}
-			}
-		}
-	}
-}
-
-static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* type )
+static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_type_desc* type )
 {
 	// ... is the type already processed ...
 	if( type->size[0] > 0 )
 		return;
 
 	dl_load_txt_fixup_bitfield_members( ctx, type );
-	dl_load_txt_fixup_enum_members( ctx, type );
 
 	uint32_t size[2]  = { 0, 0 };
 	uint32_t align[2] = { type->alignment[DL_PTR_SIZE_32BIT], type->alignment[DL_PTR_SIZE_64BIT] };
@@ -361,45 +343,92 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_type_desc* ty
 	{
 		dl_member_desc* member = ctx->member_descs + member_index;
 
+		// If a member is marked as a struct it could also have been an enum that we didn't know about parse-time, patch it in that case.
+		if( member->StorageType() == DL_TYPE_STORAGE_STRUCT )
+		{
+			if( dl_internal_find_enum( ctx, member->type_id ) )
+				member->SetStorage( DL_TYPE_STORAGE_ENUM );
+		}
+
 		dl_type_t atom = member->AtomType();
 		dl_type_t storage = member->StorageType();
 
-		if( atom == DL_TYPE_ATOM_INLINE_ARRAY || atom == DL_TYPE_ATOM_POD )
+		switch( atom )
 		{
-			if( storage == DL_TYPE_STORAGE_STRUCT )
+			case DL_TYPE_ATOM_POD:
+			case DL_TYPE_ATOM_INLINE_ARRAY:
 			{
-				const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
-				if( sub_type == 0x0 )
-					continue;
+				if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
+				{
+					if( member->inline_array_cnt() == 0 )
+					{
+						const char* enum_value_name = 0x0;
+						uint32_t enum_value_name_len = 0;
+						if( sizeof(void*) == 8 )
+						{
+							enum_value_name = (const char*)( ( (uint64_t)member->size[0] ) | (uint64_t)member->size[1] << 32 );
+							enum_value_name_len = member->alignment[0];
+						}
+						else
+						{
+							enum_value_name = (const char*)(uint64_t)member->size[0];
+							enum_value_name_len = member->alignment[0];
+						}
 
-				if( sub_type->size[0] == 0 )
-					dl_load_txt_calc_type_size_and_align( ctx, (dl_type_desc*)sub_type );
+						uint32_t val;
+						if( !dl_internal_find_enum_value_from_name( ctx, enum_value_name, (size_t)enum_value_name_len, &val ) )
+							dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_INVALID_ENUM_VALUE, "%s.%s is an inline array with size %.*s, but that enum value does not exist.",
+												dl_internal_type_name( ctx, type ),
+												dl_internal_member_name( ctx, member ),
+												(int)enum_value_name_len,
+												enum_value_name );
+
+						member->set_inline_array_cnt( val );
+					}
+				}
+
+				if( storage == DL_TYPE_STORAGE_STRUCT )
+				{
+					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+					if( sub_type == 0x0 )
+						continue;
+
+					dl_load_txt_calc_type_size_and_align( ctx, read_state, (dl_type_desc*)sub_type );
+					member->copy_size( sub_type->size );
+					member->copy_align( sub_type->alignment );
+				}
+				else
+					dl_set_member_size_and_align_from_builtin( storage, member );
 
 				if( atom == DL_TYPE_ATOM_INLINE_ARRAY )
 				{
-					member->size[DL_PTR_SIZE_32BIT] *= sub_type->size[DL_PTR_SIZE_32BIT];
-					member->size[DL_PTR_SIZE_64BIT] *= sub_type->size[DL_PTR_SIZE_64BIT];
+					member->size[DL_PTR_SIZE_32BIT] *= member->inline_array_cnt();
+					member->size[DL_PTR_SIZE_64BIT] *= member->inline_array_cnt();
 				}
-				else
-					member->copy_size( sub_type->size );
 
-				member->copy_align( sub_type->alignment );
+				bitfield_group_start = 0x0;
 			}
-
-			bitfield_group_start = 0x0;
-		}
-		else if( atom == DL_TYPE_ATOM_BITFIELD )
-		{
-			if( bitfield_group_start )
+			break;
+			case DL_TYPE_ATOM_ARRAY:
 			{
-				member->offset[DL_PTR_SIZE_32BIT] = bitfield_group_start->offset[DL_PTR_SIZE_32BIT];
-				member->offset[DL_PTR_SIZE_64BIT] = bitfield_group_start->offset[DL_PTR_SIZE_64BIT];
-				continue;
+				member->set_size( 8, 16 );
+				member->set_align( 4, 8 );
 			}
-			bitfield_group_start = member;
+			break;
+			case DL_TYPE_ATOM_BITFIELD:
+			{
+				if( bitfield_group_start )
+				{
+					member->offset[DL_PTR_SIZE_32BIT] = bitfield_group_start->offset[DL_PTR_SIZE_32BIT];
+					member->offset[DL_PTR_SIZE_64BIT] = bitfield_group_start->offset[DL_PTR_SIZE_64BIT];
+					continue;
+				}
+				bitfield_group_start = member;
+			}
+			break;
+			default:
+				bitfield_group_start = 0x0;
 		}
-		else
-			bitfield_group_start = 0x0;
 
 		if( type->flags & DL_TYPE_FLAG_IS_UNION )
 		{
@@ -632,6 +661,8 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	bool is_array = false;
 	bool is_inline_array = false;
 	unsigned int inline_array_len = 0;
+	const char* inline_array_enum_value = 0x0;
+	size_t inline_array_enum_value_size = 0;
 
 	if( iter != end )
 	{
@@ -646,8 +677,22 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 			{
 				char* next = 0x0;
 				inline_array_len = (unsigned int)strtoul( iter, &next, 0 );
-				if( iter == next || *next != ']' )
-					dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+				if( iter == next )
+				{
+					// ... failed to parse inline array as number, try it as an enum ..
+					while( *next != ']' && ( isalnum(*next) || *next == '_' ) ) ++next;
+
+					if( *next != ']' )
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+
+					inline_array_enum_value = iter;
+					inline_array_enum_value_size = (size_t)(next - iter);
+				}
+				else
+				{
+					if( *next != ']' )
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+				}
 				iter = next + 1;
 				is_inline_array = true;
 			}
@@ -672,74 +717,47 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 		return 1;
 	}
 
-	for( size_t i = 0; i < DL_ARRAY_LENGTH( BUILTIN_TYPES ); ++i )
+	dl_type_t atom = DL_TYPE_ATOM_POD;
+	if( is_array ) atom = DL_TYPE_ATOM_ARRAY;
+	if( is_inline_array ) atom = DL_TYPE_ATOM_INLINE_ARRAY;
+
+	const dl_builtin_type* builtin = dl_find_builtin_type( type_name );
+
+	if( builtin )
 	{
-		const dl_builtin_type* builtin = &BUILTIN_TYPES[i];
-		if( strcmp( type_name, builtin->name ) == 0 )
-		{
-			if( is_ptr )
-				dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "pointer to pod is not supported!" );
+		if( is_ptr )
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "pointer to pod is not supported!" );
 
-			if( is_array )
-			{
-				member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, builtin->type );
-				member->type_id = 0;
-				member->set_size( 8, 16 );
-				member->set_align( 4, 8 );
-				return 1;
-			}
-
-			dl_set_member_size_and_align_from_builtin( builtin->type, member );
-
-			if( is_inline_array )
-			{
-				member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, builtin->type );
-				member->type_id = 0;
-				member->size[DL_PTR_SIZE_32BIT] *= inline_array_len;
-				member->size[DL_PTR_SIZE_64BIT] *= inline_array_len;
-				member->set_inline_array_cnt( inline_array_len );
-				return 1;
-			}
-
-			member->type = dl_make_type( DL_TYPE_ATOM_POD, builtin->type );
-			member->type_id = 0;
-			dl_set_member_size_and_align_from_builtin( builtin->type, member );
-			return 1;
-		}
+		member->type = dl_make_type( atom, builtin->type );
+		member->type_id = 0;
+		dl_set_member_size_and_align_from_builtin( builtin->type, member );
 	}
-
-	member->type_id = dl_internal_hash_string( type_name );
-
-	if( is_ptr )
+	else
 	{
-		member->type = dl_make_type( DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR );
-		member->set_size( 4, 8 );
-		member->set_align( 4, 8 );
-		return 1;
-	}
-
-	if( is_array )
-	{
-		member->type = dl_make_type( DL_TYPE_ATOM_ARRAY, DL_TYPE_STORAGE_STRUCT );
-		member->set_size( 8, 16 );
-		member->set_align( 4, 8 );
-		return 1;
+		member->type = dl_make_type( atom, is_ptr ? DL_TYPE_STORAGE_PTR : DL_TYPE_STORAGE_STRUCT );
+		member->type_id = dl_internal_hash_string( type_name );
 	}
 
 	if( is_inline_array )
 	{
-		member->type = dl_make_type( DL_TYPE_ATOM_INLINE_ARRAY, DL_TYPE_STORAGE_STRUCT );
-		// hack here is used to later set the size, this can be removed if we store inline array length
-		// in the same space as bitfield bits and offset.
-		member->set_size( inline_array_len, inline_array_len );
-		member->set_align( 0, 0 );
 		member->set_inline_array_cnt( inline_array_len );
-		return 1;
+		if( inline_array_len == 0 )
+		{
+			// If the inline array size is an enum we have to lookup the size when we are sure that all enums are parsed, temporarily store pointer and string-length
+			// in size/align of member.
+			if( sizeof(void*) == 8 )
+			{
+				member->set_size( (uint32_t)( (uint64_t)inline_array_enum_value & 0xFFFFFFFF ), (uint32_t)( ( (uint64_t)inline_array_enum_value >> 32 ) & 0xFFFFFFFF ) );
+				member->set_align( (uint32_t)(inline_array_enum_value_size & 0xFFFFFFFF ), 0 );
+			}
+			else
+			{
+				member->set_size( (uint32_t)((uint64_t)inline_array_enum_value & 0xFFFFFFFF), 0 );
+				member->set_align( (uint32_t)(inline_array_enum_value_size & 0xFFFFFFFF ), 0 );
+			}
+		}
 	}
 
-	member->type = dl_make_type( DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STRUCT );
-	member->set_size( 0, 0 );
-	member->set_align( 0, 0 );
 	return 1;
 }
 
@@ -974,7 +992,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 		dl_txt_eat_char( ctx, read_state, '}' );
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
-			dl_load_txt_calc_type_size_and_align( ctx, ctx->type_descs + i );
+			dl_load_txt_calc_type_size_and_align( ctx, read_state, ctx->type_descs + i );
 
 		// fixup members
 		for( uint32_t member_index = member_start; member_index < ctx->member_count; ++member_index )
