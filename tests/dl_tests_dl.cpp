@@ -1081,7 +1081,47 @@ TYPED_TEST(DLBase, union_with_ptr)
 
 TYPED_TEST(DLBase, union_in_inline_array)
 {
+	test_inline_array_of_unions original;
+	original.arr[0].type = test_union_simple_type_item1;
+	original.arr[1].type = test_union_simple_type_item2;
+	original.arr[2].type = test_union_simple_type_item3;
 
+	original.arr[0].value.item1 = 1;
+	original.arr[1].value.item2 = 2.0f;
+
+	original.arr[2].value.item3.i8  = 3;
+	original.arr[2].value.item3.i16 = 4;
+	original.arr[2].value.item3.i32 = 5;
+	original.arr[2].value.item3.i64 = 6;
+	original.arr[2].value.item3.u8  = 7;
+	original.arr[2].value.item3.u16 = 8;
+	original.arr[2].value.item3.u32 = 9;
+	original.arr[2].value.item3.u64 = 10;
+	original.arr[2].value.item3.f32 = 11.0f;
+	original.arr[2].value.item3.f64 = 12.0;
+
+	test_inline_array_of_unions loaded[10];
+
+	this->do_the_round_about( test_inline_array_of_unions::TYPE_ID, &original, loaded, sizeof(loaded) );
+
+	EXPECT_EQ( original.arr[0].type, loaded[0].arr[0].type );
+	EXPECT_EQ( original.arr[1].type, loaded[0].arr[1].type );
+	EXPECT_EQ( original.arr[2].type, loaded[0].arr[2].type );
+
+	EXPECT_EQ( original.arr[0].value.item1, loaded[0].arr[0].value.item1 );
+
+	EXPECT_EQ( original.arr[1].value.item2, loaded[0].arr[1].value.item2 );
+
+	EXPECT_EQ( original.arr[2].value.item3.i8,  loaded[0].arr[2].value.item3.i8  );
+	EXPECT_EQ( original.arr[2].value.item3.i16, loaded[0].arr[2].value.item3.i16 );
+	EXPECT_EQ( original.arr[2].value.item3.i32, loaded[0].arr[2].value.item3.i32 );
+	EXPECT_EQ( original.arr[2].value.item3.i64, loaded[0].arr[2].value.item3.i64 );
+	EXPECT_EQ( original.arr[2].value.item3.u8,  loaded[0].arr[2].value.item3.u8  );
+	EXPECT_EQ( original.arr[2].value.item3.u16, loaded[0].arr[2].value.item3.u16 );
+	EXPECT_EQ( original.arr[2].value.item3.u32, loaded[0].arr[2].value.item3.u32 );
+	EXPECT_EQ( original.arr[2].value.item3.u64, loaded[0].arr[2].value.item3.u64 );
+	EXPECT_EQ( original.arr[2].value.item3.f32, loaded[0].arr[2].value.item3.f32 );
+	EXPECT_EQ( original.arr[2].value.item3.f64, loaded[0].arr[2].value.item3.f64 );
 }
 
 TYPED_TEST(DLBase, union_in_array)

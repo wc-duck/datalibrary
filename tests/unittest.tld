@@ -40,8 +40,20 @@
 				{ "name" : "f32", "type" : "fp32"   },
 				{ "name" : "f64", "type" : "fp64"   }
 			]
-		},
-		
+		}		
+	},
+	
+	"unions" : {
+		"test_union_simple" : {
+			"members" : [
+				{ "name" : "item1", "type" : "int32" },
+				{ "name" : "item2", "type" : "fp32"  },
+				{ "name" : "item3", "type" : "Pods"  }
+			]
+		}
+	},
+	
+	"types" : {
 		"MorePods"     : { "members" : [ { "name" : "Pods1", "type" : "Pods"  },  { "name" : "Pods2", "type" : "Pods" }   ] },
 		"Pods2"        : { "members" : [ { "name" : "Int1",  "type" : "uint32" }, { "name" : "Int2",  "type" : "uint32" } ] },
 		"Pod2InStruct" : { "members" : [ { "name" : "Pod1",  "type" : "Pods2" },  { "name" : "Pod2",  "type" : "Pods2" }  ] },
@@ -247,17 +259,16 @@
 				{ "name" : "arr1", "type" : "int32[TESTENUM2_VALUE1]" },
 				{ "name" : "arr2", "type" : "int32[TESTENUM1_VALUE4]" }
 			]
+		},
+		
+		"test_inline_array_of_unions" : {
+			"members" : [
+				{ "name" : "arr", "type" : "test_union_simple[3]" }
+			]
 		}
 	},
 
 	"unions" : {
-		"test_union_simple" : {
-			"members" : [
-				{ "name" : "item1", "type" : "int32" },
-				{ "name" : "item2", "type" : "fp32"  },
-				{ "name" : "item3", "type" : "Pods"  }
-			]
-		},
 		"test_union_inline_array" : {
 			"members" : [
 				{ "name" : "i32",    "type" : "int32" },
