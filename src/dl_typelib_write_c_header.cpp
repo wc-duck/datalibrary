@@ -286,7 +286,7 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 				dl_context_write_c_header_member( writer, ctx, members + member_index, &last_was_bf );
 			dl_binary_writer_write_string_fmt( writer, "    } value;\n" );
 
-			dl_binary_writer_write_string_fmt( writer, "    %s_type type;\n", type->name );
+			dl_binary_writer_write_string_fmt( writer, "    enum %s_type type;\n", type->name );
 		}
 		else
 		{
