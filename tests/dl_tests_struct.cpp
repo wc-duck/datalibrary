@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
-#include "dl_tests_base.h"
-
 #ifdef __cplusplus
 	#define __STDC_LIMIT_MACROS
 #endif
 
 #include <stdint.h>
+
+#include <gtest/gtest.h>
+#include "dl_tests_base.h"
 
 TYPED_TEST(DLBase, pods)
 {
