@@ -1,6 +1,12 @@
 #include <gtest/gtest.h>
 #include "dl_tests_base.h"
 
+#ifdef __cplusplus
+	#define __STDC_LIMIT_MACROS
+#endif
+
+#include <stdint.h>
+
 TYPED_TEST(DLBase, pods)
 {
 	Pods P1Original = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
