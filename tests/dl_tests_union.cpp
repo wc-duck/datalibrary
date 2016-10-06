@@ -200,6 +200,33 @@ TYPED_TEST(DLBase, union_in_inline_array)
 
 TYPED_TEST(DLBase, union_in_array)
 {
+	float f[] = {2.0f, 3.0f};
+	int   i[] = {1,2};
+	test_has_union_array arr[2];
+	arr[0].type = test_has_union_array_type_floats;
+	arr[0].value.floats.count = DL_ARRAY_LENGTH(f);
+	arr[0].value.floats.data  = f;
+	arr[1].type = test_has_union_array_type_ints;
+	arr[1].value.ints.count = DL_ARRAY_LENGTH(i);
+	arr[1].value.ints.data  = i;
+	test_with_union_array original;
+	original.properties.count = DL_ARRAY_LENGTH(arr);
+	original.properties.data  = arr;
+
+	test_with_union_array loaded[10];
+
+	this->do_the_round_about( test_with_union_array::TYPE_ID, &original, loaded, sizeof(loaded) );
+
+	EXPECT_EQ( original.properties.count, loaded[0].properties.count );
+
+	EXPECT_EQ( original.properties[0].type, loaded[0].properties[0].type );
+	EXPECT_EQ( original.properties[1].type, loaded[0].properties[1].type );
+
+	EXPECT_EQ( original.properties[0].value.floats.count, loaded[0].properties[0].value.floats.count );
+	EXPECT_EQ( original.properties[1].value.ints.count,   loaded[0].properties[1].value.ints.count );
+
+	EXPECT_ARRAY_EQ( original.properties[0].value.floats.count, original.properties[0].value.floats.data, loaded[0].properties[0].value.floats.data );
+	EXPECT_ARRAY_EQ( original.properties[1].value.ints.count,   original.properties[1].value.ints.data,   loaded[0].properties[1].value.ints.data );
 }
 
 TYPED_TEST(DLBase, ptr_to_union)

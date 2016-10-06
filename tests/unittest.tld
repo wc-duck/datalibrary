@@ -287,5 +287,21 @@
 				{ "name" : "p2", "type" : "SubString*" }
 			]
 		}
+	},
+
+	"unions": {
+		"test_has_union_array": {
+			"members": [
+				{ "name": "floats", "type": "fp32[]"  },
+				{ "name": "ints",   "type": "int32[]" }
+			]
+		}
+	},
+	"types" : {
+		"test_with_union_array" : {
+			"members" : [
+				{ "name" : "properties", "type" : "test_has_union_array[]" }
+			]
+		}
 	}
 }

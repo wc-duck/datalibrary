@@ -736,6 +736,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			}
 			else
 			{
+				// TODO: this looks REALLY suspicious! Sholud it be here and not outside the above if!?!
 				if( type->flags & DL_TYPE_FLAG_IS_UNION )
 				{
 					if( union_member_set )

@@ -177,10 +177,23 @@ void dl_internal_patch_struct( dl_ctx_t            ctx,
 {
 	if( type->flags & DL_TYPE_FLAG_HAS_SUBDATA )
 	{
-		for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+		if( type->flags & DL_TYPE_FLAG_IS_UNION )
 		{
-			const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
+			// TODO: extract to helper-function?
+			size_t max_member_size = dl_internal_largest_member_size( ctx, type, DL_PTR_SIZE_HOST );
+
+			// find member index from union type ...
+			uint32_t union_type = *((uint32_t*)(struct_data + max_member_size));
+			const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( ctx, type, union_type );
 			dl_internal_patch_member( ctx, member, struct_data + member->offset[DL_PTR_SIZE_HOST], base_address, patch_distance, patched_ptrs );
+		}
+		else
+		{
+			for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+			{
+				const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
+				dl_internal_patch_member( ctx, member, struct_data + member->offset[DL_PTR_SIZE_HOST], base_address, patch_distance, patched_ptrs );
+			}
 		}
 	}
 }
