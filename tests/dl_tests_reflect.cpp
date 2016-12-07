@@ -113,6 +113,11 @@ TEST_F(DLReflect, get_type_info)
 	CHECK_TYPE_INFO_CORRECT( test_union_array, 2u );
 }
 
+TEST_F(DLReflect, specified_alignment)
+{
+	EXPECT_EQ( 128, DL_ALIGNMENTOF(A128BitAlignedType) );
+}
+
 TEST_F(DLReflect, is_extern_reflected)
 {
 	dl_type_info_t info;

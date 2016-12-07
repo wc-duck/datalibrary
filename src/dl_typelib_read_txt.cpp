@@ -903,15 +903,13 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	if( member_count == 0 )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, "types without members are not allowed" );
 
-	(void)align;
-
 	dl_type_desc* type = dl_alloc_type( ctx, tid );
 	type->name = dl_alloc_string( ctx, name );
 	type->flags = 0;
 	type->size[ DL_PTR_SIZE_32BIT ] = 0;
 	type->size[ DL_PTR_SIZE_64BIT ] = 0;
-	type->alignment[ DL_PTR_SIZE_32BIT ] = 0;
-	type->alignment[ DL_PTR_SIZE_64BIT ] = 0;
+	type->alignment[ DL_PTR_SIZE_32BIT ] = align;
+	type->alignment[ DL_PTR_SIZE_64BIT ] = align;
 	type->member_count = member_count;
 	type->member_start = member_start;
 
