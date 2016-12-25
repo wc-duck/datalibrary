@@ -36,7 +36,14 @@
 			]
 		},
 		
-		"vec3_test" : { "extern" : true, "members" : [ { "name" : "data", "type" : "fp32[3]" } ] },
+		"vec3_test" : { 
+			"extern" : true,
+			"members" : [ 
+				{ "name" : "x", "type" : "fp32" },
+				{ "name" : "y", "type" : "fp32" },
+				{ "name" : "z", "type" : "fp32" } 
+			]
+		},
 		"alias_test" : {
 			"members" : [
 				{ "name" : "m1", "type" : "vec3_test" },

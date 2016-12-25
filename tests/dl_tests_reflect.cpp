@@ -115,7 +115,8 @@ TEST_F(DLReflect, get_type_info)
 
 TEST_F(DLReflect, specified_alignment)
 {
-	EXPECT_EQ( 128, DL_ALIGNMENTOF(A128BitAlignedType) );
+	int align = (int)DL_ALIGNMENTOF(A128BitAlignedType);
+	EXPECT_EQ( 128, align );
 }
 
 TEST_F(DLReflect, is_extern_reflected)

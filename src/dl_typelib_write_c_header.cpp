@@ -27,20 +27,51 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 	dl_binary_writer_write_string_fmt( writer, "/* Auto generated header for dl type library */\n" );
 	dl_binary_writer_write_string_fmt( writer, "#ifndef __DL_AUTOGEN_HEADER_%s_INCLUDED\n", module_name_uppercase );
 	dl_binary_writer_write_string_fmt( writer, "#define __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
-
-	dl_binary_writer_write_string_fmt( writer, "#include <stdint.h>\n\n" );
-	dl_binary_writer_write_string_fmt( writer, "#include <stddef.h> // for size_t\n\n" );
-
-	dl_binary_writer_write_string_fmt( writer, "#ifndef __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n" );
-	dl_binary_writer_write_string_fmt( writer, "#define __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n" );
-	dl_binary_writer_write_string_fmt( writer, "#  if defined(_MSC_VER)\n" );
-	dl_binary_writer_write_string_fmt( writer, "#    define DL_ALIGN(x) __declspec(align(x))\n" );
-	dl_binary_writer_write_string_fmt( writer, "#  elif defined(__GNUC__)\n" );
-	dl_binary_writer_write_string_fmt( writer, "#    define DL_ALIGN(x) __attribute__((aligned(x)))\n" );
-	dl_binary_writer_write_string_fmt( writer, "#  else\n" );
-	dl_binary_writer_write_string_fmt( writer, "#    error \"Unsupported compiler\"\n" );
-	dl_binary_writer_write_string_fmt( writer, "#  endif\n" );
-	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n\n" );
+	dl_binary_writer_write_string_fmt( writer,
+									   "#include <stdint.h>\n\n"
+									   "#include <stddef.h> // for size_t and offsetof\n\n"
+									   "#ifndef __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n"
+									   "#define __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n"
+									   "#  if defined(_MSC_VER)\n"
+									   "#    define DL_ALIGN(x) __declspec(align(x))\n"
+									   "#  elif defined(__GNUC__)\n"
+									   "#    define DL_ALIGN(x) __attribute__((aligned(x)))\n"
+									   "#  else\n"
+									   "#    error \"Unsupported compiler\"\n"
+									   "#  endif\n"
+									   "#  if defined(_MSC_VER )\n"
+									   "#    define DL_ALIGNOF(type) __alignof(type)\n"
+									   "#  else\n"
+									   "#    define DL_ALIGNOF(type) ((sizeof(type) > 1)? offsetof(struct { char c; type x; }, x) : 1)\n"
+									   "#  endif\n"
+									   "// ... clang ...\n"
+									   "#  if defined( __clang__ )\n"
+									   "#    if defined( __cplusplus ) && __has_feature(cxx_static_assert)\n"
+									   "#      define DL_STATIC_ASSERT( cond, msg ) static_assert( cond, msg )\n"
+									   "#    elif __has_feature(c_static_assert)\n"
+									   "#      define DL_STATIC_ASSERT( cond, msg ) _Static_assert( cond, msg )\n"
+									   "#    endif\n"
+									   "   // ... msvc ...\n"
+									   "#  elif defined( _MSC_VER ) && ( defined(_MSC_VER) && (_MSC_VER >= 1600) )\n"
+									   "#    define DL_STATIC_ASSERT( cond, msg ) static_assert( cond, msg )\n"
+									   "   // ... gcc ...\n"
+									   "#  elif defined( __cplusplus )\n"
+									   "#    if __cplusplus >= 201103L || ( defined(_MSC_VER) && (_MSC_VER >= 1600) )\n"
+									   "#      define DL_STATIC_ASSERT( cond, msg ) static_assert( cond, msg )\n"
+									   "#    endif\n"
+									   "#  elif defined( __STDC__ )\n"
+									   "#    if defined( __STDC_VERSION__ )\n"
+									   "#      if __STDC_VERSION__ >= 201112L\n"
+									   "#        define DL_STATIC_ASSERT( cond, msg ) _Static_assert( cond, msg )\n"
+									   "#      else\n"
+									   "#        define DL_STATIC_ASSERT( cond, msg ) _Static_assert( cond, msg )\n"
+									   "#      endif\n"
+									   "#    endif\n"
+									   "#  endif\n"
+									   "#  if !defined(DL_STATIC_ASSERT)\n"
+									   "#    define DL_STATIC_ASSERT(x,y) // default to non-implemented.\n"
+									   "#  endif\n"
+									   "#endif // __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n\n" );
 }
 
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )
@@ -225,6 +256,37 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 
 	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
 		dl_binary_writer_write_string_fmt( writer, "#define %s_TYPE_ID (0x%08X)\n", type_info[type_index].name, type_info[type_index].tid );
+
+	// ... write checks for extern types ...
+	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
+	{
+		dl_type_info_t* type = &type_info[type_index];
+		if( !type->is_extern )
+			continue;
+
+		dl_binary_writer_write_string_fmt( writer, "\n// verify that extern type '%s' match the actual type\n", type->name );
+		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(%s) == %u, \"size of external type %s do not match what was specified in tld.\" );\n", type->name, type->size, type->name );
+		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( DL_ALIGNOF(%s) == %u, \"alignment of external type %s do not match what was specified in tld.\" );\n", type->name, type->alignment, type->name );
+
+		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof( dl_member_info_t ) );
+		dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
+		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
+		{
+			dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(((%s*) 0)->%s) == %u, \"sizeof of member %s::%s in external type do not match what was specified in tld.\" );\n",
+													   type->name,
+													   members[member_index].name,
+													   members[member_index].size,
+													   type->name,
+													   members[member_index].name );
+			dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( offsetof(%s, %s) == %u, \"offset of member %s::%s in external type do not match what was specified in tld.\" );\n",
+													   type->name,
+													   members[member_index].name,
+													   members[member_index].offset,
+													   type->name,
+													   members[member_index].name );
+		}
+		free( members );
+	}
 
 	dl_binary_writer_write_string_fmt( writer, "\n" );
 
