@@ -193,52 +193,59 @@ static void dl_txt_pack_eat_and_write_fp64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 	dl_binary_writer_write_fp64( packctx->writer, v );
 }
 
-static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
+static bool dl_txt_pack_eat_and_write_null(dl_txt_pack_ctx* packctx)
 {
 	dl_txt_eat_white( &packctx->read_ctx );
 	if( strncmp( packctx->read_ctx.iter, "null", 4 ) == 0 )
 	{
 		dl_binary_writer_write_ptr( packctx->writer, (uintptr_t)-1 );
 		packctx->read_ctx.iter += 4;
+		return true;
 	}
-	else
-	{
-		dl_txt_read_substr str = dl_txt_eat_string( &packctx->read_ctx );
-		if( str.str == 0x0 )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'string' or 'null'" );
+	return false;
+}
 
-		size_t curr = dl_binary_writer_tell( packctx->writer );
-		dl_binary_writer_seek_end( packctx->writer );
-		size_t strpos = dl_binary_writer_tell( packctx->writer );
-		for( int i = 0; i < str.len; ++i )
+static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
+{
+	dl_txt_eat_white( &packctx->read_ctx );
+	if( dl_txt_pack_eat_and_write_null(packctx) )
+		return;
+
+	dl_txt_read_substr str = dl_txt_eat_string( &packctx->read_ctx );
+	if( str.str == 0x0 )
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'string' or 'null'" );
+
+	size_t curr = dl_binary_writer_tell( packctx->writer );
+	dl_binary_writer_seek_end( packctx->writer );
+	size_t strpos = dl_binary_writer_tell( packctx->writer );
+	for( int i = 0; i < str.len; ++i )
+	{
+		if( str.str[i] == '\\' )
 		{
-			if( str.str[i] == '\\' )
+			++i;
+			switch( str.str[i] )
 			{
-				++i;
-				switch( str.str[i] )
-				{
-					case '\'':
-					case '\"':
-					case '\\':
-						dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
-						break;
-					case 'n': dl_binary_writer_write_uint8( packctx->writer, '\n' ); break;
-					case 'r': dl_binary_writer_write_uint8( packctx->writer, '\r' ); break;
-					case 't': dl_binary_writer_write_uint8( packctx->writer, '\t' ); break;
-					case 'b': dl_binary_writer_write_uint8( packctx->writer, '\b' ); break;
-					case 'f': dl_binary_writer_write_uint8( packctx->writer, '\f' ); break;
-						break;
-					default:
-						DL_ASSERT( false && "unhandled escape!" );
-				}
+				case '\'':
+				case '\"':
+				case '\\':
+					dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
+					break;
+				case 'n': dl_binary_writer_write_uint8( packctx->writer, '\n' ); break;
+				case 'r': dl_binary_writer_write_uint8( packctx->writer, '\r' ); break;
+				case 't': dl_binary_writer_write_uint8( packctx->writer, '\t' ); break;
+				case 'b': dl_binary_writer_write_uint8( packctx->writer, '\b' ); break;
+				case 'f': dl_binary_writer_write_uint8( packctx->writer, '\f' ); break;
+					break;
+				default:
+					DL_ASSERT( false && "unhandled escape!" );
 			}
-			else
-				dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
 		}
-		dl_binary_writer_write_uint8( packctx->writer, '\0' );
-		dl_binary_writer_seek_set( packctx->writer, curr );
-		dl_binary_writer_write( packctx->writer, &strpos, sizeof(size_t) );
+		else
+			dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
 	}
+	dl_binary_writer_write_uint8( packctx->writer, '\0' );
+	dl_binary_writer_seek_set( packctx->writer, curr );
+	dl_binary_writer_write( packctx->writer, &strpos, sizeof(size_t) );
 }
 
 static void dl_txt_pack_eat_and_write_enum( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_enum_desc* edesc )
@@ -549,6 +556,24 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 	return (uint32_t)-1;
 }
 
+static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, size_t patch_pos )
+{
+	if( dl_txt_pack_eat_and_write_null(packctx) )
+		return;
+
+	dl_txt_read_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
+	if( ptr.str == 0x0 )
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
+
+	if( packctx->subdata_count == DL_ARRAY_LENGTH( packctx->subdata ) )
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "to many pointers! ( better error here! )" );
+
+	packctx->subdata[packctx->subdata_count].name = ptr;
+	packctx->subdata[packctx->subdata_count].type = type;
+	packctx->subdata[packctx->subdata_count].patch_pos = patch_pos;
+	++packctx->subdata_count;
+}
+
 static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
 {
 	size_t member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
@@ -573,26 +598,8 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_STR:    dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
 				case DL_TYPE_STORAGE_PTR:
 				{
-					dl_txt_eat_white( &packctx->read_ctx );
-					if( strncmp( packctx->read_ctx.iter, "null", 4 ) == 0 )
-					{
-						dl_binary_writer_write_ptr( packctx->writer, (uintptr_t)-1 );
-						packctx->read_ctx.iter += 4;
-					}
-					else
-					{
-						dl_txt_read_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
-						if( ptr.str == 0x0 )
-							dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
-
-						if( packctx->subdata_count == DL_ARRAY_LENGTH( packctx->subdata ) )
-							dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "to many pointers! ( better error here! )" );
-
-						packctx->subdata[packctx->subdata_count].name = ptr;
-						packctx->subdata[packctx->subdata_count].type = dl_internal_find_type( dl_ctx, member->type_id );
-						packctx->subdata[packctx->subdata_count].patch_pos = member_pos;
-						++packctx->subdata_count;
-					}
+					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+					dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, sub_type, member_pos );
 				}
 				break;
 				case DL_TYPE_STORAGE_STRUCT:
