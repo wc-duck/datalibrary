@@ -685,15 +685,26 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		default:
 			DL_ASSERT(false);
 	}
+}
+static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
+{
+	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
 
-	dl_txt_eat_white( &packctx->read_ctx );
-	switch( *packctx->read_ctx.iter )
+	// ... reserve space for the type ...
+	size_t instance_pos = dl_binary_writer_tell( packctx->writer ); // duplicated in dl_txt_pack_eat_and_write_struct() =/
+	dl_binary_writer_reserve( packctx->writer, type->size[DL_PTR_SIZE_HOST] );
+
+	// ... pack all members in order ...
+	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		case ',': ++packctx->read_ctx.iter; break;
-		case '}': break;
-		default:
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected , or }" );
+		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+
+		dl_txt_eat_white( &packctx->read_ctx );
+		if( member_index < type->member_count - 1 )
+			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ',' );
 	}
+
+	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 }
 
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
@@ -701,6 +712,14 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	uint64_t members_set = 0;
 	bool     union_member_set = false;
 	uint32_t member_name_hash = 0;
+
+	dl_txt_eat_white( &packctx->read_ctx );
+
+	if( *packctx->read_ctx.iter == '[' )
+	{
+		dl_txt_pack_eat_and_write_array_struct( dl_ctx, packctx, type );
+		return;
+	}
 
 	// ... find open {
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
@@ -764,6 +783,15 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		// ... read member ...
 		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_id ) );
+
+		dl_txt_eat_white( &packctx->read_ctx );
+		switch( *packctx->read_ctx.iter )
+		{
+			case ',': ++packctx->read_ctx.iter; break;
+			case '}': break;
+			default:
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected , or }" );
+		}
 	}
 
 	// ... find close }

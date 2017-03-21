@@ -367,6 +367,32 @@ TEST_F(DLText, default_value_array_array)
 	EXPECT_EQ( 7u, loaded[0].Arr[1].u32_arr[1] );
 }
 
+TEST_F( DLText, array_struct )
+{
+	const char* text_data = STRINGIFY(
+		{
+			"Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4, 2.3, 3.4 ]
+		}
+	);
+
+	Pods loaded;
+	unsigned char out_data_text[1024];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, Pods::TYPE_ID, &loaded, sizeof(loaded), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+
+	EXPECT_EQ(  -1,  loaded.i8  );
+	EXPECT_EQ(  -2,  loaded.i16 );
+	EXPECT_EQ(  -3,  loaded.i32 );
+	EXPECT_EQ(  -4,  loaded.i64 );
+	EXPECT_EQ(  1u,  loaded.u8 );
+	EXPECT_EQ(  2u,  loaded.u16 );
+	EXPECT_EQ(  3u,  loaded.u32 );
+	EXPECT_EQ(  4u,  loaded.u64 );
+	EXPECT_EQ( 2.3f, loaded.f32 );
+	EXPECT_EQ( 3.4,  loaded.f64 );
+}
+
 TEST_F( DLText, test_alias )
 {
 	const char* text_data = STRINGIFY(
@@ -411,7 +437,6 @@ TEST_F( DLText, invalid_data_format )
 {
 	unsigned char out_data_text[1024];
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( [] ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
-	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : [] }   ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : 1 }    ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : true } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
