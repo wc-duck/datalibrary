@@ -46,9 +46,9 @@ static void dl_txt_pack_eat_and_write_int8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 		char* next = 0x0;
 		v = strtol( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected int8" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'int8'" );
 		if( !dl_long_in_range( v, INT8_MIN, INT8_MAX ) )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected int8, %d is out of range.", (int)v );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'int8', %d is out of range.", (int)v );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_int8( packctx->writer, (int8_t)v );
@@ -63,9 +63,9 @@ static void dl_txt_pack_eat_and_write_int16( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 		char* next = 0x0;
 		v = strtol( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected int16" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'int16'" );
 		if( !dl_long_in_range( v, INT16_MIN, INT16_MAX ) )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected int16, %d is out of range.", (int)v );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'int16', %d is out of range.", (int)v );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_int16( packctx->writer, (int16_t)v );
@@ -80,7 +80,7 @@ static void dl_txt_pack_eat_and_write_int32( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 		char* next = 0x0;
 		v = strtol( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected int32" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'int32'" );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_int32( packctx->writer, (int32_t)v );
@@ -95,7 +95,7 @@ static void dl_txt_pack_eat_and_write_int64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 		char* next = 0x0;
 		v = strtoll( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected int64" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'int64'" );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_int64( packctx->writer, (int64_t)v );
@@ -110,9 +110,9 @@ static void dl_txt_pack_eat_and_write_uint8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 		char* next = 0x0;
 		v = strtoul( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected uint8" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'uint8'" );
 		if( v > UINT8_MAX )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected uint8, %d is out of range.", (int)v );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'uint8', %d is out of range.", (int)v );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_uint8( packctx->writer, (uint8_t)v );
@@ -127,9 +127,9 @@ static void dl_txt_pack_eat_and_write_uint16( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		char* next = 0x0;
 		v = strtoul( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected uint16" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'uint16'" );
 		if( v > UINT16_MAX )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected uint16, %d is out of range.", (int)v );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'uint16', %d is out of range.", (int)v );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_uint16( packctx->writer, (uint16_t)v );
@@ -144,7 +144,7 @@ static void dl_txt_pack_eat_and_write_uint32( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		char* next = 0x0;
 		v = strtoul( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected uint32" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'uint32'" );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_uint32( packctx->writer, (uint32_t)v );
@@ -159,7 +159,7 @@ static uint64_t dl_txt_pack_eat_uint64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packct
 		char* next = 0x0;
 		v = strtoull( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected uint64" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'uint64'" );
 		packctx->read_ctx.iter = next;
 	}
 	return (uint64_t)v;
@@ -177,7 +177,7 @@ static void dl_txt_pack_eat_and_write_fp32( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 	char* next = 0x0;
 	float v = strtof( packctx->read_ctx.iter, &next );
 	if( packctx->read_ctx.iter == next )
-		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected fp32" );
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'fp32'" );
 	packctx->read_ctx.iter = next;
 	dl_binary_writer_write_fp32( packctx->writer, v );
 }
@@ -188,7 +188,7 @@ static void dl_txt_pack_eat_and_write_fp64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 	char* next = 0x0;
 	double v = strtod( packctx->read_ctx.iter, &next );
 	if( packctx->read_ctx.iter == next )
-		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected fp64" );
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'fp64'" );
 	packctx->read_ctx.iter = next;
 	dl_binary_writer_write_fp64( packctx->writer, v );
 }
@@ -205,7 +205,7 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	{
 		dl_txt_read_substr str = dl_txt_eat_string( &packctx->read_ctx );
 		if( str.str == 0x0 )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected string or null" );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'string' or 'null'" );
 
 		size_t curr = dl_binary_writer_tell( packctx->writer );
 		dl_binary_writer_seek_end( packctx->writer );

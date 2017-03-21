@@ -369,11 +369,7 @@ TEST_F(DLText, default_value_array_array)
 
 TEST_F( DLText, array_struct )
 {
-	const char* text_data = STRINGIFY(
-		{
-			"Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4, 2.3, 3.4 ]
-		}
-	);
+	const char* text_data = STRINGIFY( { "Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4, 2.3, 3.4 ] } );
 
 	Pods loaded;
 	unsigned char out_data_text[1024];
@@ -395,14 +391,16 @@ TEST_F( DLText, array_struct )
 
 TEST_F( DLText, array_struct_missing_member )
 {
-	const char* text_data = STRINGIFY(
-		{
-			"Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4 ]
-		}
-	);
-
+	const char* text_data = STRINGIFY( { "Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4 ] } );
 	unsigned char out_data_text[1024];
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_MISSING_MEMBER, dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
+
+TEST_F( DLText, array_struct_wrong_type )
+{
+	const char* text_data = STRINGIFY( { "Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4, "whooo" ] } );
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
 
 
