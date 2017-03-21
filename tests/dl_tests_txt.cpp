@@ -406,10 +406,10 @@ TEST_F( DLText, array_struct_in_struct )
 	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, Pod2InStruct::TYPE_ID, &loaded, sizeof(loaded), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 
-	EXPECT_EQ( 1, loaded.Pod1.Int1 );
-	EXPECT_EQ( 2, loaded.Pod1.Int2 );
-	EXPECT_EQ( 3, loaded.Pod2.Int1 );
-	EXPECT_EQ( 4, loaded.Pod2.Int2 );
+	EXPECT_EQ( 1u, loaded.Pod1.Int1 );
+	EXPECT_EQ( 2u, loaded.Pod1.Int2 );
+	EXPECT_EQ( 3u, loaded.Pod2.Int1 );
+	EXPECT_EQ( 4u, loaded.Pod2.Int2 );
 }
 
 TEST_F( DLText, array_struct_missing_member )
