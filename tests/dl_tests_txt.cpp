@@ -389,6 +389,29 @@ TEST_F( DLText, array_struct )
 	EXPECT_EQ( 3.4,  loaded.f64 );
 }
 
+TEST_F( DLText, array_struct_in_struct )
+{
+	const char* text_data = STRINGIFY(
+		{
+			"Pod2InStruct" : {
+				"Pod1" : [1,2],
+				"Pod2" : [3,4]
+			}
+		}
+	);
+
+	Pod2InStruct loaded;
+	unsigned char out_data_text[1024];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, Pod2InStruct::TYPE_ID, &loaded, sizeof(loaded), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+
+	EXPECT_EQ( 1, loaded.Pod1.Int1 );
+	EXPECT_EQ( 2, loaded.Pod1.Int2 );
+	EXPECT_EQ( 3, loaded.Pod2.Int1 );
+	EXPECT_EQ( 4, loaded.Pod2.Int2 );
+}
+
 TEST_F( DLText, array_struct_missing_member )
 {
 	const char* text_data = STRINGIFY( { "Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4 ] } );
