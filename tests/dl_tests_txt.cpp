@@ -393,6 +393,19 @@ TEST_F( DLText, array_struct )
 	EXPECT_EQ( 3.4,  loaded.f64 );
 }
 
+TEST_F( DLText, array_struct_missing_member )
+{
+	const char* text_data = STRINGIFY(
+		{
+			"Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4 ]
+		}
+	);
+
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_MISSING_MEMBER, dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
+
+
 TEST_F( DLText, test_alias )
 {
 	const char* text_data = STRINGIFY(

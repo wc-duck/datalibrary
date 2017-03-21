@@ -700,8 +700,18 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
 
 		dl_txt_eat_white( &packctx->read_ctx );
+
 		if( member_index < type->member_count - 1 )
-			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ',' );
+		{
+			if( *packctx->read_ctx.iter != ',' )
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MISSING_MEMBER,
+									"type '%s' was specified as array, only %u of %u members set!",
+									dl_internal_type_name( dl_ctx, type ),
+									member_index + 1,
+									type->member_count );
+			else
+				dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ',' );
+		}
 	}
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
