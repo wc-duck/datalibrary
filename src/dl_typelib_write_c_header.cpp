@@ -137,6 +137,13 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t 
 		case DL_TYPE_STORAGE_FP32:   dl_binary_writer_write_string_fmt(writer, "float"); return;
 		case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) double"); return;
 		case DL_TYPE_STORAGE_STR:    dl_binary_writer_write_string_fmt(writer, "const char*"); return;
+		case DL_TYPE_STORAGE_PTR:
+		{
+			dl_type_info_t sub_type;
+			dl_reflect_get_type_info( ctx, tid, &sub_type );
+			dl_binary_writer_write_string_fmt(writer, "struct %s*", sub_type.name);
+			return;
+		}
 		default:
 			dl_binary_writer_write_string_fmt(writer, "UNKNOWN");
 			return;

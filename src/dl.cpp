@@ -158,6 +158,40 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 
 static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
+static void dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
+{
+	uint8_t* data = *(uint8_t**)instance;
+	uintptr_t offset = store_ctx->FindWrittenPtr( data );
+
+	if( data == 0x0 ) // Null-pointer, store pint(-1) to signal to patching!
+	{
+		DL_ASSERT(offset == (uintptr_t)-1 && "This pointer should not have been found among the written ptrs!");
+		// keep the -1 in Offset and store it to ptr.
+	}
+	else if( offset == (uintptr_t)-1 ) // has not been written yet!
+	{
+		uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
+		dl_binary_writer_seek_end( &store_ctx->writer );
+
+		// const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+		uintptr_t size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
+		dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
+
+		offset = dl_binary_writer_tell( &store_ctx->writer );
+
+		// write data!
+		dl_binary_writer_reserve( &store_ctx->writer, size ); // reserve space for ptr so subdata is placed correctly
+
+		store_ctx->AddWrittenPtr(data, offset);
+
+		dl_internal_instance_store(dl_ctx, sub_type, data, store_ctx);
+
+		dl_binary_writer_seek_set( &store_ctx->writer, pos );
+	}
+
+	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
+}
+
 static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
 {
 	switch( storage_type )
@@ -177,6 +211,10 @@ static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_t storage_type, co
 		case DL_TYPE_STORAGE_STR:
 			for( uint32_t elem = 0; elem < count; ++elem )
 				dl_internal_store_string( instance + (elem * sizeof(char*)), store_ctx );
+			break;
+		case DL_TYPE_STORAGE_PTR:
+			for( uint32_t elem = 0; elem < count; ++elem )
+				dl_internal_store_ptr( dl_ctx, instance + (elem * sizeof(void*)), sub_type, store_ctx );
 			break;
 		default: // default is a standard pod-type
 			dl_binary_writer_write( &store_ctx->writer, instance, count * size );
@@ -211,36 +249,13 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 					break;
 				case DL_TYPE_STORAGE_PTR:
 				{
-					uint8_t* data = *(uint8_t**)instance;
-					uintptr_t offset = store_ctx->FindWrittenPtr( data );
-
-					if( data == 0x0 ) // Null-pointer, store pint(-1) to signal to patching!
+					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+					if( sub_type == 0x0 )
 					{
-						DL_ASSERT(offset == (uintptr_t)-1 && "This pointer should not have been found among the written ptrs!");
-						// keep the -1 in Offset and store it to ptr.
+						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
+						return DL_ERROR_TYPE_NOT_FOUND;
 					}
-					else if( offset == (uintptr_t)-1 ) // has not been written yet!
-					{
-						uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
-						dl_binary_writer_seek_end( &store_ctx->writer );
-
-						const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
-						uintptr_t size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
-						dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
-
-						offset = dl_binary_writer_tell( &store_ctx->writer );
-
-						// write data!
-						dl_binary_writer_reserve( &store_ctx->writer, size ); // reserve space for ptr so subdata is placed correctly
-
-						store_ctx->AddWrittenPtr(data, offset);
-
-						dl_internal_instance_store(dl_ctx, sub_type, data, store_ctx);
-
-						dl_binary_writer_seek_set( &store_ctx->writer, pos );
-					}
-
-					dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
+					dl_internal_store_ptr( dl_ctx, instance, sub_type, store_ctx );
 				}
 				break;
 				default: // default is a standard pod-type
@@ -255,7 +270,8 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 		{
 			const dl_type_desc* sub_type = 0x0;
 			uint32_t count = member->inline_array_cnt();
-			if( storage_type == DL_TYPE_STORAGE_STRUCT )
+			if( storage_type == DL_TYPE_STORAGE_STRUCT ||
+				storage_type == DL_TYPE_STORAGE_PTR )
 			{
 				sub_type = dl_internal_find_type(dl_ctx, member->type_id);
 				if (sub_type == 0x0)

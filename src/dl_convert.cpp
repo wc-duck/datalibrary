@@ -171,6 +171,26 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 														 const uint8_t*      base_data,
 														 SConvertContext&    convert_ctx );
 
+static dl_error_t dl_internal_convert_collect_instances_from_ptr( dl_ctx_t              ctx,
+																  const dl_member_desc* member,
+																  const dl_type_desc*   sub_type,
+																  const uint8_t*        member_data,
+																  const uint8_t*        base_data,
+																  SConvertContext&      convert_ctx )
+{
+	uintptr_t offset = dl_internal_read_ptr_data(member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size);
+
+	const uint8_t* ptr_data = base_data + offset;
+
+	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size] && !convert_ctx.IsSwapped(ptr_data))
+	{
+		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, member->type));
+		dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
+	}
+
+	return DL_ERROR_OK;
+}
+
 static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t              ctx,
 																	 const dl_member_desc* member,
 																	 const uint8_t*        member_data,
@@ -198,16 +218,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
 					if(sub_type == 0x0)
 						return DL_ERROR_TYPE_NOT_FOUND;
-
-					uintptr_t offset = dl_internal_read_ptr_data(member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size);
-
-					const uint8_t* ptr_data = base_data + offset;
-
-					if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size] && !convert_ctx.IsSwapped(ptr_data))
-					{
-						convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, member->type));
-						dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
-					}
+					dl_internal_convert_collect_instances_from_ptr( ctx, member, sub_type, member_data, base_data, convert_ctx );
 				}
 				break;
 				case DL_TYPE_STORAGE_STRUCT:
@@ -250,6 +261,17 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 						if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
 							convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, member->inline_array_cnt(), dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
 					}
+				}
+				break;
+				case DL_TYPE_STORAGE_PTR:
+				{
+					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
+					if(sub_type == 0x0)
+						return DL_ERROR_TYPE_NOT_FOUND;
+
+					uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
+					for( uintptr_t elem = 0; elem < member->inline_array_cnt(); ++elem )
+						dl_internal_convert_collect_instances_from_ptr( ctx, member, sub_type, member_data + (elem * ptr_size), base_data, convert_ctx );
 				}
 				break;
 				default:
@@ -488,6 +510,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 				}
 				break;
 				case DL_TYPE_STORAGE_STR:
+				case DL_TYPE_STORAGE_PTR:
 				{
 					uintptr_t src_ptr_size = dl_internal_ptr_size(conv_ctx.src_ptr_size);
 					uintptr_t tgt_ptr_size = dl_internal_ptr_size(conv_ctx.target_ptr_size);

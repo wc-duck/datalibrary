@@ -117,7 +117,7 @@ TYPED_TEST(DLBase, array_struct_with_ptr_holder)
 	EXPECT_EQ( loaded[0].arr[1].ptr, loaded[0].arr[2].ptr );
 }
 
-TYPED_TEST(DLBase, array_struct_circular_ptr_holder_array )
+TYPED_TEST(DLBase, array_struct_circular_ptr_holder_array)
 {
 	// long name!
 	circular_array p1, p2, p3;
@@ -158,4 +158,28 @@ TYPED_TEST(DLBase, array_struct_circular_ptr_holder_array )
 
 	EXPECT_EQ( l3->arr[0].ptr, l3 );
 	EXPECT_EQ( l3->arr[1].ptr, l1 );
+}
+
+TYPED_TEST(DLBase, inline_ptr_array)
+{
+	Pods2 p1 = { 1, 2 };
+	Pods2 p2 = { 3, 4 };
+	inline_ptr_array ptr_array;
+	ptr_array.arr[0] = &p1;
+	ptr_array.arr[1] = &p2;
+	ptr_array.arr[2] = &p1;
+
+	inline_ptr_array loaded[32];
+
+	this->do_the_round_about( inline_ptr_array::TYPE_ID, &ptr_array, &loaded, sizeof(loaded) );
+
+	EXPECT_EQ( p1.Int1, loaded[0].arr[0]->Int1 );
+	EXPECT_EQ( p1.Int2, loaded[0].arr[0]->Int2 );
+	EXPECT_EQ( p2.Int1, loaded[0].arr[1]->Int1 );
+	EXPECT_EQ( p2.Int2, loaded[0].arr[1]->Int2 );
+	EXPECT_EQ( p1.Int1, loaded[0].arr[2]->Int1 );
+	EXPECT_EQ( p1.Int2, loaded[0].arr[2]->Int2 );
+
+	EXPECT_NE( loaded[0].arr[0], loaded[0].arr[1] );
+	EXPECT_EQ( loaded[0].arr[0], loaded[0].arr[2] );
 }

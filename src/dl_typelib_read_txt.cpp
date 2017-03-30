@@ -667,7 +667,11 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	if( iter != end )
 	{
 		if( *iter == '*' )
+		{
 			is_ptr = true;
+			if( iter[1] == '[' )
+				++iter;
+		}
 		if( *iter == '[' )
 		{
 			++iter;

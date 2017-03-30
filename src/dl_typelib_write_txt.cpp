@@ -9,6 +9,7 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, d
 	switch( storage )
 	{
 		case DL_TYPE_STORAGE_STRUCT:
+		case DL_TYPE_STORAGE_PTR:
 		{
 			dl_type_info_t sub_type;
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
@@ -32,6 +33,7 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, d
 		case DL_TYPE_STORAGE_FP64:   return "fp64";
 		case DL_TYPE_STORAGE_STR:    return "string";
 		default:
+			DL_ASSERT(false);
 			return 0x0;
 	}
 }
@@ -104,14 +106,11 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer,
 	switch( atom )
 	{
 		case DL_TYPE_ATOM_POD:
-			if( storage == DL_TYPE_STORAGE_PTR )
-			{
-				dl_type_info_t sub_type;
-				dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-				dl_binary_writer_write_fmt( writer, "\"type\" : \"%s*\"", sub_type.name );
-			}
-			else
-				dl_binary_writer_write_fmt( writer, "\"type\" : \"%s\"", dl_context_type_to_string( ctx, storage, member->type_id ) );
+			dl_binary_writer_write_fmt( writer,
+										storage == DL_TYPE_STORAGE_PTR
+											? "\"type\" : \"%s*\""
+											: "\"type\" : \"%s\"",
+										dl_context_type_to_string( ctx, storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_BITFIELD:
 			dl_binary_writer_write_fmt( writer, "\"type\" : \"bitfield:%u\"", member->bits );
@@ -120,7 +119,12 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer,
 			dl_binary_writer_write_fmt( writer, "\"type\" : \"%s[]\"", dl_context_type_to_string( ctx, storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
-			dl_binary_writer_write_fmt( writer, "\"type\" : \"%s[%u]\"", dl_context_type_to_string( ctx, storage, member->type_id ), member->array_count );
+			dl_binary_writer_write_fmt( writer,
+										storage == DL_TYPE_STORAGE_PTR
+											? "\"type\" : \"%s*[%u]\""
+											: "\"type\" : \"%s[%u]\"",
+										dl_context_type_to_string( ctx, storage, member->type_id ),
+										member->array_count );
 		break;
 		default:
 			DL_ASSERT( false );

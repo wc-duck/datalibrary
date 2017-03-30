@@ -44,19 +44,50 @@ void dl_internal_patch_struct( dl_ctx_t            ctx,
 							   uintptr_t           patch_distance,
 							   dl_patched_ptrs*    patched_ptrs );
 
-void dl_internal_patch_str_array( uint8_t* array_data, uint32_t count, uintptr_t patch_distance )
+static void dl_internal_patch_ptr_instance( dl_ctx_t            ctx,
+		   	   	   	   	   	   	   	   	    const dl_type_desc* sub_type,
+											uint8_t*            ptr_data,
+											uintptr_t           base_address,
+											uintptr_t           patch_distance,
+											dl_patched_ptrs*    patched_ptrs )
+{
+	uintptr_t offset = dl_internal_patch_ptr( ptr_data, patch_distance );
+	if( offset == 0x0 )
+		return;
+
+	uint8_t* ptr = (uint8_t*)base_address + offset;
+	if( patched_ptrs->patched( ptr ) )
+		return;
+
+	patched_ptrs->add( ptr );
+	dl_internal_patch_struct( ctx, sub_type, ptr, base_address, patch_distance, patched_ptrs );
+}
+
+static void dl_internal_patch_str_array( uint8_t* array_data, uint32_t count, uintptr_t patch_distance )
 {
 	for( uint32_t index = 0; index < count; ++index )
 		dl_internal_patch_ptr( array_data + index * sizeof(char*), patch_distance );
 }
 
-void dl_internal_patch_struct_array( dl_ctx_t            ctx,
-									 const dl_type_desc* type,
-									 uint8_t*            array_data,
-									 uint32_t            count,
-									 uintptr_t           patch_distance,
-									 uintptr_t           base_address,
-									 dl_patched_ptrs*    patched_ptrs )
+static void dl_internal_patch_ptr_array( dl_ctx_t            ctx,
+								  	  	 uint8_t*            array_data,
+										 uint32_t            count,
+										 const dl_type_desc* sub_type,
+										 uintptr_t           base_address,
+										 uintptr_t           patch_distance,
+										 dl_patched_ptrs*    patched_ptrs )
+{
+	for( uint32_t index = 0; index < count; ++index )
+		dl_internal_patch_ptr_instance( ctx, sub_type, array_data + index * sizeof(void*), base_address, patch_distance, patched_ptrs );
+}
+
+static void dl_internal_patch_struct_array( dl_ctx_t            ctx,
+									 	 	const dl_type_desc* type,
+											uint8_t*            array_data,
+											uint32_t            count,
+											uintptr_t           base_address,
+											uintptr_t           patch_distance,
+											dl_patched_ptrs*    patched_ptrs )
 {
 	uint32_t size = dl_internal_align_up( type->size[DL_PTR_SIZE_HOST], type->alignment[DL_PTR_SIZE_HOST] );
 	for( uint32_t index = 0; index < count; ++index )
@@ -86,27 +117,20 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 					dl_internal_patch_ptr( member_data, patch_distance );
 				break;
 				case DL_TYPE_STORAGE_PTR:
-				{
-					uintptr_t offset = dl_internal_patch_ptr( member_data, patch_distance );
-					if( offset != 0x0 )
-					{
-						uint8_t* ptr = (uint8_t*)base_address + offset;
-						if( !patched_ptrs->patched( ptr ) )
-						{
-							patched_ptrs->add( ptr );
-
-							// ... patch sub-data ...
-							const dl_type_desc* type = dl_internal_find_type( ctx, member->type_id );
-							dl_internal_patch_struct( ctx, type, ptr, base_address, patch_distance, patched_ptrs );
-						}
-					}
-				}
+					dl_internal_patch_ptr_instance( ctx,
+													dl_internal_find_type( ctx, member->type_id ),
+													member_data,
+													base_address,
+													patch_distance,
+													patched_ptrs );
 				break;
 				case DL_TYPE_STORAGE_STRUCT:
-				{
-					const dl_type_desc* type = dl_internal_find_type( ctx, member->type_id );
-					dl_internal_patch_struct( ctx, type, member_data, base_address, patch_distance, patched_ptrs );
-				}
+					dl_internal_patch_struct( ctx,
+											  dl_internal_find_type( ctx, member->type_id ),
+											  member_data,
+											  base_address,
+											  patch_distance,
+											  patched_ptrs );
 				break;
 				default:
 					break;
@@ -121,12 +145,23 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_patch_str_array( member_data, member->inline_array_cnt(), patch_distance );
 				break;
-
+				case DL_TYPE_STORAGE_PTR:
+					dl_internal_patch_ptr_array( ctx,
+												 member_data,
+												 member->inline_array_cnt(),
+												 dl_internal_find_type( ctx, member->type_id ),
+												 base_address,
+												 patch_distance,
+												 patched_ptrs );
+				break;
 				case DL_TYPE_STORAGE_STRUCT:
-				{
-					const dl_type_desc* type = dl_internal_find_type( ctx, member->type_id );
-					dl_internal_patch_struct_array( ctx, type, member_data, member->inline_array_cnt(), patch_distance, base_address, patched_ptrs );
-				}
+					dl_internal_patch_struct_array( ctx,
+													dl_internal_find_type( ctx, member->type_id ),
+													member_data,
+													member->inline_array_cnt(),
+													base_address,
+													patch_distance,
+													patched_ptrs );
 				break;
 				default:
 					break;
@@ -152,10 +187,13 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 					break;
 
 					case DL_TYPE_STORAGE_STRUCT:
-					{
-						const dl_type_desc* type = dl_internal_find_type( ctx, member->type_id );
-						dl_internal_patch_struct_array( ctx, type, array_data, count, patch_distance, base_address, patched_ptrs );
-					}
+						dl_internal_patch_struct_array( ctx,
+														dl_internal_find_type( ctx, member->type_id ),
+														array_data,
+														count,
+														base_address,
+														patch_distance,
+														patched_ptrs );
 					break;
 					default:
 						break;

@@ -263,6 +263,24 @@ static void dl_txt_pack_eat_and_write_enum( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 	packctx->read_ctx.iter = ename.str + ename.len + 1;
 }
 
+static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, size_t patch_pos )
+{
+	if( dl_txt_pack_eat_and_write_null(packctx) )
+		return;
+
+	dl_txt_read_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
+	if( ptr.str == 0x0 )
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
+
+	if( packctx->subdata_count == DL_ARRAY_LENGTH( packctx->subdata ) )
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "to many pointers! ( better error here! )" );
+
+	packctx->subdata[packctx->subdata_count].name = ptr;
+	packctx->subdata[packctx->subdata_count].type = type;
+	packctx->subdata[packctx->subdata_count].patch_pos = patch_pos;
+	++packctx->subdata_count;
+}
+
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
 
 static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member, uint32_t array_length )
@@ -381,7 +399,14 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 		break;
 		case DL_TYPE_STORAGE_PTR:
 		{
-			DL_ASSERT( false );
+			const dl_type_desc* type = dl_internal_find_type( dl_ctx, member->type_id );
+			size_t array_pos = dl_binary_writer_tell( packctx->writer );
+			for( uint32_t i = 0; i < array_length - 1; ++i )
+			{
+				dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, type, array_pos + i * sizeof(void*) );
+				dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ',' );
+			}
+			dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, type, array_pos + ( array_length - 1 ) * sizeof(void*) );
 		}
 		break;
 		case DL_TYPE_STORAGE_STRUCT:
@@ -554,24 +579,6 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 			DL_ASSERT(false);
 	}
 	return (uint32_t)-1;
-}
-
-static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, size_t patch_pos )
-{
-	if( dl_txt_pack_eat_and_write_null(packctx) )
-		return;
-
-	dl_txt_read_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
-	if( ptr.str == 0x0 )
-		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
-
-	if( packctx->subdata_count == DL_ARRAY_LENGTH( packctx->subdata ) )
-		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "to many pointers! ( better error here! )" );
-
-	packctx->subdata[packctx->subdata_count].name = ptr;
-	packctx->subdata[packctx->subdata_count].type = type;
-	packctx->subdata[packctx->subdata_count].patch_pos = patch_pos;
-	++packctx->subdata_count;
 }
 
 static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
