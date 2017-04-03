@@ -171,12 +171,20 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 														 const uint8_t*      base_data,
 														 SConvertContext&    convert_ctx );
 
-static dl_error_t dl_internal_convert_collect_instances_from_ptr( dl_ctx_t              ctx,
-																  const dl_member_desc* member,
-																  const dl_type_desc*   sub_type,
-																  const uint8_t*        member_data,
+static void dl_internal_convert_collect_instances_from_str( const uint8_t*        member_data,
 																  const uint8_t*        base_data,
 																  SConvertContext&      convert_ctx )
+{
+	uintptr_t offset = dl_internal_read_ptr_data( member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size );
+	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
+		convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
+}
+
+static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t              ctx,
+															const dl_type_desc*   sub_type,
+															const uint8_t*        member_data,
+															const uint8_t*        base_data,
+															SConvertContext&      convert_ctx )
 {
 	uintptr_t offset = dl_internal_read_ptr_data(member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size);
 
@@ -184,11 +192,47 @@ static dl_error_t dl_internal_convert_collect_instances_from_ptr( dl_ctx_t      
 
 	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size] && !convert_ctx.IsSwapped(ptr_data))
 	{
-		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, member->type));
+		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_PTR)));
 		dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
 	}
+}
 
-	return DL_ERROR_OK;
+static void dl_internal_convert_collect_instances_from_struct_array( dl_ctx_t            ctx,
+																	 const uint8_t*      array_data,
+																	 uintptr_t           array_count,
+																	 const dl_type_desc* sub_type,
+																	 const uint8_t*      base_data,
+																	 SConvertContext&    convert_ctx )
+{
+	uint32_t elem_size = sub_type->size[convert_ctx.src_ptr_size];
+	for( uint32_t elem = 0; elem < array_count; ++elem )
+		dl_internal_convert_collect_instances(ctx, sub_type, array_data + (elem * elem_size), base_data, convert_ctx);
+}
+
+static void dl_internal_convert_collect_instances_from_str_array( const uint8_t*   array_data,
+																  uintptr_t        array_count,
+																  const uint8_t*   base_data,
+																  SConvertContext& convert_ctx )
+{
+	// TODO: This might be optimized if we look at all the data in i inline-array of strings as 1 instance continuous in memory.
+	// I am not sure if that is true for all cases right now!
+
+	uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
+
+	for( uintptr_t elem = 0; elem < array_count; ++elem )
+		dl_internal_convert_collect_instances_from_str( array_data + (elem * ptr_size), base_data, convert_ctx );
+}
+
+static void dl_internal_convert_collect_instances_from_ptr_array( dl_ctx_t            ctx,
+																  const uint8_t*      array_data,
+																  uintptr_t           array_count,
+																  const dl_type_desc* sub_type,
+																  const uint8_t*      base_data,
+																  SConvertContext&    convert_ctx )
+{
+	uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
+	for( uintptr_t elem = 0; elem < array_count; ++elem )
+		dl_internal_convert_collect_instances_from_ptr( ctx, sub_type, array_data + (elem * ptr_size), base_data, convert_ctx );
 }
 
 static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t              ctx,
@@ -207,27 +251,13 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 			switch( storage_type )
 			{
 				case DL_TYPE_STORAGE_STR:
-				{
-					uintptr_t offset = dl_internal_read_ptr_data( member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size );
-					if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
-						convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, member->type));
-				}
+					dl_internal_convert_collect_instances_from_str( member_data, base_data, convert_ctx );
 				break;
 				case DL_TYPE_STORAGE_PTR:
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
-					if(sub_type == 0x0)
-						return DL_ERROR_TYPE_NOT_FOUND;
-					dl_internal_convert_collect_instances_from_ptr( ctx, member, sub_type, member_data, base_data, convert_ctx );
-				}
+					dl_internal_convert_collect_instances_from_ptr( ctx, dl_internal_find_type(ctx, member->type_id), member_data, base_data, convert_ctx );
 				break;
 				case DL_TYPE_STORAGE_STRUCT:
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
-					if(sub_type == 0x0)
-						return DL_ERROR_TYPE_NOT_FOUND;
-					dl_internal_convert_collect_instances(ctx, sub_type, member_data, base_data, convert_ctx);
-				}
+					dl_internal_convert_collect_instances(ctx, dl_internal_find_type(ctx, member->type_id), member_data, base_data, convert_ctx);
 				break;
 				default:
 					break;
@@ -239,41 +269,27 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 			switch(storage_type)
 			{
 				case DL_TYPE_STORAGE_STRUCT:
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
-					if(sub_type == 0x0)
-						return DL_ERROR_TYPE_NOT_FOUND;
-
-					uint32_t elem_size = sub_type->size[convert_ctx.src_ptr_size];
-					for( uint32_t elem = 0; elem < member->inline_array_cnt(); ++elem )
-						dl_internal_convert_collect_instances(ctx, sub_type, member_data + (elem * elem_size), base_data, convert_ctx);
-				}
-				break;
+					dl_internal_convert_collect_instances_from_struct_array( ctx,
+																			 member_data,
+																			 member->inline_array_cnt(),
+																			 dl_internal_find_type(ctx, member->type_id),
+																			 base_data,
+																			 convert_ctx );
+					break;
 				case DL_TYPE_STORAGE_STR:
-				{
-					// TODO: This might be optimized if we look at all the data in i inline-array of strings as 1 instance continuous in memory.
-					// I am not sure if that is true for all cases right now!
-
-					uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
-					for( uintptr_t elem = 0; elem < member->inline_array_cnt(); ++elem )
-					{
-						uintptr_t offset = dl_internal_read_ptr_data(member_data + (elem * ptr_size), convert_ctx.src_endian, convert_ctx.src_ptr_size);
-						if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
-							convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, member->inline_array_cnt(), dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
-					}
-				}
-				break;
+					dl_internal_convert_collect_instances_from_str_array( member_data,
+																		  member->inline_array_cnt(),
+																		  base_data,
+																		  convert_ctx );
+					break;
 				case DL_TYPE_STORAGE_PTR:
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
-					if(sub_type == 0x0)
-						return DL_ERROR_TYPE_NOT_FOUND;
-
-					uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
-					for( uintptr_t elem = 0; elem < member->inline_array_cnt(); ++elem )
-						dl_internal_convert_collect_instances_from_ptr( ctx, member, sub_type, member_data + (elem * ptr_size), base_data, convert_ctx );
-				}
-				break;
+					dl_internal_convert_collect_instances_from_ptr_array( ctx,
+																		  member_data,
+																		  member->inline_array_cnt(),
+																		  dl_internal_find_type(ctx, member->type_id),
+																		  base_data,
+																		  convert_ctx );
+					break;
 				default:
 					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
 					// ignore
@@ -293,48 +309,30 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 			}
 
 			const uint8_t* array_data = base_data + offset;
+			const dl_type_desc* sub_type = 0x0;
 
 			switch(storage_type)
 			{
 				case DL_TYPE_STORAGE_STR:
-				{
-					// TODO: This might be optimized if we look at all the data in i inline-array of strings as 1 instance continuous in memory.
-					// I am not sure if that is true for all cases right now!
-
-					convert_ctx.instances.Add(SInstance(array_data, 0x0, count, member->type));
-
-					uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
-					for( uintptr_t elem = 0; elem < count; ++elem )
-					{
-						uintptr_t elem_offset = dl_internal_read_ptr_data(array_data + (elem * ptr_size), convert_ctx.src_endian, convert_ctx.src_ptr_size);
-						if(elem_offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
-							convert_ctx.instances.Add(SInstance(base_data + elem_offset, 0x0, count, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
-					}
-				}
-				break;
-
+					dl_internal_convert_collect_instances_from_str_array(array_data, count, base_data, convert_ctx);
+					break;
 				case DL_TYPE_STORAGE_STRUCT:
 				{
-					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
-					if(sub_type == 0x0)
-						return DL_ERROR_TYPE_NOT_FOUND;
-
-					convert_ctx.instances.Add(SInstance(array_data, sub_type, count, member->type));
-
-					uint32_t elem_size = sub_type->size[convert_ctx.src_ptr_size];
-					for (uintptr_t elem_offset = 0; elem_offset < elem_size * count; elem_offset += elem_size)
-						dl_internal_convert_collect_instances(ctx, sub_type, array_data + elem_offset, base_data, convert_ctx);
+					sub_type = dl_internal_find_type(ctx, member->type_id);
+					dl_internal_convert_collect_instances_from_struct_array( ctx,
+																			 array_data,
+																			 count,
+																			 sub_type,
+																			 base_data,
+																			 convert_ctx );
 				}
 				break;
-
 				default:
-				{
 					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
-					dl_internal_read_array_data( member_data, &offset, &count, convert_ctx.src_endian, convert_ctx.src_ptr_size );
-					convert_ctx.instances.Add(SInstance(array_data, 0x0, count, member->type));
-				}
-				break;
+					break;
 			}
+
+			convert_ctx.instances.Add(SInstance(array_data, sub_type, count, member->type));
 		}
 		break;
 
@@ -668,59 +666,75 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 	dl_type_t atom_type    = dl_type_t(inst.type_id & DL_TYPE_ATOM_MASK);
 	dl_type_t storage_type = dl_type_t(inst.type_id & DL_TYPE_STORAGE_MASK);
 
-	if(atom_type == DL_TYPE_ATOM_ARRAY)
+	switch( atom_type )
 	{
-		switch(storage_type)
+		case DL_TYPE_ATOM_ARRAY:
 		{
-			case DL_TYPE_STORAGE_STRUCT:
+			switch(storage_type)
 			{
-				uintptr_t type_size = inst.type->size[conv_ctx.src_ptr_size];
-	 			for( uintptr_t elem = 0; elem < inst.array_count; ++elem )
-	 			{
-	 				dl_error_t err = dl_internal_convert_write_struct( dl_ctx, u8 + ( elem * type_size ), inst.type, conv_ctx, writer );
-	 				if(err != DL_ERROR_OK) return err;
-	 			}
-			} break;
+				case DL_TYPE_STORAGE_STRUCT:
+				{
+					uintptr_t type_size = inst.type->size[conv_ctx.src_ptr_size];
+					for( uintptr_t elem = 0; elem < inst.array_count; ++elem )
+					{
+						dl_error_t err = dl_internal_convert_write_struct( dl_ctx, u8 + ( elem * type_size ), inst.type, conv_ctx, writer );
+						if(err != DL_ERROR_OK) return err;
+					}
+				} break;
 
-			case DL_TYPE_STORAGE_STR:
-			{
-				uintptr_t type_size = dl_internal_ptr_size(conv_ctx.src_ptr_size);
-	 			for(uintptr_t elem = 0; elem < inst.array_count; ++elem )
-	 			{
-	 				uintptr_t offset = dl_internal_read_ptr_data(u8 + ( elem * type_size ), conv_ctx.src_endian, conv_ctx.src_ptr_size);
-	 				dl_internal_convert_save_patch_pos( &conv_ctx, writer, dl_binary_writer_tell( writer ), offset );
-	 			}
-			} break;
+				case DL_TYPE_STORAGE_STR:
+				{
+					uintptr_t type_size = dl_internal_ptr_size(conv_ctx.src_ptr_size);
+					for(uintptr_t elem = 0; elem < inst.array_count; ++elem )
+					{
+						uintptr_t offset = dl_internal_read_ptr_data(u8 + ( elem * type_size ), conv_ctx.src_endian, conv_ctx.src_ptr_size);
+						dl_internal_convert_save_patch_pos( &conv_ctx, writer, dl_binary_writer_tell( writer ), offset );
+					}
+				} break;
 
-			case DL_TYPE_STORAGE_INT8:
-			case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_array( writer, u8, inst.array_count, sizeof(uint8_t) ); break;
-			case DL_TYPE_STORAGE_INT16:
-			case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_array( writer, u16, inst.array_count, sizeof(uint16_t) ); break;
-			case DL_TYPE_STORAGE_INT32:
-			case DL_TYPE_STORAGE_UINT32:
-			case DL_TYPE_STORAGE_FP32:
-			case DL_TYPE_STORAGE_ENUM:   dl_binary_writer_write_array( writer, u32, inst.array_count, sizeof(uint32_t) ); break;
-			case DL_TYPE_STORAGE_INT64:
-			case DL_TYPE_STORAGE_UINT64:
-			case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_array( writer, u64, inst.array_count, sizeof(uint64_t) ); break;
+				case DL_TYPE_STORAGE_INT8:
+				case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_array( writer, u8, inst.array_count, sizeof(uint8_t) ); break;
+				case DL_TYPE_STORAGE_INT16:
+				case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_array( writer, u16, inst.array_count, sizeof(uint16_t) ); break;
+				case DL_TYPE_STORAGE_INT32:
+				case DL_TYPE_STORAGE_UINT32:
+				case DL_TYPE_STORAGE_FP32:
+				case DL_TYPE_STORAGE_ENUM:   dl_binary_writer_write_array( writer, u32, inst.array_count, sizeof(uint32_t) ); break;
+				case DL_TYPE_STORAGE_INT64:
+				case DL_TYPE_STORAGE_UINT64:
+				case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_array( writer, u64, inst.array_count, sizeof(uint64_t) ); break;
 
-			default:
-				DL_ASSERT(false && "Unknown storage type!");
-				break;
+				default:
+					DL_ASSERT(false && "Unknown storage type!");
+					break;
+			}
+
+			return DL_ERROR_OK;
 		}
+		break;
 
-		return DL_ERROR_OK;
+		case DL_TYPE_ATOM_POD:
+		{
+			switch( storage_type )
+			{
+				case DL_TYPE_STORAGE_STR:
+					dl_binary_writer_write_array( writer, u8,  strlen(str) + 1, sizeof(uint8_t) );
+					return DL_ERROR_OK;
+				case DL_TYPE_STORAGE_STRUCT:
+				case DL_TYPE_STORAGE_PTR:
+					return dl_internal_convert_write_struct( dl_ctx, u8, inst.type, conv_ctx, writer );
+				default:
+					// ignore ...
+					break;
+			}
+		}
+		break;
+		default:
+			// ignore ...
+			break;
 	}
 
-	if(atom_type == DL_TYPE_ATOM_POD && storage_type == DL_TYPE_STORAGE_STR)
-	{
-		dl_binary_writer_write_array( writer, u8,  strlen(str) + 1, sizeof(uint8_t) );
-		return DL_ERROR_OK;
-	}
-
-	DL_ASSERT(atom_type == DL_TYPE_ATOM_POD);
-	DL_ASSERT(storage_type == DL_TYPE_STORAGE_STRUCT || storage_type == DL_TYPE_STORAGE_PTR);
-	return dl_internal_convert_write_struct( dl_ctx, u8, inst.type, conv_ctx, writer );
+	return DL_ERROR_INTERNAL_ERROR;
 }
 
 #include <algorithm>
