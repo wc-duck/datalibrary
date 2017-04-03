@@ -952,7 +952,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {
-	const dl_type_desc* root_type = 0x0;
+//	const dl_type_desc* root_type = 0x0;
 #if defined(_MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4611)
@@ -973,7 +973,7 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		char type_name[1024] = {0}; // TODO: make a dl_internal_find_type_by_name() that take string name.
 		strncpy( type_name, root_type_name.str, (size_t)root_type_name.len );
-		root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
+		const dl_type_desc* root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
 		if( root_type == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "no type named \"%s\" loaded", type_name );
 
@@ -982,8 +982,9 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
 		dl_txt_pack_finalize_subdata( dl_ctx, packctx );
+		return root_type;
 	}
-	return root_type;
+	return 0x0;
 }
 
 dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes )
