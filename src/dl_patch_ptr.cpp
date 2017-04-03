@@ -185,7 +185,15 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 					case DL_TYPE_STORAGE_STR:
 						dl_internal_patch_str_array( array_data, count, patch_distance );
 					break;
-
+					case DL_TYPE_STORAGE_PTR:
+						dl_internal_patch_ptr_array( ctx,
+													 array_data,
+													 count,
+													 dl_internal_find_type( ctx, member->type_id ),
+													 base_address,
+													 patch_distance,
+													 patched_ptrs );
+					break;
 					case DL_TYPE_STORAGE_STRUCT:
 						dl_internal_patch_struct_array( ctx,
 														dl_internal_find_type( ctx, member->type_id ),

@@ -315,6 +315,11 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						size = sizeof(void*);
 						dl_binary_writer_align( &store_ctx->writer, size );
 						break;
+					case DL_TYPE_STORAGE_PTR:
+						sub_type = dl_internal_find_type( dl_ctx, member->type_id );
+						size = sizeof(void*);
+						dl_binary_writer_align( &store_ctx->writer, size );
+						break;
 					default:
 						size = dl_pod_size( member->type );
 						dl_binary_writer_align( &store_ctx->writer, size );

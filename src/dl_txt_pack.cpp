@@ -603,18 +603,8 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_FP32:   dl_txt_pack_eat_and_write_fp32( dl_ctx, packctx );   break;
 				case DL_TYPE_STORAGE_FP64:   dl_txt_pack_eat_and_write_fp64( dl_ctx, packctx );   break;
 				case DL_TYPE_STORAGE_STR:    dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
-				case DL_TYPE_STORAGE_PTR:
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
-					dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, sub_type, member_pos );
-				}
-				break;
-				case DL_TYPE_STORAGE_STRUCT:
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
-					dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, sub_type );
-				}
-				break;
+				case DL_TYPE_STORAGE_PTR:    dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
+				case DL_TYPE_STORAGE_STRUCT: dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) ); break;
 				case DL_TYPE_STORAGE_ENUM:
 				{
 					dl_txt_eat_white( &packctx->read_ctx );
@@ -700,6 +690,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 			DL_ASSERT(false);
 	}
 }
+
 static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );

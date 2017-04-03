@@ -183,3 +183,28 @@ TYPED_TEST(DLBase, inline_ptr_array)
 	EXPECT_NE( loaded[0].arr[0], loaded[0].arr[1] );
 	EXPECT_EQ( loaded[0].arr[0], loaded[0].arr[2] );
 }
+
+TYPED_TEST(DLBase, ptr_array)
+{
+	Pods2 p1 = { 1, 2 };
+	Pods2 p2 = { 3, 4 };
+	Pods2* arr[] = { &p1, &p2, &p1 };
+	ptr_array original;
+	original.arr.data = arr;
+	original.arr.count = DL_ARRAY_LENGTH(arr);
+
+	ptr_array loaded[32];
+
+	this->do_the_round_about( ptr_array::TYPE_ID, &original, &loaded, sizeof(loaded) );
+
+	EXPECT_EQ( original.arr.count, loaded[0].arr.count );
+	EXPECT_EQ( p1.Int1, loaded[0].arr[0]->Int1 );
+	EXPECT_EQ( p1.Int2, loaded[0].arr[0]->Int2 );
+	EXPECT_EQ( p2.Int1, loaded[0].arr[1]->Int1 );
+	EXPECT_EQ( p2.Int2, loaded[0].arr[1]->Int2 );
+	EXPECT_EQ( p1.Int1, loaded[0].arr[2]->Int1 );
+	EXPECT_EQ( p1.Int2, loaded[0].arr[2]->Int2 );
+
+	EXPECT_NE( loaded[0].arr[0], loaded[0].arr[1] );
+	EXPECT_EQ( loaded[0].arr[0], loaded[0].arr[2] );
+}

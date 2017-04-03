@@ -223,17 +223,23 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 													   "              ");
 			dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
 			dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) { return data[index]; }\n");
-			if (storage == DL_TYPE_STORAGE_STR)
+			switch(storage)
 			{
-				dl_binary_writer_write_string_fmt(writer, "        ");
-				dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
-				dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
-			}
-			else
-			{
-				dl_binary_writer_write_string_fmt(writer, "        const ");
-				dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
-				dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
+				case DL_TYPE_STORAGE_STR:
+					dl_binary_writer_write_string_fmt(writer, "        ");
+					dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
+					dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
+					break;
+				case DL_TYPE_STORAGE_PTR:
+					dl_binary_writer_write_string_fmt(writer, "        const ");
+					dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
+					dl_binary_writer_write_string_fmt(writer, " operator[] ( size_t index ) const { return data[index]; }\n");
+					break;
+				default:
+					dl_binary_writer_write_string_fmt(writer, "        const ");
+					dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
+					dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
+					break;
 			}
 			dl_binary_writer_write_string_fmt( writer, "    #endif // defined( __cplusplus )\n"
 													   "    } %s;\n", member->name );
