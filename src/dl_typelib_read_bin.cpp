@@ -1,4 +1,5 @@
 #include <dl/dl_typelib.h>
+#include "dl_util.h"
 #include "dl_types.h"
 
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
@@ -68,16 +69,6 @@ static void dl_endian_swap_member_desc( dl_member_desc* desc )
 static void dl_endian_swap_enum_value_desc( dl_enum_value_desc* desc )
 {
 	desc->value = dl_swap_endian_uint32( desc->value );
-}
-
-template <typename T>
-static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t need )
-{
-	size_t old_cap = *cap;
-	if( need < old_cap )
-		return ptr;
-	*cap = need;
-	return (T*)dl_realloc( alloc, ptr, need * sizeof( T ), old_cap * sizeof( T ) );
 }
 
 dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, size_t lib_data_size )

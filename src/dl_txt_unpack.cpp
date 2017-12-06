@@ -1,21 +1,9 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
+#include "dl_util.h"
 #include "dl_types.h"
 #include "dl_binary_writer.h"
 #include <dl/dl_txt.h>
-
-#if defined( __GNUC__ )
-static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...) __attribute__((format( printf, 3, 4 )));
-#endif
-static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...)
-{
-	va_list args;
-	va_start( args, fmt );
-	int res = vsnprintf( buf, buf_size, fmt, args );
-	buf[buf_size - 1] = '\0';
-	va_end( args );
-	return res;
-}
 
 struct dl_txt_unpack_ctx
 {
