@@ -574,8 +574,8 @@ static void dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, dl_t
 				{
 					dl_txt_read_substr alias_name = dl_txt_eat_and_expect_string( ctx, read_state );
 
-					dl_enum_alias_desc* alias = dl_alloc_enum_alias( ctx, &alias_name );
-					alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
+					dl_enum_alias_desc* enum_alias = dl_alloc_enum_alias( ctx, &alias_name );
+					enum_alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
 
 				} while( dl_txt_try_eat_char( read_state, ',' ) );
 				dl_txt_eat_char( ctx, read_state, ']' );
@@ -1002,8 +1002,8 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			dl_member_desc* member = ctx->member_descs + member_index;
 			if( member->type_id )
 			{
-				const dl_enum_desc* sub_type = dl_internal_find_enum( ctx, member->type_id );
-				if( sub_type )
+				const dl_enum_desc* enum_sub_type = dl_internal_find_enum( ctx, member->type_id );
+				if( enum_sub_type )
 				{
 					// ... type was really an enum ...
 					member->SetStorage( DL_TYPE_STORAGE_ENUM );

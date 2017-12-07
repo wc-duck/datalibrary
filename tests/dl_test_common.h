@@ -39,8 +39,8 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 #define EXPECT_ARRAY_EQ(_Count, _Expect, _Actual) \
 	{ \
 		bool WasEq = true; \
-		for(unsigned int i = 0; i < _Count && WasEq; ++i) \
-			WasEq = _Expect[i] == _Actual[i]; \
+		for(unsigned int EXPECT_ARRAY_EQ_i = 0; EXPECT_ARRAY_EQ_i < _Count && WasEq; ++EXPECT_ARRAY_EQ_i) \
+			WasEq = _Expect[EXPECT_ARRAY_EQ_i] == _Actual[EXPECT_ARRAY_EQ_i]; \
 		char ExpectBuf[1024]; \
 		char ActualBuf[1024]; \
 		char Err[2048]; \
