@@ -3,6 +3,8 @@
 #ifndef DL_DL_UTIL_H_INCLUDED
 #define DL_DL_UTIL_H_INCLUDED
 
+#include "dl_alloc.h"
+
 template <typename T>
 static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
 {
