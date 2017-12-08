@@ -1,22 +1,12 @@
 #include <dl/dl_typelib.h>
 #include <dl/dl_txt.h>
+#include "dl_util.h"
 #include "dl_types.h"
 #include "dl_alloc.h"
 #include "dl_txt_read.h"
 
 #include <stdlib.h> // strtoul
 #include <ctype.h>
-
-template <typename T>
-static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
-{
-	size_t old_cap = *cap;
-	size_t new_cap = ( ( old_cap < min_inc ) ? old_cap + min_inc : old_cap ) * 2;
-	if( new_cap == 0 )
-		new_cap = 8;
-	*cap = new_cap;
-	return (T*)dl_realloc( alloc, ptr, new_cap * sizeof( T ), old_cap * sizeof( T ) );
-}
 
 static uint32_t dl_alloc_string( dl_ctx_t ctx, dl_txt_read_substr* str )
 {
@@ -190,16 +180,6 @@ static const dl_builtin_type* dl_find_builtin_type( const char* name )
 static dl_type_t dl_make_type( dl_type_t atom, dl_type_t storage )
 {
 	return (dl_type_t)( (unsigned int)atom | (unsigned int)storage );
-}
-
-static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...)
-{
-	va_list args;
-	va_start( args, fmt );
-	int res = vsnprintf( buf, buf_size, fmt, args );
-	buf[buf_size - 1] = '\0';
-	va_end( args );
-	return res;
 }
 
 static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_state, unsigned int member_index )
@@ -652,7 +632,7 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	const char* iter = type->str;
 	const char* end  = type->str + type->len;
 
-	while( ( isalnum( *iter ) || *iter == '_' ) && ( iter != end ) )
+	while( ( iter != end ) && ( isalnum( *iter ) || *iter == '_' )  )
 	{
 		type_name[type_name_len++] = *iter;
 		++iter;
