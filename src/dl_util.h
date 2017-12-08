@@ -4,7 +4,8 @@
 #define DL_DL_UTIL_H_INCLUDED
 
 #include "dl_alloc.h"
-#include <stdarg.h>
+#include <stdio.h> // vsnprintf
+#include <stdarg.h> // va_start, va_end
 
 template <typename T>
 static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
