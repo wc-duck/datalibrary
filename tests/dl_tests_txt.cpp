@@ -611,6 +611,22 @@ TEST_F( DLText, missing_field_data )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 }
 
+TEST_F( DLText, error_bad_type_name )
+{
+	unsigned char out_text_data[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single_int : {\"val\" : 1} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single_?int\" : {\"val\" : 1} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single int\" : {\"val\" : 1} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
+TEST_F( DLText, error_bad_member_name )
+{
+	unsigned char out_text_data[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single_int\" : {\"val : \"1\"} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	// EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single_?int\" : {\"val\" : 1} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	// EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single int\" : {\"val\" : 1} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
 TEST_F( DLText, single_line_comments )
 {
 	const char* test_text =

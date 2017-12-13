@@ -281,6 +281,15 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	++packctx->subdata_count;
 }
 
+static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_txt_read_substr symbol )
+{
+	for(int i = 0; i < symbol.len; ++i)
+	{
+		if(!isalnum(symbol.str[i]) || symbol.str[i] == '_')
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_PARSE_ERROR, "found a non-valid key \"%.*s\" in data, did you miss a string-terminator? (\" or \')", symbol.len, symbol.str );
+	}
+}
+
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
 
 static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member, uint32_t array_length )
@@ -770,7 +779,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			}
 			else
 			{
-				// TODO: this looks REALLY suspicious! Sholud it be here and not outside the above if!?!
+				// TODO: this looks REALLY suspicious! Should it be here and not outside the above if!?!
 				if( type->flags & DL_TYPE_FLAG_IS_UNION )
 				{
 					if( union_member_set )
@@ -787,11 +796,14 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
 		unsigned int member_id = dl_internal_find_member( dl_ctx, type, member_name_hash );
 		if( member_id > type->member_count )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+		{
+			dl_txt_pack_validate_c_symbol_key(dl_ctx, packctx, member_name);
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type '%s' has no member named '%.*s'", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+		}
 
 		uint64_t member_bit = ( 1ULL << member_id );
 		if( member_bit & members_set )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "member %s.%.*s is set twice", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "member '%s.%.*s' is set twice", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		members_set |= member_bit;
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
@@ -952,7 +964,6 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {
-//	const dl_type_desc* root_type = 0x0;
 #if defined(_MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4611)
@@ -975,7 +986,10 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		strncpy( type_name, root_type_name.str, (size_t)root_type_name.len );
 		const dl_type_desc* root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
 		if( root_type == 0x0 )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "no type named \"%s\" loaded", type_name );
+		{
+			dl_txt_pack_validate_c_symbol_key(dl_ctx, packctx, root_type_name);
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "root type was set as \"%s\", but no such type was loaded.", type_name );
+		}
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
