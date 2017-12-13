@@ -604,9 +604,6 @@ TEST_F( DLText, missing_field_data )
 {
 	const char* test_text = STRINGIFY( { "Pods" } );
 
-	Pods p1;
-	memset( &p1, 0x0, sizeof(Pods) );
-
 	unsigned char out_text_data[1024];
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 }
@@ -623,9 +620,46 @@ TEST_F( DLText, error_bad_member_name )
 {
 	unsigned char out_text_data[1024];
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single_int\" : {\"val : \"1\"} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-	// EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single_?int\" : {\"val\" : 1} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-	// EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, "{ \"single int\" : {\"val\" : 1} }", out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 }
+
+TEST_F( DLText, single_quoted_object_keys )
+{
+	unsigned char out_text_data[1024];
+	{
+		const char* test_text = STRINGIFY( { 'single_int' : { "val" : 1 } } );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY( { "single_int" : { 'val' : 1 } } );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY( { 'single_int' : { 'val' : 1 } } );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+}
+
+TEST_F( DLText, unquoted_object_keys )
+{
+	unsigned char out_text_data[1024];
+	{
+		const char* test_text = STRINGIFY( { single_int : { "val" : 1 } } );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY( { "single_int" : { val : 1 } } );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY( { single_int : { val : 1 } } );
+		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+}
+
 
 TEST_F( DLText, single_line_comments )
 {
@@ -635,9 +669,6 @@ TEST_F( DLText, single_line_comments )
 			"\"u8\" : 5 // whoooo\n"
 			"}\n"
 		"}";
-
-	Pods p1;
-	memset( &p1, 0x0, sizeof(Pods) );
 
 	unsigned char out_text_data[1024];
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
@@ -652,9 +683,6 @@ TEST_F( DLText, multi_line_comments )
 			"whaaa */\n"
 			"}\n"
 		"}";
-
-	Pods p1;
-	memset( &p1, 0x0, sizeof(Pods) );
 
 	unsigned char out_text_data[1024];
 	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );

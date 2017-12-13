@@ -91,31 +91,36 @@ inline void dl_txt_eat_white( dl_txt_read_ctx* readctx )
 	readctx->iter = dl_txt_skip_white( readctx->iter, readctx->end );
 }
 
-static dl_txt_read_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
+static dl_txt_read_substr dl_txt_eat_string_quote( dl_txt_read_ctx* readctx, char quote )
 {
 	dl_txt_read_substr res = {0x0, 0};
-	if( *readctx->iter != '"' )
+	if( *readctx->iter != quote )
 		return res;
 
 	const char* key_start = readctx->iter + 1;
 	const char* key_end = key_start;
 	while( *key_end )
 	{
-		switch( *key_end )
+		if( *key_end == quote )
 		{
-		case '"':
 			res.str = key_start;
 			res.len = (int)(key_end - key_start);
 			readctx->iter = res.str + res.len + 1;
 			return res;
-		case '\\':
-			++key_end;
-			// fallthrough
-		default:
-			++key_end;
 		}
+
+		if( *key_end == '\\' )
+			++key_end;
+		++key_end;
 	}
 	return res;
+}
+
+static dl_txt_read_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
+{
+	if(*readctx->iter == '"')
+		return dl_txt_eat_string_quote( readctx, '"' );
+	return dl_txt_eat_string_quote( readctx, '\'' );
 }
 
 static void dl_txt_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, char expect )

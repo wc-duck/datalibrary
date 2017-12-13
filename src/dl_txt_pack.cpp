@@ -731,6 +731,34 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 }
 
+static const dl_txt_read_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
+{
+	dl_txt_read_substr res = {0x0, 0};
+	switch(*readctx->iter)
+	{
+		case '"':
+		case '\'':
+			return dl_txt_eat_string( readctx );
+		default:
+		{
+			const char* key_start = readctx->iter;
+			const char* key_end = key_start;
+			while(isalnum(*key_end) || *key_end == '_')
+				++key_end;
+
+			if(key_start != key_end)
+			{
+				res.str = key_start;
+				res.len = (int)(key_end - key_start);
+				readctx->iter = res.str + res.len + 1;
+				return res;
+			}
+		}
+		break;
+	}
+	return res;
+}
+
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	uint64_t members_set = 0;
@@ -756,10 +784,11 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	{
 		// ... read all members ...
 		dl_txt_eat_white( &packctx->read_ctx );
-		if( *packctx->read_ctx.iter != '"' )
-			break;
+		if( *packctx->read_ctx.iter == ',' ) ++packctx->read_ctx.iter;
+		if( *packctx->read_ctx.iter == '}' ) break;
 
-		dl_txt_read_substr member_name = dl_txt_eat_string( &packctx->read_ctx );
+		dl_txt_eat_white( &packctx->read_ctx );
+		dl_txt_read_substr member_name = dl_txt_eat_object_key( &packctx->read_ctx );
 		if( member_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing member name." );
 
@@ -810,15 +839,6 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		// ... read member ...
 		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_id ) );
-
-		dl_txt_eat_white( &packctx->read_ctx );
-		switch( *packctx->read_ctx.iter )
-		{
-			case ',': ++packctx->read_ctx.iter; break;
-			case '}': break;
-			default:
-				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected , or }" );
-		}
 	}
 
 	// ... find close }
@@ -978,7 +998,7 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		// ... find first and only key, the type name of the type to pack ...
 		dl_txt_eat_white( &packctx->read_ctx );
-		dl_txt_read_substr root_type_name = dl_txt_eat_string( &packctx->read_ctx );
+		dl_txt_read_substr root_type_name = dl_txt_eat_object_key( &packctx->read_ctx );
 		if( root_type_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key with root type name" );
 
