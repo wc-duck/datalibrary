@@ -7,6 +7,14 @@
 
 #define STRINGIFY( ... ) #__VA_ARGS__
 
+#include <stdio.h>
+static void error_msg_handler( const char* msg, void* )
+{
+    static bool print_error_msg = false;
+    if(print_error_msg)
+        printf("%s\n", msg);
+}
+
 struct DLTypeLib : public ::testing::Test
 {
 	dl_ctx_t ctx;
@@ -15,6 +23,7 @@ struct DLTypeLib : public ::testing::Test
 	{
 		dl_create_params_t p;
 		DL_CREATE_PARAMS_SET_DEFAULT(p);
+        p.error_msg_func = error_msg_handler;
 		EXPECT_DL_ERR_OK( dl_context_create( &ctx, &p ) );
 	}
 
@@ -173,6 +182,12 @@ TEST_F( DLTypeLibTxt, invalid_alias_array )
 	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA,  STRINGIFY( { "enums" : { "e"  : { "v" : { "aliases" : [ "apa" ] } } } } ) );
 }
 
+TEST_F( DLTypeLibTxt, invalid_type_fmt_array )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "single_int *" } ] } } }) ); // extra space!
+    typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "single_int#"  } ] } } }) ); // bad char!
+}
+
 TEST_F( DLTypeLibTxt, invalid_type_fmt_inline_array )
 {
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_INVALID_ENUM_VALUE, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "int32[a]" } ] } } }) );
@@ -180,9 +195,10 @@ TEST_F( DLTypeLibTxt, invalid_type_fmt_inline_array )
 
 TEST_F( DLTypeLibTxt, invalid_type_fmt_bitfield )
 {
-	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:" } ] } } }) );
-	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:a" } ] } } }) );
-	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield<1" } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:"   } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:a"  } ] } } }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield<1"  } ] } } }) );
+    typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "single_int:" } ] } } }) ); // ':' found when type is not bitfield
 }
 
 TEST_F( DLTypeLibTxt, empty_typelib )

@@ -281,6 +281,15 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	++packctx->subdata_count;
 }
 
+static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_txt_read_substr symbol )
+{
+	for(int i = 0; i < symbol.len; ++i)
+	{
+		if(!isalnum(symbol.str[i]) || symbol.str[i] == '_')
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_PARSE_ERROR, "found a non-valid key \"%.*s\" in data, did you miss a string-terminator? (\" or \')", symbol.len, symbol.str );
+	}
+}
+
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
 
 static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member, uint32_t array_length )
@@ -722,6 +731,34 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 }
 
+static const dl_txt_read_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
+{
+	dl_txt_read_substr res = {0x0, 0};
+	switch(*readctx->iter)
+	{
+		case '"':
+		case '\'':
+			return dl_txt_eat_string( readctx );
+		default:
+		{
+			const char* key_start = readctx->iter;
+			const char* key_end = key_start;
+			while(isalnum(*key_end) || *key_end == '_')
+				++key_end;
+
+			if(key_start != key_end)
+			{
+				res.str = key_start;
+				res.len = (int)(key_end - key_start);
+				readctx->iter = res.str + res.len + 1;
+				return res;
+			}
+		}
+		break;
+	}
+	return res;
+}
+
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	uint64_t members_set = 0;
@@ -747,10 +784,11 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	{
 		// ... read all members ...
 		dl_txt_eat_white( &packctx->read_ctx );
-		if( *packctx->read_ctx.iter != '"' )
-			break;
+		if( *packctx->read_ctx.iter == ',' ) ++packctx->read_ctx.iter;
+		if( *packctx->read_ctx.iter == '}' ) break;
 
-		dl_txt_read_substr member_name = dl_txt_eat_string( &packctx->read_ctx );
+		dl_txt_eat_white( &packctx->read_ctx );
+		dl_txt_read_substr member_name = dl_txt_eat_object_key( &packctx->read_ctx );
 		if( member_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing member name." );
 
@@ -770,7 +808,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			}
 			else
 			{
-				// TODO: this looks REALLY suspicious! Sholud it be here and not outside the above if!?!
+				// TODO: this looks REALLY suspicious! Should it be here and not outside the above if!?!
 				if( type->flags & DL_TYPE_FLAG_IS_UNION )
 				{
 					if( union_member_set )
@@ -787,26 +825,20 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
 		unsigned int member_id = dl_internal_find_member( dl_ctx, type, member_name_hash );
 		if( member_id > type->member_count )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+		{
+			dl_txt_pack_validate_c_symbol_key(dl_ctx, packctx, member_name);
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type '%s' has no member named '%.*s'", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+		}
 
 		uint64_t member_bit = ( 1ULL << member_id );
 		if( member_bit & members_set )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "member %s.%.*s is set twice", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "member '%s.%.*s' is set twice", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		members_set |= member_bit;
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
 		// ... read member ...
 		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_id ) );
-
-		dl_txt_eat_white( &packctx->read_ctx );
-		switch( *packctx->read_ctx.iter )
-		{
-			case ',': ++packctx->read_ctx.iter; break;
-			case '}': break;
-			default:
-				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected , or }" );
-		}
 	}
 
 	// ... find close }
@@ -952,7 +984,6 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {
-//	const dl_type_desc* root_type = 0x0;
 #if defined(_MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4611)
@@ -967,7 +998,7 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		// ... find first and only key, the type name of the type to pack ...
 		dl_txt_eat_white( &packctx->read_ctx );
-		dl_txt_read_substr root_type_name = dl_txt_eat_string( &packctx->read_ctx );
+		dl_txt_read_substr root_type_name = dl_txt_eat_object_key( &packctx->read_ctx );
 		if( root_type_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key with root type name" );
 
@@ -975,7 +1006,10 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		strncpy( type_name, root_type_name.str, (size_t)root_type_name.len );
 		const dl_type_desc* root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
 		if( root_type == 0x0 )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "no type named \"%s\" loaded", type_name );
+		{
+			dl_txt_pack_validate_c_symbol_key(dl_ctx, packctx, root_type_name);
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "root type was set as \"%s\", but no such type was loaded.", type_name );
+		}
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );

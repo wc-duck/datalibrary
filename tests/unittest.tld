@@ -277,6 +277,12 @@
 			"members" : [
 				{ "name" : "arr", "type" : "test_union_simple[3]" }
 			]
+		},
+
+		"single_int" : {
+			"members" : [
+				{ "name" : "val", "type" : "int32" }
+			]
 		}
 	},
 

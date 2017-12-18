@@ -554,8 +554,8 @@ static void dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, dl_t
 				{
 					dl_txt_read_substr alias_name = dl_txt_eat_and_expect_string( ctx, read_state );
 
-					dl_enum_alias_desc* alias = dl_alloc_enum_alias( ctx, &alias_name );
-					alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
+					dl_enum_alias_desc* enum_alias = dl_alloc_enum_alias( ctx, &alias_name );
+					enum_alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
 
 				} while( dl_txt_try_eat_char( read_state, ',' ) );
 				dl_txt_eat_char( ctx, read_state, ']' );
@@ -622,6 +622,8 @@ static void dl_context_load_txt_type_library_read_enums( dl_ctx_t ctx, dl_txt_re
 
 static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc* member, dl_txt_read_ctx* read_state )
 {
+    #define DL_PARSE_TYPE_VALID_FMT_STR "\nvalid formats, 'type', 'type*', 'type[count]', 'type[]', 'bitfield:bits'"
+
 	// ... strip whitespace ...
 	char   type_name[2048];
 	size_t type_name_len = 0;
@@ -652,54 +654,79 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 			if( iter[1] == '[' )
 				++iter;
 		}
-		if( *iter == '[' )
+		switch( *iter )
 		{
-			++iter;
-			if( *iter == ']' )
-				is_array = true;
-			else
-			{
-				char* next = 0x0;
-				inline_array_len = (unsigned int)strtoul( iter, &next, 0 );
-				if( iter == next )
-				{
-					// ... failed to parse inline array as number, try it as an enum ..
-					while( *next != ']' && ( isalnum(*next) || *next == '_' ) ) ++next;
+            case '[':
+            {
+                ++iter;
+                if( *iter == ']' )
+                    is_array = true;
+                else
+                {
+                    char* next = 0x0;
+                    inline_array_len = (unsigned int)strtoul( iter, &next, 0 );
+                    if( iter == next )
+                    {
+                        // ... failed to parse inline array as number, try it as an enum ..
+                        while( *next != ']' && ( isalnum(*next) || *next == '_' ) ) ++next;
 
-					if( *next != ']' )
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+                        if( *next != ']' )
+                            dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
 
-					inline_array_enum_value = iter;
-					inline_array_enum_value_size = (size_t)(next - iter);
-				}
-				else
-				{
-					if( *next != ']' )
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
-				}
-				iter = next + 1;
-				is_inline_array = true;
-			}
+                        inline_array_enum_value = iter;
+                        inline_array_enum_value_size = (size_t)(next - iter);
+                    }
+                    else
+                    {
+                        if( *next != ']' )
+                            dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+                    }
+                    iter = next + 1;
+                    is_inline_array = true;
+                }
+            }
+            break;
+
+            case ':':
+            {
+                if(strcmp( "bitfield", type_name ) != 0)
+                    dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR,
+                        "found char (':') when parsing type '%.*s', this is only valid for type 'bitfield'"
+                        DL_PARSE_TYPE_VALID_FMT_STR,
+                        type->len, type->str );
+
+                ++iter;
+
+                member->type = dl_make_type( DL_TYPE_ATOM_BITFIELD, DL_TYPE_STORAGE_UINT8 );
+                member->type_id = 0;
+                char* next = 0x0;
+                unsigned int bits = (unsigned int)strtoul( iter, &next, 0 );
+                if( iter == next )
+                    dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
+                member->SetBitFieldBits( bits );
+
+                // type etc?
+                return 1;
+            }
+            break;
+            case '*':
+            {
+                // ignore ...
+            }
+            break;
+
+            default:
+            {
+                dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR,
+                    "invalid char ('%c') found when parsing type '%.*s'\n"
+                    DL_PARSE_TYPE_VALID_FMT_STR,
+                    *iter, type->len, type->str );
+            }
 		}
 	}
 
 	if( strcmp( "bitfield", type_name ) == 0 )
-	{
-		if( *iter != ':' )
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
-		++iter;
-
-		member->type = dl_make_type( DL_TYPE_ATOM_BITFIELD, DL_TYPE_STORAGE_UINT8 );
-		member->type_id = 0;
-		char* next = 0x0;
-		unsigned int bits = (unsigned int)strtoul( iter, &next, 0 );
-		if( iter == next )
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
-		member->SetBitFieldBits( bits );
-
-		// type etc?
-		return 1;
-	}
+		dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
 
 	dl_type_t atom = DL_TYPE_ATOM_POD;
 	if( is_array ) atom = DL_TYPE_ATOM_ARRAY;
@@ -741,6 +768,8 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 			}
 		}
 	}
+
+    #undef DL_PARSE_TYPE_VALID_FMT_STR
 
 	return 1;
 }
@@ -982,8 +1011,8 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			dl_member_desc* member = ctx->member_descs + member_index;
 			if( member->type_id )
 			{
-				const dl_enum_desc* sub_type = dl_internal_find_enum( ctx, member->type_id );
-				if( sub_type )
+				const dl_enum_desc* enum_sub_type = dl_internal_find_enum( ctx, member->type_id );
+				if( enum_sub_type )
 				{
 					// ... type was really an enum ...
 					member->SetStorage( DL_TYPE_STORAGE_ENUM );
@@ -992,7 +1021,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				{
 					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
 					if( sub_type == 0x0 )
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, "couldn't find type for member %s", dl_internal_member_name( ctx, member ) );
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, "couldn't find type for member '%s'", dl_internal_member_name( ctx, member ) );
 				}
 			}
 		}
