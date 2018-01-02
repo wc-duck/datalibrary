@@ -450,6 +450,12 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 			DL_ASSERT(false);
 			break;
 	}
+
+    // handle trailing ,
+    dl_txt_eat_white( &packctx->read_ctx );
+    if(*packctx->read_ctx.iter == ',')
+        ++packctx->read_ctx.iter;
+    dl_txt_eat_white( &packctx->read_ctx );
 }
 
 static uint32_t dl_txt_pack_array_item_size( dl_ctx_t dl_ctx, const dl_member_desc* member )
@@ -536,6 +542,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 		case DL_TYPE_STORAGE_PTR:
 		case DL_TYPE_STORAGE_ENUM: // TODO: bug, but in typelib build, there can't be any , in an enum-string.
 		{
+            bool last_was_comma = false;
 			uint32_t array_length = 1;
 			while(true)
 			{
@@ -547,8 +554,10 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 						break;
 					case '\0':
 					case ']':
-						return array_length;
+						return last_was_comma ? array_length - 1 : array_length;
+                    // TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
 				}
+                last_was_comma = *iter == ',';
 				++iter;
 			}
 		}
