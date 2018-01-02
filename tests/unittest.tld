@@ -40,7 +40,21 @@
 				{ "name" : "f32", "type" : "fp32"   },
 				{ "name" : "f64", "type" : "fp64"   }
 			]
-		}		
+		},
+
+		"i8Array"   : { "members" : [ { "name" : "arr",  "type" : "int8[]"   } ] },
+        "i16Array"  : { "members" : [ { "name" : "arr",  "type" : "int16[]"  } ] },
+        "i32Array"  : { "members" : [ { "name" : "arr",  "type" : "int32[]"  } ] },
+        "i64Array"  : { "members" : [ { "name" : "arr",  "type" : "int64[]"  } ] },
+        "u8Array"   : { "members" : [ { "name" : "arr",  "type" : "uint8[]"  } ] },
+        "u16Array"  : { "members" : [ { "name" : "arr",  "type" : "uint16[]" } ] },
+        "u32Array"  : { "members" : [ { "name" : "arr",  "type" : "uint32[]" } ] },
+        "u64Array"  : { "members" : [ { "name" : "arr",  "type" : "uint64[]" } ] },
+        "fp32Array" : { "members" : [ { "name" : "arr",  "type" : "fp32[]"   } ] },
+        "fp64Array" : { "members" : [ { "name" : "arr",  "type" : "fp64[]"   } ] },
+        "strArray"  : { "members" : [ { "name" : "arr",  "type" : "string[]" } ] },
+        "ptrArray"  : { "members" : [ { "name" : "arr",  "type" : "Pods*[]"  } ] },
+        "enumArray" : { "members" : [ { "name" : "arr",  "type" : "TestEnum1[]" } ] }
 	},
 	
 	"unions" : {

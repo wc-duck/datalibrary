@@ -627,17 +627,17 @@ TEST_F( DLText, single_quoted_object_keys )
 	unsigned char out_text_data[1024];
 	{
 		const char* test_text = STRINGIFY( { 'single_int' : { "val" : 1 } } );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 	}
 
 	{
 		const char* test_text = STRINGIFY( { "single_int" : { 'val' : 1 } } );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 	}
 
 	{
 		const char* test_text = STRINGIFY( { 'single_int' : { 'val' : 1 } } );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 	}
 }
 
@@ -646,17 +646,17 @@ TEST_F( DLText, unquoted_object_keys )
 	unsigned char out_text_data[1024];
 	{
 		const char* test_text = STRINGIFY( { single_int : { "val" : 1 } } );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 	}
 
 	{
 		const char* test_text = STRINGIFY( { "single_int" : { val : 1 } } );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 	}
 
 	{
 		const char* test_text = STRINGIFY( { single_int : { val : 1 } } );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 	}
 }
 
@@ -671,7 +671,7 @@ TEST_F( DLText, single_line_comments )
 		"}";
 
 	unsigned char out_text_data[1024];
-	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 }
 
 TEST_F( DLText, multi_line_comments )
@@ -685,5 +685,97 @@ TEST_F( DLText, multi_line_comments )
 		"}";
 
 	unsigned char out_text_data[1024];
-	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
+template <typename T>
+static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, unsigned char* unpack_buffer, size_t unpack_buffer_size)
+{
+    unsigned char out_text_data[4096];
+    EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+    
+    memset( unpack_buffer, 0x0, unpack_buffer_size );
+    EXPECT_DL_ERR_OK( dl_instance_load( Ctx, T::TYPE_ID, unpack_buffer, unpack_buffer_size, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+    
+    return (T*)unpack_buffer;
+}
+
+TEST_F( DLText, accept_trailing_comma_array_i8 )
+{
+    unsigned char unpack_buffer[1024];
+    i8Array* arr = dl_txt_test_pack_text<i8Array>(Ctx, STRINGIFY( { i8Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    int8_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_i16 )
+{
+    unsigned char unpack_buffer[1024];
+    i16Array* arr = dl_txt_test_pack_text<i16Array>(Ctx, STRINGIFY( { i16Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    int16_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_i32 )
+{
+    unsigned char unpack_buffer[1024]; 
+    i32Array* arr = dl_txt_test_pack_text<i32Array>(Ctx, STRINGIFY( { i32Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    int32_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_i64 )
+{
+    unsigned char unpack_buffer[1024]; 
+    i64Array* arr = dl_txt_test_pack_text<i64Array>(Ctx, STRINGIFY( { i64Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    int64_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_u8 )
+{
+    unsigned char unpack_buffer[1024];
+    u8Array* arr = dl_txt_test_pack_text<u8Array>(Ctx, STRINGIFY( { u8Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    uint8_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_u16 )
+{
+    unsigned char unpack_buffer[1024];
+    u16Array* arr = dl_txt_test_pack_text<u16Array>(Ctx, STRINGIFY( { u16Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    uint16_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_u32 )
+{
+    unsigned char unpack_buffer[1024];
+    u32Array* arr = dl_txt_test_pack_text<u32Array>(Ctx, STRINGIFY( { u32Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    uint32_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_u64 )
+{
+    unsigned char unpack_buffer[1024];
+    u64Array* arr = dl_txt_test_pack_text<u64Array>(Ctx, STRINGIFY( { u64Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    uint64_t expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_fp32 )
+{
+    unsigned char unpack_buffer[1024];
+    fp32Array* arr = dl_txt_test_pack_text<fp32Array>(Ctx, STRINGIFY( { fp32Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    float expect[] = {1.0f,2.0f,3.0f};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_fp64 )
+{
+    unsigned char unpack_buffer[1024];
+    fp64Array* arr = dl_txt_test_pack_text<fp64Array>(Ctx, STRINGIFY( { fp64Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    double expect[] = {1,2,3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
 }
