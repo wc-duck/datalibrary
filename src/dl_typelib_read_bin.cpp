@@ -1,5 +1,5 @@
 #include <dl/dl_typelib.h>
-#include "dl_util.h"
+#include "dl_internal_util.h"
 #include "dl_types.h"
 
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
