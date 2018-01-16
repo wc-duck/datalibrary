@@ -7,6 +7,8 @@
 
 #include "dl_test_common.h"
 
+#include <math.h> // INFINITY, NAN
+
 // TODO: add test for default values for uint*[] with true/false.
 
 #define STRINGIFY( ... ) #__VA_ARGS__
@@ -714,6 +716,38 @@ TEST_F( DLText, trailing_decimal_point )
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : 5., f64 : 5. } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_FLOAT_EQ (5.f, pods->f32 );
     EXPECT_DOUBLE_EQ(5.,  pods->f64 );
+}
+
+TEST_F( DLText, float_infinity )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : Infinity, f64 : Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (INFINITY, pods->f32 );
+    EXPECT_DOUBLE_EQ(INFINITY, pods->f64 );
+}
+
+TEST_F( DLText, float_infinity_neg )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -Infinity, f64 : -Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (-INFINITY, pods->f32 );
+    EXPECT_DOUBLE_EQ(-INFINITY, pods->f64 );
+}
+
+TEST_F( DLText, float_nan )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : NaN, f64 : NaN } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_TRUE(isnan(pods->f32));
+    EXPECT_TRUE(isnan(pods->f64));
+}
+
+TEST_F( DLText, float_nan_neg )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -NaN, f64 : -NaN } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_TRUE(isnan(pods->f32));
+    EXPECT_TRUE(isnan(pods->f64));
 }
 
 TEST_F( DLText, accept_trailing_comma_array_i8 )
