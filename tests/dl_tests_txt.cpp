@@ -700,6 +700,22 @@ static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, unsigned char* un
     return (T*)unpack_buffer;
 }
 
+TEST_F( DLText, leading_decimal_point )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : .5, f64 : .5 } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (.5f, pods->f32 );
+    EXPECT_DOUBLE_EQ(.5,  pods->f64 );
+}
+
+TEST_F( DLText, trailing_decimal_point )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : 5., f64 : 5. } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (5.f, pods->f32 );
+    EXPECT_DOUBLE_EQ(5.,  pods->f64 );
+}
+
 TEST_F( DLText, accept_trailing_comma_array_i8 )
 {
     unsigned char unpack_buffer[1024];
