@@ -750,6 +750,36 @@ TEST_F( DLText, float_nan_neg )
     EXPECT_TRUE(isnan(pods->f64));
 }
 
+TEST_F( DLText, numbers_start_with_plus )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY(
+    	{
+    		PodsDefaults : {
+    			i8  : +1,
+				i16 : +2,
+				i32 : +3,
+				i64 : +4,
+    			u8  : +1,
+				u16 : +2,
+				u32 : +3,
+				u64 : +4,
+    			f32 : +1,
+				f64 : +1
+    		}
+    	} ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_EQ(1, pods->i8);
+    EXPECT_EQ(2, pods->i16);
+    EXPECT_EQ(3, pods->i32);
+    EXPECT_EQ(4, pods->i64);
+    EXPECT_EQ(1u, pods->u8);
+    EXPECT_EQ(2u, pods->u16);
+    EXPECT_EQ(3u, pods->u32);
+    EXPECT_EQ(4u, pods->u64);
+    EXPECT_EQ(1.0f, pods->f32);
+    EXPECT_EQ(1.0,  pods->f64);
+}
+
 TEST_F( DLText, accept_trailing_comma_array_i8 )
 {
     unsigned char unpack_buffer[1024];
