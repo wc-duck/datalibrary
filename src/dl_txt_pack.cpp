@@ -882,7 +882,6 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			{
 				uint32_t bf_bits = member->BitFieldBits();
 				uint32_t bf_offset = member->BitFieldOffset();
-				uint64_t max_val = (uint64_t(1) << bf_bits) - uint64_t(1);
 
 				dl_binary_writer_seek_set( packctx->writer, member_pos );
 
@@ -911,9 +910,6 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 						break;
 				}
 				uint64_t default_value_extracted = DL_EXTRACT_BITS(default_value, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits);
-				if(default_value_extracted > max_val)
-					dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_INVALID_DEFAULT_VALUE, "member %s.%s has a default value that is too big", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
-
 				uint64_t to_store = DL_INSERT_BITS( current_data, default_value_extracted, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits );
 				dl_binary_writer_seek_set( packctx->writer, member_pos );
 
