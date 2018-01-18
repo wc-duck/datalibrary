@@ -194,6 +194,42 @@ TEST_F(DLText, default_value_struct)
 	EXPECT_EQ(37u, loaded.Struct.Int2);
 }
 
+TEST_F(DLText, default_value_bitfield)
+{
+	const char* text_data = STRINGIFY( { "BitfieldDefaultsMulti" : {} } );
+
+	unsigned char out_data_text[1024];
+	BitfieldDefaultsMulti loaded;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, BitfieldDefaultsMulti::TYPE_ID, &loaded, sizeof(BitfieldDefaultsMulti), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(0, loaded.f1);
+	EXPECT_EQ(1, loaded.f2);
+	EXPECT_EQ(0, loaded.f3);
+	EXPECT_EQ(1, loaded.f4);
+	EXPECT_EQ(2, loaded.f5);
+	EXPECT_EQ(3, loaded.f6);
+}
+
+TEST_F(DLText, default_value_bitfield_bool)
+{
+	const char* text_data = STRINGIFY( { "BitfieldDefaultsMulti" : { "f1" : true, "f5" : true } } );
+
+	unsigned char out_data_text[1024];
+	BitfieldDefaultsMulti loaded;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, BitfieldDefaultsMulti::TYPE_ID, &loaded, sizeof(BitfieldDefaultsMulti), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(1, loaded.f1);
+	EXPECT_EQ(1, loaded.f2);
+	EXPECT_EQ(0, loaded.f3);
+	EXPECT_EQ(1, loaded.f4);
+	EXPECT_EQ(1, loaded.f5);
+	EXPECT_EQ(3, loaded.f6);
+}
+
 TEST_F(DLText, default_value_enum)
 {
 	const char* text_data = STRINGIFY( { "DefaultEnum" : {} } );
@@ -695,10 +731,10 @@ static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, unsigned char* un
 {
     unsigned char out_text_data[4096];
     EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-    
+
     memset( unpack_buffer, 0x0, unpack_buffer_size );
     EXPECT_DL_ERR_OK( dl_instance_load( Ctx, T::TYPE_ID, unpack_buffer, unpack_buffer_size, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-    
+
     return (T*)unpack_buffer;
 }
 
@@ -798,7 +834,7 @@ TEST_F( DLText, accept_trailing_comma_array_i16 )
 
 TEST_F( DLText, accept_trailing_comma_array_i32 )
 {
-    unsigned char unpack_buffer[1024]; 
+    unsigned char unpack_buffer[1024];
     i32Array* arr = dl_txt_test_pack_text<i32Array>(Ctx, STRINGIFY( { i32Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
     int32_t expect[] = {1,2,3};
     EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
@@ -806,7 +842,7 @@ TEST_F( DLText, accept_trailing_comma_array_i32 )
 
 TEST_F( DLText, accept_trailing_comma_array_i64 )
 {
-    unsigned char unpack_buffer[1024]; 
+    unsigned char unpack_buffer[1024];
     i64Array* arr = dl_txt_test_pack_text<i64Array>(Ctx, STRINGIFY( { i64Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
     int64_t expect[] = {1,2,3};
     EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
