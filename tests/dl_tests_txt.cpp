@@ -212,6 +212,24 @@ TEST_F(DLText, default_value_bitfield)
 	EXPECT_EQ(3, loaded.f6);
 }
 
+TEST_F(DLText, default_value_bitfield_bool)
+{
+	const char* text_data = STRINGIFY( { "BitfieldDefaultsMulti" : { "f1" : true, "f5" : true } } );
+
+	unsigned char out_data_text[1024];
+	BitfieldDefaultsMulti loaded;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, BitfieldDefaultsMulti::TYPE_ID, &loaded, sizeof(BitfieldDefaultsMulti), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(1, loaded.f1);
+	EXPECT_EQ(1, loaded.f2);
+	EXPECT_EQ(0, loaded.f3);
+	EXPECT_EQ(1, loaded.f4);
+	EXPECT_EQ(1, loaded.f5);
+	EXPECT_EQ(3, loaded.f6);
+}
+
 TEST_F(DLText, default_value_enum)
 {
 	const char* text_data = STRINGIFY( { "DefaultEnum" : {} } );
