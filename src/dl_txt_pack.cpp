@@ -876,13 +876,68 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			uint8_t* member_default_value = dl_ctx->default_data + member->default_value_offset;
 
 			uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
-			uint8_t* subdata = member_default_value + member_size;
 
-			dl_binary_writer_seek_set( packctx->writer, member_pos );
-			dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+			// ... handle bitfields differently since they take up sub-parts of bytes.
+			if(member->type & DL_TYPE_ATOM_BITFIELD)
+			{
+				uint32_t bf_bits = member->BitFieldBits();
+				uint32_t bf_offset = member->BitFieldOffset();
+				uint64_t max_val = (uint64_t(1) << bf_bits) - uint64_t(1);
+
+				dl_binary_writer_seek_set( packctx->writer, member_pos );
+
+				uint64_t current_data = 0;
+				switch( member->StorageType() )
+				{
+					case DL_TYPE_STORAGE_UINT8:  current_data = (uint64_t)dl_binary_writer_read_uint8 ( packctx->writer ); break;
+					case DL_TYPE_STORAGE_UINT16: current_data = (uint64_t)dl_binary_writer_read_uint16( packctx->writer ); break;
+					case DL_TYPE_STORAGE_UINT32: current_data = (uint64_t)dl_binary_writer_read_uint32( packctx->writer ); break;
+					case DL_TYPE_STORAGE_UINT64: current_data = dl_binary_writer_read_uint64( packctx->writer ); break;
+					default:
+						DL_ASSERT( false && "This should not happen!" );
+						break;
+				}
+
+				uint64_t default_value = 0;
+
+				switch( member->default_value_size )
+				{
+					case 1: default_value = (uint64_t)*member_default_value; break;
+					case 2: default_value = (uint64_t)*(uint16_t*)member_default_value; break;
+					case 3: default_value = (uint64_t)*(uint32_t*)member_default_value; break;
+					case 4: default_value = (uint64_t)*(uint64_t*)member_default_value; break;
+					default:
+						DL_ASSERT( false && "This should not happen!" );
+						break;
+				}
+				uint64_t default_value_extracted = DL_EXTRACT_BITS(default_value, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits);
+				if(default_value_extracted > max_val)
+					dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_INVALID_DEFAULT_VALUE, "member %s.%s has a default value that is too big", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
+
+				uint64_t to_store = DL_INSERT_BITS( current_data, default_value_extracted, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits );
+				dl_binary_writer_seek_set( packctx->writer, member_pos );
+
+				switch( member->StorageType() )
+				{
+					case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_uint8 ( packctx->writer,  (uint8_t)to_store ); break;
+					case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_uint16( packctx->writer, (uint16_t)to_store ); break;
+					case DL_TYPE_STORAGE_UINT32: dl_binary_writer_write_uint32( packctx->writer, (uint32_t)to_store ); break;
+					case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_uint64( packctx->writer, (uint64_t)to_store ); break;
+					default:
+						DL_ASSERT( false && "This should not happen!" );
+						break;
+				}
+
+			}
+			else
+			{
+				dl_binary_writer_seek_set( packctx->writer, member_pos );
+				dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+			}
 
 			if( member_size != member->default_value_size )
 			{
+				uint8_t* subdata = member_default_value + member_size;
 				// ... sub ptrs, copy and patch ...
 				dl_binary_writer_seek_end( packctx->writer );
 				uintptr_t subdata_pos = dl_binary_writer_tell( packctx->writer );
