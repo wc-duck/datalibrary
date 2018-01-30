@@ -7,8 +7,13 @@
 
 #include "dl_test_common.h"
 
-#include <cmath>
+#include <math.h> // isnan
 #include <limits>
+
+#if defined(_MSC_VER)
+#  include <float.h> // isnan
+#  define isnan _isnan
+#endif
 
 // TODO: add test for default values for uint*[] with true/false.
 
@@ -775,16 +780,16 @@ TEST_F( DLText, float_nan )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : NaN, f64 : NaN } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_TRUE(std::isnan(pods->f32));
-    EXPECT_TRUE(std::isnan(pods->f64));
+    EXPECT_TRUE(isnan(pods->f32));
+    EXPECT_TRUE(isnan(pods->f64));
 }
 
 TEST_F( DLText, float_nan_neg )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -NaN, f64 : -NaN } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_TRUE(std::isnan(pods->f32));
-    EXPECT_TRUE(std::isnan(pods->f64));
+    EXPECT_TRUE(isnan(pods->f32));
+    EXPECT_TRUE(isnan(pods->f64));
 }
 
 TEST_F( DLText, numbers_start_with_plus )
