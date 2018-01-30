@@ -1,6 +1,6 @@
 #include <dl/dl_typelib.h>
 #include <dl/dl_txt.h>
-#include "dl_util.h"
+#include "dl_internal_util.h"
 #include "dl_types.h"
 #include "dl_alloc.h"
 #include "dl_txt_read.h"

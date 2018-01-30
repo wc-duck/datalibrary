@@ -1,6 +1,6 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
-#include "dl_util.h"
+#include "dl_internal_util.h"
 #include "dl_types.h"
 #include "dl_binary_writer.h"
 #include <dl/dl_txt.h>

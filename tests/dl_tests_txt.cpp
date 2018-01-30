@@ -7,6 +7,8 @@
 
 #include "dl_test_common.h"
 
+#include <math.h> // INFINITY, NAN
+
 // TODO: add test for default values for uint*[] with true/false.
 
 #define STRINGIFY( ... ) #__VA_ARGS__
@@ -190,6 +192,42 @@ TEST_F(DLText, default_value_struct)
 
 	EXPECT_EQ(13u, loaded.Struct.Int1);
 	EXPECT_EQ(37u, loaded.Struct.Int2);
+}
+
+TEST_F(DLText, default_value_bitfield)
+{
+	const char* text_data = STRINGIFY( { "BitfieldDefaultsMulti" : {} } );
+
+	unsigned char out_data_text[1024];
+	BitfieldDefaultsMulti loaded;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, BitfieldDefaultsMulti::TYPE_ID, &loaded, sizeof(BitfieldDefaultsMulti), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(0, loaded.f1);
+	EXPECT_EQ(1, loaded.f2);
+	EXPECT_EQ(0, loaded.f3);
+	EXPECT_EQ(1, loaded.f4);
+	EXPECT_EQ(2, loaded.f5);
+	EXPECT_EQ(3, loaded.f6);
+}
+
+TEST_F(DLText, default_value_bitfield_bool)
+{
+	const char* text_data = STRINGIFY( { "BitfieldDefaultsMulti" : { "f1" : true, "f5" : true } } );
+
+	unsigned char out_data_text[1024];
+	BitfieldDefaultsMulti loaded;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, BitfieldDefaultsMulti::TYPE_ID, &loaded, sizeof(BitfieldDefaultsMulti), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(1, loaded.f1);
+	EXPECT_EQ(1, loaded.f2);
+	EXPECT_EQ(0, loaded.f3);
+	EXPECT_EQ(1, loaded.f4);
+	EXPECT_EQ(1, loaded.f5);
+	EXPECT_EQ(3, loaded.f6);
 }
 
 TEST_F(DLText, default_value_enum)
@@ -693,11 +731,89 @@ static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, unsigned char* un
 {
     unsigned char out_text_data[4096];
     EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-    
+
     memset( unpack_buffer, 0x0, unpack_buffer_size );
     EXPECT_DL_ERR_OK( dl_instance_load( Ctx, T::TYPE_ID, unpack_buffer, unpack_buffer_size, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-    
+
     return (T*)unpack_buffer;
+}
+
+TEST_F( DLText, leading_decimal_point )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : .5, f64 : .5 } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (.5f, pods->f32 );
+    EXPECT_DOUBLE_EQ(.5,  pods->f64 );
+}
+
+TEST_F( DLText, trailing_decimal_point )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : 5., f64 : 5. } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (5.f, pods->f32 );
+    EXPECT_DOUBLE_EQ(5.,  pods->f64 );
+}
+
+TEST_F( DLText, float_infinity )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : Infinity, f64 : Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (INFINITY, pods->f32 );
+    EXPECT_DOUBLE_EQ(INFINITY, pods->f64 );
+}
+
+TEST_F( DLText, float_infinity_neg )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -Infinity, f64 : -Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_FLOAT_EQ (-INFINITY, pods->f32 );
+    EXPECT_DOUBLE_EQ(-INFINITY, pods->f64 );
+}
+
+TEST_F( DLText, float_nan )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : NaN, f64 : NaN } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_TRUE(isnan(pods->f32));
+    EXPECT_TRUE(isnan(pods->f64));
+}
+
+TEST_F( DLText, float_nan_neg )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -NaN, f64 : -NaN } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_TRUE(isnan(pods->f32));
+    EXPECT_TRUE(isnan(pods->f64));
+}
+
+TEST_F( DLText, numbers_start_with_plus )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY(
+    	{
+    		PodsDefaults : {
+    			i8  : +1,
+				i16 : +2,
+				i32 : +3,
+				i64 : +4,
+    			u8  : +1,
+				u16 : +2,
+				u32 : +3,
+				u64 : +4,
+    			f32 : +1,
+				f64 : +1
+    		}
+    	} ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_EQ(1, pods->i8);
+    EXPECT_EQ(2, pods->i16);
+    EXPECT_EQ(3, pods->i32);
+    EXPECT_EQ(4, pods->i64);
+    EXPECT_EQ(1u, pods->u8);
+    EXPECT_EQ(2u, pods->u16);
+    EXPECT_EQ(3u, pods->u32);
+    EXPECT_EQ(4u, pods->u64);
+    EXPECT_EQ(1.0f, pods->f32);
+    EXPECT_EQ(1.0,  pods->f64);
 }
 
 TEST_F( DLText, accept_trailing_comma_array_i8 )
@@ -718,7 +834,7 @@ TEST_F( DLText, accept_trailing_comma_array_i16 )
 
 TEST_F( DLText, accept_trailing_comma_array_i32 )
 {
-    unsigned char unpack_buffer[1024]; 
+    unsigned char unpack_buffer[1024];
     i32Array* arr = dl_txt_test_pack_text<i32Array>(Ctx, STRINGIFY( { i32Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
     int32_t expect[] = {1,2,3};
     EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
@@ -726,7 +842,7 @@ TEST_F( DLText, accept_trailing_comma_array_i32 )
 
 TEST_F( DLText, accept_trailing_comma_array_i64 )
 {
-    unsigned char unpack_buffer[1024]; 
+    unsigned char unpack_buffer[1024];
     i64Array* arr = dl_txt_test_pack_text<i64Array>(Ctx, STRINGIFY( { i64Array : { arr : [1,2,3,] } } ), unpack_buffer, sizeof(unpack_buffer));
     int64_t expect[] = {1,2,3};
     EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
