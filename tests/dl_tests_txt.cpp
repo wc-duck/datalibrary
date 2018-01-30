@@ -901,7 +901,7 @@ TEST_F( DLText, accept_trailing_comma_array_str )
     unsigned char unpack_buffer[1024];
     strArray* arr = dl_txt_test_pack_text<strArray>(Ctx, STRINGIFY( { strArray : { arr : ["a", "b", "c",] } } ), unpack_buffer, sizeof(unpack_buffer));
     const char* expect[] = {"a", "b", "c"};
-    EXPECT_EQ(3, arr->arr.count);
+    EXPECT_EQ(3u, arr->arr.count);
     EXPECT_STREQ(expect[0], arr->arr[0]);
     EXPECT_STREQ(expect[1], arr->arr[1]);
     EXPECT_STREQ(expect[2], arr->arr[2]);
@@ -912,7 +912,7 @@ TEST_F( DLText, accept_trailing_comma_array_ptr )
     unsigned char unpack_buffer[1024];
     ptrArray* arr = dl_txt_test_pack_text<ptrArray>(Ctx, STRINGIFY( { ptrArray : { arr : [null, null, null,] } } ), unpack_buffer, sizeof(unpack_buffer));
     Pods* expect[] = {0x0, 0x0, 0x0};
-    EXPECT_EQ(3, arr->arr.count);
+    EXPECT_EQ(3u, arr->arr.count);
     EXPECT_EQ(expect[0], arr->arr[0]);
     EXPECT_EQ(expect[1], arr->arr[1]);
     EXPECT_EQ(expect[2], arr->arr[2]);
