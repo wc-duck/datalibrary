@@ -780,16 +780,16 @@ TEST_F( DLText, float_nan )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : NaN, f64 : NaN } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_TRUE(isnan(pods->f32));
-    EXPECT_TRUE(isnan(pods->f64));
+    EXPECT_TRUE(isnan(pods->f32) == 1);
+    EXPECT_TRUE(isnan(pods->f64) == 1);
 }
 
 TEST_F( DLText, float_nan_neg )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -NaN, f64 : -NaN } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_TRUE(isnan(pods->f32));
-    EXPECT_TRUE(isnan(pods->f64));
+    EXPECT_TRUE(isnan(pods->f32) == 1);
+    EXPECT_TRUE(isnan(pods->f64) == 1);
 }
 
 TEST_F( DLText, numbers_start_with_plus )
