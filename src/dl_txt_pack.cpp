@@ -564,6 +564,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 		break;
 		case DL_TYPE_STORAGE_STR:
 		{
+            bool last_was_comma = false;
 			uint32_t array_length = 1;
 			while(true)
 			{
@@ -578,8 +579,10 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 						break;
 					case '\0':
 					case ']':
-						return array_length;
+						return last_was_comma ? array_length - 1 : array_length;
+                    // TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
 				}
+                last_was_comma = *iter == ',';
 				++iter;
 			}
 		}

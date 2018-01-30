@@ -779,3 +779,44 @@ TEST_F( DLText, accept_trailing_comma_array_fp64 )
     double expect[] = {1,2,3};
     EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
 }
+
+TEST_F( DLText, accept_trailing_comma_array_str )
+{
+    unsigned char unpack_buffer[1024];
+    strArray* arr = dl_txt_test_pack_text<strArray>(Ctx, STRINGIFY( { strArray : { arr : ["a", "b", "c",] } } ), unpack_buffer, sizeof(unpack_buffer));
+    const char* expect[] = {"a", "b", "c"};
+    EXPECT_EQ(3, arr->arr.count);
+    EXPECT_STREQ(expect[0], arr->arr[0]);
+    EXPECT_STREQ(expect[1], arr->arr[1]);
+    EXPECT_STREQ(expect[2], arr->arr[2]);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_ptr )
+{
+    unsigned char unpack_buffer[1024];
+    ptrArray* arr = dl_txt_test_pack_text<ptrArray>(Ctx, STRINGIFY( { ptrArray : { arr : [null, null, null,] } } ), unpack_buffer, sizeof(unpack_buffer));
+    Pods* expect[] = {0x0, 0x0, 0x0};
+    EXPECT_EQ(3, arr->arr.count);
+    EXPECT_EQ(expect[0], arr->arr[0]);
+    EXPECT_EQ(expect[1], arr->arr[1]);
+    EXPECT_EQ(expect[2], arr->arr[2]);
+}
+
+TEST_F( DLText, accept_trailing_comma_array_enum )
+{
+    unsigned char unpack_buffer[1024];
+    enumArray* arr = dl_txt_test_pack_text<enumArray>(Ctx, STRINGIFY( { enumArray : { arr : ["TESTENUM1_VALUE1", "TESTENUM1_VALUE2", "TESTENUM1_VALUE3",] } } ), unpack_buffer, sizeof(unpack_buffer));
+    TestEnum1 expect[] = {TESTENUM1_VALUE1, TESTENUM1_VALUE2, TESTENUM1_VALUE3};
+    EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+}
+
+/*
+TEST_F( DLText, accept_trailing_comma_array_struct )
+{
+    unsigned char unpack_buffer[1024];
+    StructArray1* arr = dl_txt_test_pack_text<StructArray1>(Ctx, STRINGIFY( { StructArray1 : { Array : [{Int1 : 1, Int2 : 2}, { Int1 : 3, Int2 : 4},] } } ), unpack_buffer, sizeof(unpack_buffer));
+    // TestEnum1 expect[] = {TESTENUM1_VALUE1, TESTENUM1_VALUE2, TESTENUM1_VALUE3};
+    // EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
+    (void)arr;
+}
+*/
