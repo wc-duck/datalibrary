@@ -7,7 +7,8 @@
 
 #include "dl_test_common.h"
 
-#include <math.h> // INFINITY, NAN
+#include <cmath>
+#include <limits>
 
 // TODO: add test for default values for uint*[] with true/false.
 
@@ -758,32 +759,32 @@ TEST_F( DLText, float_infinity )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : Infinity, f64 : Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_FLOAT_EQ (INFINITY, pods->f32 );
-    EXPECT_DOUBLE_EQ(INFINITY, pods->f64 );
+    EXPECT_FLOAT_EQ (std::numeric_limits<float>::infinity(),  pods->f32 );
+    EXPECT_DOUBLE_EQ(std::numeric_limits<double>::infinity(), pods->f64 );
 }
 
 TEST_F( DLText, float_infinity_neg )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -Infinity, f64 : -Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_FLOAT_EQ (-INFINITY, pods->f32 );
-    EXPECT_DOUBLE_EQ(-INFINITY, pods->f64 );
+    EXPECT_FLOAT_EQ (-std::numeric_limits<float>::infinity(),  pods->f32 );
+    EXPECT_DOUBLE_EQ(-std::numeric_limits<double>::infinity(), pods->f64 );
 }
 
 TEST_F( DLText, float_nan )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : NaN, f64 : NaN } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_TRUE(isnan(pods->f32));
-    EXPECT_TRUE(isnan(pods->f64));
+    EXPECT_TRUE(std::isnan(pods->f32));
+    EXPECT_TRUE(std::isnan(pods->f64));
 }
 
 TEST_F( DLText, float_nan_neg )
 {
     unsigned char unpack_buffer[1024];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -NaN, f64 : -NaN } } ), unpack_buffer, sizeof(unpack_buffer));
-    EXPECT_TRUE(isnan(pods->f32));
-    EXPECT_TRUE(isnan(pods->f64));
+    EXPECT_TRUE(std::isnan(pods->f32));
+    EXPECT_TRUE(std::isnan(pods->f64));
 }
 
 TEST_F( DLText, numbers_start_with_plus )
