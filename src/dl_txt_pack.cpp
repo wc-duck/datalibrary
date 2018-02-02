@@ -7,6 +7,7 @@
 #include "dl_txt_read.h"
 
 #include <stdlib.h>
+#include <limits>
 
 #if defined(_MSC_VER)
 // TODO: any better/faster way to do this, especially strtof?
@@ -19,6 +20,57 @@
 	}
 #  endif
 #endif
+
+inline double dl_strtod(const char* str, char** endptr)
+{
+	double res = strtod(str, endptr);
+#if _MSC_VER < 1800 // older versions of strtod() on msvc did not parse inf
+	if(str == *endptr)
+	{
+		float sign = 1.0f;
+		switch(str[0])
+		{
+			case '-':
+				sign  = -1.0f;
+				++str;
+				break;
+			case '+':
+				sign  = 1.0f;
+				++str;
+				break;
+			default:
+				break;
+		}
+
+		if(strcasecmp("inf", str) == 0)
+		{
+			*endptr = (char*)str + 3;
+			return std::numeric_limits<double>::infinity() * sign;
+		}
+		if(strcasecmp("infinity", str) == 0)
+		{
+			*endptr = (char*)str + 8;
+			return std::numeric_limits<double>::infinity() * sign;
+		}
+		// _strnicmp
+		if(strcasecmp("nan", str) == 0)
+		{
+			*endptr = (char*)str + 3;
+			return std::numeric_limits<double>::quiet_NaN() * sign;
+		}
+	}
+#endif
+	return res;
+}
+
+inline float dl_strtof(const char* str, char** endptr)
+{
+#if _MSC_VER < 1800 // strtof was defined first in MSVC2013
+	return (float)dl_strtod( str, endptr );
+#else
+	return strtof(str, endptr);
+#endif
+}
 
 struct dl_txt_pack_ctx
 {
@@ -175,7 +227,7 @@ static void dl_txt_pack_eat_and_write_fp32( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 {
 	dl_txt_eat_white( &packctx->read_ctx );
 	char* next = 0x0;
-	float v = strtof( packctx->read_ctx.iter, &next );
+	float v = dl_strtof( packctx->read_ctx.iter, &next );
 	if( packctx->read_ctx.iter == next )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'fp32'" );
 	packctx->read_ctx.iter = next;
@@ -186,7 +238,7 @@ static void dl_txt_pack_eat_and_write_fp64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 {
 	dl_txt_eat_white( &packctx->read_ctx );
 	char* next = 0x0;
-	double v = strtod( packctx->read_ctx.iter, &next );
+	double v = dl_strtod( packctx->read_ctx.iter, &next );
 	if( packctx->read_ctx.iter == next )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'fp64'" );
 	packctx->read_ctx.iter = next;
