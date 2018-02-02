@@ -42,17 +42,17 @@ inline double dl_strtod(const char* str, char** endptr)
 				break;
 		}
 
-		if(_strnicmp("inf", str) == 0)
+		if(_strnicmp("inf", str, 3) == 0)
 		{
 			*endptr = (char*)str + 3;
 			return std::numeric_limits<double>::infinity() * sign;
 		}
-		if(_strnicmp("infinity", str) == 0)
+		if(_strnicmp("infinity", str, 8) == 0)
 		{
 			*endptr = (char*)str + 8;
 			return std::numeric_limits<double>::infinity() * sign;
 		}
-		if(_strnicmp("nan", str) == 0)
+		if(_strnicmp("nan", str, 3) == 0)
 		{
 			*endptr = (char*)str + 3;
 			return std::numeric_limits<double>::quiet_NaN() * sign;
