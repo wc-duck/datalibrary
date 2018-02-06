@@ -24,7 +24,7 @@
 inline double dl_strtod(const char* str, char** endptr)
 {
 	double res = strtod(str, endptr);
-#if _MSC_VER < 1800 // older versions of strtod() on msvc did not parse inf
+#if defined(_MSC_VER) && _MSC_VER < 1800 // older versions of strtod() on msvc did not parse inf
 	if(str == *endptr)
 	{
 		float sign = 1.0f;
