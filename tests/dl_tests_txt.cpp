@@ -932,13 +932,13 @@ TEST_F( DLText, accept_trailing_comma_array_enum )
     EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
 }
 
-/*
 TEST_F( DLText, accept_trailing_comma_array_struct )
 {
     unsigned char unpack_buffer[1024];
-    StructArray1* arr = dl_txt_test_pack_text<StructArray1>(Ctx, STRINGIFY( { StructArray1 : { Array : [{Int1 : 1, Int2 : 2}, { Int1 : 3, Int2 : 4},] } } ), unpack_buffer, sizeof(unpack_buffer));
-    // TestEnum1 expect[] = {TESTENUM1_VALUE1, TESTENUM1_VALUE2, TESTENUM1_VALUE3};
-    // EXPECT_ARRAY_EQ(3, arr->arr.data, expect);
-    (void)arr;
+    StructArray1* arr = dl_txt_test_pack_text<StructArray1>(Ctx, STRINGIFY( { StructArray1 : { Array : [{Int1 : 1, Int2 : 2}, {Int1 : 3, Int2 : 4},] } } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_EQ(2u, arr->Array.count);
+    EXPECT_EQ(1, arr->Array[0].Int1);
+    EXPECT_EQ(2, arr->Array[0].Int2);
+    EXPECT_EQ(3, arr->Array[1].Int1);
+    EXPECT_EQ(4, arr->Array[1].Int2);
 }
-*/

@@ -640,11 +640,28 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 		break;
 		case DL_TYPE_STORAGE_STRUCT:
 		{
+			bool last_was_comma = false;
 			uint32_t array_length = 1;
-			for( ; *iter && *iter != ']'; ++iter )
-				if( *( iter = dl_txt_skip_map( iter, end ) ) == ',' )
-					++array_length;
-			return array_length;
+			while(true)
+			{
+				iter = dl_txt_skip_white(iter, end);
+				switch( *iter )
+				{
+					case ',':
+						++array_length;
+						++iter;
+						last_was_comma = true;
+						break;
+					case '{':
+						last_was_comma = false;
+						iter = dl_txt_skip_map(iter, end);
+						break;
+					case '\0':
+					case ']':
+						return last_was_comma ? array_length - 1 : array_length;
+						// TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
+				}
+			}
 		}
 		break;
 		default:
