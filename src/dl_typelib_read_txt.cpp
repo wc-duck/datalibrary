@@ -701,8 +701,9 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
                 member->type_id = 0;
                 char* next = 0x0;
                 unsigned int bits = (unsigned int)strtoul( iter, &next, 0 );
-                if( iter == next )
+                if( iter == next || *next != '\"' )
                     dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
+
                 member->SetBitFieldBits( bits );
 
                 // type etc?

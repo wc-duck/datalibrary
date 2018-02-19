@@ -198,6 +198,8 @@ TEST_F( DLTypeLibTxt, invalid_type_fmt_bitfield )
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:"   } ] } } }) );
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:a"  } ] } } }) );
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield<1"  } ] } } }) );
+    typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:1[]"  } ] } } }) );
+    typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "bitfield:1[123]"  } ] } } }) );
     typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "single_int:" } ] } } }) ); // ':' found when type is not bitfield
 }
 
