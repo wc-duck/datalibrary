@@ -937,8 +937,8 @@ TEST_F( DLText, accept_trailing_comma_array_struct )
     unsigned char unpack_buffer[1024];
     StructArray1* arr = dl_txt_test_pack_text<StructArray1>(Ctx, STRINGIFY( { StructArray1 : { Array : [{Int1 : 1, Int2 : 2}, {Int1 : 3, Int2 : 4},] } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_EQ(2u, arr->Array.count);
-    EXPECT_EQ(1, arr->Array[0].Int1);
-    EXPECT_EQ(2, arr->Array[0].Int2);
-    EXPECT_EQ(3, arr->Array[1].Int1);
-    EXPECT_EQ(4, arr->Array[1].Int2);
+    EXPECT_EQ(1u, arr->Array[0].Int1);
+    EXPECT_EQ(2u, arr->Array[0].Int2);
+    EXPECT_EQ(3u, arr->Array[1].Int1);
+    EXPECT_EQ(4u, arr->Array[1].Int2);
 }
