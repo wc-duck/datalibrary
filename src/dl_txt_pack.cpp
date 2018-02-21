@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <limits.h>
+#include <errno.h>
 #include <limits>
 
 #if defined(_MSC_VER)
