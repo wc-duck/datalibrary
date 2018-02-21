@@ -7,6 +7,7 @@
 #include "dl_txt_read.h"
 
 #include <stdlib.h>
+#include <limits.h>
 #include <limits>
 
 #if defined(_MSC_VER)
