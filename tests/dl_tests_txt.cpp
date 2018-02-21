@@ -965,10 +965,10 @@ TEST_F( DLText, hex_ints )
     EXPECT_EQ(0xB, pods->i16);
     EXPECT_EQ(0xC, pods->i32);
     EXPECT_EQ(0xD, pods->i64);
-    EXPECT_EQ(0xE, pods->u8);
-    EXPECT_EQ(0xF, pods->u16);
-    EXPECT_EQ(0x1A, pods->u32);
-    EXPECT_EQ(0x1B, pods->u64);
+    EXPECT_EQ(0xEu, pods->u8);
+    EXPECT_EQ(0xFu, pods->u16);
+    EXPECT_EQ(0x1Au, pods->u32);
+    EXPECT_EQ(0x1Bu, pods->u64);
 }
 
 TEST_F( DLText, hex_ints_neg )
