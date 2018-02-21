@@ -942,3 +942,104 @@ TEST_F( DLText, accept_trailing_comma_array_struct )
     EXPECT_EQ(3u, arr->Array[1].Int1);
     EXPECT_EQ(4u, arr->Array[1].Int2);
 }
+
+TEST_F( DLText, hex_ints )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY(
+        {
+            PodsDefaults : {
+                i8  : 0xA,
+                i16 : 0xB,
+                i32 : 0xC,
+                i64 : 0xD,
+                u8  : 0xE,
+                u16 : 0xF,
+                u32 : 0x1A,
+                u64 : 0x1B,
+                f32 : +1,
+                f64 : +1
+            }
+        } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_EQ(0xA, pods->i8);
+    EXPECT_EQ(0xB, pods->i16);
+    EXPECT_EQ(0xC, pods->i32);
+    EXPECT_EQ(0xD, pods->i64);
+    EXPECT_EQ(0xE, pods->u8);
+    EXPECT_EQ(0xF, pods->u16);
+    EXPECT_EQ(0x1A, pods->u32);
+    EXPECT_EQ(0x1B, pods->u64);
+}
+
+TEST_F( DLText, hex_ints_neg )
+{
+    unsigned char unpack_buffer[1024];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY(
+        {
+            PodsDefaults : {
+                i8  : -0xA,
+                i16 : -0xB,
+                i32 : -0xC,
+                i64 : -0xD
+            }
+        } ), unpack_buffer, sizeof(unpack_buffer));
+    EXPECT_EQ(-0xA, pods->i8);
+    EXPECT_EQ(-0xB, pods->i16);
+    EXPECT_EQ(-0xC, pods->i32);
+    EXPECT_EQ(-0xD, pods->i64);
+}
+
+template <typename T>
+static void dl_txt_test_expect_error(dl_ctx_t Ctx, const char* txt, dl_error_t expected)
+{
+    unsigned char out_text_data[4096];
+    EXPECT_DL_ERR_EQ( expected, dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
+TEST_F( DLText, hex_int8_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i8  :  0xFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i8  : -0xFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, hex_int16_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i16  :  0xFFFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i16  : -0xFFFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, hex_int32_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i32  :  0xFFFFFFFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i32  : -0xFFFFFFFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, hex_int64_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i64  :  0xFFFFFFFFFFFFFFFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i64  : -0xFFFFFFFFFFFFFFFF } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, hex_uint8_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u8  :  0x100 } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u8  : -0x1   } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, hex_uint16_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u16  :  0x10000 } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u16  : -0x1     } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, hex_uint32_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u32  :  0x100000000 } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u32  : -0x1         } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, hex_uint64_invalid_range )
+{
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u64  :  0x10000000000000000 } } ), DL_ERROR_TXT_RANGE_ERROR);
+    dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u64  : -0x1                 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}

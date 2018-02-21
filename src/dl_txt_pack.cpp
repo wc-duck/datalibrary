@@ -132,6 +132,8 @@ static void dl_txt_pack_eat_and_write_int32( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 		v = strtol( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'int32'" );
+        if( ( v == LONG_MAX || v == LONG_MIN ) && errno == ERANGE )
+            dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'int32', %lld is out of range.", (long long)v );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_int32( packctx->writer, (int32_t)v );
@@ -147,6 +149,8 @@ static void dl_txt_pack_eat_and_write_int64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 		v = strtoll( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'int64'" );
+        if( ( v == LLONG_MAX || v == LLONG_MIN ) && errno == ERANGE )
+            dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'int64', %lld is out of range.", (long long)v );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_int64( packctx->writer, (int64_t)v );
@@ -196,6 +200,8 @@ static void dl_txt_pack_eat_and_write_uint32( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		v = strtoul( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'uint32'" );
+        if( v == ULONG_MAX && errno == ERANGE )
+            dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'uint32', %llu is out of range.", (unsigned long long)v );
 		packctx->read_ctx.iter = next;
 	}
 	dl_binary_writer_write_uint32( packctx->writer, (uint32_t)v );
@@ -211,6 +217,8 @@ static uint64_t dl_txt_pack_eat_uint64( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packct
 		v = strtoull( packctx->read_ctx.iter, &next, 0 );
 		if( packctx->read_ctx.iter == next )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'uint64'" );
+        if( v == ULLONG_MAX && errno == ERANGE )
+            dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type 'uint32', %llu is out of range.", (unsigned long long)v );
 		packctx->read_ctx.iter = next;
 	}
 	return (uint64_t)v;
