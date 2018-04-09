@@ -511,6 +511,7 @@ static void dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unp
 								dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, array + i * subtype->size[DL_PTR_SIZE_HOST] );
 						}
 					}
+					/* fall through */
 					case DL_TYPE_STORAGE_PTR:
 					{
 						uintptr_t array_offset = *(uintptr_t*)(member_data);
