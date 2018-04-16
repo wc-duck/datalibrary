@@ -99,7 +99,7 @@ struct DLBase : public DL
 			EXPECT_INSTANCE_INFO( store_buffer, store_size, sizeof(void*), DL_ENDIAN_HOST, type );
 			EXPECT_EQ( 0xFE, store_buffer[store_size] ); // no overwrite on the calculated size plox!
 
-			unsigned char *out_buffer = nullptr;
+			unsigned char *out_buffer = 0x0;
 			size_t out_size;
 
 			// Moved memset out-buffer to inside do_it();, which allocates bytes + 1 and memsets it to 0xfe
