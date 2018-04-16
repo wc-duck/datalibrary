@@ -175,7 +175,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 
 			union { uint8_t* src; uint32_t ptr; };
 			src = member_data + sizeof( void* );
-			uint32_t count = *src;
+			uint32_t count = *(uint32_t*)src;
 
 			if( count != 0 )
 			{
