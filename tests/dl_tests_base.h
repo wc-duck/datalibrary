@@ -68,12 +68,12 @@ struct DLBase : public DL
 	unsigned char *load_buffer;
 
 	DLBase() 
-		: store_buffer(nullptr)
+		: store_buffer(0x0)
 	{
 
 	}
 	virtual ~DLBase() {
-		if (store_buffer != nullptr) {
+		if (store_buffer != 0x0) {
 			free(store_buffer);
 		}
 	}
