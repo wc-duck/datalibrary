@@ -5,12 +5,15 @@ TYPED_TEST(DLBase, array_pod1)
 {
 	uint32_t array_data[8] = { 1337, 7331, 13, 37, 133, 7, 1, 337 } ;
 	PodArray1 original = { { array_data, DL_ARRAY_LENGTH( array_data ) } };
-	PodArray1 loaded[16];
 
-	this->do_the_round_about( PodArray1::TYPE_ID, &original, loaded, sizeof(loaded) );
+	size_t loaded_size = this->calculate_unpack_size(PodArray1::TYPE_ID, &original);
+	PodArray1 *loaded = (PodArray1*)malloc(loaded_size);
+
+	this->do_the_round_about( PodArray1::TYPE_ID, &original, loaded, loaded_size );
 
 	EXPECT_EQ(original.u32_arr.count, loaded[0].u32_arr.count);
 	EXPECT_ARRAY_EQ(original.u32_arr.count, original.u32_arr.data, loaded[0].u32_arr.data);
+	free(loaded);
 }
 
 TYPED_TEST(DLBase, array_with_sub_array)
@@ -162,4 +165,32 @@ TYPED_TEST(DLBase, array_string_empty)
 
 	EXPECT_EQ(0u,  loaded.Strings.count);
 	EXPECT_EQ(0x0, loaded.Strings.data);
+}
+
+TYPED_TEST(DLBase, big_array_complex_test)
+{
+	big_array_test original = { { NULL, 0 } };
+	original.members.data = (complex_member*)malloc(sizeof(complex_member) * 599);
+	original.members.count = 599;
+	memset(original.members.data, 0, sizeof(complex_member) * 599);
+	original.members.data[1].dynamic_arr.data = (uint32_t*)malloc(sizeof(uint32_t) * 3);
+	original.members.data[1].dynamic_arr.count = 3;
+	memset(original.members.data[1].dynamic_arr.data, 0, sizeof(uint32_t) * 3);
+	original.members.data[1].dynamic_arr.data[0] = 3;
+	original.members.data[598].dynamic_arr.data = (uint32_t*)malloc(sizeof(uint32_t) * 3);
+	memset(original.members.data[598].dynamic_arr.data, 0, sizeof(uint32_t) * 3);
+	original.members.data[598].dynamic_arr.data[1] = 2;
+	original.members.data[598].dynamic_arr.count = 3;
+
+	size_t unpack_size = this->calculate_unpack_size(big_array_test::TYPE_ID, &original);
+	big_array_test *loaded = (big_array_test*)malloc(unpack_size);
+	this->do_the_round_about( big_array_test::TYPE_ID, &original, loaded, unpack_size );
+/*
+	EXPECT_EQ(599, loaded.members.count);
+	EXPECT_EQ(3, loaded.members.data[1].dynamic_arr.count);
+	EXPECT_EQ(3, loaded.members.data[1].dynamic_arr.data[0]);
+	EXPECT_EQ(2, loaded.members.data[598].dynamic_arr.data[1]);*/
+	free(original.members.data[598].dynamic_arr.data);
+	free(original.members.data[1].dynamic_arr.data);
+	free(original.members.data);
 }
