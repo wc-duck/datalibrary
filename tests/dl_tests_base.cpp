@@ -143,8 +143,8 @@ void convert_inplace_test_do_it( dl_ctx_t       dl_ctx,        dl_typeid_t type,
 		*out_buffer = (unsigned char*)malloc(*out_size + 1);
 		memset(*out_buffer, 0xFE, *out_size + 1);
 
-		memcpy( *out_buffer, convert_buffer, convert_size );
-		EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, *out_buffer, convert_size, DL_ENDIAN_HOST, sizeof(void*), out_size ) );
+		EXPECT_DL_ERR_OK( dl_convert_inplace( dl_ctx, type, convert_buffer, convert_size, DL_ENDIAN_HOST, sizeof(void*), out_size ) );
+		memcpy(*out_buffer, convert_buffer, *out_size);
 	}
 
 	free(convert_buffer);
