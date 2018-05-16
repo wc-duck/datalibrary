@@ -99,7 +99,7 @@ struct dl_member_desc
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
 
-	dl_type_t AtomType()       const { return dl_type_t( type & DL_TYPE_ATOM_MASK); }
+	dl_type_atom_t AtomType()  const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) << DL_TYPE_ATOM_MIN_BIT); }
 	dl_type_t StorageType()    const { return dl_type_t( type & DL_TYPE_STORAGE_MASK); }
 	uint32_t  BitFieldBits()   const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED); }
 	uint32_t  BitFieldOffset() const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED); }

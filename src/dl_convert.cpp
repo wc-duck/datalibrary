@@ -241,7 +241,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																	 const uint8_t*        base_data,
 																	 SConvertContext&      convert_ctx )
 {
-	dl_type_t atom_type    = member->AtomType();
+	dl_type_atom_t atom_type    = member->AtomType();
 	dl_type_t storage_type = member->StorageType();
 
 	switch(atom_type)
@@ -470,7 +470,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 													SConvertContext&      conv_ctx,
 													dl_binary_writer*     writer )
 {
-	dl_type_t atom_type    = member->AtomType();
+	dl_type_atom_t atom_type    = member->AtomType();
 	dl_type_t storage_type = member->StorageType();
 
 	switch(atom_type)
@@ -672,8 +672,8 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 
 	*new_offset = dl_binary_writer_tell( writer );
 
-	dl_type_t atom_type    = dl_type_t(inst.type_id & DL_TYPE_ATOM_MASK);
-	dl_type_t storage_type = dl_type_t(inst.type_id & DL_TYPE_STORAGE_MASK);
+	dl_type_atom_t atom_type = dl_type_atom_t((inst.type_id & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT);
+	dl_type_t storage_type   = dl_type_t(inst.type_id & DL_TYPE_STORAGE_MASK);
 
 	switch( atom_type )
 	{
