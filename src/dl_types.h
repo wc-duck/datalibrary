@@ -99,8 +99,8 @@ struct dl_member_desc
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
 
-	dl_type_atom_t AtomType()  const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) << DL_TYPE_ATOM_MIN_BIT); }
-	dl_type_t StorageType()    const { return dl_type_t( type & DL_TYPE_STORAGE_MASK); }
+	dl_type_atom_t    AtomType()    const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
+	dl_type_storage_t StorageType() const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
 	uint32_t  BitFieldBits()   const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED); }
 	uint32_t  BitFieldOffset() const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED); }
 	bool      IsSimplePod()    const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
@@ -135,9 +135,9 @@ struct dl_member_desc
 		alignment[ DL_PTR_SIZE_64BIT ] = inalignment[ DL_PTR_SIZE_64BIT ];
 	}
 
-	void SetStorage( dl_type_t storage )
+	void SetStorage( dl_type_storage_t storage )
 	{
-		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_STORAGE_MASK ) | (unsigned int)storage );
+		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_STORAGE_MASK ) | ((unsigned int)storage << DL_TYPE_STORAGE_MIN_BIT) );
 	}
 
 	void SetBitFieldBits( unsigned int bits )
@@ -298,9 +298,9 @@ static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx
 	return 0x0;
 }
 
-static inline size_t dl_pod_size( dl_type_t type )
+static inline size_t dl_pod_size( dl_type_storage_t storage )
 {
-	switch( type & DL_TYPE_STORAGE_MASK )
+	switch( storage )
 	{
 		case DL_TYPE_STORAGE_INT8:  
 		case DL_TYPE_STORAGE_UINT8:  return 1;
@@ -323,14 +323,14 @@ static inline size_t dl_pod_size( dl_type_t type )
 	}
 }
 
-static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl_typeid_t type_id, dl_ptr_size_t ptr_size )
+static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t type_id, dl_ptr_size_t ptr_size )
 {
-	switch( type & DL_TYPE_STORAGE_MASK )
+	switch( storage )
 	{
 		case DL_TYPE_STORAGE_STRUCT: return dl_internal_find_type( ctx, type_id )->alignment[ptr_size];
 		case DL_TYPE_STORAGE_STR:
 		case DL_TYPE_STORAGE_PTR:    return sizeof(void*);
-		default:                     return dl_pod_size( type );
+		default:                     return dl_pod_size( storage );
 	}
 }
 

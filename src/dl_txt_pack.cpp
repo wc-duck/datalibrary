@@ -434,7 +434,7 @@ static uint32_t dl_txt_pack_array_item_size( dl_ctx_t dl_ctx, const dl_member_de
 			return type->size[DL_PTR_SIZE_HOST];
 		}
 		default:
-			return (uint32_t)dl_pod_size( member->type );
+			return (uint32_t)dl_pod_size( member->StorageType() );
 	}
 }
 

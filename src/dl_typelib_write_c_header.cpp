@@ -108,7 +108,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	free( tids );
 }
 
-static void dl_context_write_type( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid, dl_binary_writer* writer )
+static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
 {
 	switch( storage )
 	{
@@ -150,7 +150,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t 
 	}
 }
 
-static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid, dl_binary_writer* writer )
+static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
 {
 	switch( storage )
 	{
@@ -165,8 +165,8 @@ static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_t
 
 static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member, bool* last_was_bf )
 {
-	dl_type_atom_t atom    = (dl_type_atom_t)((DL_TYPE_ATOM_MASK & member->type) >> DL_TYPE_ATOM_MIN_BIT);
-	dl_type_t storage = (dl_type_t)(DL_TYPE_STORAGE_MASK & member->type);
+	dl_type_atom_t    atom    = (dl_type_atom_t)((DL_TYPE_ATOM_MASK & member->type) >> DL_TYPE_ATOM_MIN_BIT);
+	dl_type_storage_t storage = (dl_type_storage_t)((DL_TYPE_STORAGE_MASK & member->type) >> DL_TYPE_STORAGE_MIN_BIT);
 
 	switch( atom )
 	{

@@ -192,7 +192,7 @@ static void dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 }
 
-static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
+static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
 {
 	switch( storage_type )
 	{
@@ -224,8 +224,8 @@ static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_t storage_type, co
 
 static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
-	dl_type_atom_t atom_type    = member->AtomType();
-	dl_type_t storage_type = member->StorageType();
+	dl_type_atom_t    atom_type    = member->AtomType();
+	dl_type_storage_t storage_type = member->StorageType();
 
 	switch ( atom_type )
 	{
@@ -321,7 +321,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						dl_binary_writer_align( &store_ctx->writer, size );
 						break;
 					default:
-						size = dl_pod_size( member->type );
+						size = dl_pod_size( member->StorageType() );
 						dl_binary_writer_align( &store_ctx->writer, size );
 				}
 
