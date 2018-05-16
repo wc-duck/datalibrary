@@ -116,7 +116,8 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
 
 		out_members[member_index].name        = dl_internal_member_name( dl_ctx, member );
-		out_members[member_index].type        = member->type;
+		out_members[member_index].atom        = member->AtomType();
+		out_members[member_index].storage     = member->StorageType();
 		out_members[member_index].type_id     = member->type_id;
 		out_members[member_index].size        = member->size[DL_PTR_SIZE_HOST];
 		out_members[member_index].alignment   = member->alignment[DL_PTR_SIZE_HOST];

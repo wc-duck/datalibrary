@@ -165,13 +165,10 @@ static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_s
 
 static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member, bool* last_was_bf )
 {
-	dl_type_atom_t    atom    = (dl_type_atom_t)((DL_TYPE_ATOM_MASK & member->type) >> DL_TYPE_ATOM_MIN_BIT);
-	dl_type_storage_t storage = (dl_type_storage_t)((DL_TYPE_STORAGE_MASK & member->type) >> DL_TYPE_STORAGE_MIN_BIT);
-
-	switch( atom )
+	switch( member->atom )
 	{
 		case DL_TYPE_ATOM_POD:
-			switch( storage )
+			switch( member->storage )
 			{
 				case DL_TYPE_STORAGE_STRUCT:
 				{
@@ -196,19 +193,19 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				break;
 				default:
 					dl_binary_writer_write_string_fmt(writer, "    ");
-					dl_context_write_type(ctx, storage, member->type_id, writer);
+					dl_context_write_type(ctx, member->storage, member->type_id, writer);
 					dl_binary_writer_write_string_fmt(writer, " %s; \n", member->name );
 					break;
 			}
 
 			break;
 		case DL_TYPE_ATOM_BITFIELD:
-			if( *last_was_bf && storage == DL_TYPE_STORAGE_UINT64 )
+			if( *last_was_bf && member->storage == DL_TYPE_STORAGE_UINT64 )
 				dl_binary_writer_write_string_fmt( writer, "    uint64_t %s : %u;\n", member->name, member->bits );
 			else
 			{
 				dl_binary_writer_write_string_fmt(writer, "    ");
-				dl_context_write_type(ctx, storage, member->type_id, writer);
+				dl_context_write_type(ctx, member->storage, member->type_id, writer);
 				dl_binary_writer_write_string_fmt(writer, " %s : %u;\n", member->name, member->bits);
 			}
 		break;
@@ -216,28 +213,28 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 		{
 			dl_binary_writer_write_string_fmt( writer, "    struct\n    {\n"
 													   "        " );
-			dl_context_write_type(ctx, storage, member->type_id, writer);
+			dl_context_write_type(ctx, member->storage, member->type_id, writer);
 			dl_binary_writer_write_string_fmt( writer, "* data;\n"
 													   "        uint32_t count;\n"
 													   "    #if defined( __cplusplus )\n"
 													   "              ");
-			dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
+			dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
 			dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) { return data[index]; }\n");
-			switch(storage)
+			switch(member->storage)
 			{
 				case DL_TYPE_STORAGE_STR:
 					dl_binary_writer_write_string_fmt(writer, "        ");
-					dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
+					dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
 					dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
 					break;
 				case DL_TYPE_STORAGE_PTR:
 					dl_binary_writer_write_string_fmt(writer, "        const ");
-					dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
+					dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
 					dl_binary_writer_write_string_fmt(writer, " operator[] ( size_t index ) const { return data[index]; }\n");
 					break;
 				default:
 					dl_binary_writer_write_string_fmt(writer, "        const ");
-					dl_context_write_operator_array_access_type(ctx, storage, member->type_id, writer);
+					dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
 					dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
 					break;
 			}
@@ -248,7 +245,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 		{
 			dl_binary_writer_write_string_fmt(writer, "    ");
-			dl_context_write_type(ctx, storage, member->type_id, writer);
+			dl_context_write_type(ctx, member->storage, member->type_id, writer);
 			dl_binary_writer_write_string_fmt( writer, " %s[%u];\n", member->name, member->array_count );
 		}
 		break;
@@ -256,7 +253,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 			DL_ASSERT( false );
 	}
 
-	*last_was_bf = atom == DL_TYPE_ATOM_BITFIELD;
+	*last_was_bf = member->atom == DL_TYPE_ATOM_BITFIELD;
 }
 
 static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t ctx )
