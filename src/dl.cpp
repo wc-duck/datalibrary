@@ -224,7 +224,7 @@ static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_t storage_type, co
 
 static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
-	dl_type_t atom_type    = member->AtomType();
+	dl_type_atom_t atom_type    = member->AtomType();
 	dl_type_t storage_type = member->StorageType();
 
 	switch ( atom_type )

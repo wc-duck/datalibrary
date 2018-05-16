@@ -177,9 +177,9 @@ static const dl_builtin_type* dl_find_builtin_type( const char* name )
 	return 0x0;
 }
 
-static dl_type_t dl_make_type( dl_type_t atom, dl_type_t storage )
+static dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_t storage )
 {
-	return (dl_type_t)( (unsigned int)atom | (unsigned int)storage );
+	return (dl_type_t)( ((unsigned int)atom >> DL_TYPE_ATOM_MIN_BIT) | (unsigned int)storage );
 }
 
 static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_state, unsigned int member_index )
@@ -330,7 +330,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 				member->SetStorage( DL_TYPE_STORAGE_ENUM );
 		}
 
-		dl_type_t atom = member->AtomType();
+		dl_type_atom_t atom = member->AtomType();
 		dl_type_t storage = member->StorageType();
 
 		switch( atom )
@@ -450,7 +450,7 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_de
 	for( unsigned int member_index = mem_start; member_index < mem_end; ++member_index )
 	{
 		dl_member_desc* member = ctx->member_descs + member_index;
-		dl_type_t atom = member->AtomType();
+		dl_type_atom_t atom = member->AtomType();
 		dl_type_t storage = member->StorageType();
 
 		switch( atom )
@@ -719,7 +719,7 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
 	if( strcmp( "bitfield", type_name ) == 0 )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
 
-	dl_type_t atom = DL_TYPE_ATOM_POD;
+	dl_type_atom_t atom = DL_TYPE_ATOM_POD;
 	if( is_array ) atom = DL_TYPE_ATOM_ARRAY;
 	if( is_inline_array ) atom = DL_TYPE_ATOM_INLINE_ARRAY;
 
