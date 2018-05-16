@@ -30,44 +30,44 @@ TEST_F(DLReflect, pods)
 	EXPECT_EQ   (10u,    Info.member_count);
 
 	EXPECT_STREQ("i8",                   Members[0].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[0].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_INT8,   Members[0].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[0].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_INT8,   Members[0].storage);
 
 	EXPECT_STREQ("i16"  ,                Members[1].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[1].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_INT16,  Members[1].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[1].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_INT16,  Members[1].storage);
 
 	EXPECT_STREQ("i32",                  Members[2].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[2].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_INT32,  Members[2].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[2].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_INT32,  Members[2].storage);
 
 	EXPECT_STREQ("i64",                  Members[3].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[3].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_INT64,  Members[3].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[3].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_INT64,  Members[3].storage);
 
 	EXPECT_STREQ("u8",                   Members[4].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[4].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_UINT8,  Members[4].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[4].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_UINT8,  Members[4].storage);
 
 	EXPECT_STREQ("u16",                  Members[5].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[5].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_UINT16, Members[5].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[5].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_UINT16, Members[5].storage);
 
 	EXPECT_STREQ("u32",                  Members[6].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[6].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_UINT32, Members[6].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[6].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_UINT32, Members[6].storage);
 
 	EXPECT_STREQ("u64",                  Members[7].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[7].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_UINT64, Members[7].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[7].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_UINT64, Members[7].storage);
 
 	EXPECT_STREQ("f32",                  Members[8].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[8].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_FP32,   Members[8].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[8].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_FP32,   Members[8].storage);
 
 	EXPECT_STREQ("f64",                  Members[9].name);
-	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[9].type & DL_TYPE_ATOM_MASK);
-	EXPECT_EQ   (DL_TYPE_STORAGE_FP64,   Members[9].type & DL_TYPE_STORAGE_MASK);
+	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[9].atom);
+	EXPECT_EQ   (DL_TYPE_STORAGE_FP64,   Members[9].storage);
 }
 
 #define CHECK_TYPE_INFO_CORRECT( TYPE_NAME, MEM_COUNT ) { \
