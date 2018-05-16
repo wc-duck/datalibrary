@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid )
+static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid )
 {
 	switch( storage )
 	{
@@ -100,8 +100,8 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer,
 {
 	dl_binary_writer_write_fmt( writer, "        { \"name\" : \"%s\", ", member->name );
 
-	dl_type_atom_t atom = (dl_type_atom_t)((DL_TYPE_ATOM_MASK & member->type) >> DL_TYPE_ATOM_MIN_BIT);
-	dl_type_t storage = (dl_type_t)(DL_TYPE_STORAGE_MASK & member->type);
+	dl_type_atom_t    atom    = (dl_type_atom_t)((DL_TYPE_ATOM_MASK & member->type) >> DL_TYPE_ATOM_MIN_BIT);
+	dl_type_storage_t storage = (dl_type_storage_t)((DL_TYPE_STORAGE_MASK & member->type) >> DL_TYPE_STORAGE_MIN_BIT);
 
 	switch( atom )
 	{

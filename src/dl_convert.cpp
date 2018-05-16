@@ -165,6 +165,11 @@ static void dl_internal_read_array_data( const uint8_t* array_data,
 	}
 }
 
+static dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage )
+{
+	return (dl_type_t)( ((unsigned int)atom << DL_TYPE_ATOM_MIN_BIT) | ((unsigned int)storage << DL_TYPE_STORAGE_MIN_BIT) );
+}
+
 static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_ctx,
 														 const dl_type_desc* type,
 														 const uint8_t*      instance,
@@ -177,7 +182,7 @@ static void dl_internal_convert_collect_instances_from_str( const uint8_t*      
 {
 	uintptr_t offset = dl_internal_read_ptr_data( member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size );
 	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
-		convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
+		convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STR)));
 }
 
 static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t              ctx,
@@ -192,7 +197,7 @@ static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t            
 
 	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size] && !convert_ctx.IsSwapped(ptr_data))
 	{
-		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_PTR)));
+		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR)));
 		dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
 	}
 }
@@ -241,8 +246,8 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																	 const uint8_t*        base_data,
 																	 SConvertContext&      convert_ctx )
 {
-	dl_type_atom_t atom_type    = member->AtomType();
-	dl_type_t storage_type = member->StorageType();
+	dl_type_atom_t    atom_type    = member->AtomType();
+	dl_type_storage_t storage_type = member->StorageType();
 
 	switch(atom_type)
 	{
@@ -470,8 +475,8 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 													SConvertContext&      conv_ctx,
 													dl_binary_writer*     writer )
 {
-	dl_type_atom_t atom_type    = member->AtomType();
-	dl_type_t storage_type = member->StorageType();
+	dl_type_atom_t    atom_type    = member->AtomType();
+	dl_type_storage_t storage_type = member->StorageType();
 
 	switch(atom_type)
 	{
@@ -533,7 +538,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 				default:
 				{
 					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
-					dl_binary_writer_write_array( writer, member_data, member->inline_array_cnt(), dl_pod_size( member->type ) );
+					dl_binary_writer_write_array( writer, member_data, member->inline_array_cnt(), dl_pod_size( member->StorageType() ) );
 				}
 				break;
 			}
@@ -672,8 +677,8 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 
 	*new_offset = dl_binary_writer_tell( writer );
 
-	dl_type_atom_t atom_type = dl_type_atom_t((inst.type_id & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT);
-	dl_type_t storage_type   = dl_type_t(inst.type_id & DL_TYPE_STORAGE_MASK);
+	dl_type_atom_t    atom_type    = dl_type_atom_t((inst.type_id & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT);
+	dl_type_storage_t storage_type = dl_type_storage_t((inst.type_id & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT);
 
 	switch( atom_type )
 	{
@@ -776,7 +781,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 
 	SConvertContext conv_ctx( src_endian, out_endian, src_ptr_size, out_ptr_size );
 
-	conv_ctx.instances.Add(SInstance(packed_instance, root_type, 0x0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STRUCT)));
+	conv_ctx.instances.Add(SInstance(packed_instance, root_type, 0x0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STRUCT)));
 	dl_error_t err = dl_internal_convert_collect_instances(dl_ctx, root_type, packed_instance, packed_instance_base, conv_ctx);
 
 	// TODO: we need to sort the instances here after their offset!

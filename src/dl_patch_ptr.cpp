@@ -104,8 +104,8 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 								      uintptr_t             patch_distance,
 								      dl_patched_ptrs*      patched_ptrs )
 {
-	dl_type_atom_t atom_type    = member->AtomType();
-	dl_type_t storage_type = member->StorageType();
+	dl_type_atom_t    atom_type    = member->AtomType();
+	dl_type_storage_t storage_type = member->StorageType();
 
 	switch( atom_type )
 	{
