@@ -116,14 +116,14 @@ static dl_txt_read_substr dl_txt_eat_string_quote( dl_txt_read_ctx* readctx, cha
 	return res;
 }
 
-static dl_txt_read_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
+static inline dl_txt_read_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
 {
 	if(*readctx->iter == '"')
 		return dl_txt_eat_string_quote( readctx, '"' );
 	return dl_txt_eat_string_quote( readctx, '\'' );
 }
 
-static void dl_txt_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, char expect )
+static inline void dl_txt_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, char expect )
 {
 	dl_txt_eat_white( readctx );
 	if( *readctx->iter != expect )
@@ -136,7 +136,7 @@ static void dl_txt_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, char exp
 	++readctx->iter;
 }
 
-static long dl_txt_eat_bool( dl_txt_read_ctx* packctx )
+static inline long dl_txt_eat_bool( dl_txt_read_ctx* packctx )
 {
 	if( strncmp( packctx->iter, "true", 4 ) == 0 )
 	{
@@ -151,34 +151,10 @@ static long dl_txt_eat_bool( dl_txt_read_ctx* packctx )
 	return 2;
 }
 
-static void dl_report_error_location( dl_ctx_t ctx, const char* txt, const char* end, const char* error_pos )
-{
-	int line = 0;
-	int col = 0;
-	const char* last_line = txt;
-	const char* iter = txt;
-	while( iter != end && iter != error_pos )
-	{
-		if( *iter == '\n' )
-		{
-			last_line = iter + 1;
-			++line;
-			col = 0;
-		}
-		else
-		{
-			++col;
-		}
-		++iter;
-	}
+void               dl_report_error_location( dl_ctx_t ctx, const char* txt, const char* end, const char* error_pos );
 
-	if( iter == end )
-		dl_log_error( ctx, "at end of buffer");
-	else
-	{
-		const char* line_end = strchr( last_line, '\n' );
-		dl_log_error( ctx, "at line %d, col %d:\n%.*s\n%*c^", line, col, (int)(line_end-last_line), last_line, col, ' ');
-	}
-}
+long long          dl_txt_pack_eat_strtoll( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, long long range_min, long long range_max, const char* type );
+
+unsigned long long dl_txt_pack_eat_strtoull( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, unsigned long long range_max, const char* type );
 
 #endif // DL_TXT_READ_H_INCLUDED

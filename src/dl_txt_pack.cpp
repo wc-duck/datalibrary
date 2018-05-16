@@ -8,13 +8,10 @@
 
 #include <stdlib.h>
 #include <limits.h>
-#include <errno.h>
 #include <limits>
 
 #if defined(_MSC_VER)
 // TODO: any better/faster way to do this, especially strtof?
-#  define strtoll _strtoi64
-#  define strtoull _strtoui64
 #  if _MSC_VER < 1800 // strtof was defined first in MSVC2013
 	float strtof(const char* str, char** endptr)
 	{
@@ -87,49 +84,6 @@ struct dl_txt_pack_ctx
 		size_t patch_pos;
 	} subdata[256];
 };
-
-static long long dl_txt_pack_eat_strtoll( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, long long range_min, long long range_max, const char* type )
-{
-	dl_txt_eat_white( read_ctx );
-
-	long long v = dl_txt_eat_bool( read_ctx );
-	if( v < 2 )
-		return v;
-
-	errno = 0;
-	char* next = 0x0;
-	v = strtoll( read_ctx->iter, &next, 0 );
-
-	if( read_ctx->iter == next )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type '%s'", type );
-	if( !(v >= range_min && v <= range_max) || errno == ERANGE )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type '%s', %lld is out of range.", type, v );
-	read_ctx->iter = next;
-	return v;
-}
-
-static unsigned long long dl_txt_pack_eat_strtoull( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, unsigned long long range_max, const char* type )
-{
-	dl_txt_eat_white( read_ctx );
-
-	if(read_ctx->iter[0] == '-')
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of unsigned type '%s', but value is negative!", type );
-
-	unsigned long long v = (unsigned long long)dl_txt_eat_bool( read_ctx );
-	if( v < 2 )
-		return v;
-
-	errno = 0;
-	char* next = 0x0;
-	v = strtoull( read_ctx->iter, &next, 0 );
-
-	if( read_ctx->iter == next )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type '%s'", type );
-	if( v > range_max || errno == ERANGE )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type '%s', %llu is out of range.", type, v );
-	read_ctx->iter = next;
-	return v;
-}
 
 static void dl_txt_pack_eat_and_write_int8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {

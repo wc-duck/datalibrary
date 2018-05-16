@@ -490,19 +490,9 @@ static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type
 const char* dl_txt_skip_map( const char* iter, const char* end );
 const char* dl_txt_pack_skip_string( const char* str, const char* end );
 
-static uint32_t dl_txt_pack_eat_uint32( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state )
+static inline uint32_t dl_txt_pack_eat_uint32( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state )
 {
-	dl_txt_eat_white( read_state );
-	unsigned long v = 0;
-	if( ( v = (unsigned long)dl_txt_eat_bool( read_state ) ) > 1 )
-	{
-		char* next = 0x0;
-		v = strtoul( read_state->iter, &next, 0 );
-		if( read_state->iter == next )
-			dl_txt_read_failed( dl_ctx, read_state, DL_ERROR_MALFORMED_DATA, "expected uint32" );
-		read_state->iter = next;
-	}
-	return (uint32_t)v;
+	return (uint32_t)dl_txt_pack_eat_strtoull(dl_ctx, read_state, UINT32_MAX, "uint32");
 }
 
 static dl_txt_read_substr dl_txt_eat_and_expect_string( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
