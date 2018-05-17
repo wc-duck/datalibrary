@@ -5,22 +5,28 @@
 
 	"enums" : {
 		"TestEnum1" : {
-			"TESTENUM1_VALUE1" : 0,
-			"TESTENUM1_VALUE2" : 1,
-			"TESTENUM1_VALUE3" : 2,
-			"TESTENUM1_VALUE4" : 3
+			"values" : {
+				"TESTENUM1_VALUE1" : 0,
+				"TESTENUM1_VALUE2" : 1,
+				"TESTENUM1_VALUE3" : 2,
+				"TESTENUM1_VALUE4" : 3
+			}
 		},
 
 		"TestEnum2" : {
-			"TESTENUM2_VALUE1" : 7,
-			"TESTENUM2_VALUE2" : 1337,
-			"TESTENUM2_VALUE3" : 1338,
-			"TESTENUM2_VALUE4" : 1337
+			"values" : {
+				"TESTENUM2_VALUE1" : 7,
+				"TESTENUM2_VALUE2" : 1337,
+				"TESTENUM2_VALUE3" : 1338,
+				"TESTENUM2_VALUE4" : 1337
+			}
 		},
 
 		"multi_alias_enum" : {
-			"MULTI_ALIAS1" : { "value" : 7, "aliases" : [ "alias1", "alias2", "alias3" ] },
-			"MULTI_ALIAS2" : { "value" : 8, "aliases" : [ "alias4" ] }
+			"values" : {
+				"MULTI_ALIAS1" : { "value" : 7, "aliases" : [ "alias1", "alias2", "alias3" ] },
+				"MULTI_ALIAS2" : { "value" : 8, "aliases" : [ "alias4" ] }
+			}
 		}
 	},
 

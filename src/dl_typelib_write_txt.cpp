@@ -54,14 +54,15 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 	dl_enum_info_t enum_info;
 	dl_reflect_get_enum_info( ctx, tid, &enum_info );
 
-	dl_binary_writer_write_fmt( writer, "    \"%s\" : {\n", enum_info.name );
+	dl_binary_writer_write_fmt( writer, "    \"%s\" : {\n"
+	                                    "      \"values\" : {\n", enum_info.name );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
 	dl_reflect_get_enum_values( ctx, tid, values, enum_info.value_count );
 
 	for( unsigned int j = 0; j < enum_info.value_count; ++j )
 	{
-		dl_binary_writer_write_fmt( writer, "      \"%s\" : %u", values[j].name, values[j].value );
+		dl_binary_writer_write_fmt( writer, "        \"%s\" : %u", values[j].name, values[j].value );
 		if( j < enum_info.value_count - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
@@ -70,7 +71,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 
 	free( values );
 
-	dl_binary_writer_write_fmt( writer, "    }", 1 );
+	dl_binary_writer_write_fmt( writer, "      }\n    }", 1 );
 }
 
 static void dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* writer )

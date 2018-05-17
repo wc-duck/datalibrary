@@ -567,19 +567,32 @@ static void dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, dl_t
 
 static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* name )
 {
-	dl_txt_read_substr value_name = {0,0};
 	uint32_t value_start = ctx->enum_value_count;
 	uint32_t alias_start = ctx->enum_alias_count;
 
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
 	{
-		value_name = dl_txt_eat_and_expect_string( ctx, read_state );
-
+		dl_txt_read_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
 		dl_txt_eat_char( ctx, read_state, ':' );
 		dl_txt_eat_white( read_state );
 
-		dl_context_load_txt_type_library_read_enum_value( ctx, read_state, &value_name );
+		if( strncmp( "values", key.str, 6 ) == 0 )
+		{
+			dl_txt_eat_char( ctx, read_state, '{' );
+			do
+			{
+				dl_txt_read_substr value_name = dl_txt_eat_and_expect_string( ctx, read_state );
+
+				dl_txt_eat_char( ctx, read_state, ':' );
+				dl_txt_eat_white( read_state );
+
+				dl_context_load_txt_type_library_read_enum_value( ctx, read_state, &value_name );
+			} while( dl_txt_try_eat_char( read_state, ',') );
+			dl_txt_eat_char( ctx, read_state, '}' );
+		}
+		else
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 	dl_txt_eat_char( ctx, read_state, '}' );
