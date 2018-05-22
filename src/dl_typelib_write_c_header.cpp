@@ -119,7 +119,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 			dl_binary_writer_write_string_fmt(writer, "struct %s", sub_type.name);
 			return;
 		}
-		case DL_TYPE_STORAGE_ENUM:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			dl_enum_info_t sub_type;
 			dl_reflect_get_enum_info( ctx, tid, &sub_type );
@@ -184,7 +184,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 					dl_binary_writer_write_string_fmt( writer, "    const struct %s* %s;\n", sub_type.name, member->name );
 				}
 				break;
-				case DL_TYPE_STORAGE_ENUM:
+				case DL_TYPE_STORAGE_ENUM_UINT32:
 				{
 					dl_enum_info_t sub_type;
 					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );

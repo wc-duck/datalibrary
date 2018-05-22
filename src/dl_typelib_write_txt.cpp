@@ -15,7 +15,7 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t st
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
 			return sub_type.name;
 		}
-		case DL_TYPE_STORAGE_ENUM:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			dl_enum_info_t sub_type;
 			dl_reflect_get_enum_info( ctx, tid, &sub_type );

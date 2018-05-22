@@ -259,7 +259,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 				}
 				break;
 				default: // default is a standard pod-type
-					DL_ASSERT( member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM );
+					DL_ASSERT( member->IsSimplePod() );
 					dl_binary_writer_write( &store_ctx->writer, instance, member->size[DL_PTR_SIZE_HOST] );
 					break;
 			}

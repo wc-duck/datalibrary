@@ -394,7 +394,7 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 			dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
 		}
 		break;
-		case DL_TYPE_STORAGE_ENUM:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			const dl_enum_desc* edesc = dl_internal_find_enum( dl_ctx, member->type_id );
 			if( edesc == 0x0 )
@@ -502,7 +502,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 		case DL_TYPE_STORAGE_FP32:
 		case DL_TYPE_STORAGE_FP64:
 		case DL_TYPE_STORAGE_PTR:
-		case DL_TYPE_STORAGE_ENUM: // TODO: bug, but in typelib build, there can't be any , in an enum-string.
+		case DL_TYPE_STORAGE_ENUM_UINT32: // TODO: bug, but in typelib build, there can't be any , in an enum-string.
 		{
             bool last_was_comma = false;
 			uint32_t array_length = 1;
@@ -605,7 +605,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_STR:    dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
 				case DL_TYPE_STORAGE_PTR:    dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
 				case DL_TYPE_STORAGE_STRUCT: dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) ); break;
-				case DL_TYPE_STORAGE_ENUM:
+				case DL_TYPE_STORAGE_ENUM_UINT32:
 				{
 					dl_txt_eat_white( &packctx->read_ctx );
 					const dl_enum_desc* edesc = dl_internal_find_enum( dl_ctx, member->type_id );
