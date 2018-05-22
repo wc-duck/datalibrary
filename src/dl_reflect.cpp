@@ -131,7 +131,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 				out_members[member_index].array_count = member->inline_array_cnt();
 				break;
 			case DL_TYPE_ATOM_BITFIELD:
-				out_members[member_index].bits = member->BitFieldBits();
+				out_members[member_index].bits = member->bitfield_bits();
 				break;
 			default:
 				break;

@@ -280,8 +280,8 @@ static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type
 		unsigned int group_bits = 0;
 		for( dl_member_desc* iter = group_start; iter <= group_end; ++iter )
 		{
-			iter->SetBitFieldOffset( group_bits );
-			group_bits += iter->BitFieldBits();
+			iter->set_bitfield_offset( group_bits );
+			group_bits += iter->bitfield_bits();
 		}
 
 		// TODO: handle higher bit-counts than 64!
@@ -295,7 +295,7 @@ static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type
 
 		for( dl_member_desc* iter = group_start; iter <= group_end; ++iter )
 		{
-			iter->SetStorage( storage );
+			iter->set_storage( storage );
 			dl_set_member_size_and_align_from_builtin( storage, iter );
 		}
 
@@ -327,7 +327,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 		if( member->StorageType() == DL_TYPE_STORAGE_STRUCT )
 		{
 			if( dl_internal_find_enum( ctx, member->type_id ) )
-				member->SetStorage( DL_TYPE_STORAGE_ENUM );
+				member->set_storage( DL_TYPE_STORAGE_ENUM );
 		}
 
 		dl_type_atom_t    atom    = member->AtomType();
@@ -707,7 +707,7 @@ static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc
                 if( iter == next || *next != '\"' )
                     dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
 
-                member->SetBitFieldBits( bits );
+                member->set_bitfield_bits( bits );
 
                 // type etc?
                 return 1;
@@ -1019,7 +1019,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				if( enum_sub_type )
 				{
 					// ... type was really an enum ...
-					member->SetStorage( DL_TYPE_STORAGE_ENUM );
+					member->set_storage( DL_TYPE_STORAGE_ENUM );
 				}
 				else
 				{

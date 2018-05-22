@@ -405,8 +405,8 @@ static T dl_convert_bf_format( T old_val, const dl_member_desc* bf_members, uint
 	{
 		const dl_member_desc& bf_member = bf_members[i];
 
-		uint32_t bf_bits         = bf_member.BitFieldBits();
-		uint32_t bf_offset       = bf_member.BitFieldOffset();
+		uint32_t bf_bits         = bf_member.bitfield_bits();
+		uint32_t bf_offset       = bf_member.bitfield_offset();
 		uint32_t bf_source_offset = dl_bf_offset( conv_ctx->src_endian, sizeof(T), bf_offset, bf_bits );
 		uint32_t bf_target_offset = dl_bf_offset( conv_ctx->tgt_endian, sizeof(T), bf_offset, bf_bits );
 

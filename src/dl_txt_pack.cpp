@@ -652,8 +652,8 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		case DL_TYPE_ATOM_BITFIELD:
 		{
 			uint64_t bf_value = dl_txt_pack_eat_strtoull(dl_ctx, &packctx->read_ctx, UINT64_MAX, "uint64");
-			uint32_t bf_bits = member->BitFieldBits();
-			uint32_t bf_offset = member->BitFieldOffset();
+			uint32_t bf_bits = member->bitfield_bits();
+			uint32_t bf_offset = member->bitfield_offset();
 
 			uint64_t max_val = (uint64_t(1) << bf_bits) - uint64_t(1);
 			if( bf_value > max_val )
@@ -862,8 +862,8 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			// ... handle bitfields differently since they take up sub-parts of bytes.
 			if(member->AtomType() == DL_TYPE_ATOM_BITFIELD)
 			{
-				uint32_t bf_bits = member->BitFieldBits();
-				uint32_t bf_offset = member->BitFieldOffset();
+				uint32_t bf_bits = member->bitfield_bits();
+				uint32_t bf_offset = member->bitfield_offset();
 
 				dl_binary_writer_seek_set( packctx->writer, member_pos );
 

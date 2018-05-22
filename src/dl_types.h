@@ -123,11 +123,11 @@ struct dl_member_desc
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
 
-	dl_type_atom_t    AtomType()       const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
-	dl_type_storage_t StorageType()    const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
-	uint32_t          BitFieldBits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
-	uint32_t          BitFieldOffset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
-	bool              IsSimplePod()    const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
+	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
+	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
+	uint32_t          bitfield_bits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
+	uint32_t          bitfield_offset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
+	bool              IsSimplePod()     const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
 
 	void set_size( uint32_t bit32, uint32_t bit64 )
 	{
@@ -159,17 +159,17 @@ struct dl_member_desc
 		alignment[ DL_PTR_SIZE_64BIT ] = inalignment[ DL_PTR_SIZE_64BIT ];
 	}
 
-	void SetStorage( dl_type_storage_t storage )
+	void set_storage( dl_type_storage_t storage )
 	{
 		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_STORAGE_MASK ) | ((unsigned int)storage << DL_TYPE_STORAGE_MIN_BIT) );
 	}
 
-	void SetBitFieldBits( unsigned int bits )
+	void set_bitfield_bits( unsigned int bits )
 	{
 		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_BITFIELD_SIZE_MASK ) | (bits << DL_TYPE_BITFIELD_SIZE_MIN_BIT) );
 	}
 
-	void SetBitFieldOffset( unsigned int bfoffset )
+	void set_bitfield_offset( unsigned int bfoffset )
 	{
 		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_BITFIELD_OFFSET_MASK ) | (bfoffset << DL_TYPE_BITFIELD_OFFSET_MIN_BIT) );
 	}

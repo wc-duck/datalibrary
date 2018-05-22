@@ -372,8 +372,8 @@ static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 		case DL_TYPE_ATOM_BITFIELD:
 		{
 			uint64_t write_me  = 0;
-			uint32_t bf_bits   = member->BitFieldBits();
-			uint32_t bf_offset = dl_bf_offset( DL_ENDIAN_HOST, member->size[DL_PTR_SIZE_HOST], member->BitFieldOffset(), bf_bits );
+			uint32_t bf_bits   = member->bitfield_bits();
+			uint32_t bf_offset = dl_bf_offset( DL_ENDIAN_HOST, member->size[DL_PTR_SIZE_HOST], member->bitfield_offset(), bf_bits );
 
 			switch( member->size[DL_PTR_SIZE_HOST] )
 			{
