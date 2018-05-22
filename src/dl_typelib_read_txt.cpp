@@ -113,36 +113,17 @@ static void dl_set_member_size_and_align_from_builtin( dl_type_storage_t storage
 {
 	switch( storage )
 	{
-		case DL_TYPE_STORAGE_INT8:
-		case DL_TYPE_STORAGE_UINT8:
-			member->set_size( 1, 1 );
-			member->set_align( 1, 1 );
-			break;
-		case DL_TYPE_STORAGE_INT16:
-		case DL_TYPE_STORAGE_UINT16:
-			member->set_size( 2, 2 );
-			member->set_align( 2, 2 );
-			break;
-		case DL_TYPE_STORAGE_FP32:
-		case DL_TYPE_STORAGE_INT32:
-		case DL_TYPE_STORAGE_UINT32:
-		case DL_TYPE_STORAGE_ENUM:
-			member->set_size( 4, 4 );
-			member->set_align( 4, 4 );
-			break;
-		case DL_TYPE_STORAGE_FP64:
-		case DL_TYPE_STORAGE_INT64:
-		case DL_TYPE_STORAGE_UINT64:
-			member->set_size( 8, 8 );
-			member->set_align( 8, 8 );
-			break;
 		case DL_TYPE_STORAGE_STR:
 		case DL_TYPE_STORAGE_PTR:
 			member->set_size( 4, 8 );
 			member->set_align( 4, 8 );
 			break;
 		default:
-			DL_ASSERT( false );
+		{
+			uint32_t size = (uint32_t)dl_pod_size(storage);
+			member->set_size( size, size );
+			member->set_align( size, size );
+		}
 	}
 }
 
