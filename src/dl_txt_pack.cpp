@@ -860,7 +860,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
 
 			// ... handle bitfields differently since they take up sub-parts of bytes.
-			if(member->type & DL_TYPE_ATOM_BITFIELD)
+			if(member->AtomType() == DL_TYPE_ATOM_BITFIELD)
 			{
 				uint32_t bf_bits = member->BitFieldBits();
 				uint32_t bf_offset = member->BitFieldOffset();
