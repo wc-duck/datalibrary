@@ -296,7 +296,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																		  convert_ctx );
 					break;
 				default:
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(member->IsSimplePod());
 					// ignore
 			}
 		}
@@ -342,7 +342,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 				}
 				break;
 				default:
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(member->IsSimplePod());
 					break;
 			}
 
@@ -500,7 +500,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 				}
 				break;
 				default:
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(member->IsSimplePod());
 					dl_binary_writer_write_swap( writer, member_data, member->size[conv_ctx.src_ptr_size] );
 					break;
 			}
@@ -537,7 +537,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 				break;
 				default:
 				{
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(member->IsSimplePod());
 					dl_binary_writer_write_array( writer, member_data, member->inline_array_cnt(), dl_pod_size( member->StorageType() ) );
 				}
 				break;
@@ -726,7 +726,7 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 				case DL_TYPE_STORAGE_INT32:
 				case DL_TYPE_STORAGE_UINT32:
 				case DL_TYPE_STORAGE_FP32:
-				case DL_TYPE_STORAGE_ENUM:   dl_binary_writer_write_array( writer, u32, inst.array_count, sizeof(uint32_t) ); break;
+				case DL_TYPE_STORAGE_ENUM_UINT32: dl_binary_writer_write_array( writer, u32, inst.array_count, sizeof(uint32_t) ); break;
 				case DL_TYPE_STORAGE_INT64:
 				case DL_TYPE_STORAGE_UINT64:
 				case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_array( writer, u64, inst.array_count, sizeof(uint64_t) ); break;

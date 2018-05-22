@@ -127,7 +127,12 @@ struct dl_member_desc
 	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
 	uint32_t          bitfield_bits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
 	uint32_t          bitfield_offset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
-	bool              IsSimplePod()     const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
+	bool              IsSimplePod()     const
+	{
+		return StorageType() != DL_TYPE_STORAGE_STR &&
+	           StorageType() != DL_TYPE_STORAGE_PTR &&
+	           StorageType() != DL_TYPE_STORAGE_STRUCT;
+	}
 
 	void set_size( uint32_t bit32, uint32_t bit64 )
 	{
@@ -327,19 +332,30 @@ static inline size_t dl_pod_size( dl_type_storage_t storage )
 	switch( storage )
 	{
 		case DL_TYPE_STORAGE_INT8:  
-		case DL_TYPE_STORAGE_UINT8:  return 1;
+		case DL_TYPE_STORAGE_UINT8:
+		case DL_TYPE_STORAGE_ENUM_INT8:
+		case DL_TYPE_STORAGE_ENUM_UINT8:
+			return 1;
 
 		case DL_TYPE_STORAGE_INT16: 
-		case DL_TYPE_STORAGE_UINT16: return 2;
+		case DL_TYPE_STORAGE_UINT16:
+		case DL_TYPE_STORAGE_ENUM_INT16: 
+		case DL_TYPE_STORAGE_ENUM_UINT16:
+			return 2;
 
 		case DL_TYPE_STORAGE_INT32: 
 		case DL_TYPE_STORAGE_UINT32: 
 		case DL_TYPE_STORAGE_FP32: 
-		case DL_TYPE_STORAGE_ENUM:   return 4;
+		case DL_TYPE_STORAGE_ENUM_INT32:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
+			return 4;
 
 		case DL_TYPE_STORAGE_INT64: 
 		case DL_TYPE_STORAGE_UINT64: 
-		case DL_TYPE_STORAGE_FP64:   return 8;
+		case DL_TYPE_STORAGE_FP64:
+		case DL_TYPE_STORAGE_ENUM_INT64:
+		case DL_TYPE_STORAGE_ENUM_UINT64:
+			return 8;
 
 		default:
 			DL_ASSERT(false && "This should not happen!");

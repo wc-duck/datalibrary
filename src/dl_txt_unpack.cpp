@@ -302,7 +302,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx,
 			dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, array_data + (array_count - 1) * type->size[DL_PTR_SIZE_HOST] );
 			break;
 		}
-		case DL_TYPE_STORAGE_ENUM:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			uint32_t* mem = (uint32_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -332,18 +332,18 @@ static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 		{
 			switch( member->StorageType() )
 			{
-				case DL_TYPE_STORAGE_INT8:   dl_txt_unpack_int8  ( writer, *(int8_t* )member_data ); break;
-				case DL_TYPE_STORAGE_INT16:  dl_txt_unpack_int16 ( writer, *(int16_t*)member_data ); break;
-				case DL_TYPE_STORAGE_INT32:  dl_txt_unpack_int32 ( writer, *(int32_t*)member_data ); break;
-				case DL_TYPE_STORAGE_INT64:  dl_txt_unpack_int64 ( writer, *(int64_t*)member_data ); break;
-				case DL_TYPE_STORAGE_UINT8:  dl_txt_unpack_uint8 ( writer, *(uint8_t* )member_data ); break;
-				case DL_TYPE_STORAGE_UINT16: dl_txt_unpack_uint16( writer, *(uint16_t*)member_data ); break;
-				case DL_TYPE_STORAGE_UINT32: dl_txt_unpack_uint32( writer, *(uint32_t*)member_data ); break;
-				case DL_TYPE_STORAGE_UINT64: dl_txt_unpack_uint64( writer, *(uint64_t*)member_data ); break;
-				case DL_TYPE_STORAGE_FP32:   dl_txt_unpack_fp32  ( writer, *(float*)member_data ); break;
-				case DL_TYPE_STORAGE_FP64:   dl_txt_unpack_fp64  ( writer, *(double*)member_data ); break;
-				case DL_TYPE_STORAGE_ENUM:   dl_txt_unpack_enum  ( dl_ctx, writer, member->type_id, *(uint32_t*)member_data ); break;
-				case DL_TYPE_STORAGE_STR:    dl_txt_unpack_write_string_or_null( writer, unpack_ctx, *(uintptr_t*)member_data ); break;
+				case DL_TYPE_STORAGE_INT8:        dl_txt_unpack_int8  ( writer, *(int8_t* )member_data ); break;
+				case DL_TYPE_STORAGE_INT16:       dl_txt_unpack_int16 ( writer, *(int16_t*)member_data ); break;
+				case DL_TYPE_STORAGE_INT32:       dl_txt_unpack_int32 ( writer, *(int32_t*)member_data ); break;
+				case DL_TYPE_STORAGE_INT64:       dl_txt_unpack_int64 ( writer, *(int64_t*)member_data ); break;
+				case DL_TYPE_STORAGE_UINT8:       dl_txt_unpack_uint8 ( writer, *(uint8_t* )member_data ); break;
+				case DL_TYPE_STORAGE_UINT16:      dl_txt_unpack_uint16( writer, *(uint16_t*)member_data ); break;
+				case DL_TYPE_STORAGE_UINT32:      dl_txt_unpack_uint32( writer, *(uint32_t*)member_data ); break;
+				case DL_TYPE_STORAGE_UINT64:      dl_txt_unpack_uint64( writer, *(uint64_t*)member_data ); break;
+				case DL_TYPE_STORAGE_FP32:        dl_txt_unpack_fp32  ( writer, *(float*)member_data ); break;
+				case DL_TYPE_STORAGE_FP64:        dl_txt_unpack_fp64  ( writer, *(double*)member_data ); break;
+				case DL_TYPE_STORAGE_ENUM_UINT32: dl_txt_unpack_enum  ( dl_ctx, writer, member->type_id, *(uint32_t*)member_data ); break;
+				case DL_TYPE_STORAGE_STR:         dl_txt_unpack_write_string_or_null( writer, unpack_ctx, *(uintptr_t*)member_data ); break;
 				case DL_TYPE_STORAGE_PTR:
 				{
 					dl_txt_unpack_ptr( writer, *(uintptr_t*)member_data );

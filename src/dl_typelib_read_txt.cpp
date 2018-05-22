@@ -308,7 +308,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 		if( member->StorageType() == DL_TYPE_STORAGE_STRUCT )
 		{
 			if( dl_internal_find_enum( ctx, member->type_id ) )
-				member->set_storage( DL_TYPE_STORAGE_ENUM );
+				member->set_storage( DL_TYPE_STORAGE_ENUM_UINT32 );
 		}
 
 		dl_type_atom_t    atom    = member->AtomType();
@@ -1000,7 +1000,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				if( enum_sub_type )
 				{
 					// ... type was really an enum ...
-					member->set_storage( DL_TYPE_STORAGE_ENUM );
+					member->set_storage( DL_TYPE_STORAGE_ENUM_UINT32 );
 				}
 				else
 				{
