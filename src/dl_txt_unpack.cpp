@@ -128,8 +128,21 @@ static void dl_txt_unpack_fp64( dl_binary_writer* writer, double data )
 
 static void dl_txt_unpack_enum( dl_ctx_t dl_ctx, dl_binary_writer* writer, dl_typeid_t eid, uint32_t value )
 {
-	const char* name = dl_internal_find_enum_name( dl_ctx, eid, value );
-	dl_txt_unpack_write_string( writer, name );
+	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, eid );
+
+	if( e == 0x0 )
+		return; // TODO: handle this error!
+
+	for( unsigned int j = 0; j < e->value_count; ++j )
+	{
+		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, j );
+		if( v->value == value )
+		{
+
+			dl_txt_unpack_write_string( writer, dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias] ) );
+			break;
+		}
+	}
 }
 
 static void dl_txt_unpack_ptr( dl_binary_writer* writer, uintptr_t offset )
