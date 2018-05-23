@@ -307,8 +307,8 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 		// If a member is marked as a struct it could also have been an enum that we didn't know about parse-time, patch it in that case.
 		if( member->StorageType() == DL_TYPE_STORAGE_STRUCT )
 		{
-			if( dl_internal_find_enum( ctx, member->type_id ) )
-				member->set_storage( DL_TYPE_STORAGE_ENUM_UINT32 );
+			if( const dl_enum_desc* edesc = dl_internal_find_enum( ctx, member->type_id ) )
+				member->set_storage( edesc->storage );
 		}
 
 		dl_type_atom_t    atom    = member->AtomType();
@@ -550,6 +550,7 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 {
 	uint32_t value_start = ctx->enum_value_count;
 	uint32_t alias_start = ctx->enum_alias_count;
+	dl_type_storage_t storage = DL_TYPE_STORAGE_CNT;
 
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
@@ -572,15 +573,58 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 			} while( dl_txt_try_eat_char( read_state, ',') );
 			dl_txt_eat_char( ctx, read_state, '}' );
 		}
+		else if( strncmp( "type", key.str, 4 ) == 0 )
+		{
+			if(storage != DL_TYPE_STORAGE_CNT)
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'type' set twice on enum '%.*s'", name->len, name->str );
+
+			dl_txt_read_substr type_str = dl_txt_eat_and_expect_string( ctx, read_state );
+			switch(type_str.len)
+			{
+				case 4:
+				{
+					if( strncmp("int8", type_str.str, 4) == 0 )
+						storage = DL_TYPE_STORAGE_ENUM_INT8;
+				}
+				break;
+				case 5:
+				{
+					     if( strncmp("int16", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT16;
+					else if( strncmp("int32", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT32;
+					else if( strncmp("int64", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT64;
+					else if( strncmp("uint8", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT8;
+				}
+				break;
+				case 6:
+				{
+					     if( strncmp("uint16", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT16;
+					else if( strncmp("uint32", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT32;
+					else if( strncmp("uint64", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT64;
+				}
+				break;
+				default:
+				break;
+			}
+
+			if(storage == DL_TYPE_STORAGE_CNT)
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, 
+									"'type' on enum '%.*s' set to '%.*s', valid types are 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32' and 'uint64'",
+									 name->len, name->str,
+									 type_str.len, type_str.str );
+		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values' and 'type'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 	dl_txt_eat_char( ctx, read_state, '}' );
 
 	// TODO: add test for missing enum value ...
 
+	if(storage == DL_TYPE_STORAGE_CNT )
+		storage = DL_TYPE_STORAGE_ENUM_UINT32; // default to uint32
+
 	dl_enum_desc* edesc = dl_alloc_enum(ctx, name);
+	edesc->storage     = storage;
 	edesc->value_count = ctx->enum_value_count - value_start;
 	edesc->value_start = value_start;
 	edesc->alias_count = ctx->enum_alias_count - alias_start; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
@@ -1000,7 +1044,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				if( enum_sub_type )
 				{
 					// ... type was really an enum ...
-					member->set_storage( DL_TYPE_STORAGE_ENUM_UINT32 );
+					member->set_storage( enum_sub_type->storage );
 				}
 				else
 				{

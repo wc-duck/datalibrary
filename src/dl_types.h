@@ -220,11 +220,12 @@ struct dl_enum_value_desc
 
 struct dl_enum_desc
 {
-	uint32_t name;
-	uint32_t value_count;
-	uint32_t value_start;
-	uint32_t alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
-	uint32_t alias_start; /// offset into alias list where aliases for this enum-value start.
+	uint32_t          name;
+	dl_type_storage_t storage;
+	uint32_t          value_count;
+	uint32_t          value_start;
+	uint32_t          alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
+	uint32_t          alias_start; /// offset into alias list where aliases for this enum-value start.
 };
 
 struct dl_enum_alias_desc

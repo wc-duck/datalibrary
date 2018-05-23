@@ -59,9 +59,10 @@ typedef struct dl_member_info
 */
 typedef struct dl_enum_info
 {
-	dl_typeid_t  tid;
-	const char*  name;
-	unsigned int value_count;
+	dl_typeid_t       tid;
+	const char*       name;
+	dl_type_storage_t storage;
+	unsigned int      value_count;
 } dl_enum_info_t;
 
 /*

@@ -360,3 +360,10 @@ TEST_F( DLTypeLib, enum_in_2_tlds )
 	free(tl1);
 	free(tl2);
 }
+
+// test read-errors for enum
+
+// invalid type
+
+// enum that do not fit in type!
+
