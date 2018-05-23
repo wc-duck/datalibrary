@@ -200,9 +200,10 @@ end
 
 function make_test_settings( base_settings )
 	local settings = TableDeepCopy( base_settings )
-	
+
 	if settings.platform == 'linux_x86' or settings.platform == 'linux_x86_64' then
 		settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
+		settings.cc.flags_cxx:Add("-std=c++11") -- enabled to test out sized enums.
 	else
 		--[[
 			/EHsc only on unittest

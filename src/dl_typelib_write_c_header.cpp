@@ -56,6 +56,7 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "\n"
 									   "#  ifndef DL_ALIGNOF\n"
 									   "#    define DL_ALIGNOF(type) ((sizeof(type) > 1)? offsetof(struct { char c; type x; }, x) : 1)\n"
+									   //"#    define DL_ALIGNOF(type) alignof(type)\n"
 									   "#  endif\n"
 									   "\n"
 									   "   // ... DL_STATIC_ASSERT() ...\n"
@@ -107,7 +108,27 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		dl_enum_info_t enum_info;
 		dl_reflect_get_enum_info( ctx, tids[enum_index], &enum_info );
 
-		dl_binary_writer_write_string_fmt( writer, "enum %s\n{\n", enum_info.name );
+		const char* storage_decl = "";
+		switch(enum_info.storage)
+		{
+			case DL_TYPE_STORAGE_ENUM_INT8:   storage_decl = " : int8_t";   break;
+			case DL_TYPE_STORAGE_ENUM_INT16:  storage_decl = " : int16_t";  break;
+			case DL_TYPE_STORAGE_ENUM_INT32:  storage_decl = " : int32_t";  break;
+			case DL_TYPE_STORAGE_ENUM_INT64:  storage_decl = " : int64_t";  break;
+			case DL_TYPE_STORAGE_ENUM_UINT8:  storage_decl = " : uint8_t";  break;
+			case DL_TYPE_STORAGE_ENUM_UINT16: storage_decl = " : uint16_t"; break;
+			case DL_TYPE_STORAGE_ENUM_UINT32: break; // no decl on 32-bit enums as that is default-size.
+			case DL_TYPE_STORAGE_ENUM_UINT64: storage_decl = " : uint64_t"; break;
+			default:
+				break;
+		}
+
+		if(enum_info.storage != DL_TYPE_STORAGE_ENUM_UINT32)
+			dl_binary_writer_write_string_fmt( writer, 
+				"// %s can not be defined for c-usage as c do not yet support declaring the storage-type for an enum\n"
+				"#if defined(__cplusplus)\n", enum_info.name );
+
+		dl_binary_writer_write_string_fmt( writer, "enum %s%s\n{\n", enum_info.name, storage_decl );
 
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
 		dl_reflect_get_enum_values( ctx, tids[enum_index], values, enum_info.value_count );
@@ -118,6 +139,9 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 
 		free( values );
 		dl_binary_writer_write_string_fmt( writer, "\n};\n\n" );
+
+		if(enum_info.storage != DL_TYPE_STORAGE_ENUM_UINT32)
+			dl_binary_writer_write_string_fmt( writer, "#endif // defined(__cplusplus)\n");
 	}
 
 	free( tids );
@@ -199,7 +223,14 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 					dl_binary_writer_write_string_fmt( writer, "    const struct %s* %s;\n", sub_type.name, member->name );
 				}
 				break;
+				case DL_TYPE_STORAGE_ENUM_INT8:
+				case DL_TYPE_STORAGE_ENUM_INT16:
+				case DL_TYPE_STORAGE_ENUM_INT32:
+				case DL_TYPE_STORAGE_ENUM_INT64:
+				case DL_TYPE_STORAGE_ENUM_UINT8:
+				case DL_TYPE_STORAGE_ENUM_UINT16:
 				case DL_TYPE_STORAGE_ENUM_UINT32:
+				case DL_TYPE_STORAGE_ENUM_UINT64:
 				{
 					dl_enum_info_t sub_type;
 					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );

@@ -46,6 +46,7 @@ static void dl_reflect_copy_enum_info( dl_ctx_t ctx, dl_enum_info_t* enuminfo, c
 {
 	enuminfo->tid         = ctx->enum_ids[ enum_ - ctx->enum_descs ];
 	enuminfo->name        = dl_internal_enum_name( ctx, enum_ );
+	enuminfo->storage     = enum_->storage;
 	enuminfo->value_count = enum_->value_count;
 }
 
