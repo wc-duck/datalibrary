@@ -46,6 +46,8 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "#  if defined(__clang__)\n"
 									   "#    if __has_feature(cxx_alignof)\n"
 									   "#      define DL_ALIGNOF(type) alignof(type)\n"
+									   "#    elif __has_feature(c_alignof)\n"
+									   "#      define DL_ALIGNOF(type) _Alignof(type)\n"
 									   "#    endif\n"
 									   "#  endif\n"
 									   "#  if defined(_MSC_VER )\n"
