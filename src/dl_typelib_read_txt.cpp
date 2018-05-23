@@ -284,6 +284,20 @@ static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type
 	}
 }
 
+static inline bool dl_internal_find_enum_value_from_name( dl_ctx_t ctx, const char* name, size_t name_len, uint32_t* value )
+{
+	for( unsigned int i = 0; i < ctx->enum_alias_count; ++i )
+	{
+		const char* alias_name = dl_internal_enum_alias_name( ctx, &ctx->enum_alias_descs[i] );
+		if( strncmp( alias_name, name, name_len ) == 0 )
+		{
+			*value = ctx->enum_value_descs[ctx->enum_alias_descs[i].value_index].value;
+			return true;
+		}
+	}
+	return false;
+}
+
 static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_type_desc* type )
 {
 	// ... is the type already processed ...
