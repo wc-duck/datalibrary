@@ -467,21 +467,4 @@ static inline bool dl_internal_find_enum_value_from_name( dl_ctx_t ctx, const ch
 	return false;
 }
 
-static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32_t value )
-{
-	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );
-
-	if( e == 0x0 )
-		return "UnknownEnum!";
-
-	for( unsigned int j = 0; j < e->value_count; ++j )
-	{
-		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, j );
-		if( v->value == value )
-			return dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias] );
-	}
-
-	return "UnknownEnum!";
-}
-
 #endif // DL_DL_TYPES_H_INCLUDED
