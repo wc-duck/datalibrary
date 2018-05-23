@@ -425,9 +425,6 @@ static uint32_t dl_txt_pack_array_item_size( dl_ctx_t dl_ctx, const dl_member_de
 	// TODO: store this in typelib?
 	switch( member->StorageType() )
 	{
-		case DL_TYPE_STORAGE_PTR:
-		case DL_TYPE_STORAGE_STR:
-			return sizeof(void*);
 		case DL_TYPE_STORAGE_STRUCT:
 		{
 			const dl_type_desc* type = dl_internal_find_type( dl_ctx, member->type_id );

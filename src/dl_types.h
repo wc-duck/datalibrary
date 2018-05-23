@@ -358,20 +358,13 @@ static inline size_t dl_pod_size( dl_type_storage_t storage )
 		case DL_TYPE_STORAGE_ENUM_UINT64:
 			return 8;
 
+		case DL_TYPE_STORAGE_STR:
+		case DL_TYPE_STORAGE_PTR:
+			return sizeof(void*);
+
 		default:
 			DL_ASSERT(false && "This should not happen!");
 			return 0;
-	}
-}
-
-static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t type_id, dl_ptr_size_t ptr_size )
-{
-	switch( storage )
-	{
-		case DL_TYPE_STORAGE_STRUCT: return dl_internal_find_type( ctx, type_id )->alignment[ptr_size];
-		case DL_TYPE_STORAGE_STR:
-		case DL_TYPE_STORAGE_PTR:    return sizeof(void*);
-		default:                     return dl_pod_size( storage );
 	}
 }
 
