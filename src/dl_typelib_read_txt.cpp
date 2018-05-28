@@ -284,7 +284,7 @@ static void dl_load_txt_fixup_bitfield_members( dl_ctx_t ctx, dl_type_desc* type
 	}
 }
 
-static inline bool dl_internal_find_enum_value_from_name( dl_ctx_t ctx, const char* name, size_t name_len, uint32_t* value )
+static inline bool dl_internal_find_enum_value_from_name( dl_ctx_t ctx, const char* name, size_t name_len, uint64_t* value )
 {
 	for( unsigned int i = 0; i < ctx->enum_alias_count; ++i )
 	{
@@ -350,7 +350,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 							enum_value_name_len = member->alignment[0];
 						}
 
-						uint32_t val;
+						uint64_t val;
 						if( !dl_internal_find_enum_value_from_name( ctx, enum_value_name, (size_t)enum_value_name_len, &val ) )
 							dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_INVALID_ENUM_VALUE, "%s.%s is an inline array with size %.*s, but that enum value does not exist.",
 												dl_internal_type_name( ctx, type ),
@@ -358,7 +358,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 												(int)enum_value_name_len,
 												enum_value_name );
 
-						member->set_inline_array_cnt( val );
+						member->set_inline_array_cnt( (uint32_t)val );
 					}
 				}
 

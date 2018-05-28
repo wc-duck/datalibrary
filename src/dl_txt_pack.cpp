@@ -217,11 +217,23 @@ static void dl_txt_pack_eat_and_write_enum( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 	if( ename.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected string" );
 
-	uint32_t enum_value;
+	uint64_t enum_value;
 	if( !dl_internal_find_enum_value( dl_ctx, edesc, ename.str, (size_t)ename.len, &enum_value ) )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_ENUM_VALUE, "the enum \"%s\" has no member named \"%.*s\"", dl_internal_enum_name( dl_ctx, edesc ), ename.len, ename.str );
 
-	dl_binary_writer_write_uint32( packctx->writer, enum_value );
+	switch(edesc->storage)
+	{
+		case DL_TYPE_STORAGE_ENUM_INT8:   dl_binary_writer_write_int8  ( packctx->writer, (int8_t)  enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_INT16:  dl_binary_writer_write_int16 ( packctx->writer, (int16_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_INT32:  dl_binary_writer_write_int32 ( packctx->writer, (int32_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_INT64:  dl_binary_writer_write_int64 ( packctx->writer, (int64_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT8:  dl_binary_writer_write_uint8 ( packctx->writer, (uint8_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT16: dl_binary_writer_write_uint16( packctx->writer, (uint16_t)enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT32: dl_binary_writer_write_uint32( packctx->writer, (uint32_t)enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT64: dl_binary_writer_write_uint64( packctx->writer, (uint64_t)enum_value ); break;
+		default:
+			DL_ASSERT(false);
+	}
 	packctx->read_ctx.iter = ename.str + ename.len + 1;
 }
 
@@ -602,7 +614,14 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_STR:    dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
 				case DL_TYPE_STORAGE_PTR:    dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
 				case DL_TYPE_STORAGE_STRUCT: dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) ); break;
+				case DL_TYPE_STORAGE_ENUM_INT8:
+				case DL_TYPE_STORAGE_ENUM_INT16:
+				case DL_TYPE_STORAGE_ENUM_INT32:
+				case DL_TYPE_STORAGE_ENUM_INT64:
+				case DL_TYPE_STORAGE_ENUM_UINT8:
+				case DL_TYPE_STORAGE_ENUM_UINT16:
 				case DL_TYPE_STORAGE_ENUM_UINT32:
+				case DL_TYPE_STORAGE_ENUM_UINT64:
 				{
 					dl_txt_eat_white( &packctx->read_ctx );
 					const dl_enum_desc* edesc = dl_internal_find_enum( dl_ctx, member->type_id );

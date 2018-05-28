@@ -215,7 +215,7 @@ struct dl_type_desc
 struct dl_enum_value_desc
 {
 	uint32_t main_alias;
-	uint32_t value;
+	uint64_t value;
 };
 
 struct dl_enum_desc
@@ -432,7 +432,7 @@ static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_
 	return type->member_count + 1;
 }
 
-static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, const char* name, size_t name_len, uint32_t* value )
+static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, const char* name, size_t name_len, uint64_t* value )
 {
 	for( unsigned int j = 0; j < e->alias_count; ++j )
 	{

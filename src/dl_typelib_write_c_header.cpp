@@ -133,9 +133,9 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
 		dl_reflect_get_enum_values( ctx, tids[enum_index], values, enum_info.value_count );
 
-		dl_binary_writer_write_string_fmt( writer, "    %s = %u", values[0].name, values[0].value);
+		dl_binary_writer_write_string_fmt( writer, "    %s = %u", values[0].name, values[0].value.u32); // TODO: fix me!
 		for( unsigned int j = 1; j < enum_info.value_count; ++j )
-			dl_binary_writer_write_string_fmt( writer, ",\n    %s = %u", values[j].name, values[j].value);
+			dl_binary_writer_write_string_fmt( writer, ",\n    %s = %u", values[j].name, values[j].value.u32); // TODO: fix me!
 
 		free( values );
 		dl_binary_writer_write_string_fmt( writer, "\n};\n\n" );
