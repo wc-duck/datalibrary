@@ -297,7 +297,7 @@ static void show_tl_info( dl_ctx_t ctx )
 		dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
 
 		for( unsigned int j = 0; j < enum_->value_count; ++j )
-			printf("    %s = %u\n", values[j].name, values[j].value);
+			printf("    %s = %u\n", values[j].name, values[j].value.u32); // TODO: fix me.
 
 		free( values );
 	}
