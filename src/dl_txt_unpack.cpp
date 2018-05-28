@@ -126,13 +126,8 @@ static void dl_txt_unpack_fp64( dl_binary_writer* writer, double data )
 	dl_binary_writer_write( writer, buffer, (size_t)len );
 }
 
-static void dl_txt_unpack_enum( dl_ctx_t dl_ctx, dl_binary_writer* writer, dl_typeid_t eid, uint32_t value )
+static void dl_txt_unpack_enum( dl_ctx_t dl_ctx, dl_binary_writer* writer, const dl_enum_desc* e, uint32_t value )
 {
-	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, eid );
-
-	if( e == 0x0 )
-		return; // TODO: handle this error!
-
 	for( unsigned int j = 0; j < e->value_count; ++j )
 	{
 		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, j );
@@ -317,14 +312,20 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx,
 		}
 		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
+			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
+
+			if( e == 0x0 )
+				return; // TODO: handle this error!
+
+
 			uint32_t* mem = (uint32_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
 			{
-				dl_txt_unpack_enum( dl_ctx, writer, tid, mem[i] );
+				dl_txt_unpack_enum( dl_ctx, writer, e, mem[i] );
 				dl_binary_writer_write( writer, ", ", 2 );
 
 			}
-			dl_txt_unpack_enum( dl_ctx, writer, tid, mem[array_count - 1] );
+			dl_txt_unpack_enum( dl_ctx, writer, e, mem[array_count - 1] );
 		}
 		break;
 		default:
@@ -355,7 +356,15 @@ static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 				case DL_TYPE_STORAGE_UINT64:      dl_txt_unpack_uint64( writer, *(uint64_t*)member_data ); break;
 				case DL_TYPE_STORAGE_FP32:        dl_txt_unpack_fp32  ( writer, *(float*)member_data ); break;
 				case DL_TYPE_STORAGE_FP64:        dl_txt_unpack_fp64  ( writer, *(double*)member_data ); break;
-				case DL_TYPE_STORAGE_ENUM_UINT32: dl_txt_unpack_enum  ( dl_ctx, writer, member->type_id, *(uint32_t*)member_data ); break;
+				case DL_TYPE_STORAGE_ENUM_UINT32: 
+				{
+					const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, member->type_id );
+
+					if( e == 0x0 )
+						return; // TODO: handle this error!
+
+					dl_txt_unpack_enum  ( dl_ctx, writer, e, *(uint32_t*)member_data ); break;
+				}
 				case DL_TYPE_STORAGE_STR:         dl_txt_unpack_write_string_or_null( writer, unpack_ctx, *(uintptr_t*)member_data ); break;
 				case DL_TYPE_STORAGE_PTR:
 				{
