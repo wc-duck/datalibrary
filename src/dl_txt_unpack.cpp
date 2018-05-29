@@ -135,9 +135,10 @@ static void dl_txt_unpack_enum( dl_ctx_t dl_ctx, dl_binary_writer* writer, const
 		{
 
 			dl_txt_unpack_write_string( writer, dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias] ) );
-			break;
+			return;
 		}
 	}
+	DL_ASSERT(false);
 }
 
 static void dl_txt_unpack_ptr( dl_binary_writer* writer, uintptr_t offset )
@@ -311,6 +312,20 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx,
 			break;
 		}
 		case DL_TYPE_STORAGE_ENUM_INT8:
+		{
+			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
+			DL_ASSERT( e != 0x0, "handle this error!");
+
+			int8_t* mem = (int8_t*)array_data;
+			for( uint32_t i = 0; i < array_count - 1; ++i )
+			{
+				dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[i] );
+				dl_binary_writer_write( writer, ", ", 2 );
+
+			}
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
+		}
+		break;
 		case DL_TYPE_STORAGE_ENUM_UINT8:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
@@ -323,10 +338,24 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx,
 				dl_binary_writer_write( writer, ", ", 2 );
 
 			}
-			dl_txt_unpack_enum( dl_ctx, writer, e, mem[array_count - 1] );
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
 		}
 		break;
 		case DL_TYPE_STORAGE_ENUM_INT16:
+		{
+			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
+			DL_ASSERT( e != 0x0, "handle this error!");
+
+			int16_t* mem = (int16_t*)array_data;
+			for( uint32_t i = 0; i < array_count - 1; ++i )
+			{
+				dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[i] );
+				dl_binary_writer_write( writer, ", ", 2 );
+
+			}
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
+		}
+		break;
 		case DL_TYPE_STORAGE_ENUM_UINT16:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
@@ -339,10 +368,24 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx,
 				dl_binary_writer_write( writer, ", ", 2 );
 
 			}
-			dl_txt_unpack_enum( dl_ctx, writer, e, mem[array_count - 1] );
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
 		}
 		break;
 		case DL_TYPE_STORAGE_ENUM_INT32:
+		{
+			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
+			DL_ASSERT( e != 0x0, "handle this error!");
+
+			int32_t* mem = (int32_t*)array_data;
+			for( uint32_t i = 0; i < array_count - 1; ++i )
+			{
+				dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[i] );
+				dl_binary_writer_write( writer, ", ", 2 );
+
+			}
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
+		}
+		break;
 		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
@@ -355,10 +398,24 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx,
 				dl_binary_writer_write( writer, ", ", 2 );
 
 			}
-			dl_txt_unpack_enum( dl_ctx, writer, e, mem[array_count - 1] );
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
 		}
 		break;
 		case DL_TYPE_STORAGE_ENUM_INT64:
+		{
+			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
+			DL_ASSERT( e != 0x0, "handle this error!");
+
+			int64_t* mem = (int64_t*)array_data;
+			for( uint32_t i = 0; i < array_count - 1; ++i )
+			{
+				dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[i] );
+				dl_binary_writer_write( writer, ", ", 2 );
+
+			}
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
+		}
+		break;
 		case DL_TYPE_STORAGE_ENUM_UINT64:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
@@ -371,7 +428,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx,
 				dl_binary_writer_write( writer, ", ", 2 );
 
 			}
-			dl_txt_unpack_enum( dl_ctx, writer, e, mem[array_count - 1] );
+			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
 		}
 		break;
 		default:
@@ -402,13 +459,13 @@ static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 				case DL_TYPE_STORAGE_UINT64:      dl_txt_unpack_uint64( writer, *(uint64_t*)member_data ); break;
 				case DL_TYPE_STORAGE_FP32:        dl_txt_unpack_fp32  ( writer, *(float*)member_data ); break;
 				case DL_TYPE_STORAGE_FP64:        dl_txt_unpack_fp64  ( writer, *(double*)member_data ); break;
-				case DL_TYPE_STORAGE_ENUM_INT8:
+				case DL_TYPE_STORAGE_ENUM_INT8:   dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*( int8_t*)  member_data ); break;
 				case DL_TYPE_STORAGE_ENUM_UINT8:  dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*(uint8_t*)  member_data ); break;
-				case DL_TYPE_STORAGE_ENUM_INT16:
+				case DL_TYPE_STORAGE_ENUM_INT16:  dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*( int16_t*) member_data ); break;
 				case DL_TYPE_STORAGE_ENUM_UINT16: dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*(uint16_t*) member_data ); break;
-				case DL_TYPE_STORAGE_ENUM_INT32:
+				case DL_TYPE_STORAGE_ENUM_INT32:  dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*( int32_t*) member_data ); break;
 				case DL_TYPE_STORAGE_ENUM_UINT32: dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*(uint32_t*) member_data ); break;
-				case DL_TYPE_STORAGE_ENUM_INT64:
+				case DL_TYPE_STORAGE_ENUM_INT64:  dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*( int64_t*) member_data ); break;
 				case DL_TYPE_STORAGE_ENUM_UINT64: dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*(uint64_t*) member_data ); break;
 				case DL_TYPE_STORAGE_STR:         dl_txt_unpack_write_string_or_null( writer, unpack_ctx, *(uintptr_t*)member_data ); break;
 				case DL_TYPE_STORAGE_PTR:

@@ -46,3 +46,28 @@ TYPED_TEST(DLBase, sized_enums_simple)
     EXPECT_EQ(uint32_1, original.e_uint32);
     EXPECT_EQ(uint64_1, original.e_uint64);
 };
+
+TYPED_TEST(DLBase, sized_enums_simple_neg)
+{
+    sized_enums original;
+    original.e_int8   = int8_neg;
+	original.e_int16  = int16_neg;
+	original.e_int32  = int32_neg;
+	original.e_int64  = int64_neg;
+	original.e_uint8  = uint8_1;
+	original.e_uint16 = uint16_1;
+	original.e_uint32 = uint32_1;
+	original.e_uint64 = uint64_1;
+
+    sized_enums loaded;
+    this->do_the_round_about( sized_enums::TYPE_ID, &original, &loaded, sizeof(loaded) );
+
+    EXPECT_EQ(int8_neg,  original.e_int8);
+    EXPECT_EQ(int16_neg, original.e_int16);
+    EXPECT_EQ(int32_neg, original.e_int32);
+    EXPECT_EQ(int64_neg, original.e_int64);
+    EXPECT_EQ(uint8_1,   original.e_uint8);
+    EXPECT_EQ(uint16_1,  original.e_uint16);
+    EXPECT_EQ(uint32_1,  original.e_uint32);
+    EXPECT_EQ(uint64_1,  original.e_uint64);
+};
