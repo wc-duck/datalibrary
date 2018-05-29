@@ -95,6 +95,55 @@ static void dl_context_write_c_header_end( dl_binary_writer* writer, const char*
 	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
 }
 
+static void dl_context_write_c_header_enum_value(dl_binary_writer* writer, dl_type_storage_t storage, const dl_enum_value_info_t* value)
+{
+	dl_binary_writer_write_string_fmt( writer, "    %s = ", value->name);
+
+	switch(storage)
+	{
+		case DL_TYPE_STORAGE_ENUM_INT8:   if(value->value.i8  == INT8_MIN)   { dl_binary_writer_write_string( writer, "INT8_MIN",    8 ); return; }
+										  if(value->value.i8  == INT8_MAX)   { dl_binary_writer_write_string( writer, "INT8_MAX",    8 ); return; }
+		break;
+		case DL_TYPE_STORAGE_ENUM_INT16:  if(value->value.i16 == INT16_MIN)  { dl_binary_writer_write_string( writer, "INT16_MIN",   9 ); return; }
+										  if(value->value.i16 == INT16_MAX)  { dl_binary_writer_write_string( writer, "INT16_MAX",   9 ); return; }
+		break;
+		case DL_TYPE_STORAGE_ENUM_INT32:  if(value->value.i32 == INT32_MIN)  { dl_binary_writer_write_string( writer, "INT32_MIN",   9 ); return; }
+										  if(value->value.i32 == INT32_MAX)  { dl_binary_writer_write_string( writer, "INT32_MAX",   9 ); return; }
+		break;
+		case DL_TYPE_STORAGE_ENUM_INT64:  if(value->value.i64 == INT64_MIN)  { dl_binary_writer_write_string( writer, "INT64_MIN",   9 ); return; }
+										  if(value->value.i64 == INT64_MAX)  { dl_binary_writer_write_string( writer, "INT64_MAX",   9 ); return; }
+		break;
+		case DL_TYPE_STORAGE_ENUM_UINT8:  if(value->value.u8  == UINT8_MAX)  { dl_binary_writer_write_string( writer, "UINT8_MAX",   9 ); return; }
+		break;
+		case DL_TYPE_STORAGE_ENUM_UINT16: if(value->value.u16 == UINT16_MAX) { dl_binary_writer_write_string( writer, "UINT16_MAX", 10 ); return; }
+		break;
+		case DL_TYPE_STORAGE_ENUM_UINT32: if(value->value.u32 == UINT32_MAX) { dl_binary_writer_write_string( writer, "UINT32_MAX", 10 ); return; }
+		break;
+		case DL_TYPE_STORAGE_ENUM_UINT64: if(value->value.u64 == UINT64_MAX) { dl_binary_writer_write_string( writer, "UINT64_MAX", 10 ); return; }
+		break;
+		default:
+			DL_ASSERT(false);
+	}
+
+	switch(storage)
+	{
+		case DL_TYPE_STORAGE_ENUM_INT8:
+		case DL_TYPE_STORAGE_ENUM_INT16:
+		case DL_TYPE_STORAGE_ENUM_INT32:
+		case DL_TYPE_STORAGE_ENUM_INT64:
+			dl_binary_writer_write_string_fmt( writer, DL_INT64_FMT_STR, value->value.i64 );
+			break;
+		case DL_TYPE_STORAGE_ENUM_UINT8:
+		case DL_TYPE_STORAGE_ENUM_UINT16:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
+		case DL_TYPE_STORAGE_ENUM_UINT64:
+			dl_binary_writer_write_string_fmt( writer, DL_UINT64_FMT_STR, value->value.u64 );
+			break;
+		default:
+			DL_ASSERT(false);
+	}
+}
+
 static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t ctx )
 {
 	dl_type_context_info_t ctx_info;
@@ -109,13 +158,12 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		dl_reflect_get_enum_info( ctx, tids[enum_index], &enum_info );
 
 		const char* storage_decl = "";
-		bool enum_is_signed = false;
 		switch(enum_info.storage)
 		{
-			case DL_TYPE_STORAGE_ENUM_INT8:   storage_decl = " : int8_t";   enum_is_signed = true; break;
-			case DL_TYPE_STORAGE_ENUM_INT16:  storage_decl = " : int16_t";  enum_is_signed = true; break;
-			case DL_TYPE_STORAGE_ENUM_INT32:  storage_decl = " : int32_t";  enum_is_signed = true; break;
-			case DL_TYPE_STORAGE_ENUM_INT64:  storage_decl = " : int64_t";  enum_is_signed = true; break;
+			case DL_TYPE_STORAGE_ENUM_INT8:   storage_decl = " : int8_t";   break;
+			case DL_TYPE_STORAGE_ENUM_INT16:  storage_decl = " : int16_t";  break;
+			case DL_TYPE_STORAGE_ENUM_INT32:  storage_decl = " : int32_t";  break;
+			case DL_TYPE_STORAGE_ENUM_INT64:  storage_decl = " : int64_t";  break;
 			case DL_TYPE_STORAGE_ENUM_UINT8:  storage_decl = " : uint8_t";  break;
 			case DL_TYPE_STORAGE_ENUM_UINT16: storage_decl = " : uint16_t"; break;
 			case DL_TYPE_STORAGE_ENUM_UINT32: break; // no decl on 32-bit enums as that is default-size.
@@ -134,17 +182,11 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
 		dl_reflect_get_enum_values( ctx, tids[enum_index], values, enum_info.value_count );
 
-		if(enum_is_signed)
+		for( unsigned int j = 0; j < enum_info.value_count; ++j )
 		{
-			dl_binary_writer_write_string_fmt( writer, "    %s = " DL_INT64_FMT_STR, values[0].name, values[0].value.i64);
-			for( unsigned int j = 1; j < enum_info.value_count; ++j )
-				dl_binary_writer_write_string_fmt( writer, ",\n    %s = " DL_INT64_FMT_STR, values[j].name, values[j].value.i64);
-		}
-		else
-		{
-			dl_binary_writer_write_string_fmt( writer, "    %s = " DL_UINT64_FMT_STR, values[0].name, values[0].value.u64);
-			for( unsigned int j = 1; j < enum_info.value_count; ++j )
-				dl_binary_writer_write_string_fmt( writer, ",\n    %s = " DL_UINT64_FMT_STR, values[j].name, values[j].value.u64);
+			if(j > 0)
+				dl_binary_writer_write_string( writer, ",\n", 2 );
+			dl_context_write_c_header_enum_value( writer, enum_info.storage, &values[j]);
 		}
 
 		free( values );
