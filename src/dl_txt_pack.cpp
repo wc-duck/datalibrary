@@ -471,7 +471,7 @@ const char* dl_txt_skip_map( const char* iter, const char* end )
 	return iter;
 }
 
-const char* dl_txt_pack_skip_string( const char* str, const char* end )
+const char* dl_txt_skip_string( const char* str, const char* end )
 {
 	while( str != end && *str != '\"' )
 	{
@@ -546,7 +546,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 						++array_length;
 						break;
 					case '"':
-						iter = dl_txt_pack_skip_string( ++iter, end );
+						iter = dl_txt_skip_string( ++iter, end );
 						break;
 					case '\0':
 					case ']':

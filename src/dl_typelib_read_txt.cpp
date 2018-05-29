@@ -483,7 +483,7 @@ static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type
 }
 
 const char* dl_txt_skip_map( const char* iter, const char* end );
-const char* dl_txt_pack_skip_string( const char* str, const char* end );
+const char* dl_txt_skip_string( const char* str, const char* end );
 
 static inline uint32_t dl_txt_pack_eat_uint32( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state )
 {
@@ -508,7 +508,30 @@ static bool dl_txt_try_eat_char( dl_txt_read_ctx* read_state, char c )
 	return true;
 }
 
-static void dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* value_name )
+static uint64_t dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, 
+															      dl_type_storage_t   storage,
+															      dl_txt_read_ctx*    read_state )
+{
+	switch(storage)
+	{
+		case DL_TYPE_STORAGE_ENUM_INT8:   return (uint64_t)dl_txt_pack_eat_strtoll (ctx, read_state, INT8_MIN,  INT8_MAX,  "int8" );
+		case DL_TYPE_STORAGE_ENUM_INT16:  return (uint64_t)dl_txt_pack_eat_strtoll (ctx, read_state, INT16_MIN, INT16_MAX, "int16");
+		case DL_TYPE_STORAGE_ENUM_INT32:  return (uint64_t)dl_txt_pack_eat_strtoll (ctx, read_state, INT32_MIN, INT32_MAX, "int32");
+		case DL_TYPE_STORAGE_ENUM_INT64:  return (uint64_t)dl_txt_pack_eat_strtoll (ctx, read_state, INT64_MIN, INT64_MAX, "int64");
+		case DL_TYPE_STORAGE_ENUM_UINT8:  return dl_txt_pack_eat_strtoull(ctx, read_state, UINT8_MAX,  "uint8" );
+		case DL_TYPE_STORAGE_ENUM_UINT16: return dl_txt_pack_eat_strtoull(ctx, read_state, UINT16_MAX, "uint16");
+		case DL_TYPE_STORAGE_ENUM_UINT32: return dl_txt_pack_eat_strtoull(ctx, read_state, UINT32_MAX, "uint32");
+		case DL_TYPE_STORAGE_ENUM_UINT64: return dl_txt_pack_eat_strtoull(ctx, read_state, UINT64_MAX, "uint64");
+		default:
+			DL_ASSERT(false);
+			return 0;
+	}
+}
+
+static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx, 
+															   dl_type_storage_t   storage,
+															   dl_txt_read_ctx*    read_state,
+															   dl_txt_read_substr* value_name )
 {
 	dl_enum_value_desc* value = dl_alloc_enum_value( ctx );
 
@@ -529,7 +552,7 @@ static void dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, dl_t
 
 			if( strncmp( "value", key.str, 5 ) == 0 )
 			{
-				value->value = dl_txt_pack_eat_uint32( ctx, read_state );
+				value->value = dl_context_load_txt_type_library_read_enum_value( ctx, storage, read_state );
 				value_set = true;
 			}
 			else if( strncmp( "aliases", key.str, 7 ) == 0 )
@@ -556,15 +579,20 @@ static void dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, dl_t
 	}
 	else
 	{
-		value->value = dl_txt_pack_eat_uint32( ctx, read_state );
+		value->value = dl_context_load_txt_type_library_read_enum_value( ctx, storage, read_state );
 	}
 }
 
-static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* name )
+static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
+															 dl_txt_read_ctx* read_state,
+															 dl_txt_read_substr* name,
+															 const char** values_iter,
+															 const char** type_iter,
+															 const char** end_iter )
 {
-	uint32_t value_start = ctx->enum_value_count;
-	uint32_t alias_start = ctx->enum_alias_count;
-	dl_type_storage_t storage = DL_TYPE_STORAGE_CNT;
+	*values_iter = 0x0;
+	*type_iter = 0x0;
+	*end_iter = 0x0;
 
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
@@ -575,56 +603,17 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 
 		if( strncmp( "values", key.str, 6 ) == 0 )
 		{
-			dl_txt_eat_char( ctx, read_state, '{' );
-			do
-			{
-				dl_txt_read_substr value_name = dl_txt_eat_and_expect_string( ctx, read_state );
-
-				dl_txt_eat_char( ctx, read_state, ':' );
-				dl_txt_eat_white( read_state );
-
-				dl_context_load_txt_type_library_read_enum_value( ctx, read_state, &value_name );
-			} while( dl_txt_try_eat_char( read_state, ',') );
-			dl_txt_eat_char( ctx, read_state, '}' );
+			if(*values_iter)
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'values' set twice on enum '%.*s'", name->len, name->str );
+			*values_iter = read_state->iter;
+			read_state->iter = dl_txt_skip_map(read_state->iter, read_state->end);
 		}
 		else if( strncmp( "type", key.str, 4 ) == 0 )
 		{
-			if(storage != DL_TYPE_STORAGE_CNT)
-				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'type' set twice on enum '%.*s'", name->len, name->str );
-
-			dl_txt_read_substr type_str = dl_txt_eat_and_expect_string( ctx, read_state );
-			switch(type_str.len)
-			{
-				case 4:
-				{
-					if( strncmp("int8", type_str.str, 4) == 0 )
-						storage = DL_TYPE_STORAGE_ENUM_INT8;
-				}
-				break;
-				case 5:
-				{
-					     if( strncmp("int16", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT16;
-					else if( strncmp("int32", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT32;
-					else if( strncmp("int64", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT64;
-					else if( strncmp("uint8", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT8;
-				}
-				break;
-				case 6:
-				{
-					     if( strncmp("uint16", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT16;
-					else if( strncmp("uint32", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT32;
-					else if( strncmp("uint64", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT64;
-				}
-				break;
-				default:
-				break;
-			}
-
-			if(storage == DL_TYPE_STORAGE_CNT)
-				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, 
-									"'type' on enum '%.*s' set to '%.*s', valid types are 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32' and 'uint64'",
-									 name->len, name->str,
-									 type_str.len, type_str.str );
+				if(*type_iter)
+					dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'type' set twice on enum '%.*s'", name->len, name->str );
+				*type_iter = read_state->iter;
+				read_state->iter = dl_txt_skip_string(read_state->iter + 1, read_state->end) + 1; // TODO: fix haxx, skip_string is not eating ' or "
 		}
 		else
 			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values' and 'type'", key.len, key.str );
@@ -632,10 +621,84 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	} while( dl_txt_try_eat_char( read_state, ',') );
 	dl_txt_eat_char( ctx, read_state, '}' );
 
-	// TODO: add test for missing enum value ...
+	if(*values_iter == 0x0)
+		dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'values' is missing on enum '%.*s'", name->len, name->str );
+
+	*end_iter = read_state->iter;
+}
+
+static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* name )
+{
+	uint32_t value_start = ctx->enum_value_count;
+	uint32_t alias_start = ctx->enum_alias_count;
+
+	const char* values_iter;
+	const char* type_iter;
+	const char* end_iter;
+	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &values_iter, &type_iter, &end_iter);
+
+	dl_type_storage_t storage = DL_TYPE_STORAGE_CNT;
+	if(type_iter)
+	{
+		read_state->iter = type_iter;
+
+		storage = DL_TYPE_STORAGE_CNT;
+
+		dl_txt_read_substr type_str = dl_txt_eat_and_expect_string( ctx, read_state );
+		switch(type_str.len)
+		{
+			case 4:
+			{
+				if( strncmp("int8", type_str.str, 4) == 0 )
+					storage = DL_TYPE_STORAGE_ENUM_INT8;
+			}
+			break;
+			case 5:
+			{
+					 if( strncmp("int16", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT16;
+				else if( strncmp("int32", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT32;
+				else if( strncmp("int64", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT64;
+				else if( strncmp("uint8", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT8;
+			}
+			break;
+			case 6:
+			{
+					 if( strncmp("uint16", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT16;
+				else if( strncmp("uint32", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT32;
+				else if( strncmp("uint64", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT64;
+			}
+			break;
+			default:
+			break;
+		}
+
+		if(storage == DL_TYPE_STORAGE_CNT)
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, 
+								"'type' on enum '%.*s' set to '%.*s', valid types are 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32' and 'uint64'",
+									name->len, name->str,
+									type_str.len, type_str.str );
+	}
 
 	if(storage == DL_TYPE_STORAGE_CNT )
 		storage = DL_TYPE_STORAGE_ENUM_UINT32; // default to uint32
+
+	read_state->iter = values_iter;
+
+	dl_txt_eat_char( ctx, read_state, '{' );
+	do
+	{
+		dl_txt_read_substr value_name = dl_txt_eat_and_expect_string( ctx, read_state );
+
+		dl_txt_eat_char( ctx, read_state, ':' );
+		dl_txt_eat_white( read_state );
+
+		dl_context_load_txt_type_library_read_enum_values( ctx, storage, read_state, &value_name );
+	} while( dl_txt_try_eat_char( read_state, ',') );
+	dl_txt_eat_char( ctx, read_state, '}' );
+
+	read_state->iter = end_iter;
+
+	// TODO: add test for missing enum value ...
 
 	dl_enum_desc* edesc = dl_alloc_enum(ctx, name);
 	edesc->storage     = storage;
@@ -869,7 +932,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 					end = dl_txt_skip_map( start, read_state->end );
 					break;
 				case '\"':
-					end = dl_txt_pack_skip_string( start + 1, read_state->end );
+					end = dl_txt_skip_string( start + 1, read_state->end );
 					++end;
 					break;
 				case '[':

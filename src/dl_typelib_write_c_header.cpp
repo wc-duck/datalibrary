@@ -109,12 +109,13 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		dl_reflect_get_enum_info( ctx, tids[enum_index], &enum_info );
 
 		const char* storage_decl = "";
+		bool enum_is_signed = false;
 		switch(enum_info.storage)
 		{
-			case DL_TYPE_STORAGE_ENUM_INT8:   storage_decl = " : int8_t";   break;
-			case DL_TYPE_STORAGE_ENUM_INT16:  storage_decl = " : int16_t";  break;
-			case DL_TYPE_STORAGE_ENUM_INT32:  storage_decl = " : int32_t";  break;
-			case DL_TYPE_STORAGE_ENUM_INT64:  storage_decl = " : int64_t";  break;
+			case DL_TYPE_STORAGE_ENUM_INT8:   storage_decl = " : int8_t";   enum_is_signed = true; break;
+			case DL_TYPE_STORAGE_ENUM_INT16:  storage_decl = " : int16_t";  enum_is_signed = true; break;
+			case DL_TYPE_STORAGE_ENUM_INT32:  storage_decl = " : int32_t";  enum_is_signed = true; break;
+			case DL_TYPE_STORAGE_ENUM_INT64:  storage_decl = " : int64_t";  enum_is_signed = true; break;
 			case DL_TYPE_STORAGE_ENUM_UINT8:  storage_decl = " : uint8_t";  break;
 			case DL_TYPE_STORAGE_ENUM_UINT16: storage_decl = " : uint16_t"; break;
 			case DL_TYPE_STORAGE_ENUM_UINT32: break; // no decl on 32-bit enums as that is default-size.
@@ -133,9 +134,18 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
 		dl_reflect_get_enum_values( ctx, tids[enum_index], values, enum_info.value_count );
 
-		dl_binary_writer_write_string_fmt( writer, "    %s = %u", values[0].name, values[0].value.u32); // TODO: fix me!
-		for( unsigned int j = 1; j < enum_info.value_count; ++j )
-			dl_binary_writer_write_string_fmt( writer, ",\n    %s = %u", values[j].name, values[j].value.u32); // TODO: fix me!
+		if(enum_is_signed)
+		{
+			dl_binary_writer_write_string_fmt( writer, "    %s = " DL_INT64_FMT_STR, values[0].name, values[0].value.i64);
+			for( unsigned int j = 1; j < enum_info.value_count; ++j )
+				dl_binary_writer_write_string_fmt( writer, ",\n    %s = " DL_INT64_FMT_STR, values[j].name, values[j].value.i64);
+		}
+		else
+		{
+			dl_binary_writer_write_string_fmt( writer, "    %s = " DL_UINT64_FMT_STR, values[0].name, values[0].value.u64);
+			for( unsigned int j = 1; j < enum_info.value_count; ++j )
+				dl_binary_writer_write_string_fmt( writer, ",\n    %s = " DL_UINT64_FMT_STR, values[j].name, values[j].value.u64);
+		}
 
 		free( values );
 		dl_binary_writer_write_string_fmt( writer, "\n};\n\n" );
