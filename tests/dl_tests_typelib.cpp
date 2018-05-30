@@ -15,6 +15,11 @@ static void error_msg_handler( const char* msg, void* )
         printf("%s\n", msg);
 }
 
+static void test_log_error( const char* msg, void* )
+{
+	printf( "%s\n", msg );
+}
+
 struct DLTypeLib : public ::testing::Test
 {
 	dl_ctx_t ctx;

@@ -5,6 +5,39 @@
 #include <dl/dl_txt.h>
 #include <dl/dl_convert.h>
 
+static void test_log_error( const char* msg, void* )
+{
+	printf( "%s\n", msg );
+}
+
+void DL::SetUp()
+{
+	// bake the unittest-type library into the exe!
+	static const unsigned char typelib1[] = {
+		#include "generated/unittest.bin.h"
+	};
+	static const unsigned char typelib2[] = {
+		#include "generated/unittest2.bin.h"
+	};
+	static const unsigned char typelib3[] = {
+		#include "generated/sized_enums.bin.h"
+	};
+
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	p.error_msg_func = test_log_error;
+
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &p ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, typelib1, sizeof(typelib1)) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, typelib2, sizeof(typelib2)) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, typelib3, sizeof(typelib3)) );
+}
+
+void DL::TearDown()
+{
+	EXPECT_EQ(DL_ERROR_OK, dl_context_destroy(Ctx));
+}
+
 void pack_text_test::do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
 					   unsigned char* store_buffer, size_t      store_size,
 					   unsigned char** out_buffer,   size_t*     out_size )
