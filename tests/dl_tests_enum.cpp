@@ -54,14 +54,14 @@ TYPED_TEST(DLBase, sized_enums_simple)
     sized_enums loaded;
     this->do_the_round_about( sized_enums::TYPE_ID, &original, &loaded, sizeof(loaded) );
 
-    EXPECT_EQ(int8_1,   original.e_int8);
-    EXPECT_EQ(int16_1,  original.e_int16);
-    EXPECT_EQ(int32_1,  original.e_int32);
-    EXPECT_EQ(int64_1,  original.e_int64);
-    EXPECT_EQ(uint8_1,  original.e_uint8);
-    EXPECT_EQ(uint16_1, original.e_uint16);
-    EXPECT_EQ(uint32_1, original.e_uint32);
-    EXPECT_EQ(uint64_1, original.e_uint64);
+    EXPECT_EQ(original.e_int8,   loaded.e_int8);
+    EXPECT_EQ(original.e_int16,  loaded.e_int16);
+    EXPECT_EQ(original.e_int32,  loaded.e_int32);
+    EXPECT_EQ(original.e_int64,  loaded.e_int64);
+    EXPECT_EQ(original.e_uint8,  loaded.e_uint8);
+    EXPECT_EQ(original.e_uint16, loaded.e_uint16);
+    EXPECT_EQ(original.e_uint32, loaded.e_uint32);
+    EXPECT_EQ(original.e_uint64, loaded.e_uint64);
 };
 
 TYPED_TEST(DLBase, sized_enums_simple_neg)
@@ -79,14 +79,14 @@ TYPED_TEST(DLBase, sized_enums_simple_neg)
     sized_enums loaded;
     this->do_the_round_about( sized_enums::TYPE_ID, &original, &loaded, sizeof(loaded) );
 
-    EXPECT_EQ(int8_neg,  original.e_int8);
-    EXPECT_EQ(int16_neg, original.e_int16);
-    EXPECT_EQ(int32_neg, original.e_int32);
-    EXPECT_EQ(int64_neg, original.e_int64);
-    EXPECT_EQ(uint8_1,   original.e_uint8);
-    EXPECT_EQ(uint16_1,  original.e_uint16);
-    EXPECT_EQ(uint32_1,  original.e_uint32);
-    EXPECT_EQ(uint64_1,  original.e_uint64);
+    EXPECT_EQ(original.e_int8,   loaded.e_int8);
+    EXPECT_EQ(original.e_int16,  loaded.e_int16);
+    EXPECT_EQ(original.e_int32,  loaded.e_int32);
+    EXPECT_EQ(original.e_int64,  loaded.e_int64);
+    EXPECT_EQ(original.e_uint8,  loaded.e_uint8);
+    EXPECT_EQ(original.e_uint16, loaded.e_uint16);
+    EXPECT_EQ(original.e_uint32, loaded.e_uint32);
+    EXPECT_EQ(original.e_uint64, loaded.e_uint64);
 };
 
 TYPED_TEST(DLBase, sized_enums_simple_min)
@@ -104,12 +104,12 @@ TYPED_TEST(DLBase, sized_enums_simple_min)
     sized_enums loaded;
     this->do_the_round_about( sized_enums::TYPE_ID, &original, &loaded, sizeof(loaded) );
 
-    EXPECT_EQ(int8_min,   original.e_int8);
-    EXPECT_EQ(int16_min,  original.e_int16);
-    EXPECT_EQ(int32_min,  original.e_int32);
-    EXPECT_EQ(int64_min,  original.e_int64);
-    EXPECT_EQ(uint8_min,  original.e_uint8);
-    EXPECT_EQ(uint16_min, original.e_uint16);
-    EXPECT_EQ(uint32_min, original.e_uint32);
-    EXPECT_EQ((uint64_t)uint64_min,  (uint64_t)original.e_uint64);
+    EXPECT_EQ(original.e_int8,   loaded.e_int8);
+    EXPECT_EQ(original.e_int16,  loaded.e_int16);
+    EXPECT_EQ(original.e_int32,  loaded.e_int32);
+    EXPECT_EQ(original.e_int64,  loaded.e_int64);
+    EXPECT_EQ(original.e_uint8,  loaded.e_uint8);
+    EXPECT_EQ(original.e_uint16, loaded.e_uint16);
+    EXPECT_EQ(original.e_uint32, loaded.e_uint32);
+    EXPECT_EQ(original.e_uint64, loaded.e_uint64);
 };
