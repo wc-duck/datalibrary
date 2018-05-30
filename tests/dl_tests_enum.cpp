@@ -61,7 +61,7 @@ TYPED_TEST(DLBase, sized_enums_simple)
     EXPECT_EQ(original.e_uint8,  loaded.e_uint8);
     EXPECT_EQ(original.e_uint16, loaded.e_uint16);
     EXPECT_EQ(original.e_uint32, loaded.e_uint32);
-    EXPECT_EQ(original.e_uint64, loaded.e_uint64);
+    EXPECT_EQ((uint64_t)original.e_uint64, (uint64_t)loaded.e_uint64);
 };
 
 TYPED_TEST(DLBase, sized_enums_simple_neg)
@@ -86,7 +86,7 @@ TYPED_TEST(DLBase, sized_enums_simple_neg)
     EXPECT_EQ(original.e_uint8,  loaded.e_uint8);
     EXPECT_EQ(original.e_uint16, loaded.e_uint16);
     EXPECT_EQ(original.e_uint32, loaded.e_uint32);
-    EXPECT_EQ(original.e_uint64, loaded.e_uint64);
+    EXPECT_EQ((uint64_t)original.e_uint64, (uint64_t)loaded.e_uint64);
 };
 
 TYPED_TEST(DLBase, sized_enums_simple_min)
@@ -111,5 +111,5 @@ TYPED_TEST(DLBase, sized_enums_simple_min)
     EXPECT_EQ(original.e_uint8,  loaded.e_uint8);
     EXPECT_EQ(original.e_uint16, loaded.e_uint16);
     EXPECT_EQ(original.e_uint32, loaded.e_uint32);
-    EXPECT_EQ(original.e_uint64, loaded.e_uint64);
+    EXPECT_EQ((uint64_t)original.e_uint64, (uint64_t)loaded.e_uint64);
 };
