@@ -113,3 +113,68 @@ TYPED_TEST(DLBase, sized_enums_simple_min)
     EXPECT_EQ(original.e_uint32, loaded.e_uint32);
     EXPECT_EQ((uint64_t)original.e_uint64, (uint64_t)loaded.e_uint64);
 };
+
+TYPED_TEST(DLBase, sized_enums_simple_inl_array)
+{
+    sized_enums_inl_array original = {
+        { int8_1,   int8_neg,   int8_min,   int8_max  }, // e_int8
+        { int16_1,  int16_neg,  int16_min,  int16_max }, // e_int16
+        { int32_1,  int32_neg,  int32_min,  int32_max }, // e_int32
+        { int64_1,  int64_neg,  int64_min,  int64_max }, // e_int64
+        { uint8_1,  uint8_min,  uint8_max  }, // e_uint8
+        { uint16_1, uint16_min, uint16_max }, // e_uint16
+        { uint32_1, uint32_min, uint32_max }, // e_uint32
+        { uint64_1, uint64_min, uint64_max } // e_uint64
+    };
+
+    sized_enums_inl_array loaded;
+    this->do_the_round_about( sized_enums_inl_array::TYPE_ID, &original, &loaded, sizeof(loaded) );
+
+    EXPECT_ARRAY_EQ(DL_ARRAY_LENGTH(original.e_int8),   original.e_int8,   loaded.e_int8);
+    EXPECT_ARRAY_EQ(DL_ARRAY_LENGTH(original.e_int16),  original.e_int16,  loaded.e_int16);
+    EXPECT_ARRAY_EQ(DL_ARRAY_LENGTH(original.e_int32),  original.e_int32,  loaded.e_int32);
+    EXPECT_ARRAY_EQ(DL_ARRAY_LENGTH(original.e_int64),  original.e_int64,  loaded.e_int64);
+    EXPECT_ARRAY_EQ(DL_ARRAY_LENGTH(original.e_uint8),  original.e_uint8,  loaded.e_uint8);
+    EXPECT_ARRAY_EQ(DL_ARRAY_LENGTH(original.e_uint16), original.e_uint16, loaded.e_uint16);
+    EXPECT_ARRAY_EQ(DL_ARRAY_LENGTH(original.e_uint32), original.e_uint32, loaded.e_uint32);
+    EXPECT_EQ((uint64_t)original.e_uint64[0], (uint64_t)loaded.e_uint64[0]);
+    EXPECT_EQ((uint64_t)original.e_uint64[1], (uint64_t)loaded.e_uint64[1]);
+    EXPECT_EQ((uint64_t)original.e_uint64[2], (uint64_t)loaded.e_uint64[2]);
+};
+
+TYPED_TEST(DLBase, sized_enums_simple_array)
+{
+    enum_int8   i8[]  = { int8_1,   int8_neg,   int8_min,   int8_max  };
+    enum_int16  i16[] = { int16_1,  int16_neg,  int16_min,  int16_max };
+    enum_int32  i32[] = { int32_1,  int32_neg,  int32_min,  int32_max };
+    enum_int64  i64[] = { int64_1,  int64_neg,  int64_min,  int64_max };
+    enum_uint8  u8[]  = { uint8_1,  uint8_min,  uint8_max  };
+    enum_uint16 u16[] = { uint16_1, uint16_min, uint16_max }; 
+    enum_uint32 u32[] = { uint32_1, uint32_min, uint32_max }; 
+    enum_uint64 u64[] = { uint64_1, uint64_min, uint64_max };
+
+    sized_enums_array original = {
+        { i8,  DL_ARRAY_LENGTH(i8)  }, // e_int8
+        { i16, DL_ARRAY_LENGTH(i16) }, // e_int16
+        { i32, DL_ARRAY_LENGTH(i32) }, // e_int32
+        { i64, DL_ARRAY_LENGTH(i64) }, // e_int64
+        { u8,  DL_ARRAY_LENGTH(u8)  }, // e_uint8
+        { u16, DL_ARRAY_LENGTH(u16) }, // e_uint16
+        { u32, DL_ARRAY_LENGTH(u32) }, // e_uint32
+        { u64, DL_ARRAY_LENGTH(u64) }  // e_uint64
+    };
+
+    sized_enums_array loaded[10];
+    this->do_the_round_about( sized_enums_array::TYPE_ID, &original, loaded, sizeof(loaded) );
+
+    EXPECT_ARRAY_EQ(original.e_int8.count,   original.e_int8.data,   loaded[0].e_int8.data);
+    EXPECT_ARRAY_EQ(original.e_int16.count,  original.e_int16.data,  loaded[0].e_int16.data);
+    EXPECT_ARRAY_EQ(original.e_int32.count,  original.e_int32.data,  loaded[0].e_int32.data);
+    EXPECT_ARRAY_EQ(original.e_int64.count,  original.e_int64.data,  loaded[0].e_int64.data);
+    EXPECT_ARRAY_EQ(original.e_uint8.count,  original.e_uint8.data,  loaded[0].e_uint8.data);
+    EXPECT_ARRAY_EQ(original.e_uint16.count, original.e_uint16.data, loaded[0].e_uint16.data);
+    EXPECT_ARRAY_EQ(original.e_uint32.count, original.e_uint32.data, loaded[0].e_uint32.data);
+    EXPECT_EQ((uint64_t)original.e_uint64[0], (uint64_t)loaded[0].e_uint64[0]);
+    EXPECT_EQ((uint64_t)original.e_uint64[1], (uint64_t)loaded[0].e_uint64[1]);
+    EXPECT_EQ((uint64_t)original.e_uint64[2], (uint64_t)loaded[0].e_uint64[2]);
+};

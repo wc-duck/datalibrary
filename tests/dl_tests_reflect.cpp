@@ -5,6 +5,7 @@
 #include <dl/dl_reflect.h>
 
 #include "dl_test_common.h"
+#include "generated/sized_enums.h"
 
 template<class T>
 struct TAlignmentOf
@@ -70,6 +71,104 @@ TEST_F(DLReflect, pods)
 	EXPECT_EQ   (DL_TYPE_STORAGE_FP64,   Members[9].storage);
 }
 
+TEST_F(DLReflect, enums)
+{
+	dl_enum_info enum_info;
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_int8_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_int8_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_int8", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_INT8, enum_info.storage);
+		EXPECT_EQ   (                       4u, enum_info.value_count);
+	}
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_int16_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_int16_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_int16", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_INT16, enum_info.storage);
+		EXPECT_EQ   (                        4u, enum_info.value_count);
+	}
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_int32_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_int32_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_int32", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_INT32, enum_info.storage);
+		EXPECT_EQ   (                        4u, enum_info.value_count);
+	}
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_int64_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_int64_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_int64", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_INT64, enum_info.storage);
+		EXPECT_EQ   (                   4u, enum_info.value_count);
+	}
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_uint8_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_uint8_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_uint8", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_UINT8, enum_info.storage);
+		EXPECT_EQ   (                        3u, enum_info.value_count);
+	}
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_uint16_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_uint16_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_uint16", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_UINT16, enum_info.storage);
+		EXPECT_EQ   (                         3u, enum_info.value_count);
+	}
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_uint32_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_uint32_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_uint32", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_UINT32, enum_info.storage);
+		EXPECT_EQ   (                         3u, enum_info.value_count);
+	}
+	{
+		EXPECT_DL_ERR_OK(dl_reflect_get_enum_info(Ctx, enum_uint64_TYPE_ID, &enum_info));
+		EXPECT_EQ   (        enum_uint64_TYPE_ID, enum_info.tid);
+		EXPECT_STREQ(              "enum_uint64", enum_info.name);
+		EXPECT_EQ   (DL_TYPE_STORAGE_ENUM_UINT64, enum_info.storage);
+		EXPECT_EQ   (                         3u, enum_info.value_count);
+	}
+}
+
+TEST_F(DLReflect, enum_member_size_align)
+{
+	dl_member_info members[8];
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_members( Ctx, sized_enums_inl_array::TYPE_ID, members, DL_ARRAY_LENGTH(members)));
+
+	sized_enums_inl_array dummy;
+
+#define CHECK_INL_ARRAY(mem, mem_name, type) \
+	EXPECT_STREQ(#mem_name,                                                 mem.name); \
+	EXPECT_EQ(DL_TYPE_ATOM_INLINE_ARRAY,                                    mem.atom); \
+	EXPECT_EQ(type,                                                         mem.storage); \
+	EXPECT_EQ(sizeof(dummy.mem_name),                                       mem.size); \
+	EXPECT_EQ((unsigned int)((uint8_t*)&dummy.mem_name - (uint8_t*)&dummy), mem.offset); \
+	EXPECT_EQ(DL_ARRAY_LENGTH(dummy.mem_name),                              mem.array_count); \
+	EXPECT_EQ(0u,                                                           mem.bits)
+
+	CHECK_INL_ARRAY(members[0], e_int8,   DL_TYPE_STORAGE_ENUM_INT8);
+	CHECK_INL_ARRAY(members[1], e_int16,  DL_TYPE_STORAGE_ENUM_INT16);
+	CHECK_INL_ARRAY(members[2], e_int32,  DL_TYPE_STORAGE_ENUM_INT32);
+	CHECK_INL_ARRAY(members[3], e_int64,  DL_TYPE_STORAGE_ENUM_INT64);
+	CHECK_INL_ARRAY(members[4], e_uint8,  DL_TYPE_STORAGE_ENUM_UINT8);
+	CHECK_INL_ARRAY(members[5], e_uint16, DL_TYPE_STORAGE_ENUM_UINT16);
+	CHECK_INL_ARRAY(members[6], e_uint32, DL_TYPE_STORAGE_ENUM_UINT32);
+	CHECK_INL_ARRAY(members[7], e_uint64, DL_TYPE_STORAGE_ENUM_UINT64);
+
+	EXPECT_EQ(DL_ALIGNMENTOF(int8_t),   members[0].alignment);
+	EXPECT_EQ(DL_ALIGNMENTOF(int16_t),  members[1].alignment);
+	EXPECT_EQ(DL_ALIGNMENTOF(int32_t),  members[2].alignment);
+	EXPECT_EQ(DL_ALIGNMENTOF(int64_t),  members[3].alignment);
+	EXPECT_EQ(DL_ALIGNMENTOF(uint8_t),  members[4].alignment);
+	EXPECT_EQ(DL_ALIGNMENTOF(uint16_t), members[5].alignment);
+	EXPECT_EQ(DL_ALIGNMENTOF(uint32_t), members[6].alignment);
+	EXPECT_EQ(DL_ALIGNMENTOF(uint64_t), members[7].alignment);
+
+#undef CHECK_INL_ARRAY
+}
+
 #define CHECK_TYPE_INFO_CORRECT( TYPE_NAME, MEM_COUNT ) { \
 	dl_type_info_t ti; \
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, TYPE_NAME::TYPE_ID, &ti ) ); \
@@ -111,6 +210,9 @@ TEST_F(DLReflect, get_type_info)
 	CHECK_TYPE_INFO_CORRECT( BitBitfield64, 4u );
 	CHECK_TYPE_INFO_CORRECT( test_union_simple, 3u );
 	CHECK_TYPE_INFO_CORRECT( test_union_array, 2u );
+	CHECK_TYPE_INFO_CORRECT( sized_enums, 8u );
+	CHECK_TYPE_INFO_CORRECT( sized_enums_inl_array, 8u );
+	CHECK_TYPE_INFO_CORRECT( sized_enums_array, 8u );
 }
 
 TEST_F(DLReflect, specified_alignment)
