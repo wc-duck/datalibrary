@@ -149,16 +149,16 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	dl_type_context_info_t ctx_info;
 	dl_reflect_context_info( ctx, &ctx_info );
 
-	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_enums * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_enumids( ctx, tids, ctx_info.num_enums );
+	dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof( dl_enum_info_t ) );
+	dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
+
+	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
+		dl_binary_writer_write_string_fmt( writer, "#define %s_TYPE_ID (0x%08X)\n", enum_infos[enum_index].name, enum_infos[enum_index].tid );
 
 	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 	{
-		dl_enum_info_t enum_info;
-		dl_reflect_get_enum_info( ctx, tids[enum_index], &enum_info );
-
 		const char* storage_decl = "";
-		switch(enum_info.storage)
+		switch(enum_infos[enum_index].storage)
 		{
 			case DL_TYPE_STORAGE_ENUM_INT8:   storage_decl = " : int8_t";   break;
 			case DL_TYPE_STORAGE_ENUM_INT16:  storage_decl = " : int16_t";  break;
@@ -172,31 +172,31 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 				break;
 		}
 
-		if(enum_info.storage != DL_TYPE_STORAGE_ENUM_UINT32)
+		if(enum_infos[enum_index].storage != DL_TYPE_STORAGE_ENUM_UINT32)
 			dl_binary_writer_write_string_fmt( writer, 
 				"// %s can not be defined for c-usage as c do not yet support declaring the storage-type for an enum\n"
-				"#if defined(__cplusplus)\n", enum_info.name );
+				"#if defined(__cplusplus)\n", enum_infos[enum_index].name );
 
-		dl_binary_writer_write_string_fmt( writer, "enum %s%s\n{\n", enum_info.name, storage_decl );
+		dl_binary_writer_write_string_fmt( writer, "enum %s%s\n{\n", enum_infos[enum_index].name, storage_decl );
 
-		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
-		dl_reflect_get_enum_values( ctx, tids[enum_index], values, enum_info.value_count );
+		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_infos[enum_index].value_count * sizeof( dl_enum_value_info_t ) );
+		dl_reflect_get_enum_values( ctx, enum_infos[enum_index].tid, values, enum_infos[enum_index].value_count );
 
-		for( unsigned int j = 0; j < enum_info.value_count; ++j )
+		for( unsigned int j = 0; j < enum_infos[enum_index].value_count; ++j )
 		{
 			if(j > 0)
 				dl_binary_writer_write_string( writer, ",\n", 2 );
-			dl_context_write_c_header_enum_value( writer, enum_info.storage, &values[j]);
+			dl_context_write_c_header_enum_value( writer, enum_infos[enum_index].storage, &values[j]);
 		}
 
 		free( values );
 		dl_binary_writer_write_string_fmt( writer, "\n};\n\n" );
 
-		if(enum_info.storage != DL_TYPE_STORAGE_ENUM_UINT32)
+		if(enum_infos[enum_index].storage != DL_TYPE_STORAGE_ENUM_UINT32)
 			dl_binary_writer_write_string_fmt( writer, "#endif // defined(__cplusplus)\n");
 	}
 
-	free( tids );
+	free( enum_infos );
 }
 
 static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
