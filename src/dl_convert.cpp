@@ -720,16 +720,23 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 				break;
 
 				case DL_TYPE_STORAGE_INT8:
-				case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_array( writer, u8, inst.array_count, sizeof(uint8_t) ); break;
+				case DL_TYPE_STORAGE_UINT8:
+				case DL_TYPE_STORAGE_ENUM_INT8:
+				case DL_TYPE_STORAGE_ENUM_UINT8:  dl_binary_writer_write_array( writer, u8, inst.array_count, sizeof(uint8_t) ); break;
 				case DL_TYPE_STORAGE_INT16:
-				case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_array( writer, u16, inst.array_count, sizeof(uint16_t) ); break;
+				case DL_TYPE_STORAGE_UINT16:
+				case DL_TYPE_STORAGE_ENUM_INT16:
+				case DL_TYPE_STORAGE_ENUM_UINT16: dl_binary_writer_write_array( writer, u16, inst.array_count, sizeof(uint16_t) ); break;
 				case DL_TYPE_STORAGE_INT32:
 				case DL_TYPE_STORAGE_UINT32:
 				case DL_TYPE_STORAGE_FP32:
+				case DL_TYPE_STORAGE_ENUM_INT32:
 				case DL_TYPE_STORAGE_ENUM_UINT32: dl_binary_writer_write_array( writer, u32, inst.array_count, sizeof(uint32_t) ); break;
 				case DL_TYPE_STORAGE_INT64:
 				case DL_TYPE_STORAGE_UINT64:
-				case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_array( writer, u64, inst.array_count, sizeof(uint64_t) ); break;
+				case DL_TYPE_STORAGE_FP64:
+				case DL_TYPE_STORAGE_ENUM_INT64:
+				case DL_TYPE_STORAGE_ENUM_UINT64: dl_binary_writer_write_array( writer, u64, inst.array_count, sizeof(uint64_t) ); break;
 
 				default:
 					DL_ASSERT(false && "Unknown storage type!");

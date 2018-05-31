@@ -161,7 +161,13 @@ static void dl_txt_unpack_ptr( dl_binary_writer* writer, uintptr_t offset )
 
 static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data );
 
-static void dl_txt_unpack_array( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, dl_type_storage_t storage, const uint8_t* array_data, uint32_t array_count, dl_typeid_t tid )
+static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
+								 dl_txt_unpack_ctx* unpack_ctx,
+								 dl_binary_writer*  writer,
+								 dl_type_storage_t  storage,
+								 const uint8_t*     array_data,
+								 uint32_t           array_count,
+								 dl_typeid_t        tid )
 {
 	dl_binary_writer_write_uint8( writer, '[' );
 	switch( storage )

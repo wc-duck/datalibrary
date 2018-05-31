@@ -24,6 +24,30 @@
 				{ "name" : "e_uint32", "type" : "enum_uint32" },
 				{ "name" : "e_uint64", "type" : "enum_uint64" }
 			]
+		},
+		"sized_enums_inl_array" : {
+			"members" : [
+				{ "name" : "e_int8",   "type" : "enum_int8[4]"   },
+				{ "name" : "e_int16",  "type" : "enum_int16[4]"  },
+				{ "name" : "e_int32",  "type" : "enum_int32[4]"  },
+				{ "name" : "e_int64",  "type" : "enum_int64[4]"  },
+				{ "name" : "e_uint8",  "type" : "enum_uint8[3]"  },
+				{ "name" : "e_uint16", "type" : "enum_uint16[3]" },
+				{ "name" : "e_uint32", "type" : "enum_uint32[3]" },
+				{ "name" : "e_uint64", "type" : "enum_uint64[3]" }
+			]
+		},
+		"sized_enums_array" : {
+			"members" : [
+				{ "name" : "e_int8",   "type" : "enum_int8[]"   },
+				{ "name" : "e_int16",  "type" : "enum_int16[]"  },
+				{ "name" : "e_int32",  "type" : "enum_int32[]"  },
+				{ "name" : "e_int64",  "type" : "enum_int64[]"  },
+				{ "name" : "e_uint8",  "type" : "enum_uint8[]"  },
+				{ "name" : "e_uint16", "type" : "enum_uint16[]" },
+				{ "name" : "e_uint32", "type" : "enum_uint32[]" },
+				{ "name" : "e_uint64", "type" : "enum_uint64[]" }
+			]
 		}
 	}
 }
