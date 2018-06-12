@@ -11,6 +11,8 @@
 
 #include <dl/dl.h>
 
+#include <stdint.h>
+
 /*
 	Struct: dl_type_context_info_t
 		Struct used to retrieve information about the dl_context
