@@ -216,15 +216,21 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 		case DL_TYPE_STORAGE_ENUM_INT8:
 		case DL_TYPE_STORAGE_ENUM_INT16:
 		case DL_TYPE_STORAGE_ENUM_INT32:
-		case DL_TYPE_STORAGE_ENUM_INT64:
 		case DL_TYPE_STORAGE_ENUM_UINT8:
 		case DL_TYPE_STORAGE_ENUM_UINT16:
 		case DL_TYPE_STORAGE_ENUM_UINT32:
-		case DL_TYPE_STORAGE_ENUM_UINT64:
 		{
 			dl_enum_info_t enum_info;
 			dl_reflect_get_enum_info( ctx, tid, &enum_info );
 			dl_binary_writer_write_string_fmt(writer, "enum %s", enum_info.name);
+			return;
+		}
+		case DL_TYPE_STORAGE_ENUM_INT64:
+		case DL_TYPE_STORAGE_ENUM_UINT64:
+		{
+			dl_enum_info_t enum_info;
+			dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) enum %s", enum_info.name);
 			return;
 		}
 		case DL_TYPE_STORAGE_INT8:   dl_binary_writer_write_string_fmt(writer, "int8_t"); return;
@@ -255,9 +261,17 @@ static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_s
 {
 	switch( storage )
 	{
-		case DL_TYPE_STORAGE_INT64:  dl_binary_writer_write_string_fmt(writer, "int64_t"); return;
+		case DL_TYPE_STORAGE_INT64:  dl_binary_writer_write_string_fmt(writer, "int64_t");  return;
 		case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_string_fmt(writer, "uint64_t"); return;
-		case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_string_fmt(writer, "double"); return;
+		case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_string_fmt(writer, "double");   return;
+		case DL_TYPE_STORAGE_ENUM_INT64:
+		case DL_TYPE_STORAGE_ENUM_UINT64:
+		{
+			dl_enum_info_t enum_info;
+			dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			dl_binary_writer_write_string_fmt(writer, "enum %s", enum_info.name);
+			return;
+		}
 		default:
 			dl_context_write_type( ctx, storage, tid, writer );
 			return;
@@ -288,15 +302,21 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				case DL_TYPE_STORAGE_ENUM_INT8:
 				case DL_TYPE_STORAGE_ENUM_INT16:
 				case DL_TYPE_STORAGE_ENUM_INT32:
-				case DL_TYPE_STORAGE_ENUM_INT64:
 				case DL_TYPE_STORAGE_ENUM_UINT8:
 				case DL_TYPE_STORAGE_ENUM_UINT16:
 				case DL_TYPE_STORAGE_ENUM_UINT32:
-				case DL_TYPE_STORAGE_ENUM_UINT64:
 				{
 					dl_enum_info_t sub_type;
 					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
 					dl_binary_writer_write_string_fmt( writer, "    enum %s %s;\n", sub_type.name, member->name );
+				}
+				break;
+				case DL_TYPE_STORAGE_ENUM_INT64:
+				case DL_TYPE_STORAGE_ENUM_UINT64:
+				{
+					dl_enum_info_t sub_type;
+					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
+					dl_binary_writer_write_string_fmt( writer, "    DL_ALIGN(8) enum %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				default:
@@ -321,7 +341,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 		{
 			dl_binary_writer_write_string_fmt( writer, "    struct\n    {\n"
 													   "        " );
-			dl_context_write_type(ctx, member->storage, member->type_id, writer);
+			dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
 			dl_binary_writer_write_string_fmt( writer, "* data;\n"
 													   "        uint32_t count;\n"
 													   "    #if defined( __cplusplus )\n"

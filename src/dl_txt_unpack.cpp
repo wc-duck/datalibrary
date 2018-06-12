@@ -138,7 +138,7 @@ static void dl_txt_unpack_enum( dl_ctx_t dl_ctx, dl_binary_writer* writer, const
 			return;
 		}
 	}
-	DL_ASSERT(false);
+	DL_ASSERT(false, "failed to find enum value " DL_PINT_FMT_STR, value);
 }
 
 static void dl_txt_unpack_ptr( dl_binary_writer* writer, uintptr_t offset )

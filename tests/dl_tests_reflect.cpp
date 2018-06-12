@@ -160,11 +160,11 @@ TEST_F(DLReflect, enum_member_size_align)
 	EXPECT_EQ(DL_ALIGNMENTOF(int8_t),   members[0].alignment);
 	EXPECT_EQ(DL_ALIGNMENTOF(int16_t),  members[1].alignment);
 	EXPECT_EQ(DL_ALIGNMENTOF(int32_t),  members[2].alignment);
-	EXPECT_EQ(DL_ALIGNMENTOF(int64_t),  members[3].alignment);
+	EXPECT_EQ(                     8u,  members[3].alignment);
 	EXPECT_EQ(DL_ALIGNMENTOF(uint8_t),  members[4].alignment);
 	EXPECT_EQ(DL_ALIGNMENTOF(uint16_t), members[5].alignment);
 	EXPECT_EQ(DL_ALIGNMENTOF(uint32_t), members[6].alignment);
-	EXPECT_EQ(DL_ALIGNMENTOF(uint64_t), members[7].alignment);
+	EXPECT_EQ(                     8u,  members[7].alignment);
 
 #undef CHECK_INL_ARRAY
 }
