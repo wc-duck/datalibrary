@@ -5,7 +5,14 @@
 #include <dl/dl_reflect.h>
 
 #include "dl_test_common.h"
-#include "generated/sized_enums.h"
+#if defined(_MSC_VER)
+#  pragma warning ( push )
+#  pragma warning ( disable: 4480 ) // nonstandard extension used: specifying underlying type for enum
+#endif
+#  include "generated/sized_enums.h"
+#if defined(_MSC_VER)
+#  pragma warning ( pop )
+#endif
 
 template<class T>
 struct TAlignmentOf
