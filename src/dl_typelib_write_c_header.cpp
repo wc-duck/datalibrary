@@ -229,7 +229,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
             {
                 dl_binary_writer_write_string_fmt( writer, "static const %s", enum_infos[enum_index].name);
                 dl_context_write_c_header_enum_value( writer, enum_infos[enum_index].storage, &values[j] );
-                dl_binary_writer_write_string_fmt( writer, ";\n", enum_infos[enum_index].name);
+                dl_binary_writer_write_string_fmt( writer, ";\n");
             }
 
             dl_binary_writer_write_string_fmt( writer, "#endif // DL_SIZED_ENUM_SUPPORTED\n\n");
