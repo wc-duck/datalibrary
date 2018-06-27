@@ -2,14 +2,7 @@
 
 #include "dl_test_common.h"
 #include "dl_tests_base.h"
-#if defined(_MSC_VER)
-#  pragma warning ( push )
-#  pragma warning ( disable: 4480 ) // nonstandard extension used: specifying underlying type for enum
-#endif
-#  include "generated/sized_enums.h"
-#if defined(_MSC_VER)
-#  pragma warning ( pop )
-#endif
+#include "generated/sized_enums.h"
 
 static_assert(sizeof(enum_int8)   == sizeof(int8_t),   "size of enum is incorrect");
 static_assert(sizeof(enum_int16)  == sizeof(int16_t),  "size of enum is incorrect");

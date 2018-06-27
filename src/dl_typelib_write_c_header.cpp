@@ -12,7 +12,7 @@ static void dl_binary_writer_write_string_fmt( dl_binary_writer* writer, const c
 
 static void dl_binary_writer_write_string_fmt( dl_binary_writer* writer, const char* fmt, ... )
 {
-	char buffer[2048];
+	char buffer[4096];
 	va_list arg_ptr;
 
 	va_start(arg_ptr, fmt);
@@ -33,6 +33,21 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "#ifndef __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n"
 									   "#define __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n"
 									   "\n"
+                                       "#  if !defined(__cplusplus)\n"
+                                       "#    define DL_SIZED_ENUM_SUPPORTED 0\n"
+                                       "#  else\n"
+                                       "#    if defined(_MSC_VER)\n"
+                                       "#      if _MSC_VER < 1900\n"
+                                       "#        define DL_SIZED_ENUM_SUPPORTED 0\n"
+                                       "#      else\n"
+                                       "#        define DL_SIZED_ENUM_SUPPORTED 0\n"
+                                       "#      endif\n"
+                                       "#    else\n"
+                                       "       // this would need more work but it is good enough for now\n"
+                                       "#      define DL_SIZED_ENUM_SUPPORTED 1\n"
+                                       "#    endif\n"
+                                       "#  endif\n"
+                                       "\n"
 									   "   /// ... DL_ALIGN() ...\n"
 									   "#  if defined(_MSC_VER)\n"
 									   "#    define DL_ALIGN(x) __declspec(align(x))\n"
@@ -176,9 +191,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 	{
 		if(enum_infos[enum_index].storage != DL_TYPE_STORAGE_ENUM_UINT32)
-			dl_binary_writer_write_string_fmt( writer, 
-				"// %s can not be defined for c-usage as c do not yet support declaring the storage-type for an enum\n"
-				"#if defined(__cplusplus)\n", enum_infos[enum_index].name );
+			dl_binary_writer_write_string_fmt( writer, "#if DL_SIZED_ENUM_SUPPORTED\n" );
 
 		dl_binary_writer_write_string_fmt( writer, "enum %s%s\n{\n", enum_infos[enum_index].name, dl_context_enum_storage_decl(enum_infos[enum_index].storage) );
 
@@ -192,11 +205,37 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 			dl_context_write_c_header_enum_value( writer, enum_infos[enum_index].storage, &values[j]);
 		}
 
-		free( values );
-		dl_binary_writer_write_string_fmt( writer, "\n};\n\n" );
+		dl_binary_writer_write_string_fmt( writer, "\n};\n" );
 
 		if(enum_infos[enum_index].storage != DL_TYPE_STORAGE_ENUM_UINT32)
-			dl_binary_writer_write_string_fmt( writer, "#endif // defined(__cplusplus)\n");
+        {
+            dl_binary_writer_write_string_fmt( writer, "#else // DL_SIZED_ENUM_SUPPORTED\n");
+            switch(enum_infos[enum_index].storage)
+            {
+                case DL_TYPE_STORAGE_ENUM_INT8:   dl_binary_writer_write_string_fmt( writer, "typedef int8_t %s;\n"  , enum_infos[enum_index].name); break;
+                case DL_TYPE_STORAGE_ENUM_INT16:  dl_binary_writer_write_string_fmt( writer, "typedef int16_t %s;\n" , enum_infos[enum_index].name); break;
+                case DL_TYPE_STORAGE_ENUM_INT32:  dl_binary_writer_write_string_fmt( writer, "typedef int32_t %s;\n" , enum_infos[enum_index].name); break;
+                case DL_TYPE_STORAGE_ENUM_INT64:  dl_binary_writer_write_string_fmt( writer, "typedef int64_t %s;\n" , enum_infos[enum_index].name); break;
+                case DL_TYPE_STORAGE_ENUM_UINT8:  dl_binary_writer_write_string_fmt( writer, "typedef uint8_t %s;\n" , enum_infos[enum_index].name); break;
+                case DL_TYPE_STORAGE_ENUM_UINT16: dl_binary_writer_write_string_fmt( writer, "typedef uint16_t %s;\n", enum_infos[enum_index].name); break;
+                case DL_TYPE_STORAGE_ENUM_UINT32: dl_binary_writer_write_string_fmt( writer, "typedef uint32_t %s;\n", enum_infos[enum_index].name); break;
+                case DL_TYPE_STORAGE_ENUM_UINT64: dl_binary_writer_write_string_fmt( writer, "typedef uint64_t %s;\n", enum_infos[enum_index].name); break;
+                default:
+                    /*ignore*/
+                    break;
+            }
+
+            for( unsigned int j = 0; j < enum_infos[enum_index].value_count; ++j )
+            {
+                dl_binary_writer_write_string_fmt( writer, "static const %s", enum_infos[enum_index].name);
+                dl_context_write_c_header_enum_value( writer, enum_infos[enum_index].storage, &values[j] );
+                dl_binary_writer_write_string_fmt( writer, ";\n", enum_infos[enum_index].name);
+            }
+
+            dl_binary_writer_write_string_fmt( writer, "#endif // DL_SIZED_ENUM_SUPPORTED\n\n");
+
+            free( values );
+        }
 	}
 
 	free( enum_infos );
@@ -222,7 +261,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 		{
 			dl_enum_info_t enum_info;
 			dl_reflect_get_enum_info( ctx, tid, &enum_info );
-			dl_binary_writer_write_string_fmt(writer, "enum %s", enum_info.name);
+			dl_binary_writer_write_string_fmt(writer, "%s", enum_info.name);
 			return;
 		}
 		case DL_TYPE_STORAGE_ENUM_INT64:
@@ -230,7 +269,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 		{
 			dl_enum_info_t enum_info;
 			dl_reflect_get_enum_info( ctx, tid, &enum_info );
-			dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) enum %s", enum_info.name);
+			dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) %s", enum_info.name);
 			return;
 		}
 		case DL_TYPE_STORAGE_INT8:   dl_binary_writer_write_string_fmt(writer, "int8_t"); return;
@@ -269,7 +308,7 @@ static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_s
 		{
 			dl_enum_info_t enum_info;
 			dl_reflect_get_enum_info( ctx, tid, &enum_info );
-			dl_binary_writer_write_string_fmt(writer, "enum %s", enum_info.name);
+			dl_binary_writer_write_string_fmt(writer, "%s", enum_info.name);
 			return;
 		}
 		default:
@@ -308,7 +347,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				{
 					dl_enum_info_t sub_type;
 					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    enum %s %s;\n", sub_type.name, member->name );
+					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				case DL_TYPE_STORAGE_ENUM_INT64:
@@ -316,7 +355,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				{
 					dl_enum_info_t sub_type;
 					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    DL_ALIGN(8) enum %s %s;\n", sub_type.name, member->name );
+					dl_binary_writer_write_string_fmt( writer, "    DL_ALIGN(8) %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				default:
