@@ -193,7 +193,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		if(enum_infos[enum_index].storage != DL_TYPE_STORAGE_ENUM_UINT32)
 			dl_binary_writer_write_string_fmt( writer, "#if DL_SIZED_ENUM_SUPPORTED\n" );
 
-		dl_binary_writer_write_string_fmt( writer, "enum %s%s\n{\n", enum_infos[enum_index].name, dl_context_enum_storage_decl(enum_infos[enum_index].storage) );
+		dl_binary_writer_write_string_fmt( writer, "typedef enum %s\n{\n", dl_context_enum_storage_decl(enum_infos[enum_index].storage) );
 
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_infos[enum_index].value_count * sizeof( dl_enum_value_info_t ) );
 		dl_reflect_get_enum_values( ctx, enum_infos[enum_index].tid, values, enum_infos[enum_index].value_count );
@@ -205,7 +205,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 			dl_context_write_c_header_enum_value( writer, enum_infos[enum_index].storage, &values[j]);
 		}
 
-		dl_binary_writer_write_string_fmt( writer, "\n};\n" );
+		dl_binary_writer_write_string_fmt( writer, "\n} %s;\n", enum_infos[enum_index].name );
 
 		if(enum_infos[enum_index].storage != DL_TYPE_STORAGE_ENUM_UINT32)
         {
