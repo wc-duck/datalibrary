@@ -65,6 +65,7 @@ typedef struct dl_enum_info
 	const char*       name;
 	dl_type_storage_t storage;
 	unsigned int      value_count;
+	unsigned int      is_extern : 1;
 } dl_enum_info_t;
 
 /*

@@ -151,8 +151,6 @@ static void dl_context_write_c_header_typeids( dl_binary_writer* writer, dl_ctx_
 
 static void dl_context_write_c_header_enum_value(dl_binary_writer* writer, dl_type_storage_t storage, const dl_enum_value_info_t* value)
 {
-	dl_binary_writer_write_string_fmt( writer, "    %s = ", value->name);
-
 	switch(storage)
 	{
 		case DL_TYPE_STORAGE_ENUM_INT8:   if(value->value.i8  == INT8_MIN)   { dl_binary_writer_write_string( writer, "INT8_MIN",    8 ); return; }
@@ -218,6 +216,9 @@ static const char* dl_context_enum_storage_decl(dl_type_storage_t storage)
 
 static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t ctx, dl_enum_info_t* e_info )
 {
+	if( e_info->is_extern )
+		return;
+
 	dl_binary_writer_write_string_fmt( writer, "typedef enum%s\n{\n", dl_context_enum_storage_decl(e_info->storage) );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof( dl_enum_value_info_t ) );
@@ -227,6 +228,7 @@ static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t c
 	{
 		if(j > 0)
 			dl_binary_writer_write_string( writer, ",\n", 2 );
+		dl_binary_writer_write_string_fmt(writer, "    %s = ", values[j].name);
 		dl_context_write_c_header_enum_value( writer, e_info->storage, &values[j]);
 	}
 
@@ -239,6 +241,9 @@ static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t c
  */
 static void dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, dl_ctx_t ctx, dl_enum_info_t* e_info )
 {
+	if( e_info->is_extern )
+		return;
+
     switch(e_info->storage)
 	{
 		case DL_TYPE_STORAGE_ENUM_INT8:   dl_binary_writer_write_string_fmt( writer, "typedef int8_t %s;\n"  , e_info->name); break;
@@ -259,7 +264,7 @@ static void dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, d
 
 	for( unsigned int j = 0; j < e_info->value_count; ++j )
 	{
-		dl_binary_writer_write_string_fmt( writer, "static const %s", e_info->name);
+		dl_binary_writer_write_string_fmt( writer, "static const %s %s = ", e_info->name, values[j].name );
 		dl_context_write_c_header_enum_value( writer, e_info->storage, &values[j] );
 		dl_binary_writer_write_string_fmt( writer, ";\n");
 	}
@@ -283,22 +288,69 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof( dl_enum_info_t ) );
 	dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
 
-	dl_binary_writer_write_string_fmt( writer, "#if DL_SIZED_ENUM_SUPPORTED\n\n" );
+	unsigned int extern_cnt = 0;
 
-	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
-		dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
-
-	dl_binary_writer_write_string_fmt( writer, "#else // DL_SIZED_ENUM_SUPPORTED\n\n");
-
+	// generate static checks for extern enums
 	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 	{
-		if(enum_infos[enum_index].storage == DL_TYPE_STORAGE_ENUM_UINT32)
-			dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
-		else
-			dl_context_write_c_header_enum_fallback( writer, ctx, &enum_infos[enum_index] );
+		dl_enum_info_t* enum_ = enum_infos + enum_index;
+		if(!enum_->is_extern)
+			continue;
+
+		extern_cnt++;
+
+		unsigned int enum_size = 0;
+		switch(enum_->storage)
+		{
+			case DL_TYPE_STORAGE_ENUM_INT8:
+			case DL_TYPE_STORAGE_ENUM_UINT8:  enum_size = 1; break;
+			case DL_TYPE_STORAGE_ENUM_INT16:
+			case DL_TYPE_STORAGE_ENUM_UINT16: enum_size = 2; break;
+			case DL_TYPE_STORAGE_ENUM_INT32:
+			case DL_TYPE_STORAGE_ENUM_UINT32: enum_size = 4; break;
+			case DL_TYPE_STORAGE_ENUM_INT64:
+			case DL_TYPE_STORAGE_ENUM_UINT64: enum_size = 8; break;
+			default:
+				/*ignore*/
+				break;
+		};
+
+		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(sizeof(enum %s) == %u, \"size of external enum %s do not match what was specified in tld.\");\n", enum_->name, enum_size, enum_->name );
+
+		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof( dl_enum_value_info_t ) );
+		dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
+
+		for( unsigned int j = 0; j < enum_->value_count; ++j )
+		{
+			dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(%s == ", values[j].name );
+			dl_context_write_c_header_enum_value( writer, enum_->storage, &values[j]);
+			dl_binary_writer_write_string_fmt( writer, ", \"value of enum-value do not match what was specified in tld.\");\n" );
+		}
+
+		free(values);
+
+		dl_binary_writer_write_string_fmt( writer, "\n" );
 	}
 
-	dl_binary_writer_write_string_fmt( writer, "#endif // DL_SIZED_ENUM_SUPPORTED\n\n");
+	if(extern_cnt != ctx_info.num_enums)
+	{
+		dl_binary_writer_write_string_fmt( writer, "#if DL_SIZED_ENUM_SUPPORTED\n\n" );
+
+		for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
+			dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
+
+		dl_binary_writer_write_string_fmt( writer, "#else // DL_SIZED_ENUM_SUPPORTED\n\n");
+
+		for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
+		{
+			if(enum_infos[enum_index].storage == DL_TYPE_STORAGE_ENUM_UINT32)
+				dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
+			else
+				dl_context_write_c_header_enum_fallback( writer, ctx, &enum_infos[enum_index] );
+		}
+
+		dl_binary_writer_write_string_fmt( writer, "#endif // DL_SIZED_ENUM_SUPPORTED\n\n");
+	}
 
 	free( enum_infos );
 }
@@ -536,8 +588,6 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		dl_type_info_t* type = &type_info[type_index];
 
 		// if the type is "extern" no header struct should be generated for it.
-		// TODO: generate some checks that the extern struct matches the one defined in dl by generating
-		//       static asserts on size/alignment and member offset?
 		if( type->is_extern )
 			continue;
 

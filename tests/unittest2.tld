@@ -1,6 +1,18 @@
 {
 	"module" : "unit_test_2",
 
+	"enums" : {
+		"extern_enum" : {
+			"extern" : true,
+			"values" : {
+				"extern_value1" : 0,
+				"extern_value2" : 1,
+				"extern_value3" : 2,
+				"extern_value4" : 3
+			}
+		}
+	},
+
 	"types" : {
 		"BugTest1_InArray" : { "members" : [ { "name" : "u64_1", "type" : "uint64" },
 											 { "name" : "u64_2", "type" : "uint64" },

@@ -221,6 +221,7 @@ struct dl_enum_value_desc
 struct dl_enum_desc
 {
 	uint32_t          name;
+	uint32_t          flags;
 	dl_type_storage_t storage;
 	uint32_t          value_count;
 	uint32_t          value_start;

@@ -48,6 +48,7 @@ static void dl_reflect_copy_enum_info( dl_ctx_t ctx, dl_enum_info_t* enuminfo, c
 	enuminfo->name        = dl_internal_enum_name( ctx, enum_ );
 	enuminfo->storage     = enum_->storage;
 	enuminfo->value_count = enum_->value_count;
+	enuminfo->is_extern   = ( enum_->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
 }
 
 dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_type_info_t* out_types, unsigned int out_types_size )

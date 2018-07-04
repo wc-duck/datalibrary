@@ -588,11 +588,13 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 															 dl_txt_read_substr* name,
 															 const char** values_iter,
 															 const char** type_iter,
-															 const char** end_iter )
+															 const char** end_iter,
+															 bool*        is_extern)
 {
 	*values_iter = 0x0;
-	*type_iter = 0x0;
-	*end_iter = 0x0;
+	*type_iter   = 0x0;
+	*end_iter    = 0x0;
+	*is_extern   = false;
 
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
@@ -610,13 +612,17 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 		}
 		else if( strncmp( "type", key.str, 4 ) == 0 )
 		{
-				if(*type_iter)
-					dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'type' set twice on enum '%.*s'", name->len, name->str );
-				*type_iter = read_state->iter;
-				read_state->iter = dl_txt_skip_string(read_state->iter + 1, read_state->end) + 1; // TODO: fix haxx, skip_string is not eating ' or "
+			if(*type_iter)
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'type' set twice on enum '%.*s'", name->len, name->str );
+			*type_iter = read_state->iter;
+			read_state->iter = dl_txt_skip_string(read_state->iter + 1, read_state->end) + 1; // TODO: fix haxx, skip_string is not eating ' or "
+		}
+		else if( strncmp( "extern", key.str, 6 ) == 0 )
+		{
+			*is_extern = dl_txt_eat_bool( read_state ) == 1;
 		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values' and 'type'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values', 'type' and 'extern'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 	dl_txt_eat_char( ctx, read_state, '}' );
@@ -635,7 +641,8 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	const char* values_iter;
 	const char* type_iter;
 	const char* end_iter;
-	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &values_iter, &type_iter, &end_iter);
+	bool        is_extern;
+	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &values_iter, &type_iter, &end_iter, &is_extern);
 
 	dl_type_storage_t storage = DL_TYPE_STORAGE_CNT;
 	if(type_iter)
@@ -701,6 +708,7 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	// TODO: add test for missing enum value ...
 
 	dl_enum_desc* edesc = dl_alloc_enum(ctx, name);
+	edesc->flags       = is_extern ? (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL : 0;
 	edesc->storage     = storage;
 	edesc->value_count = ctx->enum_value_count - value_start;
 	edesc->value_start = value_start;
