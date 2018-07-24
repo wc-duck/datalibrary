@@ -96,7 +96,7 @@ static void typelibtxt_expect_error( dl_ctx_t ctx, dl_error_t expect, const char
 	EXPECT_DL_ERR_EQ( expect, dl_context_load_txt_type_library( ctx, libstr, strlen(libstr) ) );
 }
 
-TEST_F( DLTypeLibTxt, missing_type )
+TEST_F( DLTypeLibTxt, member_missing_type )
 {
 	typelibtxt_expect_error( ctx, DL_ERROR_TYPE_NOT_FOUND, STRINGIFY({
 		"module" : "small",
@@ -105,6 +105,27 @@ TEST_F( DLTypeLibTxt, missing_type )
 		}
 	}));
 }
+
+TEST_F( DLTypeLibTxt, member_missing_type_2 )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA, STRINGIFY({
+		"module" : "small",
+		"types" : {
+			"single_int" : { "members" : [ { "name" : "member" } ] }
+		}
+	}));
+}
+
+TEST_F( DLTypeLibTxt, member_missing_name )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA, STRINGIFY({
+		"module" : "small",
+		"types" : {
+			"single_int" : { "members" : [ { "type" : "uint32" } ] }
+		}
+	}));
+}
+
 
 TEST_F( DLTypeLibTxt, missing_comma )
 {

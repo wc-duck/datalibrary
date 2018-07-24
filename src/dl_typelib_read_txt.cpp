@@ -959,6 +959,11 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
+	if(type.str == 0x0)
+		dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "member in type is missing 'type'-field");
+	if(name.str == 0x0)
+		dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "member in type is missing 'name'-field");
+
 	dl_member_desc* member = dl_alloc_member( ctx );
 	member->name = dl_alloc_string( ctx, &name );
 	dl_parse_type( ctx, &type, member, read_state );
