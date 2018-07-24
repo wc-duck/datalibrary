@@ -1,4 +1,5 @@
 #include <dl/dl_typelib.h>
+#include "dl_internal_util.h"
 #include "dl_types.h"
 
 static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
@@ -54,7 +55,7 @@ static void dl_endian_swap_enum_desc( dl_enum_desc* desc )
 
 static void dl_endian_swap_member_desc( dl_member_desc* desc )
 {
-	desc->type                         = dl_swap_endian_dl_type( desc->type );
+	desc->type                         = (dl_type_t)dl_swap_endian_uint32( (uint32_t)desc->type );
 	desc->type_id	                   = dl_swap_endian_uint32( desc->type_id );
 	desc->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_32BIT] );
 	desc->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_64BIT] );
@@ -67,17 +68,7 @@ static void dl_endian_swap_member_desc( dl_member_desc* desc )
 
 static void dl_endian_swap_enum_value_desc( dl_enum_value_desc* desc )
 {
-	desc->value = dl_swap_endian_uint32( desc->value );
-}
-
-template <typename T>
-static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t need )
-{
-	size_t old_cap = *cap;
-	if( need < old_cap )
-		return ptr;
-	*cap = need;
-	return (T*)dl_realloc( alloc, ptr, need * sizeof( T ), old_cap * sizeof( T ) );
+	desc->value = dl_swap_endian_uint64( desc->value );
 }
 
 dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* lib_data, size_t lib_data_size )
@@ -146,6 +137,18 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	{
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].name += td_str_offset;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
+		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].alias_start += dl_ctx->enum_alias_count;
+	}
+
+	for( unsigned int i = 0; i < header.enum_alias_count; ++i )
+	{
+		dl_ctx->enum_alias_descs[ dl_ctx->enum_alias_count + i ].name += td_str_offset;
+		dl_ctx->enum_alias_descs[ dl_ctx->enum_alias_count + i ].value_index += dl_ctx->enum_value_count;
+	}
+
+	for( unsigned int i = 0; i < header.enum_value_count; ++i )
+	{
+		dl_ctx->enum_value_descs[ dl_ctx->enum_value_count + i ].main_alias += dl_ctx->enum_alias_count;
 	}
 
 	dl_ctx->type_count += header.type_count;

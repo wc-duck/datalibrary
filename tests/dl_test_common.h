@@ -16,7 +16,9 @@
 	#define snprintf _snprintf // ugly fugly.
 #endif // defined(_MSC_VER)
 
-#define EXPECT_DL_ERR_EQ(_Expect, _Res) { EXPECT_EQ(_Expect, _Res) << "Result:   " << dl_error_to_string(_Res) ; }
+#define ASSERT_DL_ERR_EQ(_Expect, _Res) { dl_error_t err = _Res; ASSERT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
+#define ASSERT_DL_ERR_OK(_Res) ASSERT_DL_ERR_EQ( DL_ERROR_OK, _Res)
+#define EXPECT_DL_ERR_EQ(_Expect, _Res) { dl_error_t err = _Res; EXPECT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
 #define EXPECT_DL_ERR_OK(_Res) EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
 #define DL_ARRAY_LENGTH(Array) (uint32_t)(sizeof(Array)/sizeof(Array[0]))
 
@@ -37,8 +39,8 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 #define EXPECT_ARRAY_EQ(_Count, _Expect, _Actual) \
 	{ \
 		bool WasEq = true; \
-		for(unsigned int i = 0; i < _Count && WasEq; ++i) \
-			WasEq = _Expect[i] == _Actual[i]; \
+		for(unsigned int EXPECT_ARRAY_EQ_i = 0; EXPECT_ARRAY_EQ_i < _Count && WasEq; ++EXPECT_ARRAY_EQ_i) \
+			WasEq = _Expect[EXPECT_ARRAY_EQ_i] == _Actual[EXPECT_ARRAY_EQ_i]; \
 		char ExpectBuf[1024]; \
 		char ActualBuf[1024]; \
 		char Err[2048]; \
@@ -52,30 +54,8 @@ struct DL : public ::testing::Test
 {
 	virtual ~DL() {}
 
-	virtual void SetUp()
-	{
-		// bake the unittest-type library into the exe!
-		static const unsigned char TypeLib1[] =
-		{
-			#include "generated/unittest.bin.h"
-		};
-		static const unsigned char TypeLib2[] =
-		{
-			#include "generated/unittest2.bin.h"
-		};
-
-		dl_create_params_t p;
-		DL_CREATE_PARAMS_SET_DEFAULT(p);
-
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &p ) );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib1, sizeof(TypeLib1)) );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib2, sizeof(TypeLib2)) );
-	}
-
-	virtual void TearDown()
-	{
-		EXPECT_EQ(DL_ERROR_OK, dl_context_destroy(Ctx));
-	}
+	virtual void SetUp();
+	virtual void TearDown();
 
 	dl_ctx_t Ctx;
 };

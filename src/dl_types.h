@@ -49,6 +49,30 @@ static const uint32_t DL_UNUSED DL_INSTANCE_ID_SWAPED      = dl_swap_endian_uint
 
 #undef DL_UNUSED
 
+typedef enum
+{
+	// Type-layout
+	DL_TYPE_ATOM_MIN_BIT             = 0,
+	DL_TYPE_ATOM_MAX_BIT             = 7,
+	DL_TYPE_STORAGE_MIN_BIT          = 8,
+	DL_TYPE_STORAGE_MAX_BIT          = 15,
+	DL_TYPE_BITFIELD_SIZE_MIN_BIT    = 16,
+	DL_TYPE_BITFIELD_SIZE_MAX_BIT    = 23,
+	DL_TYPE_BITFIELD_OFFSET_MIN_BIT  = 24,
+	DL_TYPE_BITFIELD_OFFSET_MAX_BIT  = 31,
+	DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT = 16,
+	DL_TYPE_INLINE_ARRAY_CNT_MAX_BIT = 31,
+
+	// Masks
+	DL_TYPE_ATOM_MASK             = DL_BITRANGE(DL_TYPE_ATOM_MIN_BIT,             DL_TYPE_ATOM_MAX_BIT),
+	DL_TYPE_STORAGE_MASK          = DL_BITRANGE(DL_TYPE_STORAGE_MIN_BIT,          DL_TYPE_STORAGE_MAX_BIT),
+	DL_TYPE_BITFIELD_SIZE_MASK    = DL_BITRANGE(DL_TYPE_BITFIELD_SIZE_MIN_BIT,    DL_TYPE_BITFIELD_SIZE_MAX_BIT),
+	DL_TYPE_BITFIELD_OFFSET_MASK  = DL_BITRANGE(DL_TYPE_BITFIELD_OFFSET_MIN_BIT,  DL_TYPE_BITFIELD_OFFSET_MAX_BIT),
+	DL_TYPE_INLINE_ARRAY_CNT_MASK = DL_BITRANGE(DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT, DL_TYPE_INLINE_ARRAY_CNT_MAX_BIT),
+
+	DL_TYPE_FORCE_32_BIT = 0x7FFFFFFF
+} dl_type_t;
+
 static const uintptr_t DL_NULL_PTR_OFFSET[2] =
 {
 	(uintptr_t)0xFFFFFFFF, // DL_PTR_SIZE_32BIT
@@ -99,11 +123,16 @@ struct dl_member_desc
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
 
-	dl_type_t AtomType()       const { return dl_type_t( type & DL_TYPE_ATOM_MASK); }
-	dl_type_t StorageType()    const { return dl_type_t( type & DL_TYPE_STORAGE_MASK); }
-	uint32_t  BitFieldBits()   const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_BITS_USED); }
-	uint32_t  BitFieldOffset() const { return DL_EXTRACT_BITS(type, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED); }
-	bool      IsSimplePod()    const { return StorageType() >= DL_TYPE_STORAGE_INT8 && StorageType() <= DL_TYPE_STORAGE_FP64; }
+	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
+	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
+	uint32_t          bitfield_bits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
+	uint32_t          bitfield_offset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
+	bool              IsSimplePod()     const
+	{
+		return StorageType() != DL_TYPE_STORAGE_STR &&
+	           StorageType() != DL_TYPE_STORAGE_PTR &&
+	           StorageType() != DL_TYPE_STORAGE_STRUCT;
+	}
 
 	void set_size( uint32_t bit32, uint32_t bit64 )
 	{
@@ -115,6 +144,12 @@ struct dl_member_desc
 	{
 		alignment[ DL_PTR_SIZE_32BIT ] = bit32;
 		alignment[ DL_PTR_SIZE_64BIT ] = bit64;
+	}
+
+	void set_offset( uint32_t bit32, uint32_t bit64 )
+	{
+		offset[ DL_PTR_SIZE_32BIT ] = bit32;
+		offset[ DL_PTR_SIZE_64BIT ] = bit64;
 	}
 
 	void copy_size( const uint32_t* insize )
@@ -129,29 +164,29 @@ struct dl_member_desc
 		alignment[ DL_PTR_SIZE_64BIT ] = inalignment[ DL_PTR_SIZE_64BIT ];
 	}
 
-	void SetStorage( dl_type_t storage )
+	void set_storage( dl_type_storage_t storage )
 	{
-		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_STORAGE_MASK ) | (unsigned int)storage );
+		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_STORAGE_MASK ) | ((unsigned int)storage << DL_TYPE_STORAGE_MIN_BIT) );
 	}
 
-	void SetBitFieldBits( unsigned int bits )
+	void set_bitfield_bits( unsigned int bits )
 	{
-		type = (dl_type_t)DL_INSERT_BITS( type, bits, DL_TYPE_BITFIELD_SIZE_MIN_BIT, DL_TYPE_BITFIELD_SIZE_BITS_USED );
+		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_BITFIELD_SIZE_MASK ) | (bits << DL_TYPE_BITFIELD_SIZE_MIN_BIT) );
 	}
 
-	void SetBitFieldOffset( unsigned int bfoffset )
+	void set_bitfield_offset( unsigned int bfoffset )
 	{
-		type = (dl_type_t)DL_INSERT_BITS( type, bfoffset, DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_BITS_USED );
+		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_BITFIELD_OFFSET_MASK ) | (bfoffset << DL_TYPE_BITFIELD_OFFSET_MIN_BIT) );
 	}
 
 	uint32_t inline_array_cnt() const
 	{
-		return DL_EXTRACT_BITS( type, DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT, DL_TYPE_INLINE_ARRAY_CNT_BITS_USED );
+		return (uint32_t)(type & DL_TYPE_INLINE_ARRAY_CNT_MASK) >> DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT;
 	}
 
 	void set_inline_array_cnt( uint32_t bits )
 	{
-		type = (dl_type_t)DL_INSERT_BITS( type, bits, DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT, DL_TYPE_INLINE_ARRAY_CNT_BITS_USED );
+		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_INLINE_ARRAY_CNT_MASK ) | (bits << DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT) );
 	}
 };
 
@@ -162,6 +197,7 @@ enum dl_type_flags
 {
 	DL_TYPE_FLAG_HAS_SUBDATA = 1 << 0, ///< the type has subdata and need pointer patching.
 	DL_TYPE_FLAG_IS_EXTERNAL = 1 << 1, ///< the type is marked as "external", this says that the type is not emitted in headers and expected to get defined by the user.
+	DL_TYPE_FLAG_IS_UNION    = 1 << 2, ///< the type is a "union" type.
 
 	DL_TYPE_FLAG_DEFAULT = 0,
 };
@@ -179,16 +215,18 @@ struct dl_type_desc
 struct dl_enum_value_desc
 {
 	uint32_t main_alias;
-	uint32_t value;
+	uint64_t value;
 };
 
 struct dl_enum_desc
 {
-	uint32_t name;
-	uint32_t value_count;
-	uint32_t value_start;
-	uint32_t alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
-	uint32_t alias_start; /// offset into alias list where aliases for this enum-value start.
+	uint32_t          name;
+	uint32_t          flags;
+	dl_type_storage_t storage;
+	uint32_t          value_count;
+	uint32_t          value_start;
+	uint32_t          alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
+	uint32_t          alias_start; /// offset into alias list where aliases for this enum-value start.
 };
 
 struct dl_enum_alias_desc
@@ -291,39 +329,43 @@ static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx
 	return 0x0;
 }
 
-static inline size_t dl_pod_size( dl_type_t type )
+static inline size_t dl_pod_size( dl_type_storage_t storage )
 {
-	switch( type & DL_TYPE_STORAGE_MASK )
+	switch( storage )
 	{
 		case DL_TYPE_STORAGE_INT8:  
-		case DL_TYPE_STORAGE_UINT8:  return 1;
+		case DL_TYPE_STORAGE_UINT8:
+		case DL_TYPE_STORAGE_ENUM_INT8:
+		case DL_TYPE_STORAGE_ENUM_UINT8:
+			return 1;
 
 		case DL_TYPE_STORAGE_INT16: 
-		case DL_TYPE_STORAGE_UINT16: return 2;
+		case DL_TYPE_STORAGE_UINT16:
+		case DL_TYPE_STORAGE_ENUM_INT16: 
+		case DL_TYPE_STORAGE_ENUM_UINT16:
+			return 2;
 
 		case DL_TYPE_STORAGE_INT32: 
 		case DL_TYPE_STORAGE_UINT32: 
 		case DL_TYPE_STORAGE_FP32: 
-		case DL_TYPE_STORAGE_ENUM:   return 4;
+		case DL_TYPE_STORAGE_ENUM_INT32:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
+			return 4;
 
 		case DL_TYPE_STORAGE_INT64: 
 		case DL_TYPE_STORAGE_UINT64: 
-		case DL_TYPE_STORAGE_FP64:   return 8;
+		case DL_TYPE_STORAGE_FP64:
+		case DL_TYPE_STORAGE_ENUM_INT64:
+		case DL_TYPE_STORAGE_ENUM_UINT64:
+			return 8;
+
+		case DL_TYPE_STORAGE_STR:
+		case DL_TYPE_STORAGE_PTR:
+			return sizeof(void*);
 
 		default:
 			DL_ASSERT(false && "This should not happen!");
 			return 0;
-	}
-}
-
-static inline size_t dl_internal_align_of_type( dl_ctx_t ctx, dl_type_t type, dl_typeid_t type_id, dl_ptr_size_t ptr_size )
-{
-	switch( type & DL_TYPE_STORAGE_MASK )
-	{
-		case DL_TYPE_STORAGE_STRUCT: return dl_internal_find_type( ctx, type_id )->alignment[ptr_size];
-		case DL_TYPE_STORAGE_STR:
-		case DL_TYPE_STORAGE_PTR:    return sizeof(void*);
-		default:                     return dl_pod_size( type );
 	}
 }
 
@@ -346,6 +388,32 @@ static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_t
 	return &ctx->member_descs[ type->member_start + member_index ];
 }
 
+static inline uint32_t dl_internal_largest_member_size( dl_ctx_t ctx, const dl_type_desc* type, dl_ptr_size_t ptr_size )
+{
+	uint32_t max_member_size = 0; // TODO: calc and store this in type?
+	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+	{
+		const dl_member_desc* member = dl_get_type_member( ctx, type, member_index );
+		max_member_size = member->size[ptr_size] > max_member_size ? member->size[ptr_size] : max_member_size;
+	}
+	return max_member_size;
+}
+
+static inline const dl_member_desc* dl_internal_find_member_desc_by_name_hash( dl_ctx_t dl_ctx, const dl_type_desc* type, uint32_t name_hash )
+{
+	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
+	{
+		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
+		const char* member_name = dl_internal_member_name( dl_ctx, member );
+
+		// TODO: cache hashed name in ctx, this needs to be done not to depend on saving the string-names in the ctx.
+		uint32_t member_name_hash = dl_internal_hash_string( member_name );
+		if( member_name_hash == name_hash )
+			return member;
+	}
+	return 0x0;
+}
+
 static inline const dl_enum_value_desc* dl_get_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, unsigned int value_index )
 {
 	return ctx->enum_value_descs + e->value_start + value_index;
@@ -365,7 +433,7 @@ static inline unsigned int dl_internal_find_member( dl_ctx_t ctx, const dl_type_
 	return type->member_count + 1;
 }
 
-static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, const char* name, size_t name_len, uint32_t* value )
+static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, const char* name, size_t name_len, uint64_t* value )
 {
 	for( unsigned int j = 0; j < e->alias_count; ++j )
 	{
@@ -377,23 +445,6 @@ static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc
 		}
 	}
 	return false;
-}
-
-static inline const char* dl_internal_find_enum_name( dl_ctx_t dl_ctx, dl_typeid_t type_id, uint32_t value )
-{
-	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );
-
-	if( e == 0x0 )
-		return "UnknownEnum!";
-
-	for( unsigned int j = 0; j < e->value_count; ++j )
-	{
-		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, j );
-		if( v->value == value )
-			return dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias] );
-	}
-
-	return "UnknownEnum!";
 }
 
 #endif // DL_DL_TYPES_H_INCLUDED

@@ -128,10 +128,8 @@ static bool load_typelib( dl_ctx_t ctx, FILE* f )
 	size_t size = 0;
 	unsigned char* data = read_entire_stream( f, &size );
 
-	dl_error_t err;
-	if( data[2] == 'L' && data[3] == 'D' && data[0] == 'L' && data[1] == 'T' ) // TODO: endianness.
-		err = dl_context_load_type_library( ctx, data, size ); // ... binary lib ...
-	else
+	dl_error_t err = dl_context_load_type_library( ctx, data, size );
+	if( err != DL_ERROR_OK )
 		err = dl_context_load_txt_type_library( ctx, (const char*)data, size ); // ... try text ...
 
 	free( data );
@@ -299,7 +297,7 @@ static void show_tl_info( dl_ctx_t ctx )
 		dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
 
 		for( unsigned int j = 0; j < enum_->value_count; ++j )
-			printf("    %s = %u\n", values[j].name, values[j].value);
+			printf("    %s = %u\n", values[j].name, values[j].value.u32); // TODO: fix me.
 
 		free( values );
 	}

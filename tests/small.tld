@@ -3,8 +3,10 @@
 
 	"enums" : {
 		"simple_enum" : {
-			"SIMPLE_VAL1" : 0,
-			"SIMPLE_VAL2" : 1
+			"values" : {
+				"SIMPLE_VAL1" : 0,
+				"SIMPLE_VAL2" : 1
+			}
 		}
 	},
 	
