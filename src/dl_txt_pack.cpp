@@ -1120,6 +1120,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 		if( out_buffer_size > 0 )
 		{
 			dl_data_header header;
+			memset(&header, 0x0, sizeof(dl_data_header));
 			header.id                 = DL_INSTANCE_ID;
 			header.version            = DL_INSTANCE_VERSION;
 			header.root_instance_type = dl_internal_typeid_of( dl_ctx, root_type );
