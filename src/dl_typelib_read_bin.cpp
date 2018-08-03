@@ -127,6 +127,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	for( unsigned int i = 0; i < header.type_count; ++i )
 	{
 		dl_ctx->type_descs[ dl_ctx->type_count + i ].name += td_str_offset;
+		if(dl_ctx->type_descs[ dl_ctx->type_count + i ].comment != UINT32_MAX)
+			dl_ctx->type_descs[ dl_ctx->type_count + i ].comment += td_str_offset;
 		dl_ctx->type_descs[ dl_ctx->type_count + i ].member_start += dl_ctx->member_count;
 	}
 
@@ -136,6 +138,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	for( unsigned int i = 0; i < header.enum_count; ++i )
 	{
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].name += td_str_offset;
+		if(dl_ctx->enum_descs[ dl_ctx->type_count + i ].comment != UINT32_MAX)
+			dl_ctx->enum_descs[ dl_ctx->type_count + i ].comment += td_str_offset;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].alias_start += dl_ctx->enum_alias_count;
 	}
