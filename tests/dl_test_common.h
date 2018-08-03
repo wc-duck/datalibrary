@@ -50,41 +50,12 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 		EXPECT_TRUE(WasEq) << Err; \
 	}
 
-static void test_log_error( const char* msg, void* )
-{
-	printf( "%s\n", msg );
-}
-
-
 struct DL : public ::testing::Test
 {
 	virtual ~DL() {}
 
-	virtual void SetUp()
-	{
-		// bake the unittest-type library into the exe!
-		static const unsigned char TypeLib1[] =
-		{
-			#include "generated/unittest.bin.h"
-		};
-		static const unsigned char TypeLib2[] =
-		{
-			#include "generated/unittest2.bin.h"
-		};
-
-		dl_create_params_t p;
-		DL_CREATE_PARAMS_SET_DEFAULT(p);
-		p.error_msg_func = test_log_error;
-
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_create( &Ctx, &p ) );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib1, sizeof(TypeLib1)) );
-		EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_type_library(Ctx, TypeLib2, sizeof(TypeLib2)) );
-	}
-
-	virtual void TearDown()
-	{
-		EXPECT_EQ(DL_ERROR_OK, dl_context_destroy(Ctx));
-	}
+	virtual void SetUp();
+	virtual void TearDown();
 
 	dl_ctx_t Ctx;
 };

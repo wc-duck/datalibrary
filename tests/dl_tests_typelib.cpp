@@ -15,6 +15,11 @@ static void error_msg_handler( const char* msg, void* )
         printf("%s\n", msg);
 }
 
+static void test_log_error( const char* msg, void* )
+{
+	printf( "%s\n", msg );
+}
+
 struct DLTypeLib : public ::testing::Test
 {
 	dl_ctx_t ctx;
@@ -91,7 +96,7 @@ static void typelibtxt_expect_error( dl_ctx_t ctx, dl_error_t expect, const char
 	EXPECT_DL_ERR_EQ( expect, dl_context_load_txt_type_library( ctx, libstr, strlen(libstr) ) );
 }
 
-TEST_F( DLTypeLibTxt, missing_type )
+TEST_F( DLTypeLibTxt, member_missing_type )
 {
 	typelibtxt_expect_error( ctx, DL_ERROR_TYPE_NOT_FOUND, STRINGIFY({
 		"module" : "small",
@@ -100,6 +105,27 @@ TEST_F( DLTypeLibTxt, missing_type )
 		}
 	}));
 }
+
+TEST_F( DLTypeLibTxt, member_missing_type_2 )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA, STRINGIFY({
+		"module" : "small",
+		"types" : {
+			"single_int" : { "members" : [ { "name" : "member" } ] }
+		}
+	}));
+}
+
+TEST_F( DLTypeLibTxt, member_missing_name )
+{
+	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA, STRINGIFY({
+		"module" : "small",
+		"types" : {
+			"single_int" : { "members" : [ { "type" : "uint32" } ] }
+		}
+	}));
+}
+
 
 TEST_F( DLTypeLibTxt, missing_comma )
 {
@@ -121,8 +147,8 @@ TEST_F( DLTypeLibTxt, crash1 )
 {
 	const char single_member_typelib[] = STRINGIFY({
 		"enums": {
-			"anim_spline_type": { "ANIM_SPLINE_TYPE_ONCE": 0, "ANIM_SPLINE_TYPE_PING_PONG": 1 },
-		    "timer_type": { "LOOP": 1, "ONCE": 0 }
+			"anim_spline_type": { "values" : { "ANIM_SPLINE_TYPE_ONCE": 0, "ANIM_SPLINE_TYPE_PING_PONG": 1 } },
+		    "timer_type": { "values" : { "LOOP": 1, "ONCE": 0 } }
 		  },
 		  "types": {
 		    "a": { "members": [ { "type": "uint8", "name": "a" } ] },
@@ -153,7 +179,7 @@ TEST_F( DLTypeLibTxt, nonexisting_type )
 
 TEST_F( DLTypeLibTxt, empty_types )
 {
-	typelibtxt_expect_error( ctx, DL_ERROR_OK, STRINGIFY({ "enums" : { "e" : { "a" : 1 } }, "types" : {} }) );
+	typelibtxt_expect_error( ctx, DL_ERROR_OK, STRINGIFY({ "enums" : { "e" : { "values" : { "a" : 1 } } }, "types" : {} }) );
 }
 
 TEST_F( DLTypeLibTxt, empty_enums )
@@ -178,8 +204,29 @@ TEST_F( DLTypeLibTxt, invalid_default_value_array )
 
 TEST_F( DLTypeLibTxt, invalid_alias_array )
 {
-	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY( { "enums" : { "e"  : { "v" : { "value" : 1, "aliases" : [ "apa" } } } } } ) );
-	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA,  STRINGIFY( { "enums" : { "e"  : { "v" : { "aliases" : [ "apa" ] } } } } ) );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, 
+		STRINGIFY( { 
+			"enums" : {
+				"e" : {
+					"values" : {
+						 "v" : { "value" : 1, "aliases" : [ "apa" }
+					}
+				} 
+			}
+		})
+	);
+
+	typelibtxt_expect_error( ctx, DL_ERROR_MALFORMED_DATA,
+		STRINGIFY( { 
+			"enums" : {
+				"e" : {
+					"values" : {
+						"v" : { "aliases" : [ "apa" ] } 
+					}
+				} 
+			}
+		} )
+	);
 }
 
 TEST_F( DLTypeLibTxt, invalid_type_fmt_array )
@@ -227,8 +274,12 @@ TEST_F( DLTypeLibUnpackTxt, round_about )
 {
 	const char* testlib1 = STRINGIFY({
 		"enums" : {
-			"e1" : { "val1" : 1, "val2" : 2 },
-			"e2" : { "val3" : 3, "val2" : 4 }
+			"e1" : { 
+				"values" : { "val1" : 1, "val2" : 2 }
+			},
+			"e2" : { 
+				"values" : { "val3" : 3, "val2" : 4 }
+			}
 		},
 		"types" : {
 			"t1" : {
@@ -315,8 +366,8 @@ TEST_F( DLTypeLib, enum_in_2_tlds )
 	// capturing bug where enum-values would not be loaded as expected in binary tld.
 	// alias-offests were not patched correctly.
 
-	const char typelib1[] = STRINGIFY({ "module" : "tl1", "enums" : { "e1" : { "e1_v1" : 1, "e1_v2" : 2 } }, "types" : { "tl1_type" : { "members" : [ { "name" : "m1", "type" : "e1" } ] } } });
-	const char typelib2[] = STRINGIFY({ "module" : "tl2", "enums" : { "e2" : { "e2_v1" : 3, "e2_v2" : 4 } }, "types" : { "tl2_type" : { "members" : [ { "name" : "m2", "type" : "e2" } ] } } });
+	const char typelib1[] = STRINGIFY({ "module" : "tl1", "enums" : { "e1" : { "values" : { "e1_v1" : 1, "e1_v2" : 2 } } }, "types" : { "tl1_type" : { "members" : [ { "name" : "m1", "type" : "e1" } ] } } });
+	const char typelib2[] = STRINGIFY({ "module" : "tl2", "enums" : { "e2" : { "values" : { "e2_v1" : 3, "e2_v2" : 4 } } }, "types" : { "tl2_type" : { "members" : [ { "name" : "m2", "type" : "e2" } ] } } });
 
 	size_t tl1_size;
 	size_t tl2_size;
@@ -335,3 +386,10 @@ TEST_F( DLTypeLib, enum_in_2_tlds )
 	free(tl1);
 	free(tl2);
 }
+
+// test read-errors for enum
+
+// invalid type
+
+// enum that do not fit in type!
+

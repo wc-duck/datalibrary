@@ -8,13 +8,10 @@
 
 #include <stdlib.h>
 #include <limits.h>
-#include <errno.h>
 #include <limits>
 
 #if defined(_MSC_VER)
 // TODO: any better/faster way to do this, especially strtof?
-#  define strtoll _strtoi64
-#  define strtoull _strtoui64
 #  if _MSC_VER < 1800 // strtof was defined first in MSVC2013
 	float strtof(const char* str, char** endptr)
 	{
@@ -87,49 +84,6 @@ struct dl_txt_pack_ctx
 		size_t patch_pos;
 	} subdata[256];
 };
-
-static long long dl_txt_pack_eat_strtoll( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, long long range_min, long long range_max, const char* type )
-{
-	dl_txt_eat_white( read_ctx );
-
-	long long v = dl_txt_eat_bool( read_ctx );
-	if( v < 2 )
-		return v;
-
-	errno = 0;
-	char* next = 0x0;
-	v = strtoll( read_ctx->iter, &next, 0 );
-
-	if( read_ctx->iter == next )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type '%s'", type );
-	if( !(v >= range_min && v <= range_max) || errno == ERANGE )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type '%s', %lld is out of range.", type, v );
-	read_ctx->iter = next;
-	return v;
-}
-
-static unsigned long long dl_txt_pack_eat_strtoull( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, unsigned long long range_max, const char* type )
-{
-	dl_txt_eat_white( read_ctx );
-
-	if(read_ctx->iter[0] == '-')
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of unsigned type '%s', but value is negative!", type );
-
-	unsigned long long v = (unsigned long long)dl_txt_eat_bool( read_ctx );
-	if( v < 2 )
-		return v;
-
-	errno = 0;
-	char* next = 0x0;
-	v = strtoull( read_ctx->iter, &next, 0 );
-
-	if( read_ctx->iter == next )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type '%s'", type );
-	if( v > range_max || errno == ERANGE )
-		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type '%s', %llu is out of range.", type, v );
-	read_ctx->iter = next;
-	return v;
-}
 
 static void dl_txt_pack_eat_and_write_int8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {
@@ -263,11 +217,23 @@ static void dl_txt_pack_eat_and_write_enum( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 	if( ename.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected string" );
 
-	uint32_t enum_value;
+	uint64_t enum_value;
 	if( !dl_internal_find_enum_value( dl_ctx, edesc, ename.str, (size_t)ename.len, &enum_value ) )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_ENUM_VALUE, "the enum \"%s\" has no member named \"%.*s\"", dl_internal_enum_name( dl_ctx, edesc ), ename.len, ename.str );
 
-	dl_binary_writer_write_uint32( packctx->writer, enum_value );
+	switch(edesc->storage)
+	{
+		case DL_TYPE_STORAGE_ENUM_INT8:   dl_binary_writer_write_int8  ( packctx->writer, (int8_t)  enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_INT16:  dl_binary_writer_write_int16 ( packctx->writer, (int16_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_INT32:  dl_binary_writer_write_int32 ( packctx->writer, (int32_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_INT64:  dl_binary_writer_write_int64 ( packctx->writer, (int64_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT8:  dl_binary_writer_write_uint8 ( packctx->writer, (uint8_t) enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT16: dl_binary_writer_write_uint16( packctx->writer, (uint16_t)enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT32: dl_binary_writer_write_uint32( packctx->writer, (uint32_t)enum_value ); break;
+		case DL_TYPE_STORAGE_ENUM_UINT64: dl_binary_writer_write_uint64( packctx->writer, (uint64_t)enum_value ); break;
+		default:
+			DL_ASSERT(false);
+	}
 	packctx->read_ctx.iter = ename.str + ename.len + 1;
 }
 
@@ -440,7 +406,14 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 			dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
 		}
 		break;
-		case DL_TYPE_STORAGE_ENUM:
+		case DL_TYPE_STORAGE_ENUM_INT8:
+		case DL_TYPE_STORAGE_ENUM_INT16:
+		case DL_TYPE_STORAGE_ENUM_INT32:
+		case DL_TYPE_STORAGE_ENUM_INT64:
+		case DL_TYPE_STORAGE_ENUM_UINT8:
+		case DL_TYPE_STORAGE_ENUM_UINT16:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
+		case DL_TYPE_STORAGE_ENUM_UINT64:
 		{
 			const dl_enum_desc* edesc = dl_internal_find_enum( dl_ctx, member->type_id );
 			if( edesc == 0x0 )
@@ -471,16 +444,13 @@ static uint32_t dl_txt_pack_array_item_size( dl_ctx_t dl_ctx, const dl_member_de
 	// TODO: store this in typelib?
 	switch( member->StorageType() )
 	{
-		case DL_TYPE_STORAGE_PTR:
-		case DL_TYPE_STORAGE_STR:
-			return sizeof(void*);
 		case DL_TYPE_STORAGE_STRUCT:
 		{
 			const dl_type_desc* type = dl_internal_find_type( dl_ctx, member->type_id );
 			return type->size[DL_PTR_SIZE_HOST];
 		}
 		default:
-			return (uint32_t)dl_pod_size( member->type );
+			return (uint32_t)dl_pod_size( member->StorageType() );
 	}
 }
 
@@ -508,7 +478,7 @@ const char* dl_txt_skip_map( const char* iter, const char* end )
 	return iter;
 }
 
-const char* dl_txt_pack_skip_string( const char* str, const char* end )
+const char* dl_txt_skip_string( const char* str, const char* end )
 {
 	while( str != end && *str != '\"' )
 	{
@@ -548,7 +518,15 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 		case DL_TYPE_STORAGE_FP32:
 		case DL_TYPE_STORAGE_FP64:
 		case DL_TYPE_STORAGE_PTR:
-		case DL_TYPE_STORAGE_ENUM: // TODO: bug, but in typelib build, there can't be any , in an enum-string.
+		case DL_TYPE_STORAGE_ENUM_INT8:
+		case DL_TYPE_STORAGE_ENUM_INT16:
+		case DL_TYPE_STORAGE_ENUM_INT32:
+		case DL_TYPE_STORAGE_ENUM_INT64:
+		case DL_TYPE_STORAGE_ENUM_UINT8:
+		case DL_TYPE_STORAGE_ENUM_UINT16:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
+		case DL_TYPE_STORAGE_ENUM_UINT64:
+		 // TODO: bug, but in typelib build, there can't be any , in an enum-string.
 		{
             bool last_was_comma = false;
 			uint32_t array_length = 1;
@@ -583,7 +561,7 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 						++array_length;
 						break;
 					case '"':
-						iter = dl_txt_pack_skip_string( ++iter, end );
+						iter = dl_txt_skip_string( ++iter, end );
 						break;
 					case '\0':
 					case ']':
@@ -651,7 +629,14 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_STR:    dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
 				case DL_TYPE_STORAGE_PTR:    dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
 				case DL_TYPE_STORAGE_STRUCT: dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) ); break;
-				case DL_TYPE_STORAGE_ENUM:
+				case DL_TYPE_STORAGE_ENUM_INT8:
+				case DL_TYPE_STORAGE_ENUM_INT16:
+				case DL_TYPE_STORAGE_ENUM_INT32:
+				case DL_TYPE_STORAGE_ENUM_INT64:
+				case DL_TYPE_STORAGE_ENUM_UINT8:
+				case DL_TYPE_STORAGE_ENUM_UINT16:
+				case DL_TYPE_STORAGE_ENUM_UINT32:
+				case DL_TYPE_STORAGE_ENUM_UINT64:
 				{
 					dl_txt_eat_white( &packctx->read_ctx );
 					const dl_enum_desc* edesc = dl_internal_find_enum( dl_ctx, member->type_id );
@@ -698,8 +683,8 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		case DL_TYPE_ATOM_BITFIELD:
 		{
 			uint64_t bf_value = dl_txt_pack_eat_strtoull(dl_ctx, &packctx->read_ctx, UINT64_MAX, "uint64");
-			uint32_t bf_bits = member->BitFieldBits();
-			uint32_t bf_offset = member->BitFieldOffset();
+			uint32_t bf_bits = member->bitfield_bits();
+			uint32_t bf_offset = member->bitfield_offset();
 
 			uint64_t max_val = (uint64_t(1) << bf_bits) - uint64_t(1);
 			if( bf_value > max_val )
@@ -906,10 +891,10 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
 
 			// ... handle bitfields differently since they take up sub-parts of bytes.
-			if(member->type & DL_TYPE_ATOM_BITFIELD)
+			if(member->AtomType() == DL_TYPE_ATOM_BITFIELD)
 			{
-				uint32_t bf_bits = member->BitFieldBits();
-				uint32_t bf_offset = member->BitFieldOffset();
+				uint32_t bf_bits = member->bitfield_bits();
+				uint32_t bf_offset = member->bitfield_offset();
 
 				dl_binary_writer_seek_set( packctx->writer, member_pos );
 
@@ -1135,6 +1120,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 		if( out_buffer_size > 0 )
 		{
 			dl_data_header header;
+			memset(&header, 0x0, sizeof(dl_data_header));
 			header.id                 = DL_INSTANCE_ID;
 			header.version            = DL_INSTANCE_VERSION;
 			header.root_instance_type = dl_internal_typeid_of( dl_ctx, root_type );

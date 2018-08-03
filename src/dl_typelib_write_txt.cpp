@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, dl_typeid_t tid )
+static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid )
 {
 	switch( storage )
 	{
@@ -15,7 +15,7 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_t storage, d
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
 			return sub_type.name;
 		}
-		case DL_TYPE_STORAGE_ENUM:
+		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			dl_enum_info_t sub_type;
 			dl_reflect_get_enum_info( ctx, tid, &sub_type );
@@ -54,14 +54,15 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 	dl_enum_info_t enum_info;
 	dl_reflect_get_enum_info( ctx, tid, &enum_info );
 
-	dl_binary_writer_write_fmt( writer, "    \"%s\" : {\n", enum_info.name );
+	dl_binary_writer_write_fmt( writer, "    \"%s\" : {\n"
+	                                    "      \"values\" : {\n", enum_info.name );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
 	dl_reflect_get_enum_values( ctx, tid, values, enum_info.value_count );
 
 	for( unsigned int j = 0; j < enum_info.value_count; ++j )
 	{
-		dl_binary_writer_write_fmt( writer, "      \"%s\" : %u", values[j].name, values[j].value );
+		dl_binary_writer_write_fmt( writer, "        \"%s\" : %u", values[j].name, values[j].value );
 		if( j < enum_info.value_count - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
@@ -70,7 +71,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 
 	free( values );
 
-	dl_binary_writer_write_fmt( writer, "    }", 1 );
+	dl_binary_writer_write_fmt( writer, "      }\n    }", 1 );
 }
 
 static void dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* writer )
@@ -100,30 +101,27 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer,
 {
 	dl_binary_writer_write_fmt( writer, "        { \"name\" : \"%s\", ", member->name );
 
-	dl_type_t atom    = (dl_type_t)(DL_TYPE_ATOM_MASK & member->type);
-	dl_type_t storage = (dl_type_t)(DL_TYPE_STORAGE_MASK & member->type);
-
-	switch( atom )
+	switch( member->atom )
 	{
 		case DL_TYPE_ATOM_POD:
 			dl_binary_writer_write_fmt( writer,
-										storage == DL_TYPE_STORAGE_PTR
+										member->storage == DL_TYPE_STORAGE_PTR
 											? "\"type\" : \"%s*\""
 											: "\"type\" : \"%s\"",
-										dl_context_type_to_string( ctx, storage, member->type_id ) );
+										dl_context_type_to_string( ctx, member->storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_BITFIELD:
 			dl_binary_writer_write_fmt( writer, "\"type\" : \"bitfield:%u\"", member->bits );
 		break;
 		case DL_TYPE_ATOM_ARRAY:
-			dl_binary_writer_write_fmt( writer, "\"type\" : \"%s[]\"", dl_context_type_to_string( ctx, storage, member->type_id ) );
+			dl_binary_writer_write_fmt( writer, "\"type\" : \"%s[]\"", dl_context_type_to_string( ctx, member->storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 			dl_binary_writer_write_fmt( writer,
-										storage == DL_TYPE_STORAGE_PTR
+										member->storage == DL_TYPE_STORAGE_PTR
 											? "\"type\" : \"%s*[%u]\""
 											: "\"type\" : \"%s[%u]\"",
-										dl_context_type_to_string( ctx, storage, member->type_id ),
+										dl_context_type_to_string( ctx, member->storage, member->type_id ),
 										member->array_count );
 		break;
 		default:

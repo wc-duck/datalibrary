@@ -202,10 +202,8 @@ static inline void dl_binary_writer_write_ptr( dl_binary_writer* writer, size_t 
 
 static inline void dl_binary_writer_write_string( dl_binary_writer* writer, const void* str, size_t len )
 {
-	char str_end = '\0';
 	DL_LOG_BIN_WRITER_VERBOSE("Write string: " DL_PINT_FMT_STR " + " DL_PINT_FMT_STR " = \"%.*s\"", writer->pos, len + 1, (int)len, (char*)str);
 	dl_binary_writer_write( writer, str, len );
-	dl_binary_writer_write( writer, &str_end, sizeof(char) );
 }
 
 static inline void dl_binary_writer_write_zero( dl_binary_writer* writer, size_t bytes )

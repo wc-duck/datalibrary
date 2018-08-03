@@ -19,9 +19,9 @@ static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_in
 }
 
 #if defined( __GNUC__ )
-static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...) __attribute__((format( printf, 3, 4 )));
+static inline int dl_internal_str_format(char* buf, size_t buf_size, const char* fmt, ...) __attribute__((format( printf, 3, 4 )));
 #endif
-static inline int dl_internal_str_format(char* DL_RESTRICT buf, size_t buf_size, const char* DL_RESTRICT fmt, ...)
+static inline int dl_internal_str_format(char* buf, size_t buf_size, const char* fmt, ...)
 {
 	va_list args;
 	va_start( args, fmt );

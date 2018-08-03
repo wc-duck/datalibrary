@@ -7,61 +7,27 @@
 from ctypes import *
 import platform, os, sys, logging
 
-def M_BIT(_Bit): 
-    return 1 << _Bit
-
-def M_BITMASK(_Bits):
-    return M_BIT(_Bits) - 1
-
-def M_BITRANGE(_MinBit, _MaxBit): 
-    return (M_BIT(_MaxBit) | ( M_BIT(_MaxBit) - 1 )) ^ ( M_BIT(_MinBit) - 1 )
-
-def M_ZERO_BITS(_Target, _Start, _Bits):
-    return _Target & ~M_BITRANGE(_Start, _Start + _Bits - 1)
-
-def M_INSERT_BITS(_Target, _Val, _Start, _Bits):
-    return M_ZERO_BITS(_Target, _Start, _Bits) | ( ( M_BITMASK(_Bits) & _Val ) << _Start)
-
-# need to match enum in dl.h
-DL_TYPE_ATOM_MIN_BIT            = 0
-DL_TYPE_ATOM_MAX_BIT            = 7
-DL_TYPE_STORAGE_MIN_BIT         = 8
-DL_TYPE_STORAGE_MAX_BIT         = 15
-DL_TYPE_BITFIELD_SIZE_MIN_BIT   = 16
-DL_TYPE_BITFIELD_SIZE_MAX_BIT   = 23
-DL_TYPE_BITFIELD_OFFSET_MIN_BIT = 24
-DL_TYPE_BITFIELD_OFFSET_MAX_BIT = 31
-
-DL_TYPE_BITFIELD_SIZE_BITS_USED   = DL_TYPE_BITFIELD_SIZE_MAX_BIT + 1   - DL_TYPE_BITFIELD_SIZE_MIN_BIT
-DL_TYPE_BITFIELD_OFFSET_BITS_USED = DL_TYPE_BITFIELD_OFFSET_MAX_BIT + 1 - DL_TYPE_BITFIELD_OFFSET_MIN_BIT
-
-# Masks
-DL_TYPE_ATOM_MASK            = M_BITRANGE(DL_TYPE_ATOM_MIN_BIT,            DL_TYPE_ATOM_MAX_BIT)
-DL_TYPE_STORAGE_MASK         = M_BITRANGE(DL_TYPE_STORAGE_MIN_BIT,         DL_TYPE_STORAGE_MAX_BIT)
-DL_TYPE_BITFIELD_SIZE_MASK   = M_BITRANGE(DL_TYPE_BITFIELD_SIZE_MIN_BIT,   DL_TYPE_BITFIELD_SIZE_MAX_BIT)
-DL_TYPE_BITFIELD_OFFSET_MASK = M_BITRANGE(DL_TYPE_BITFIELD_OFFSET_MIN_BIT, DL_TYPE_BITFIELD_OFFSET_MAX_BIT)
-
 # Atomic types
-DL_TYPE_ATOM_POD          = M_INSERT_BITS(0x00000000, 1, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1)
-DL_TYPE_ATOM_ARRAY        = M_INSERT_BITS(0x00000000, 2, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1)
-DL_TYPE_ATOM_INLINE_ARRAY = M_INSERT_BITS(0x00000000, 3, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1)
-DL_TYPE_ATOM_BITFIELD     = M_INSERT_BITS(0x00000000, 4, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1)
+DL_TYPE_ATOM_POD          = 1
+DL_TYPE_ATOM_ARRAY        = 2
+DL_TYPE_ATOM_INLINE_ARRAY = 3
+DL_TYPE_ATOM_BITFIELD     = 4
 
 # Storage type
-DL_TYPE_STORAGE_INT8   = M_INSERT_BITS(0x00000000,  1, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_INT16  = M_INSERT_BITS(0x00000000,  2, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_INT32  = M_INSERT_BITS(0x00000000,  3, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_INT64  = M_INSERT_BITS(0x00000000,  4, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_UINT8  = M_INSERT_BITS(0x00000000,  5, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_UINT16 = M_INSERT_BITS(0x00000000,  6, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_UINT32 = M_INSERT_BITS(0x00000000,  7, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_UINT64 = M_INSERT_BITS(0x00000000,  8, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_FP32   = M_INSERT_BITS(0x00000000,  9, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_FP64   = M_INSERT_BITS(0x00000000, 10, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_STR    = M_INSERT_BITS(0x00000000, 11, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_PTR    = M_INSERT_BITS(0x00000000, 12, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_STRUCT = M_INSERT_BITS(0x00000000, 13, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
-DL_TYPE_STORAGE_ENUM   = M_INSERT_BITS(0x00000000, 14, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1)
+DL_TYPE_STORAGE_INT8   =  1
+DL_TYPE_STORAGE_INT16  =  2
+DL_TYPE_STORAGE_INT32  =  3
+DL_TYPE_STORAGE_INT64  =  4
+DL_TYPE_STORAGE_UINT8  =  5
+DL_TYPE_STORAGE_UINT16 =  6
+DL_TYPE_STORAGE_UINT32 =  7
+DL_TYPE_STORAGE_UINT64 =  8
+DL_TYPE_STORAGE_FP32   =  9
+DL_TYPE_STORAGE_FP64   = 10
+DL_TYPE_STORAGE_STR    = 11
+DL_TYPE_STORAGE_PTR    = 12
+DL_TYPE_STORAGE_STRUCT = 13
+DL_TYPE_STORAGE_ENUM   = 14
 
 DL_STORAGE_TO_NAME = { DL_TYPE_STORAGE_INT8   : 'int8',
                        DL_TYPE_STORAGE_INT16  : 'int16',
@@ -106,16 +72,14 @@ class DLContext:
     class dl_enum_value_info(Structure):   _fields_ = [ ('name',      c_char_p), ('value',       c_uint) ]
     class dl_member_info(Structure):
         _fields_ = [ ('name',        c_char_p),
-                     ('type',        c_uint32), 
+                     ('atom',        c_uint32), 
+                     ('storage',     c_uint32), 
                      ('type_id',     c_uint32),
                      ('size',        c_uint32),
                      ('alignment',   c_uint32),
                      ('offset',      c_uint32), 
                      ('array_count', c_uint32),
                      ('bits',        c_uint32) ]
-        
-        def AtomType(self):    return self.type & DL_TYPE_ATOM_MASK
-        def StorageType(self): return self.type & DL_TYPE_STORAGE_MASK
     
     class dl_type(object):
         def __init__(self):
@@ -129,7 +93,7 @@ class DLContext:
             return isinstance(other, type(self)) and self.__dict__ == other.__dict__
         
     def __get_ctypes_type( self, member_info ):
-        storage_type = member_info.StorageType()
+        storage_type = member_info.storage
         
         if storage_type == DL_TYPE_STORAGE_PTR:
             return None
@@ -141,7 +105,7 @@ class DLContext:
             
         c_type = self.type_cache[ type_name ].c_type
         
-        atom_type = member_info.AtomType()
+        atom_type = member_info.atom
 
         if atom_type == DL_TYPE_ATOM_POD:
             if storage_type == DL_TYPE_STORAGE_PTR:
@@ -158,7 +122,7 @@ class DLContext:
             return None
         
     def __get_python_type(self, member_info):
-        storage_type = member_info.StorageType()
+        storage_type = member_info.storage
         if storage_type == DL_TYPE_STORAGE_PTR:
             return None
 
@@ -169,14 +133,13 @@ class DLContext:
             
         py_type = self.type_cache[ type_name ].py_type
         
-        atom_type = member_info.AtomType()
-        if   atom_type == DL_TYPE_ATOM_POD:
+        if member_info.atom == DL_TYPE_ATOM_POD:
             if storage_type == DL_TYPE_STORAGE_PTR:
                 return ptr_wrapper
             return py_type
-        elif atom_type == DL_TYPE_ATOM_INLINE_ARRAY: return ( list, py_type, member_info.array_count )
-        elif atom_type == DL_TYPE_ATOM_ARRAY:        return list
-        elif atom_type == DL_TYPE_ATOM_BITFIELD:     return int # TODO: need to be long if bitfield-size is to big
+        elif member_info.atom == DL_TYPE_ATOM_INLINE_ARRAY: return ( list, py_type, member_info.array_count )
+        elif member_info.atom == DL_TYPE_ATOM_ARRAY:        return list
+        elif member_info.atom == DL_TYPE_ATOM_BITFIELD:     return int # TODO: need to be long if bitfield-size is to big
         else:
             return None
                 
@@ -388,7 +351,7 @@ class DLContext:
         
         for member in member_info:
             members.append( member.name )            
-            if member.AtomType() == DL_TYPE_ATOM_BITFIELD: # TODO: Do not like this!
+            if member.atom == DL_TYPE_ATOM_BITFIELD: # TODO: Do not like this!
                 c_members.append ( ( member.name, self.__get_ctypes_type( member ), member.bits ) )
             else:
                 c_members.append ( ( member.name, self.__get_ctypes_type( member ) ) )

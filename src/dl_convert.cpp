@@ -165,6 +165,11 @@ static void dl_internal_read_array_data( const uint8_t* array_data,
 	}
 }
 
+static dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage )
+{
+	return (dl_type_t)( ((unsigned int)atom << DL_TYPE_ATOM_MIN_BIT) | ((unsigned int)storage << DL_TYPE_STORAGE_MIN_BIT) );
+}
+
 static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_ctx,
 														 const dl_type_desc* type,
 														 const uint8_t*      instance,
@@ -177,7 +182,7 @@ static void dl_internal_convert_collect_instances_from_str( const uint8_t*      
 {
 	uintptr_t offset = dl_internal_read_ptr_data( member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size );
 	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
-		convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STR)));
+		convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STR)));
 }
 
 static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t              ctx,
@@ -192,7 +197,7 @@ static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t            
 
 	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size] && !convert_ctx.IsSwapped(ptr_data))
 	{
-		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_PTR)));
+		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR)));
 		dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
 	}
 }
@@ -241,8 +246,8 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																	 const uint8_t*        base_data,
 																	 SConvertContext&      convert_ctx )
 {
-	dl_type_t atom_type    = member->AtomType();
-	dl_type_t storage_type = member->StorageType();
+	dl_type_atom_t    atom_type    = member->AtomType();
+	dl_type_storage_t storage_type = member->StorageType();
 
 	switch(atom_type)
 	{
@@ -291,7 +296,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																		  convert_ctx );
 					break;
 				default:
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(member->IsSimplePod());
 					// ignore
 			}
 		}
@@ -337,7 +342,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 				}
 				break;
 				default:
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(member->IsSimplePod());
 					break;
 			}
 
@@ -400,8 +405,8 @@ static T dl_convert_bf_format( T old_val, const dl_member_desc* bf_members, uint
 	{
 		const dl_member_desc& bf_member = bf_members[i];
 
-		uint32_t bf_bits         = bf_member.BitFieldBits();
-		uint32_t bf_offset       = bf_member.BitFieldOffset();
+		uint32_t bf_bits         = bf_member.bitfield_bits();
+		uint32_t bf_offset       = bf_member.bitfield_offset();
 		uint32_t bf_source_offset = dl_bf_offset( conv_ctx->src_endian, sizeof(T), bf_offset, bf_bits );
 		uint32_t bf_target_offset = dl_bf_offset( conv_ctx->tgt_endian, sizeof(T), bf_offset, bf_bits );
 
@@ -470,8 +475,8 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 													SConvertContext&      conv_ctx,
 													dl_binary_writer*     writer )
 {
-	dl_type_t atom_type    = member->AtomType();
-	dl_type_t storage_type = member->StorageType();
+	dl_type_atom_t    atom_type    = member->AtomType();
+	dl_type_storage_t storage_type = member->StorageType();
 
 	switch(atom_type)
 	{
@@ -495,7 +500,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 				}
 				break;
 				default:
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
+					DL_ASSERT(member->IsSimplePod());
 					dl_binary_writer_write_swap( writer, member_data, member->size[conv_ctx.src_ptr_size] );
 					break;
 			}
@@ -532,8 +537,8 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 				break;
 				default:
 				{
-					DL_ASSERT(member->IsSimplePod() || storage_type == DL_TYPE_STORAGE_ENUM);
-					dl_binary_writer_write_array( writer, member_data, member->inline_array_cnt(), dl_pod_size( member->type ) );
+					DL_ASSERT(member->IsSimplePod());
+					dl_binary_writer_write_array( writer, member_data, member->inline_array_cnt(), dl_pod_size( member->StorageType() ) );
 				}
 				break;
 			}
@@ -672,8 +677,8 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 
 	*new_offset = dl_binary_writer_tell( writer );
 
-	dl_type_t atom_type    = dl_type_t(inst.type_id & DL_TYPE_ATOM_MASK);
-	dl_type_t storage_type = dl_type_t(inst.type_id & DL_TYPE_STORAGE_MASK);
+	dl_type_atom_t    atom_type    = dl_type_atom_t((inst.type_id & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT);
+	dl_type_storage_t storage_type = dl_type_storage_t((inst.type_id & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT);
 
 	switch( atom_type )
 	{
@@ -715,16 +720,23 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 				break;
 
 				case DL_TYPE_STORAGE_INT8:
-				case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_array( writer, u8, inst.array_count, sizeof(uint8_t) ); break;
+				case DL_TYPE_STORAGE_UINT8:
+				case DL_TYPE_STORAGE_ENUM_INT8:
+				case DL_TYPE_STORAGE_ENUM_UINT8:  dl_binary_writer_write_array( writer, u8, inst.array_count, sizeof(uint8_t) ); break;
 				case DL_TYPE_STORAGE_INT16:
-				case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_array( writer, u16, inst.array_count, sizeof(uint16_t) ); break;
+				case DL_TYPE_STORAGE_UINT16:
+				case DL_TYPE_STORAGE_ENUM_INT16:
+				case DL_TYPE_STORAGE_ENUM_UINT16: dl_binary_writer_write_array( writer, u16, inst.array_count, sizeof(uint16_t) ); break;
 				case DL_TYPE_STORAGE_INT32:
 				case DL_TYPE_STORAGE_UINT32:
 				case DL_TYPE_STORAGE_FP32:
-				case DL_TYPE_STORAGE_ENUM:   dl_binary_writer_write_array( writer, u32, inst.array_count, sizeof(uint32_t) ); break;
+				case DL_TYPE_STORAGE_ENUM_INT32:
+				case DL_TYPE_STORAGE_ENUM_UINT32: dl_binary_writer_write_array( writer, u32, inst.array_count, sizeof(uint32_t) ); break;
 				case DL_TYPE_STORAGE_INT64:
 				case DL_TYPE_STORAGE_UINT64:
-				case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_array( writer, u64, inst.array_count, sizeof(uint64_t) ); break;
+				case DL_TYPE_STORAGE_FP64:
+				case DL_TYPE_STORAGE_ENUM_INT64:
+				case DL_TYPE_STORAGE_ENUM_UINT64: dl_binary_writer_write_array( writer, u64, inst.array_count, sizeof(uint64_t) ); break;
 
 				default:
 					DL_ASSERT(false && "Unknown storage type!");
@@ -776,7 +788,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 
 	SConvertContext conv_ctx( src_endian, out_endian, src_ptr_size, out_ptr_size );
 
-	conv_ctx.instances.Add(SInstance(packed_instance, root_type, 0x0, dl_type_t(DL_TYPE_ATOM_POD | DL_TYPE_STORAGE_STRUCT)));
+	conv_ctx.instances.Add(SInstance(packed_instance, root_type, 0x0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STRUCT)));
 	dl_error_t err = dl_internal_convert_collect_instances(dl_ctx, root_type, packed_instance, packed_instance_base, conv_ctx);
 
 	// TODO: we need to sort the instances here after their offset!
