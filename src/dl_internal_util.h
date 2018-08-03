@@ -1,7 +1,7 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
-#ifndef DL_DL_UTIL_H_INCLUDED
-#define DL_DL_UTIL_H_INCLUDED
+#ifndef DL_DL_INTERNAL_UTIL_H_INCLUDED
+#define DL_DL_INTERNAL_UTIL_H_INCLUDED
 
 #include "dl_alloc.h"
 #include <stdio.h> // vsnprintf
@@ -21,6 +21,7 @@ static T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_in
 #if defined( __GNUC__ )
 static inline int dl_internal_str_format(char* buf, size_t buf_size, const char* fmt, ...) __attribute__((format( printf, 3, 4 )));
 #endif
+
 static inline int dl_internal_str_format(char* buf, size_t buf_size, const char* fmt, ...)
 {
 	va_list args;
