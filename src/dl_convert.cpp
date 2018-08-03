@@ -165,7 +165,7 @@ static void dl_internal_read_array_data( const uint8_t* array_data,
 	}
 }
 
-static dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage )
+dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage )
 {
 	return (dl_type_t)( ((unsigned int)atom << DL_TYPE_ATOM_MIN_BIT) | ((unsigned int)storage << DL_TYPE_STORAGE_MIN_BIT) );
 }
@@ -799,7 +799,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 	for(unsigned int i = 0; i < conv_ctx.instances.Len(); ++i)
 	{
 		err = dl_internal_convert_write_instance( dl_ctx, conv_ctx.instances[i], &conv_ctx.instances[i].offset_after_patch, conv_ctx, &writer );
-		if(err != DL_ERROR_OK) 
+		if(err != DL_ERROR_OK)
 			return err;
 	}
 
