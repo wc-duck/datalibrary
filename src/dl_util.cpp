@@ -3,10 +3,12 @@
 #include <dl/dl_util.h>
 #include <dl/dl_txt.h>
 #include <dl/dl_convert.h>
+#include "dl_alloc.h"
+#include "dl_types.h"
 
 #include <stdio.h>
 
-static unsigned char* dl_read_entire_stream( FILE* file, size_t* out_size )
+static unsigned char* dl_read_entire_stream( dl_ctx_t dl_ctx, FILE* file, size_t* out_size )
 {
 	const unsigned int CHUNK_SIZE = 1024;
 	size_t         total_size = 0;
@@ -15,7 +17,7 @@ static unsigned char* dl_read_entire_stream( FILE* file, size_t* out_size )
 
 	do
 	{
-		out_buffer = (unsigned char*)realloc( out_buffer, CHUNK_SIZE + total_size );
+		out_buffer = (unsigned char*)dl_realloc( &dl_ctx->alloc, out_buffer, CHUNK_SIZE + total_size, total_size );
 		chunk_size = fread( out_buffer + total_size, 1, CHUNK_SIZE, file );
 		total_size += chunk_size;
 	}
@@ -52,7 +54,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         
 	(void)consumed_bytes; // TODO: Return good stuff here!
 
 	size_t file_size;
-	unsigned char* file_content = dl_read_entire_stream( stream, &file_size );
+	unsigned char* file_content = dl_read_entire_stream( dl_ctx, stream, &file_size );
 
 	file_content[file_size] = '\0';
 
