@@ -4,7 +4,6 @@
 #define CONTAINER_ARRAY_H_INCLUDED
 
 #include <dl/dl_defines.h>
-#include <new>
 
 /*
 Class: CArrayNoResizeBase
@@ -25,7 +24,7 @@ public:
 
 	/*
 	Destructor: CArrayNoResizeBase
-	Constructs an array that is 
+	Constructs an array that is
 	*/
 	~CArrayStatic(){Reset();}
 
@@ -59,7 +58,7 @@ public:
 	}
 	/*
 	Function: Len()
-	Get used size	
+	Get used size
 
 	Returns:
 	Returns Return used length;
@@ -119,7 +118,7 @@ public:
 	*/
 	T& operator[](size_t _iEl)
 	{
-		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Storage[_iEl];
 	}
 
@@ -134,14 +133,14 @@ public:
 	*/
 	const T& operator[](size_t _iEl) const
 	{
-		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Storage[_iEl];
 	}
 
 	/*
 	Function: GetBasePtr
 	Get the array base pointer.
-	
+
 	Returns:
 	Returns array base pointer.
 	*/
