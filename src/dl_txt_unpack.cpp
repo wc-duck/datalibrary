@@ -112,17 +112,20 @@ static void dl_txt_unpack_uint64( dl_binary_writer* writer, const uint64_t data 
 	dl_binary_writer_write( writer, buffer, (size_t)len );
 }
 
+// Writing fp32/fp64 with %.9g/%.17g for full "round-tripabillity", see
+// https://randomascii.wordpress.com/2012/03/08/float-precisionfrom-zero-to-100-digits-2/
+
 static void dl_txt_unpack_fp32( dl_binary_writer* writer, float data )
 {
 	char buffer[256];
-	int len = dl_internal_str_format( buffer, sizeof(buffer), "%g", data );
+	int len = dl_internal_str_format( buffer, sizeof(buffer), "%.9g", data );
 	dl_binary_writer_write( writer, buffer, (size_t)len );
 }
 
 static void dl_txt_unpack_fp64( dl_binary_writer* writer, double data )
 {
 	char buffer[256];
-	int len = dl_internal_str_format( buffer, sizeof(buffer), "%g", data );
+	int len = dl_internal_str_format( buffer, sizeof(buffer), "%.17g", data );
 	dl_binary_writer_write( writer, buffer, (size_t)len );
 }
 

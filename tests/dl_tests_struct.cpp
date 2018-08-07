@@ -43,9 +43,8 @@ TYPED_TEST(DLBase, pods_max)
 	EXPECT_EQ(P1Original.u16, P1.u16);
 	EXPECT_EQ(P1Original.u32, P1.u32);
 	EXPECT_EQ(P1Original.u64, P1.u64);
-	// need to disable these tests for floating-point-errors =/
-	// EXPECT_FLOAT_EQ(P1Original.f32,   P1.f32);
-	// EXPECT_DOUBLE_EQ(P1Original.f64,   P1.f64);
+	EXPECT_FLOAT_EQ(P1Original.f32,   P1.f32);
+	EXPECT_DOUBLE_EQ(P1Original.f64,   P1.f64);
 }
 
 TYPED_TEST(DLBase, pods_min)
