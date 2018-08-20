@@ -32,7 +32,7 @@ script:
   - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
 
 after_success:
-  - if [ $DL_CONFIG = "coverage" ]; then
+  - if [ $DL_CONFIG = "coverage" ] && [ $CC = "gcc" ]; then
   -    coveralls --exclude external --exclude bam --gcov-options '\-lp'
   - fi
 
