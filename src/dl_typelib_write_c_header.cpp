@@ -219,6 +219,9 @@ static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t c
 	if( e_info->is_extern )
 		return;
 
+	if( e_info->comment )
+		dl_binary_writer_write_string_fmt( writer, "//%s\n",  e_info->comment );
+
 	dl_binary_writer_write_string_fmt( writer, "typedef enum%s\n{\n", dl_context_enum_storage_decl(e_info->storage) );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof( dl_enum_value_info_t ) );
@@ -433,6 +436,9 @@ static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_s
 
 static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member, bool* last_was_bf )
 {
+	if( member->comment )
+		dl_binary_writer_write_string_fmt( writer, "    //%s\n", member->comment);
+
 	switch( member->atom )
 	{
 		case DL_TYPE_ATOM_POD:
@@ -449,7 +455,10 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				{
 					dl_type_info_t sub_type;
 					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    const struct %s* %s;\n", sub_type.name, member->name );
+					if(member->is_const)
+						dl_binary_writer_write_string_fmt( writer, "    const struct %s* %s;\n", sub_type.name, member->name );
+					else
+						dl_binary_writer_write_string_fmt( writer, "    struct %s* %s;\n", sub_type.name, member->name );
 				}
 				break;
 				case DL_TYPE_STORAGE_ENUM_INT8:
@@ -611,6 +620,10 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 			}
 
 			dl_binary_writer_write_string_fmt( writer, "};\n\n" );
+		}
+
+		if( type->comment ) {
+			dl_binary_writer_write_string_fmt( writer, "//%s\n", type->comment );
 		}
 
 		// ... the struct need manual align if the struct has higher align than any of its members ...

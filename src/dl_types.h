@@ -115,6 +115,7 @@ enum dl_ptr_size_t
 struct dl_member_desc
 {
 	uint32_t    name;
+	uint32_t	comment;
 	dl_type_t   type;
 	dl_typeid_t type_id;
 	uint32_t    size[2];
@@ -122,11 +123,13 @@ struct dl_member_desc
 	uint32_t    offset[2];
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
+	uint32_t 	is_const : 1;
 
 	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
 	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
 	uint32_t          bitfield_bits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
 	uint32_t          bitfield_offset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
+	bool			  IsConst()			const { return is_const == 1; }
 	bool              IsSimplePod()     const
 	{
 		return StorageType() != DL_TYPE_STORAGE_STR &&
@@ -188,6 +191,11 @@ struct dl_member_desc
 	{
 		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_INLINE_ARRAY_CNT_MASK ) | (bits << DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT) );
 	}
+
+	void set_const( bool is_c )
+	{
+		is_const = !!is_c;
+	}
 };
 
 /**
@@ -210,6 +218,8 @@ struct dl_type_desc
 	uint32_t alignment[2];
 	uint32_t member_count;
 	uint32_t member_start;
+	uint32_t comment;
+
 };
 
 struct dl_enum_value_desc
@@ -227,6 +237,7 @@ struct dl_enum_desc
 	uint32_t          value_start;
 	uint32_t          alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
 	uint32_t          alias_start; /// offset into alias list where aliases for this enum-value start.
+	uint32_t		  comment;
 };
 
 struct dl_enum_alias_desc
@@ -314,8 +325,11 @@ static inline const dl_type_desc* dl_internal_find_type(dl_ctx_t dl_ctx, dl_type
 }
 
 static inline const char* dl_internal_type_name      ( dl_ctx_t ctx, const dl_type_desc*       type   ) { return &ctx->typedata_strings[type->name]; }
+static inline const char* dl_internal_type_comment   ( dl_ctx_t ctx, const dl_type_desc*       type   ) { return type->comment != UINT32_MAX ? &ctx->typedata_strings[type->comment] : 0x0; }
 static inline const char* dl_internal_member_name    ( dl_ctx_t ctx, const dl_member_desc*     member ) { return &ctx->typedata_strings[member->name]; }
+static inline const char* dl_internal_member_comment ( dl_ctx_t ctx, const dl_member_desc*     member ) { return member->comment != UINT32_MAX ? &ctx->typedata_strings[member->comment] : 0x0; }
 static inline const char* dl_internal_enum_name      ( dl_ctx_t ctx, const dl_enum_desc*       enum_  ) { return &ctx->typedata_strings[enum_->name]; }
+static inline const char* dl_internal_enum_comment   ( dl_ctx_t ctx, const dl_enum_desc*       enum_  ) { return enum_->comment != UINT32_MAX ? &ctx->typedata_strings[enum_->comment] : 0x0; }
 static inline const char* dl_internal_enum_alias_name( dl_ctx_t ctx, const dl_enum_alias_desc* alias  ) { return &ctx->typedata_strings[alias->name]; }
 
 static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, const char* name )
@@ -333,27 +347,27 @@ static inline size_t dl_pod_size( dl_type_storage_t storage )
 {
 	switch( storage )
 	{
-		case DL_TYPE_STORAGE_INT8:  
+		case DL_TYPE_STORAGE_INT8:
 		case DL_TYPE_STORAGE_UINT8:
 		case DL_TYPE_STORAGE_ENUM_INT8:
 		case DL_TYPE_STORAGE_ENUM_UINT8:
 			return 1;
 
-		case DL_TYPE_STORAGE_INT16: 
+		case DL_TYPE_STORAGE_INT16:
 		case DL_TYPE_STORAGE_UINT16:
-		case DL_TYPE_STORAGE_ENUM_INT16: 
+		case DL_TYPE_STORAGE_ENUM_INT16:
 		case DL_TYPE_STORAGE_ENUM_UINT16:
 			return 2;
 
-		case DL_TYPE_STORAGE_INT32: 
-		case DL_TYPE_STORAGE_UINT32: 
-		case DL_TYPE_STORAGE_FP32: 
+		case DL_TYPE_STORAGE_INT32:
+		case DL_TYPE_STORAGE_UINT32:
+		case DL_TYPE_STORAGE_FP32:
 		case DL_TYPE_STORAGE_ENUM_INT32:
 		case DL_TYPE_STORAGE_ENUM_UINT32:
 			return 4;
 
-		case DL_TYPE_STORAGE_INT64: 
-		case DL_TYPE_STORAGE_UINT64: 
+		case DL_TYPE_STORAGE_INT64:
+		case DL_TYPE_STORAGE_UINT64:
 		case DL_TYPE_STORAGE_FP64:
 		case DL_TYPE_STORAGE_ENUM_INT64:
 		case DL_TYPE_STORAGE_ENUM_UINT64:

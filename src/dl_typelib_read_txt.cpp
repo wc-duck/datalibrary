@@ -55,6 +55,7 @@ static dl_member_desc* dl_alloc_member( dl_ctx_t ctx )
 	memset( member, 0x0, sizeof( dl_member_desc ) );
 	member->default_value_offset = 0xFFFFFFFF;
 	member->default_value_size = 0;
+	member->comment = UINT32_MAX;
 	return member;
 }
 
@@ -158,10 +159,7 @@ static const dl_builtin_type* dl_find_builtin_type( const char* name )
 	return 0x0;
 }
 
-static dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage )
-{
-	return (dl_type_t)( ((unsigned int)atom << DL_TYPE_ATOM_MIN_BIT) | ((unsigned int)storage << DL_TYPE_STORAGE_MIN_BIT) );
-}
+dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage );
 
 static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_state, unsigned int member_index )
 {
@@ -436,7 +434,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 	type->alignment[DL_PTR_SIZE_64BIT] = align[DL_PTR_SIZE_64BIT];
 }
 
-static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_desc* type )
+static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_txt_read_ctx* read_state, const dl_type_desc* type )
 {
 	unsigned int mem_start = type->member_start;
 	unsigned int mem_end   = type->member_start + type->member_count;
@@ -464,7 +462,9 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_de
 			case DL_TYPE_STORAGE_STRUCT:
 			{
 				const dl_type_desc* subtype = dl_internal_find_type( ctx, member->type_id );
-				if( dl_context_load_txt_type_has_subdata( ctx, subtype ) )
+				if( subtype == NULL )
+					dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "Member is missing type id.");
+				if( dl_context_load_txt_type_has_subdata( ctx, read_state, subtype ) )
 					return true;
 			}
 			break;
@@ -476,9 +476,9 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_de
 	return false;
 }
 
-static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type )
+static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_type_desc* type )
 {
-	if( dl_context_load_txt_type_has_subdata( ctx, type ) )
+	if( dl_context_load_txt_type_has_subdata( ctx, read_state, type ) )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_HAS_SUBDATA;
 }
 
@@ -508,7 +508,7 @@ static bool dl_txt_try_eat_char( dl_txt_read_ctx* read_state, char c )
 	return true;
 }
 
-static uint64_t dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx, 
+static uint64_t dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx,
 															      dl_type_storage_t   storage,
 															      dl_txt_read_ctx*    read_state )
 {
@@ -528,7 +528,7 @@ static uint64_t dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx,
 	}
 }
 
-static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx, 
+static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 															   dl_type_storage_t   storage,
 															   dl_txt_read_ctx*    read_state,
 															   dl_txt_read_substr* value_name )
@@ -586,6 +586,7 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 															 dl_txt_read_ctx* read_state,
 															 dl_txt_read_substr* name,
+															 dl_txt_read_substr* comment,
 															 const char** values_iter,
 															 const char** type_iter,
 															 const char** end_iter,
@@ -621,6 +622,10 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 		{
 			*is_extern = dl_txt_eat_bool( read_state ) == 1;
 		}
+		else if( strncmp( "comment", key.str, 7 ) == 0 )
+		{
+			*comment = dl_txt_eat_and_expect_string( ctx, read_state );
+		}
 		else
 			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values', 'type' and 'extern'", key.len, key.str );
 
@@ -641,8 +646,9 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	const char* values_iter;
 	const char* type_iter;
 	const char* end_iter;
+	dl_txt_read_substr comment = { 0, 0 };
 	bool        is_extern;
-	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &values_iter, &type_iter, &end_iter, &is_extern);
+	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &comment, &values_iter, &type_iter, &end_iter, &is_extern);
 
 	dl_type_storage_t storage = DL_TYPE_STORAGE_CNT;
 	if(type_iter)
@@ -680,7 +686,7 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 		}
 
 		if(storage == DL_TYPE_STORAGE_CNT)
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, 
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA,
 								"'type' on enum '%.*s' set to '%.*s', valid types are 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32' and 'uint64'",
 									name->len, name->str,
 									type_str.len, type_str.str );
@@ -714,6 +720,7 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	edesc->value_start = value_start;
 	edesc->alias_count = ctx->enum_alias_count - alias_start; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
 	edesc->alias_start = alias_start; /// offset into alias list where aliases for this enum-value start.
+	edesc->comment     = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
 }
 
 static void dl_context_load_txt_type_library_read_enums( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
@@ -912,6 +919,8 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 	dl_txt_read_substr comment = {0,0};
 	dl_txt_read_substr default_val = {0,0};
 
+	bool is_const = true;
+
 	do
 	{
 		dl_txt_read_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
@@ -954,18 +963,21 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 			default_val.len = (int)(end - start);
 			read_state->iter = end;
 		}
+		else if( strncmp( "const", key.str, 5) == 0)
+		{
+			dl_txt_eat_white( read_state );
+			is_const = dl_txt_eat_bool( read_state) == 1;
+		}
 		else
 			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'name', 'type', 'default' or 'comment'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
-	if(type.str == 0x0)
-		dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "member in type is missing 'type'-field");
-	if(name.str == 0x0)
-		dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "member in type is missing 'name'-field");
-
 	dl_member_desc* member = dl_alloc_member( ctx );
+	if (name.len == 0)
+		dl_txt_read_failed(ctx, read_state, DL_ERROR_MALFORMED_DATA, "No name on member in type.");
 	member->name = dl_alloc_string( ctx, &name );
+	member->comment = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
 	dl_parse_type( ctx, &type, member, read_state );
 
 	if(default_val.str)
@@ -973,6 +985,8 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 		member->default_value_offset = (uint32_t)( default_val.str - read_state->start );
 		member->default_value_size   = (uint32_t)default_val.len;
 	}
+
+	member->set_const(is_const);
 
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
@@ -1002,6 +1016,7 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	bool is_extern = false;
 	uint32_t member_count = 0;
 	uint32_t member_start = ctx->member_count;
+	dl_txt_read_substr comment = {0,0};
 
 	do
 	{
@@ -1026,8 +1041,14 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 			dl_txt_eat_white( read_state );
 			is_extern = dl_txt_eat_bool( read_state ) == 1;
 		}
+		else if( strncmp( "comment", key.str, 7 ) == 0 )
+		{
+			dl_txt_eat_char( ctx, read_state, ':' );
+			dl_txt_eat_white( read_state );
+			comment = dl_txt_eat_and_expect_string( ctx, read_state );
+		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'members', 'align' or 'extern'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'members', 'align', 'comment' or 'extern'", key.len, key.str );
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
 	dl_typeid_t tid = dl_internal_hash_buffer( (const uint8_t*)name->str, (size_t)name->len );
@@ -1044,6 +1065,8 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	type->alignment[ DL_PTR_SIZE_64BIT ] = align;
 	type->member_count = member_count;
 	type->member_start = member_start;
+
+	type->comment = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
 
 	if( is_extern )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
@@ -1149,7 +1172,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			dl_load_txt_build_default_data( ctx, read_state, member_index );
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
-			dl_context_load_txt_type_set_flags( ctx, ctx->type_descs + i );
+			dl_context_load_txt_type_set_flags( ctx, read_state, ctx->type_descs + i );
 	}
 	else
 	{

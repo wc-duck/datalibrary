@@ -5,7 +5,7 @@
 
 /*
 	File: dl_reflect.h
-		Functions used to get information about types and type-members. Mostly designed for 
+		Functions used to get information about types and type-members. Mostly designed for
 		use when binding DL towards other languages.
 */
 
@@ -31,6 +31,7 @@ typedef struct dl_type_info
 {
 	dl_typeid_t  tid;
 	const char*  name;
+	const char*  comment;
 	unsigned int size;
 	unsigned int alignment;
 	unsigned int member_count;
@@ -45,6 +46,7 @@ typedef struct dl_type_info
 typedef struct dl_member_info
 {
 	const char*       name;
+	const char*       comment;
 	dl_type_atom_t    atom;
 	dl_type_storage_t storage;
 	dl_typeid_t       type_id;
@@ -53,6 +55,7 @@ typedef struct dl_member_info
 	unsigned int      offset;
 	unsigned int      array_count;
 	unsigned int      bits;
+	unsigned int 	  is_const : 1;
 } dl_member_info_t;
 
 /*
@@ -63,6 +66,7 @@ typedef struct dl_enum_info
 {
 	dl_typeid_t       tid;
 	const char*       name;
+	const char*       comment;
 	dl_type_storage_t storage;
 	unsigned int      value_count;
 	unsigned int      is_extern : 1;

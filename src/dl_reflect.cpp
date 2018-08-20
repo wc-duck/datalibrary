@@ -35,6 +35,7 @@ static void dl_reflect_copy_type_info( dl_ctx_t ctx, dl_type_info_t* typeinfo, c
 {
 	typeinfo->tid          = ctx->type_ids[ type - ctx->type_descs ];
 	typeinfo->name         = dl_internal_type_name( ctx, type );
+	typeinfo->comment      = dl_internal_type_comment( ctx, type );
 	typeinfo->size         = type->size[DL_PTR_SIZE_HOST];
 	typeinfo->alignment    = type->alignment[DL_PTR_SIZE_HOST];
 	typeinfo->member_count = type->member_count;
@@ -46,6 +47,7 @@ static void dl_reflect_copy_enum_info( dl_ctx_t ctx, dl_enum_info_t* enuminfo, c
 {
 	enuminfo->tid         = ctx->enum_ids[ enum_ - ctx->enum_descs ];
 	enuminfo->name        = dl_internal_enum_name( ctx, enum_ );
+	enuminfo->comment     = dl_internal_enum_comment( ctx, enum_ );
 	enuminfo->storage     = enum_->storage;
 	enuminfo->value_count = enum_->value_count;
 	enuminfo->is_extern   = ( enum_->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
@@ -118,6 +120,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
 
 		out_members[member_index].name        = dl_internal_member_name( dl_ctx, member );
+		out_members[member_index].comment     = dl_internal_member_comment( dl_ctx, member );
 		out_members[member_index].atom        = member->AtomType();
 		out_members[member_index].storage     = member->StorageType();
 		out_members[member_index].type_id     = member->type_id;
@@ -126,6 +129,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		out_members[member_index].offset      = member->offset[DL_PTR_SIZE_HOST];
 		out_members[member_index].array_count = 0;
 		out_members[member_index].bits        = 0;
+		out_members[member_index].is_const    = member->IsConst();
 
 		switch(member->AtomType())
 		{

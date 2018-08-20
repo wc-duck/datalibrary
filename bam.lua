@@ -3,7 +3,7 @@ BUILD_PATH = "local"
 EXTERNALS_PATH = 'external'
 GTEST_PATH = PathJoin( EXTERNALS_PATH, 'gtest' )
 
-function dl_type_lib( tlc_file, dltlc )
+function dl_type_lib( tlc_file, dltlc, dl_tests )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header    = out_file .. ".h"
@@ -23,39 +23,40 @@ function dl_type_lib( tlc_file, dltlc )
 	AddJob( out_header,    "tlc " .. out_header, dltlc   .. " -c -o " .. out_header .. " "     .. tlc_file,  tlc_file )
 
 	AddDependency( tlc_file, dltlc )
+	AddDependency( dl_tests, out_lib_h )
 end
 
 function DefaultSettings( platform, config, compiler )
 	local settings = {}
-	
+
 	settings.debug = 0
 	settings.optimize = 0
 	settings._is_settingsobject = true
 	settings.invoke_count = 0
 	settings.config = config
 	settings.platform = platform
-	
+
 	-- SetCommonSettings(settings)
 	settings.config_name = ""
 	settings.config_ext  = ""
 	settings.labelprefix = ""
-	
+
 	-- add all tools
 	for _, tool in pairs(_bam_tools) do
 		tool(settings)
 	end
 
 	-- lock the table and return
-	TableLock(settings)	
+	TableLock(settings)
 
 	settings.cc.includes:Add("include")
 	settings.cc.includes:Add("local")
-		
 	local output_path = PathJoin( BUILD_PATH, PathJoin( PathJoin( platform, compiler ), config ) )
 	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
 	settings.cc.Output = output_func
 	settings.lib.Output = output_func
 	settings.dll.Output = output_func
+
 	settings.link.Output = output_func
 
 	return settings
@@ -114,7 +115,7 @@ function DefaultGCCLike( platform, config, compiler )
 	else
 	 return
 	end
-	
+
 	if config == "debug" then
 		settings.cc.flags:Add("-O0", "-g")
 	elseif config == "coverage" then
@@ -123,20 +124,20 @@ function DefaultGCCLike( platform, config, compiler )
 	else
 		settings.cc.flags:Add("-O2")
 	end
-	
+
 	local arch = platform == 'linux_x86' and '-m32' or '-m64'
 	settings.cc.flags:Add( arch )
 	settings.dll.flags:Add( arch )
 	settings.link.flags:Add( arch )
 	settings.link.libs:Add( 'rt' )
-	
+
 	return settings
 end
 
 function DefaultMSVC( build_platform, config, compiler )
 	local settings = DefaultSettings( build_platform, config, compiler )
 	SetDriversCL(settings)
-	
+
 	if config == "debug" then
 		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"", "/EHsc", "/GS-")
 		settings.dll.flags:Add("/DEBUG")
@@ -159,16 +160,16 @@ end
 
 function make_gtest_settings( base_settings )
 	local settings = TableDeepCopy( base_settings )
-	
+
 	settings.cc.includes:Add( GTEST_PATH )
 	settings.cc.includes:Add( PathJoin( GTEST_PATH, 'include' ) )
-	
+
 	return settings
 end
 
 function make_dl_settings( base_settings )
 	local settings = TableDeepCopy( base_settings )
-	
+
 	-- build dl on high warning level!
 	if settings.platform == 'linux_x86' or settings.platform == 'linux_x86_64' then
 		settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
@@ -185,16 +186,16 @@ end
 
 function make_dl_so_settings( base_settings )
 	local settings = make_dl_settings( base_settings )
-	
+
 	if settings.platform == 'linux_x86_64' then
 		settings.cc.flags:Add( "-fPIC" )
 	end
-	
+
 	local output_path = PathJoin( BUILD_PATH, PathJoin( settings.platform, settings.config ) )
 	local dll_path    = PathJoin( output_path, 'dll' )
-	
+
 	settings.cc.Output = function(settings, path) return PathJoin( dll_path, PathFilename(PathBase(path)) .. settings.config_ext) end
-	
+
 	return settings
 end
 
@@ -228,7 +229,7 @@ end
 local compiler = get_compiler()
 print( 'compiler used "' .. compiler .. '"')
 
-settings = 
+settings =
 {
 	linux_x86 = {
 	 debug   = DefaultGCCLike( "linux_x86", "debug",   compiler ),
@@ -278,13 +279,13 @@ dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecurs
 dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib )
 dlbench  = Link( test_settings,  "dlbench",  Compile( test_settings, Collect("benchmark/*.cpp") ), dl_lib )
 
-tl1 = dl_type_lib( "tests/unittest.tld",    dltlc )
-tl2 = dl_type_lib( "tests/unittest2.tld",   dltlc )
-tl3 = dl_type_lib( "tests/small.tld",       dltlc )
-tl3 = dl_type_lib( "tests/sized_enums.tld", dltlc )
-tlbench = dl_type_lib( "benchmark/dlbench.tld", dltlc ) 
+tl1 = dl_type_lib( "tests/sized_enums.tld", dltlc, dl_tests )
+tl2 = dl_type_lib( "tests/unittest.tld",    dltlc, dl_tests )
+tl3 = dl_type_lib( "tests/unittest2.tld",   dltlc, dl_tests )
+tl4 = dl_type_lib( "tests/small.tld",       dltlc, dl_tests )
+tlbench = dl_type_lib( "benchmark/dlbench.tld", dltlc, dl_tests )
 
-dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ), tl1, tl2 )
+dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ), tl1, tl2, tl3, tl4, tlbench )
 
 local    test_args = ""
 local py_test_args = ""
@@ -312,9 +313,9 @@ if family == "windows" then -- hackery hack
 end
 
 dl_tests_py = "tests/python_bindings/dl_tests.py"
-AddJob( "test_py", 
-		"unittest python", 
-		PYTHON .. " " .. dl_tests_py .. " " .. dl_shared .. " " .. py_test_args, 
+AddJob( "test_py",
+		"unittest python",
+		PYTHON .. " " .. dl_tests_py .. " " .. dl_shared .. " " .. py_test_args,
 		dl_tests_py,
 		dl_shared, "local/generated/unittest.bin" )
 
