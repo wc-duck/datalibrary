@@ -4,6 +4,10 @@
 #include <dl/dl.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
 struct dl_allocator
 {
 	dl_alloc_func   alloc;
@@ -52,6 +56,11 @@ inline void* dl_realloc( dl_allocator* alloc, void* ptr, size_t size, size_t old
 	}
 	return new_ptr;
 }
+
+#ifdef __cplusplus
+}
+#endif  // __cplusplus
+
 
 #endif // DL_ALLOC_H_INCLUDED
 
