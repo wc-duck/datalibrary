@@ -30,7 +30,7 @@ static unsigned char* dl_read_entire_stream( dl_allocator *allocator, FILE* file
 dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx,     		dl_typeid_t         type,
                                    const char* filename,     	dl_util_file_type_t filetype,
                                    void**      out_instance, 	dl_typeid_t*        out_type,
-                                   dl_allocator * allocator /* = 0x0 */ )
+                                   dl_allocator * allocator )
 {
 	dl_error_t error = DL_ERROR_UTIL_FILE_NOT_FOUND;
 
@@ -48,7 +48,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t dl_ctx,     		dl_typeid_t         ty
 dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       	dl_typeid_t         type,
 									 FILE*    stream,       	dl_util_file_type_t filetype,
 									 void**   out_instance, 	dl_typeid_t*        out_type,
-									 size_t*  consumed_bytes, 	dl_allocator *allocator /* = 0x0 */ )
+									 size_t*  consumed_bytes, 	dl_allocator *allocator )
 {
 	dl_allocator mallocator;
 	if(allocator == 0x0) {
@@ -178,7 +178,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 									FILE*       stream,     dl_util_file_type_t filetype,
 									dl_endian_t out_endian, size_t              out_ptr_size,
-									const void* instance, dl_allocator *allocator /* = 0x0 */ )
+									const void* instance, dl_allocator *allocator )
 {
 	dl_allocator mallocator;
 	if(allocator == 0x0) {
