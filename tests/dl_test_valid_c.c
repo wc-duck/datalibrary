@@ -3,7 +3,7 @@
 #include "generated/unittest2.h"
 #include "generated/sized_enums.h"
 
-#include "dl_alloc.h"
+#include "../src/dl_alloc.h"
 #include <dl/dl.h>
 #include <dl/dl_convert.h>
 #include <dl/dl_reflect.h>
