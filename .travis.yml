@@ -33,9 +33,9 @@ script:
 
 after_success:
   - |
-  if [ $DL_CONFIG = "coverage" ] && [ $CC = "gcc" ]; then
-    coveralls --exclude external --exclude bam --gcov-options '\-lp'
-  fi
+    if [ $DL_CONFIG = "coverage" ] && [ $CC = "gcc" ]; then
+      coveralls --exclude external --exclude bam --gcov-options '\-lp'
+    fi
 
 addons:
   coverity_scan:
