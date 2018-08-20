@@ -434,7 +434,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 	type->alignment[DL_PTR_SIZE_64BIT] = align[DL_PTR_SIZE_64BIT];
 }
 
-static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_desc* type )
+static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_txt_read_ctx* read_state, const dl_type_desc* type )
 {
 	unsigned int mem_start = type->member_start;
 	unsigned int mem_end   = type->member_start + type->member_count;
@@ -462,7 +462,9 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_de
 			case DL_TYPE_STORAGE_STRUCT:
 			{
 				const dl_type_desc* subtype = dl_internal_find_type( ctx, member->type_id );
-				if( dl_context_load_txt_type_has_subdata( ctx, subtype ) )
+				if( subtype == NULL )
+					dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "Member is missing type id.");
+				if( dl_context_load_txt_type_has_subdata( ctx, read_state, subtype ) )
 					return true;
 			}
 			break;
@@ -474,9 +476,9 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, const dl_type_de
 	return false;
 }
 
-static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_type_desc* type )
+static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_type_desc* type )
 {
-	if( dl_context_load_txt_type_has_subdata( ctx, type ) )
+	if( dl_context_load_txt_type_has_subdata( ctx, read_state, type ) )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_HAS_SUBDATA;
 }
 
@@ -972,6 +974,8 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
 	dl_member_desc* member = dl_alloc_member( ctx );
+	if (name.len == 0)
+		dl_txt_read_failed(ctx, read_state, DL_ERROR_MALFORMED_DATA, "No name on member in type.");
 	member->name = dl_alloc_string( ctx, &name );
 	member->comment = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
 	dl_parse_type( ctx, &type, member, read_state );
@@ -1168,7 +1172,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			dl_load_txt_build_default_data( ctx, read_state, member_index );
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
-			dl_context_load_txt_type_set_flags( ctx, ctx->type_descs + i );
+			dl_context_load_txt_type_set_flags( ctx, read_state, ctx->type_descs + i );
 	}
 	else
 	{
