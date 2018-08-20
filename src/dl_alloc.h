@@ -8,21 +8,22 @@
 extern "C" {
 #endif  // __cplusplus
 
-struct dl_allocator
+typedef struct dl_allocator
 {
 	dl_alloc_func   alloc;
 	dl_realloc_func realloc;
 	dl_free_func    free;
 	void* ctx;
-};
+} dl_allocator;
 
 /**
  * Initialize a dl_allocator to be used internally in DL.
  *
  * If alloc_f and free_f is both NULL, malloc, realloc and free will be used.
  * If alloc_f and free_f is not NULL, but realloc_f if NULL a fallback using alloc_f and free_f together with memcpy will be used.
+ * Returns 0 if initialization fails, 1 if it succeeds.
  */
-bool dl_allocator_initialize( dl_allocator* alloc, dl_alloc_func alloc_f, dl_realloc_func realloc_f, dl_free_func free_f, void* alloc_ctx );
+int dl_allocator_initialize( dl_allocator* alloc, dl_alloc_func alloc_f, dl_realloc_func realloc_f, dl_free_func free_f, void* alloc_ctx );
 
 /**
  * Allocator memory on an allocator.
