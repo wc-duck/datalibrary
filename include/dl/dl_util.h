@@ -20,6 +20,7 @@
 extern "C" {
 #endif  // __cplusplus
 
+struct dl_allocator;
 /*
 	Enum: dl_util_file_type_t
 		Enumeration of possible file types that can be read by util-functions.
@@ -52,13 +53,15 @@ typedef enum
 		filetype     - Type of file to read, see dl_util_file_type_t.
 		out_instance - Pointer to fill with read instance.
 		out_type     - TypeID of instance found in file, can be set to 0x0.
+		allocator 	 - Allocator for doing temp file allocations
 
 	Returns:
 		DL_ERROR_OK on success.
 */
 dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
 								   const char* filename,     dl_util_file_type_t filetype,
-								   void**      out_instance, dl_typeid_t*        out_type );
+								   void**      out_instance, dl_typeid_t*        out_type,
+								   dl_allocator *allocator = 0x0 );
 
 /*
 	Function: dl_util_load_from_stream
@@ -71,13 +74,14 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t        
 		more.
 
 	Parameters:
-		dl_ctx         - Context to use for operations.
-		type           - Type expected to be found in file, set to 0 if not known.
-		stream         - Open stream to load from.
-		filetype       - Type of file to read, see dl_util_file_type_t.
-		out_instance   - Pointer to fill with read instance.
-		out_type       - TypeID of instance found in file, can be set to 0x0.
-		consumed_bytes - Number of bytes read from stream.
+		dl_ctx         	- Context to use for operations.
+		type           	- Type expected to be found in file, set to 0 if not known.
+		stream         	- Open stream to load from.
+		filetype       	- Type of file to read, see dl_util_file_type_t.
+		out_instance   	- Pointer to fill with read instance.
+		out_type       	- TypeID of instance found in file, can be set to 0x0.
+		consumed_bytes 	- Number of bytes read from stream.
+		allocator 		- Allocator for doing temp file allocations
 
 	Returns:
 		DL_ERROR_OK on success.
@@ -85,7 +89,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t        
 dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         type,
 									 FILE*    stream,       dl_util_file_type_t filetype,
 									 void**   out_instance, dl_typeid_t*        out_type,
-									 size_t*  consumed_bytes );
+									 size_t*  consumed_bytes, dl_allocator *allocator = 0x0 );
 
 /*
 	Function: dl_util_load_from_file_inplace
@@ -96,12 +100,13 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         
 		be used accordingly.
 
 	Parameters:
-		dl_ctx            - Context to use for operations.
-		type              - Type expected to be found in file.
-		filename          - Path to file to load from.
-		filetype          - Type of file to read, see EDLUtilFileType.
-		out_instance      - Pointer to area to load instance to.
-		out_instance_size - Size of buffer pointed to by _ppInstance
+		dl_ctx            	- Context to use for operations.
+		type              	- Type expected to be found in file.
+		filename          	- Path to file to load from.
+		filetype          	- Type of file to read, see EDLUtilFileType.
+		out_instance      	- Pointer to area to load instance to.
+		out_instance_size 	- Size of buffer pointed to by _ppInstance
+		allocator 			- Allocator for doing temp file allocations
 
 	Returns:
 		DL_ERROR_OK on success.
@@ -109,7 +114,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         
 dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_t         type,
 										   const char*  filename,     dl_util_file_type_t filetype,
 										   void*        out_instance, size_t              out_instance_size,
-										   dl_typeid_t* out_type );
+										   dl_typeid_t* out_type, dl_allocator *allocator = 0x0 );
 
 /*
 	Function: dl_util_store_to_file
@@ -127,6 +132,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_
 		out_endian   - Endian of stored instance if binary.
 		out_ptr_size - Pointer size of stored instance if binary.
 		out_instance - Pointer to instance to write
+		allocator 	 - Allocator for doing temp file allocations
 
 	Returns:
 		DL_ERROR_OK on success.
@@ -134,7 +140,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_
 dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 								  const char* filename,   dl_util_file_type_t filetype,
 								  dl_endian_t out_endian, size_t              out_ptr_size,
-								  const void* out_instance );
+								  const void* out_instance, dl_allocator *allocator = 0x0 );
 
 /*
 	Function: dl_util_store_to_stream
@@ -152,6 +158,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 		out_endian   - Endian of stored instance if binary.
 		out_ptr_size - Pointer size of stored instance if binary.
 		out_instance - Pointer to instance to write
+		allocator 	 - Allocator for doing temp file allocations
 
 	Returns:
 		DL_ERROR_OK on success.
@@ -159,7 +166,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 									FILE*       stream,     dl_util_file_type_t filetype,
 									dl_endian_t out_endian, size_t              out_ptr_size,
-									const void* out_instance );
+									const void* out_instance, dl_allocator *allocator = 0x0 );
 
 #ifdef __cplusplus
 }
