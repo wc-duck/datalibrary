@@ -51,7 +51,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       	dl_typeid_t        
 									 size_t*  consumed_bytes, 	dl_allocator *allocator /* = 0x0 */ )
 {
 	dl_allocator mallocator;
-	if(allocator == nullptr) {
+	if(allocator == 0x0) {
 		dl_allocator_initialize(&mallocator, 0x0, 0x0, 0x0, 0x0);
 		allocator = &mallocator;
 	}
@@ -181,7 +181,7 @@ dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         
 									const void* instance, dl_allocator *allocator /* = 0x0 */ )
 {
 	dl_allocator mallocator;
-	if(allocator == nullptr) {
+	if(allocator == 0x0) {
 		dl_allocator_initialize(&mallocator, 0x0, 0x0, 0x0, 0x0);
 		allocator = &mallocator;
 	}
