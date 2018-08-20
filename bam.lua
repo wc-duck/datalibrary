@@ -3,7 +3,7 @@ BUILD_PATH = "local"
 EXTERNALS_PATH = 'external'
 GTEST_PATH = PathJoin( EXTERNALS_PATH, 'gtest' )
 
-function dl_type_lib( tlc_file, dltlc )
+function dl_type_lib( tlc_file, dltlc, dl_tests )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
 	local out_header    = out_file .. ".h"
@@ -23,6 +23,7 @@ function dl_type_lib( tlc_file, dltlc )
 	AddJob( out_header,    "tlc " .. out_header, dltlc   .. " -c -o " .. out_header .. " "     .. tlc_file,  tlc_file )
 
 	AddDependency( tlc_file, dltlc )
+	AddDependency( dl_tests, out_lib_h )
 end
 
 function DefaultSettings( platform, config, compiler )
@@ -50,12 +51,12 @@ function DefaultSettings( platform, config, compiler )
 
 	settings.cc.includes:Add("include")
 	settings.cc.includes:Add("local")
-
 	local output_path = PathJoin( BUILD_PATH, PathJoin( PathJoin( platform, compiler ), config ) )
 	local output_func = function(settings, path) return PathJoin(output_path, PathFilename(PathBase(path)) .. settings.config_ext) end
 	settings.cc.Output = output_func
 	settings.lib.Output = output_func
 	settings.dll.Output = output_func
+
 	settings.link.Output = output_func
 
 	return settings
@@ -278,13 +279,13 @@ dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecurs
 dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib )
 dlbench  = Link( test_settings,  "dlbench",  Compile( test_settings, Collect("benchmark/*.cpp") ), dl_lib )
 
-tl1 = dl_type_lib( "tests/unittest.tld",    dltlc )
-tl2 = dl_type_lib( "tests/unittest2.tld",   dltlc )
-tl3 = dl_type_lib( "tests/small.tld",       dltlc )
-tl4 = dl_type_lib( "tests/sized_enums.tld", dltlc )
-tlbench = dl_type_lib( "benchmark/dlbench.tld", dltlc )
+tl1 = dl_type_lib( "tests/sized_enums.tld", dltlc, dl_tests )
+tl2 = dl_type_lib( "tests/unittest.tld",    dltlc, dl_tests )
+tl3 = dl_type_lib( "tests/unittest2.tld",   dltlc, dl_tests )
+tl4 = dl_type_lib( "tests/small.tld",       dltlc, dl_tests )
+tlbench = dl_type_lib( "benchmark/dlbench.tld", dltlc, dl_tests )
 
-dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ), tl1, tl2 )
+dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ), tl1, tl2, tl3, tl4, tlbench )
 
 local    test_args = ""
 local py_test_args = ""
