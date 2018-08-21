@@ -413,6 +413,17 @@ static inline uint32_t dl_internal_largest_member_size( dl_ctx_t ctx, const dl_t
 	return max_member_size;
 }
 
+static inline uint32_t dl_internal_largest_member_alignment(dl_ctx_t ctx, const dl_type_desc* type, dl_ptr_size_t ptr_size)
+{
+	uint32_t max_member_alignment = 0; // TODO: calc and store this in type?
+	for (uint32_t member_index = 0; member_index < type->member_count; ++member_index)
+	{
+		const dl_member_desc* member = dl_get_type_member(ctx, type, member_index);
+		max_member_alignment = member->alignment[ptr_size] > max_member_alignment ? member->alignment[ptr_size] : max_member_alignment;
+	}
+	return max_member_alignment;
+}
+
 static inline const dl_member_desc* dl_internal_find_member_desc_by_name_hash( dl_ctx_t dl_ctx, const dl_type_desc* type, uint32_t name_hash )
 {
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )

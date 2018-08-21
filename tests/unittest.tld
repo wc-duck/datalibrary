@@ -71,13 +71,6 @@
 				{ "name" : "item2", "type" : "fp32"  },
 				{ "name" : "item3", "type" : "Pods"  }
 			]
-		},
-		"test_union_with_default" : {
-			"members" : [
-				{ "name" : "empty", "type" : "default_empty_type" },
-				{ "name" : "item1", "type" : "int32" },
-				{ "name" : "item3", "type" : "Pods"  }
-			]
 		}
 	},
 
@@ -323,21 +316,38 @@
 			]
 		},
 
-		"struct_with_union" : {
+		"struct_with_a_bitfield" : {
+			"comment" : "! not_reloadable",
 			"members" : [
-				{ "name" : "my_data", "type" : "test_union_with_default" },
-				{ "name" : "my_member_1", "type" : "uint32" }
+				{	"name" : "my_variable_1",	"type" : "uint64", "default" : 0 },
+				{	"name" : "my_variable_2",	"type" : "uint32", "default" : 0 },
+				{	"name" : "my_variable_3",	"type" : "bitfield:1" }
 			]
 		},
-
-		"array_with_struct_of_union" : {
+		"struct_with_some_defaults" : {
 			"members" : [
-				{ "name" : "my_list", "type" : "struct_with_union[]" }
+				{ 	"name" : "some_variable_1", 	"type" : "uint32" },
+				{	"name" : "some_variable_2",		"type" : "fp32",			"default" : 0.5 },
+				{ 	"name" : "some_variable_3",		"type" : "fp32",			"default" : 0 },
+				{	"name" : "some_variable_4",		"type" : "fp32",			"default" : 20 },
+				{	"name" : "some_variable_5",		"type" : "fp32",			"default" : 0.1 }
+			]
+		},
+		"struct_with_one_member_and_default" : {
+			"members" : [
+				{	"name" : "dummy", "type" : "uint32", "default" : 0 }
 			]
 		}
 	},
-
 	"unions" : {
+		"union_with_weird_members" : {
+			"members" : [
+				{ "name" : "spawn_particles",	"type" : "struct_with_a_bitfield" },
+				{ "name" : "decay",				"type" : "struct_with_some_defaults" },
+				{ "name" : "hide_all_meshes",	"type" : "struct_with_one_member_and_default" }
+			]
+		},
+
 		"test_union_inline_array" : {
 			"members" : [
 				{ "name" : "i32",    "type" : "int32" },
@@ -367,6 +377,17 @@
 		}
 	},
 	"types" : {
+		"union_with_weird_members_event" : {
+			"members" : [
+				{	"name" : "effect",				"type" : "union_with_weird_members" },
+				{	"name" : "delay",				"type" : "fp32", "default" : 0 }
+			]
+		},
+		"struct_with_array_of_weird_unions" : {
+			"members" : [
+				{ "name" : "event_array",				"type" : "union_with_weird_members_event[]" }
+			]
+		},
 		"test_with_union_array" : {
 			"members" : [
 				{ "name" : "properties", "type" : "test_has_union_array[]" }

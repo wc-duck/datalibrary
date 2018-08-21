@@ -424,8 +424,8 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
 		// ... add size for the union type flag ...
-		size[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], 4 ) + (uint32_t)sizeof(uint32_t);
-		size[DL_PTR_SIZE_64BIT] = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], 4 ) + (uint32_t)sizeof(uint32_t);
+		size[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], align[DL_PTR_SIZE_32BIT] ) + (uint32_t)sizeof(uint32_t);
+		size[DL_PTR_SIZE_64BIT] = dl_internal_align_up( size[DL_PTR_SIZE_64BIT], align[DL_PTR_SIZE_64BIT] ) + (uint32_t)sizeof(uint32_t);
 	}
 
 	type->size[DL_PTR_SIZE_32BIT] = dl_internal_align_up( size[DL_PTR_SIZE_32BIT], align[DL_PTR_SIZE_32BIT] );

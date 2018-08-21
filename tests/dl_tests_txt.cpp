@@ -535,32 +535,41 @@ TEST_F( DLText, invalid_data_format )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : true } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
 
-// This fails.
-/*
 TEST_F( DLText, basic_union_type_assignment )
 {
 	const char* text_data = STRINGIFY(
-		{
-			"array_with_struct_of_union" : {
-				"my_list" : [
-					{
-						"my_data" : {
-						},
-						"my_member_1" : 2
+	{
+		"struct_with_array_of_weird_unions" : {
+			"event_array" : [
+				{
+					"delay" : 0,
+					"effect" : {
+						"hide_all_meshes" : {
+						}
 					}
-				]
-			}
+				},
+				{
+					"delay" : 0
+					"effect" : {
+						"spawn_particles" : {
+							"my_variable_1" : 12345678910,
+							"my_variable_3" : 1
+						}
+					}
+				}
+			]
 		}
+	}
 	);
 	char data_buffer[1024];
 
 	unsigned char out_data_text[1024];
 
 	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0) );
-	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, array_with_struct_of_union::TYPE_ID, data_buffer, DL_ARRAY_LENGTH(data_buffer), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
-	array_with_struct_of_union *t1 = (array_with_struct_of_union*)data_buffer;
-	EXPECT_EQ(test_union_simple_type_item1, t1->my_list[0].my_data.type);
-} */
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, struct_with_array_of_weird_unions::TYPE_ID, data_buffer, DL_ARRAY_LENGTH(data_buffer), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	struct_with_array_of_weird_unions *t1 = (struct_with_array_of_weird_unions*)data_buffer;
+	EXPECT_EQ(union_with_weird_members_type_hide_all_meshes, t1->event_array[0].effect.type);
+}
 
 TEST_F( DLText, basic_bool_all_true )
 {
