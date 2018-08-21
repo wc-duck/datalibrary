@@ -226,7 +226,8 @@ void dl_internal_patch_struct( dl_ctx_t            ctx,
 		if( type->flags & DL_TYPE_FLAG_IS_UNION )
 		{
 			// TODO: extract to helper-function?
-			size_t max_member_size = dl_internal_largest_member_size( ctx, type, DL_PTR_SIZE_HOST );
+			size_t max_member_alignment = dl_internal_largest_member_alignment( ctx, type, DL_PTR_SIZE_HOST );
+			size_t max_member_size = dl_internal_align_up(dl_internal_largest_member_size( ctx, type, DL_PTR_SIZE_HOST ), max_member_alignment);
 
 			// find member index from union type ...
 			uint32_t union_type = *((uint32_t*)(struct_data + max_member_size));
@@ -266,7 +267,8 @@ void dl_internal_patch_instance( dl_ctx_t            ctx,
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
 		// TODO: extract to helper-function?
-		size_t max_member_size = dl_internal_largest_member_size( ctx, type, DL_PTR_SIZE_HOST );
+		size_t max_member_alignment = dl_internal_largest_member_alignment( ctx, type, DL_PTR_SIZE_HOST );
+		size_t max_member_size = dl_internal_align_up(dl_internal_largest_member_size( ctx, type, DL_PTR_SIZE_HOST ), max_member_alignment);
 
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(instance + max_member_size));
