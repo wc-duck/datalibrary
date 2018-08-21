@@ -535,6 +535,33 @@ TEST_F( DLText, invalid_data_format )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : true } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
 
+// This fails.
+/*
+TEST_F( DLText, basic_union_type_assignment )
+{
+	const char* text_data = STRINGIFY(
+		{
+			"array_with_struct_of_union" : {
+				"my_list" : [
+					{
+						"my_data" : {
+						},
+						"my_member_1" : 2
+					}
+				]
+			}
+		}
+	);
+	char data_buffer[1024];
+
+	unsigned char out_data_text[1024];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, array_with_struct_of_union::TYPE_ID, data_buffer, DL_ARRAY_LENGTH(data_buffer), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+	array_with_struct_of_union *t1 = (array_with_struct_of_union*)data_buffer;
+	EXPECT_EQ(test_union_simple_type_item1, t1->my_list[0].my_data.type);
+} */
+
 TEST_F( DLText, basic_bool_all_true )
 {
 	const char* all_true_text = STRINGIFY(

@@ -60,7 +60,8 @@
         "fp64Array" : { "members" : [ { "name" : "arr",  "type" : "fp64[]"   } ] },
         "strArray"  : { "members" : [ { "name" : "arr",  "type" : "string[]" } ] },
         "ptrArray"  : { "members" : [ { "name" : "arr",  "type" : "Pods*[]"  } ] },
-        "enumArray" : { "members" : [ { "name" : "arr",  "type" : "TestEnum1[]" } ] }
+        "enumArray" : { "members" : [ { "name" : "arr",  "type" : "TestEnum1[]" } ] },
+        "default_empty_type" : { "members" : [ { "name" : "empty", "type" : "uint32", "default" : 0 } ] }
 	},
 
 	"unions" : {
@@ -68,6 +69,13 @@
 			"members" : [
 				{ "name" : "item1", "type" : "int32" },
 				{ "name" : "item2", "type" : "fp32"  },
+				{ "name" : "item3", "type" : "Pods"  }
+			]
+		},
+		"test_union_with_default" : {
+			"members" : [
+				{ "name" : "empty", "type" : "default_empty_type" },
+				{ "name" : "item1", "type" : "int32" },
 				{ "name" : "item3", "type" : "Pods"  }
 			]
 		}
@@ -312,6 +320,19 @@
 		"single_int" : {
 			"members" : [
 				{ "name" : "val", "type" : "int32" }
+			]
+		},
+
+		"struct_with_union" : {
+			"members" : [
+				{ "name" : "my_data", "type" : "test_union_with_default" },
+				{ "name" : "my_member_1", "type" : "uint32" }
+			]
+		},
+
+		"array_with_struct_of_union" : {
+			"members" : [
+				{ "name" : "my_list", "type" : "struct_with_union[]" }
 			]
 		}
 	},
