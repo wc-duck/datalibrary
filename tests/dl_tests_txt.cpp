@@ -567,7 +567,8 @@ TEST_F( DLText, basic_union_type_assignment )
 
 	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0) );
 	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, struct_with_array_of_weird_unions::TYPE_ID, data_buffer, DL_ARRAY_LENGTH(data_buffer), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
-	struct_with_array_of_weird_unions *t1 = (struct_with_array_of_weird_unions*)data_buffer;
+	void* temp_ptr = data_buffer;
+	struct_with_array_of_weird_unions *t1 = (struct_with_array_of_weird_unions *)temp_ptr;
 	EXPECT_EQ(union_with_weird_members_type_hide_all_meshes, t1->event_array[0].effect.type);
 }
 
