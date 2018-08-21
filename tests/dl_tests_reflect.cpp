@@ -285,3 +285,26 @@ TEST_F(DLReflect, type_strings)
 	EXPECT_STREQ( "u64_2", BugTest1_InArray_members[1].name );
 	EXPECT_STREQ( "u16",   BugTest1_InArray_members[2].name );
 }
+
+TEST_F(DLReflect, struct_with_union_sizes)
+{
+	dl_type_info_t union_with_weird_members_event_info;
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_info(Ctx, union_with_weird_members_event_TYPE_ID, &union_with_weird_members_event_info));
+	EXPECT_EQ(union_with_weird_members_event_info.size, sizeof(union_with_weird_members_event));
+}
+
+TEST_F(DLReflect, struct_sizes)
+{
+	dl_type_info_t struct_with_a_bitfield_info;
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_info(Ctx, struct_with_a_bitfield_TYPE_ID, &struct_with_a_bitfield_info));
+	EXPECT_EQ(struct_with_a_bitfield_info.size, sizeof(struct_with_a_bitfield));
+
+	dl_type_info_t struct_with_some_defaults_info;
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_info(Ctx, struct_with_some_defaults_TYPE_ID, &struct_with_some_defaults_info));
+	EXPECT_EQ(struct_with_some_defaults_info.size, sizeof(struct_with_some_defaults));
+
+	dl_type_info_t struct_with_one_member_and_default_info;
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_info(Ctx, struct_with_one_member_and_default_TYPE_ID, &struct_with_one_member_and_default_info));
+	EXPECT_EQ(struct_with_one_member_and_default_info.size, sizeof(struct_with_one_member_and_default));
+
+}

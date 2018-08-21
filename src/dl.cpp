@@ -360,7 +360,8 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
 		// TODO: extract to helper-function?
-		size_t max_member_size = dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST );
+		size_t max_member_alignment = dl_internal_largest_member_alignment( dl_ctx, type, DL_PTR_SIZE_HOST );
+		size_t max_member_size = dl_internal_align_up(dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST ), max_member_alignment);
 
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(instance + max_member_size));
