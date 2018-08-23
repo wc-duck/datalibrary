@@ -194,3 +194,157 @@ TYPED_TEST(DLBase, big_array_complex_test)
 	free(original.members.data[1].dynamic_arr.data);
 	free(original.members.data);
 }
+
+TEST_F(DL, ranged_for_int8)
+{
+	unsigned char unpack_buffer[1024];
+    i8Array* arr = dl_txt_test_pack_text<i8Array>(Ctx, STRINGIFY( { i8Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	int8_t expect[3] = {1,2,3};
+	int i = 0;
+	for(int8_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_int16)
+{
+	unsigned char unpack_buffer[1024];
+    i16Array* arr = dl_txt_test_pack_text<i16Array>(Ctx, STRINGIFY( { i16Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	int16_t expect[3] = {1,2,3};
+	int i = 0;
+	for(int16_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_int32)
+{
+	unsigned char unpack_buffer[1024];
+    i32Array* arr = dl_txt_test_pack_text<i32Array>(Ctx, STRINGIFY( { i32Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	int32_t expect[3] = {1,2,3};
+	int i = 0;
+	for(int32_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_int64)
+{
+	unsigned char unpack_buffer[1024];
+    i64Array* arr = dl_txt_test_pack_text<i64Array>(Ctx, STRINGIFY( { i64Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	int64_t expect[3] = {1,2,3};
+	int i = 0;
+	for(int64_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_uint8)
+{
+	unsigned char unpack_buffer[1024];
+    u8Array* arr = dl_txt_test_pack_text<u8Array>(Ctx, STRINGIFY( { u8Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	uint8_t expect[3] = {1,2,3};
+	int i = 0;
+	for(uint8_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_uint16)
+{
+	unsigned char unpack_buffer[1024];
+    u16Array* arr = dl_txt_test_pack_text<u16Array>(Ctx, STRINGIFY( { u16Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	uint16_t expect[3] = {1,2,3};
+	int i = 0;
+	for(uint16_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_uint32)
+{
+	unsigned char unpack_buffer[1024];
+    u32Array* arr = dl_txt_test_pack_text<u32Array>(Ctx, STRINGIFY( { u32Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	uint32_t expect[3] = {1,2,3};
+	int i = 0;
+	for(uint32_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_uint64)
+{
+	unsigned char unpack_buffer[1024];
+    u64Array* arr = dl_txt_test_pack_text<u64Array>(Ctx, STRINGIFY( { u64Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	uint64_t expect[3] = {1,2,3};
+	int i = 0;
+	for(uint64_t v : arr->arr )
+	{
+		EXPECT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_fp32)
+{
+	unsigned char unpack_buffer[1024];
+    fp32Array* arr = dl_txt_test_pack_text<fp32Array>(Ctx, STRINGIFY( { fp32Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	float expect[3] = {1.0f,2.0f,3.0f};
+	int i = 0;
+	for(float v : arr->arr )
+	{
+		EXPECT_FLOAT_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_fp64)
+{
+	unsigned char unpack_buffer[1024];
+    fp64Array* arr = dl_txt_test_pack_text<fp64Array>(Ctx, STRINGIFY( { fp64Array : { arr : [1,2,3] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	double expect[3] = {1.0,2.0,3.0};
+	int i = 0;
+	for(double v : arr->arr )
+	{
+		EXPECT_DOUBLE_EQ(expect[i], v);
+		++i;
+	}
+}
+
+TEST_F(DL, ranged_for_str)
+{
+	unsigned char unpack_buffer[1024];
+    strArray* arr = dl_txt_test_pack_text<strArray>(Ctx, STRINGIFY( { strArray : { arr : ["a", "b", "c"] } } ), unpack_buffer, sizeof(unpack_buffer));
+
+	const char* expect[3] = {"a", "b", "c"};
+	int i = 0;
+	for(const char* v : arr->arr )
+	{
+		EXPECT_STREQ(expect[i], v);
+		++i;
+	}
+}

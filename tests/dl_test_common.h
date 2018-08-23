@@ -4,6 +4,7 @@
 #define DL_DL_TEST_COMMON_H_INCLUDED
 
 #include <dl/dl.h>
+#include <dl/dl_txt.h>
 
 // header file generated from unittest-type lib
 #include "generated/unittest.h"
@@ -22,6 +23,8 @@
 #define EXPECT_DL_ERR_EQ(_Expect, _Res) { dl_error_t err = _Res; EXPECT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
 #define EXPECT_DL_ERR_OK(_Res) EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
 #define DL_ARRAY_LENGTH(Array) (uint32_t)(sizeof(Array)/sizeof(Array[0]))
+
+#define STRINGIFY( ... ) #__VA_ARGS__
 
 template<typename T>
 const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_size)
@@ -50,6 +53,18 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 											ArrayToString(_Actual, _Count, ActualBuf, DL_ARRAY_LENGTH(ActualBuf))); \
 		EXPECT_TRUE(WasEq) << Err; \
 	}
+
+template <typename T>
+static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, unsigned char* unpack_buffer, size_t unpack_buffer_size)
+{
+    unsigned char out_text_data[4096];
+    EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+
+    memset( unpack_buffer, 0x0, unpack_buffer_size );
+    EXPECT_DL_ERR_OK( dl_instance_load( Ctx, T::TYPE_ID, unpack_buffer, unpack_buffer_size, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+
+    return (T*)unpack_buffer;
+}
 
 struct DL : public ::testing::Test
 {

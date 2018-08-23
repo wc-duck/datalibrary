@@ -528,6 +528,61 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 					dl_binary_writer_write_string_fmt(writer, "& operator[] ( size_t index ) const { return data[index]; }\n");
 					break;
 			}
+
+			// ... write begin() and end() to support range-for ...
+			{
+				const char* type_str = nullptr;
+				switch(member->storage)
+				{
+					case DL_TYPE_STORAGE_INT8:        type_str = "int8_t";   break;
+					case DL_TYPE_STORAGE_INT16:       type_str = "int16_t";  break;
+					case DL_TYPE_STORAGE_INT32:       type_str = "int32_t";  break;
+					case DL_TYPE_STORAGE_INT64:       type_str = "int64_t";  break;
+					case DL_TYPE_STORAGE_UINT8:       type_str = "uint8_t";  break;
+					case DL_TYPE_STORAGE_UINT16:      type_str = "uint16_t"; break;
+					case DL_TYPE_STORAGE_UINT32:      type_str = "uint32_t"; break;
+					case DL_TYPE_STORAGE_UINT64:      type_str = "uint64_t"; break;
+					case DL_TYPE_STORAGE_FP32:        type_str = "float";  break;
+					case DL_TYPE_STORAGE_FP64:        type_str = "double"; break;
+					case DL_TYPE_STORAGE_STR:         type_str = "char*"; break;
+					case DL_TYPE_STORAGE_ENUM_INT8:
+					case DL_TYPE_STORAGE_ENUM_INT16:
+					case DL_TYPE_STORAGE_ENUM_INT32:
+					case DL_TYPE_STORAGE_ENUM_INT64:
+					case DL_TYPE_STORAGE_ENUM_UINT8:
+					case DL_TYPE_STORAGE_ENUM_UINT16:
+					case DL_TYPE_STORAGE_ENUM_UINT32:
+					case DL_TYPE_STORAGE_ENUM_UINT64:
+					{
+						dl_enum_info_t enum_info;
+						dl_reflect_get_enum_info( ctx, member->type_id, &enum_info );
+						type_str = enum_info.name;
+						break;
+					}
+					case DL_TYPE_STORAGE_PTR:
+					case DL_TYPE_STORAGE_STRUCT:
+					{
+						dl_type_info_t type_info;
+						dl_reflect_get_type_info( ctx, member->type_id, &type_info );
+						type_str = type_info.name;
+						break;
+					}
+					default:
+						DL_ASSERT(false);
+				}
+
+				if(member->storage == DL_TYPE_STORAGE_PTR)
+				{
+					dl_binary_writer_write_string_fmt(writer, "        const %s* const* begin() const { return &data[0]; }\n",       type_str);
+					dl_binary_writer_write_string_fmt(writer, "        const %s* const* end()   const { return &data[count-1]; }\n", type_str);
+				}
+				else
+				{
+					dl_binary_writer_write_string_fmt(writer, "        const %s* begin() const { return &data[0]; }\n",       type_str);
+					dl_binary_writer_write_string_fmt(writer, "        const %s* end()   const { return &data[count-1]; }\n", type_str);
+				}
+			}
+
 			dl_binary_writer_write_string_fmt( writer, "    #endif // defined( __cplusplus )\n"
 													   "    } %s;\n", member->name );
 		}

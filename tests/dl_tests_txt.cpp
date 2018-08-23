@@ -17,8 +17,6 @@
 
 // TODO: add test for default values for uint*[] with true/false.
 
-#define STRINGIFY( ... ) #__VA_ARGS__
-
 class DLText : public DL {};
 
 TEST_F(DLText, member_order)
@@ -767,18 +765,6 @@ TEST_F( DLText, multi_line_comments )
 
 	unsigned char out_text_data[1024];
 	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-}
-
-template <typename T>
-static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, unsigned char* unpack_buffer, size_t unpack_buffer_size)
-{
-    unsigned char out_text_data[4096];
-    EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-
-    memset( unpack_buffer, 0x0, unpack_buffer_size );
-    EXPECT_DL_ERR_OK( dl_instance_load( Ctx, T::TYPE_ID, unpack_buffer, unpack_buffer_size, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
-
-    return (T*)unpack_buffer;
 }
 
 TEST_F( DLText, leading_decimal_point )
