@@ -209,6 +209,7 @@ TEST_F(DL, ranged_for_int8)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_int16)
@@ -223,6 +224,7 @@ TEST_F(DL, ranged_for_int16)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_int32)
@@ -237,6 +239,7 @@ TEST_F(DL, ranged_for_int32)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_int64)
@@ -251,6 +254,7 @@ TEST_F(DL, ranged_for_int64)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_uint8)
@@ -265,6 +269,7 @@ TEST_F(DL, ranged_for_uint8)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_uint16)
@@ -279,6 +284,7 @@ TEST_F(DL, ranged_for_uint16)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_uint32)
@@ -293,6 +299,7 @@ TEST_F(DL, ranged_for_uint32)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_uint64)
@@ -307,6 +314,7 @@ TEST_F(DL, ranged_for_uint64)
 		EXPECT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_fp32)
@@ -321,6 +329,7 @@ TEST_F(DL, ranged_for_fp32)
 		EXPECT_FLOAT_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_fp64)
@@ -335,6 +344,7 @@ TEST_F(DL, ranged_for_fp64)
 		EXPECT_DOUBLE_EQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 TEST_F(DL, ranged_for_str)
@@ -349,6 +359,7 @@ TEST_F(DL, ranged_for_str)
 		EXPECT_STREQ(expect[i], v);
 		++i;
 	}
+	EXPECT_EQ(3, i);
 }
 
 #endif

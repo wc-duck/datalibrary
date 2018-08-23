@@ -574,12 +574,12 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				if(member->storage == DL_TYPE_STORAGE_PTR)
 				{
 					dl_binary_writer_write_string_fmt(writer, "        const %s* const* begin() const { return &data[0]; }\n",       type_str);
-					dl_binary_writer_write_string_fmt(writer, "        const %s* const* end()   const { return &data[count-1]; }\n", type_str);
+					dl_binary_writer_write_string_fmt(writer, "        const %s* const* end()   const { return &data[count]; }\n", type_str);
 				}
 				else
 				{
 					dl_binary_writer_write_string_fmt(writer, "        const %s* begin() const { return &data[0]; }\n",       type_str);
-					dl_binary_writer_write_string_fmt(writer, "        const %s* end()   const { return &data[count-1]; }\n", type_str);
+					dl_binary_writer_write_string_fmt(writer, "        const %s* end()   const { return &data[count]; }\n", type_str);
 				}
 			}
 
