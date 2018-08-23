@@ -531,7 +531,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 
 			// ... write begin() and end() to support range-for ...
 			{
-				const char* type_str = nullptr;
+				const char* type_str = 0x0;
 				switch(member->storage)
 				{
 					case DL_TYPE_STORAGE_INT8:        type_str = "int8_t";   break;
