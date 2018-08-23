@@ -195,6 +195,8 @@ TYPED_TEST(DLBase, big_array_complex_test)
 	free(original.members.data);
 }
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1700 // can't test ranged for if not supported!
+
 TEST_F(DL, ranged_for_int8)
 {
 	unsigned char unpack_buffer[1024];
@@ -348,3 +350,5 @@ TEST_F(DL, ranged_for_str)
 		++i;
 	}
 }
+
+#endif
