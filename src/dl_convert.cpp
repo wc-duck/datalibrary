@@ -370,11 +370,10 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 {
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
-		// TODO: extract to helper-function?
-		size_t max_member_size = dl_internal_largest_member_size( dl_ctx, type, convert_ctx.src_ptr_size );
+		size_t type_offset = dl_internal_union_type_offset( dl_ctx, type, convert_ctx.src_ptr_size );
 
 		// find member index from union type ...
-		uint32_t union_type = *((uint32_t*)(instance + max_member_size));
+		uint32_t union_type = *((uint32_t*)(instance + type_offset));
 		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
 		const uint8_t* member_data = instance + member->offset[convert_ctx.src_ptr_size];
 
@@ -620,10 +619,10 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
 		// TODO: extract to helper-function?
-		size_t src_max_member_size = dl_internal_largest_member_size( dl_ctx, type, conv_ctx.src_ptr_size );
-		size_t tgt_max_member_size = dl_internal_largest_member_size( dl_ctx, type, conv_ctx.target_ptr_size );
+		size_t src_type_offset = dl_internal_union_type_offset( dl_ctx, type, conv_ctx.src_ptr_size );
+		size_t tgt_type_offset = dl_internal_union_type_offset( dl_ctx, type, conv_ctx.target_ptr_size );
 
-		uint32_t union_type = *((uint32_t*)(instance + src_max_member_size));
+		uint32_t union_type = *((uint32_t*)(instance + src_type_offset));
 		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
 		const uint8_t* member_data = instance + member->offset[conv_ctx.src_ptr_size];
 
@@ -632,7 +631,7 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 		if( err != DL_ERROR_OK )
 			return err;
 
-		dl_binary_writer_seek_set( writer, pos + tgt_max_member_size );
+		dl_binary_writer_seek_set( writer, pos + tgt_type_offset );
 		dl_binary_writer_align( writer, 4 );
 		dl_binary_writer_write_uint32( writer, union_type );
 	}

@@ -869,10 +869,8 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	// ... finalize members ...
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
-		size_t max_member_size = dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST );
-		size_t max_member_alignment = dl_internal_largest_member_alignment( dl_ctx, type, DL_PTR_SIZE_HOST );
-		dl_binary_writer_seek_set( packctx->writer, instance_pos + max_member_size );
-		dl_binary_writer_align( packctx->writer, max_member_alignment );
+		size_t type_offset = dl_internal_union_type_offset( dl_ctx, type, DL_PTR_SIZE_HOST );
+		dl_binary_writer_seek_set( packctx->writer, instance_pos + type_offset );
 		dl_binary_writer_write_uint32( packctx->writer, member_name_hash );
 	}
 	else

@@ -679,10 +679,10 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
 		// TODO: check if type is not set at all ...
-		size_t max_member_size = dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST );
+		size_t type_offset = dl_internal_union_type_offset( dl_ctx, type, DL_PTR_SIZE_HOST );
 
 		// find member index from union type ...
-		uint32_t union_type = *((uint32_t*)(struct_data + max_member_size));
+		uint32_t union_type = *((uint32_t*)(struct_data + type_offset));
 		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
 		dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
 		dl_binary_writer_write( writer, "\n", 1 );

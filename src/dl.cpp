@@ -359,20 +359,17 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 	uintptr_t instance_pos = dl_binary_writer_tell( &store_ctx->writer );
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{
-		// TODO: extract to helper-function?
-		size_t max_member_alignment = dl_internal_largest_member_alignment( dl_ctx, type, DL_PTR_SIZE_HOST );
-		size_t max_member_size = dl_internal_align_up(dl_internal_largest_member_size( dl_ctx, type, DL_PTR_SIZE_HOST ), max_member_alignment);
+		size_t type_offset = dl_internal_union_type_offset( dl_ctx, type, DL_PTR_SIZE_HOST );
 
 		// find member index from union type ...
-		uint32_t union_type = *((uint32_t*)(instance + max_member_size));
+		uint32_t union_type = *((uint32_t*)(instance + type_offset));
 		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
 
 		dl_error_t err = dl_internal_store_member( dl_ctx, member, instance + member->offset[DL_PTR_SIZE_HOST], store_ctx );
 		if( err != DL_ERROR_OK )
 			return err;
 
-		dl_binary_writer_seek_set( &store_ctx->writer, instance_pos + max_member_size );
-		dl_binary_writer_align( &store_ctx->writer, 4 );
+		dl_binary_writer_seek_set( &store_ctx->writer, instance_pos + type_offset );
 		dl_binary_writer_write_uint32( &store_ctx->writer, union_type );
 	}
 	else

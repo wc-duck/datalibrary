@@ -222,11 +222,10 @@ static void dl_internal_patch_union( dl_ctx_t            ctx,
 									 dl_patched_ptrs*    patched_ptrs )
 {
 	DL_ASSERT(type->flags & DL_TYPE_FLAG_IS_UNION);
-	size_t max_member_alignment = dl_internal_largest_member_alignment( ctx, type, DL_PTR_SIZE_HOST );
-	size_t max_member_size = dl_internal_align_up(dl_internal_largest_member_size( ctx, type, DL_PTR_SIZE_HOST ), max_member_alignment);
+	size_t type_offset = dl_internal_union_type_offset( ctx, type, DL_PTR_SIZE_HOST );
 
 	// find member index from union type ...
-	uint32_t union_type = *((uint32_t*)(union_data + max_member_size));
+	uint32_t union_type = *((uint32_t*)(union_data + type_offset));
 	const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( ctx, type, union_type );
 	DL_ASSERT(member->offset[DL_PTR_SIZE_HOST] == 0);
 	dl_internal_patch_member( ctx, member, union_data, base_address, patch_distance, patched_ptrs );
