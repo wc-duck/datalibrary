@@ -547,6 +547,18 @@ TEST_F( DLText, multiple_union_members_set )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, dl_txt_pack( Ctx, STRINGIFY( { "test_union_simple" : { "item1" : 1, "item2" : 2 } } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
 
+TEST_F( DLText, invalid_underscore_member )
+{
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_INVALID_MEMBER, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : { "__whooo" : 1 } } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
+
+TEST_F( DLText, bad_root_type )
+{
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TYPE_NOT_FOUND, dl_txt_pack( Ctx, STRINGIFY( { "PodsWHOOO" : { "test" : 1 } } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
+
 TEST_F( DLText, basic_union_type_assignment )
 {
 	const char* text_data = STRINGIFY(
