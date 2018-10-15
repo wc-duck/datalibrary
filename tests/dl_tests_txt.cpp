@@ -94,6 +94,14 @@ TEST_F(DLText, member_not_exist)
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_INVALID_MEMBER, dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 }
 
+TEST_F(DLText, type_missing)
+{
+	const char* text_data = STRINGIFY( { { "Int1" : 1337 } } );
+
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ(DL_ERROR_MALFORMED_DATA, dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+}
+
 TEST_F(DLText, member_missing)
 {
 	// error should be cast if member is not set and has no default value!
@@ -531,6 +539,12 @@ TEST_F( DLText, invalid_data_format )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( [] ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : 1 }    ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, STRINGIFY( { "Pods" : true } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
+}
+
+TEST_F( DLText, multiple_union_members_set )
+{
+	unsigned char out_data_text[1024];
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, dl_txt_pack( Ctx, STRINGIFY( { "test_union_simple" : { "item1" : 1, "item2" : 2 } } ), out_data_text, DL_ARRAY_LENGTH(out_data_text), 0x0 ) );
 }
 
 TEST_F( DLText, basic_union_type_assignment )

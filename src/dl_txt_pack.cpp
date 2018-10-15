@@ -828,21 +828,17 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 				packctx->read_ctx.iter = dl_txt_skip_map( packctx->read_ctx.iter, packctx->read_ctx.end );
 				continue;
 			}
-			else
-			{
-				// TODO: this looks REALLY suspicious! Should it be here and not outside the above if!?!
-				if( type->flags & DL_TYPE_FLAG_IS_UNION )
-				{
-					if( union_member_set )
-					{
-						dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, "multiple members of union-type was set! %s.%.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
-					}
-					union_member_set = true;
-				}
-				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
-			}
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type %s has no member named %.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		}
 
+		if( type->flags & DL_TYPE_FLAG_IS_UNION )
+		{
+			if( union_member_set )
+			{
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, "multiple members of union-type was set! %s.%.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
+			}
+			union_member_set = true;
+		}
 
 		member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
 		unsigned int member_id = dl_internal_find_member( dl_ctx, type, member_name_hash );
