@@ -1094,6 +1094,20 @@ static void dl_context_load_txt_type_library_read_types( dl_ctx_t ctx, dl_txt_re
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
 
+static const dl_type_desc* dl_internal_member_owner( dl_ctx_t ctx, const dl_member_desc* member )
+{
+	uint32_t member_index = (uint32_t)(member - ctx->member_descs);
+	for(uint32_t type_index = 0; type_index < ctx->type_count; ++type_index)
+	{
+		const dl_type_desc* type = ctx->type_descs + type_index;
+		if( member_index >= type->member_start &&
+			member_index < type->member_start + type->member_count)
+			return type;
+	}
+	DL_ASSERT(false, "couldn't find owner-type of member '%s'", dl_internal_member_name(ctx, member));
+	return 0x0;
+}
+
 static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
 {
 #if defined(_MSC_VER )
@@ -1163,7 +1177,13 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				{
 					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
 					if( sub_type == 0x0 )
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, "couldn't find type for member '%s'", dl_internal_member_name( ctx, member ) );
+					{
+						const dl_type_desc* owner_type = dl_internal_member_owner( ctx, member );
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, 
+											"couldn't find type for member '%s::%s'", 
+											dl_internal_type_name( ctx, owner_type ),
+											dl_internal_member_name( ctx, member ) );
+					}
 				}
 			}
 		}
