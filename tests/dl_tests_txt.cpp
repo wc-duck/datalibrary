@@ -867,6 +867,74 @@ TEST_F( DLText, float_nan_neg )
     EXPECT_TRUE(isnan(pods->f64) == 1);
 }
 
+TEST_F( DLText, intXX_min )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { i8 : min, u8 : min, i16 : min, u16 : min, i32 : min, u32 : min, i64 : min, u64 : min } } ),
+		STRINGIFY( { PodsDefaults : { i8 : Min, u8 : Min, i16 : Min, u16 : Min, i32 : Min, u32 : Min, i64 : Min, u64 : Min } } ),
+		STRINGIFY( { PodsDefaults : { i8 : MIN, u8 : MIN, i16 : MIN, u16 : MIN, i32 : MIN, u32 : MIN, i64 : MIN, u64 : MIN } } ),
+		STRINGIFY( { PodsDefaults : {i8:min,u8:min,i16:min,u16:min,i32:min,u32:min,i64:min,u64:min} } )
+	};
+
+    unsigned char unpack_buffer[1024];
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+	{
+		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
+		EXPECT_EQ(INT8_MIN,  pods->i8);
+		EXPECT_EQ(0,         pods->u8);
+		EXPECT_EQ(INT16_MIN, pods->i16);
+		EXPECT_EQ(0,         pods->u16);
+		EXPECT_EQ(INT32_MIN, pods->i32);
+		EXPECT_EQ(0u,        pods->u32);
+		EXPECT_EQ(INT64_MIN, pods->i64);
+		EXPECT_EQ(0u,        pods->u64);
+	}
+}
+
+TEST_F( DLText, intXX_max )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { i8 : max, u8 : max, i16 : max, u16 : max, i32 : max, u32 : max, i64 : max, u64 : max } } ),
+		STRINGIFY( { PodsDefaults : { i8 : Max, u8 : Max, i16 : Max, u16 : Max, i32 : Max, u32 : Max, i64 : Max, u64 : Max } } ),
+		STRINGIFY( { PodsDefaults : { i8 : MAX, u8 : MAX, i16 : MAX, u16 : MAX, i32 : MAX, u32 : MAX, i64 : MAX, u64 : MAX } } ),
+		STRINGIFY( { PodsDefaults : {i8:max,u8:max,i16:max,u16:max,i32:max,u32:max,i64:max,u64:max} } ),
+	};
+
+    unsigned char unpack_buffer[1024];
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+	{
+		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
+		EXPECT_EQ(INT8_MAX,   pods->i8);
+		EXPECT_EQ(UINT8_MAX,  pods->u8);
+		EXPECT_EQ(INT16_MAX,  pods->i16);
+		EXPECT_EQ(UINT16_MAX, pods->u16);
+		EXPECT_EQ(INT32_MAX,  pods->i32);
+		EXPECT_EQ(UINT32_MAX, pods->u32);
+		EXPECT_EQ(INT64_MAX,  pods->i64);
+		EXPECT_EQ(UINT64_MAX, pods->u64);
+	}
+}
+
+template <typename T>
+static void dl_txt_test_expect_error(dl_ctx_t Ctx, const char* txt, dl_error_t expected)
+{
+    unsigned char out_text_data[4096];
+    EXPECT_DL_ERR_EQ( expected, dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
+TEST_F( DLText, intXX_invalid_const )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { i8 : m } } ),
+		STRINGIFY( { PodsDefaults : { i8 : Ma } } ),
+		STRINGIFY( { PodsDefaults : { i8 : MAXi } } ),
+		STRINGIFY( { PodsDefaults : { i8 : blo } } )
+	};
+
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+		dl_txt_test_expect_error<PodsDefaults>(Ctx, test_str[test], DL_ERROR_MALFORMED_DATA);
+}
+
 TEST_F( DLText, numbers_start_with_plus )
 {
     unsigned char unpack_buffer[1024];
@@ -1062,13 +1130,6 @@ TEST_F( DLText, hex_ints_neg )
     EXPECT_EQ(-0xB, pods->i16);
     EXPECT_EQ(-0xC, pods->i32);
     EXPECT_EQ(-0xD, pods->i64);
-}
-
-template <typename T>
-static void dl_txt_test_expect_error(dl_ctx_t Ctx, const char* txt, dl_error_t expected)
-{
-    unsigned char out_text_data[4096];
-    EXPECT_DL_ERR_EQ( expected, dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
 }
 
 TEST_F( DLText, hex_int8_invalid_range )

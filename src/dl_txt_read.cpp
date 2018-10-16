@@ -22,7 +22,26 @@ long long dl_txt_pack_eat_strtoll( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, l
 #endif
 
 	if( read_ctx->iter == next )
+	{
+		if( tolower(read_ctx->iter[0]) == 'm')
+		{
+			if( tolower(read_ctx->iter[1]) == 'a' &&
+			    tolower(read_ctx->iter[2]) == 'x' &&
+			   !isalnum(read_ctx->iter[3]) )
+			{
+				read_ctx->iter += 3;
+				return range_max;
+			}
+			if( tolower(read_ctx->iter[1]) == 'i' &&
+			    tolower(read_ctx->iter[2]) == 'n' &&
+			   !isalnum(read_ctx->iter[3]))
+			{
+				read_ctx->iter += 3;
+				return range_min;
+			}
+		}
 		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type '%s'", type );
+	}
 	if( !(v >= range_min && v <= range_max) || errno == ERANGE )
 		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type '%s', %lld is out of range.", type, v );
 	read_ctx->iter = next;
@@ -49,7 +68,26 @@ unsigned long long dl_txt_pack_eat_strtoull( dl_ctx_t dl_ctx, dl_txt_read_ctx* r
 #endif
 
 	if( read_ctx->iter == next )
+	{
+		if( tolower(read_ctx->iter[0]) == 'm' )
+		{
+			if( tolower(read_ctx->iter[1]) == 'a' &&
+			    tolower(read_ctx->iter[2]) == 'x' &&
+			   !isalnum(read_ctx->iter[3]))
+			{
+				read_ctx->iter += 3;
+				return range_max;
+			}
+			if( tolower(read_ctx->iter[1]) == 'i' &&
+			    tolower(read_ctx->iter[2]) == 'n' &&
+			   !isalnum(read_ctx->iter[3]))
+			{
+				read_ctx->iter += 3;
+				return 0;
+			}
+		}
 		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type '%s'", type );
+	}
 	if( v > range_max || errno == ERANGE )
 		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type '%s', %llu is out of range.", type, v );
 	read_ctx->iter = next;
