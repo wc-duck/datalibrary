@@ -84,6 +84,32 @@ TEST_F(DLText, set_member_twice)
 	EXPECT_DL_ERR_EQ(DL_ERROR_TXT_MEMBER_SET_TWICE, dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 }
 
+TEST_F(DLText, tight_text)
+{
+	const char* text_data[] = {
+		STRINGIFY({"Pods":{"i16":2,"u32":7,"u8":5,"i32":3,"f64":4.1234,"i64":4,"u16":6,"u64":8,"i8":1,"f32":3.14}}),
+		STRINGIFY({Pods:{i16:2,u32:7,u8:5,i32:3,f64:4.1234,i64:4,u16:6,u64:8,i8:1,f32:3.14}})
+	};
+
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(text_data); ++test)
+	{
+		unsigned char unpack_buffer[1024];
+		Pods* p1 = dl_txt_test_pack_text<Pods>(Ctx, text_data[test], unpack_buffer, sizeof(unpack_buffer));
+
+		EXPECT_EQ(1,      p1->i8);
+		EXPECT_EQ(2,      p1->i16);
+		EXPECT_EQ(3,      p1->i32);
+		EXPECT_EQ(4,      p1->i64);
+		EXPECT_EQ(5u,     p1->u8);
+		EXPECT_EQ(6u,     p1->u16);
+		EXPECT_EQ(7u,     p1->u32);
+		EXPECT_EQ(8u,     p1->u64);
+		EXPECT_EQ(3.14f,  p1->f32);
+		EXPECT_EQ(4.1234, p1->f64);
+	}
+}
+
+
 TEST_F(DLText, member_not_exist)
 {
 	// test to pack a txt-instance that is not in order!

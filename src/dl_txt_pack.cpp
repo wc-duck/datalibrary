@@ -772,7 +772,7 @@ static const dl_txt_read_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx 
 			{
 				res.str = key_start;
 				res.len = (int)(key_end - key_start);
-				readctx->iter = res.str + res.len + 1;
+				readctx->iter = res.str + res.len;
 				return res;
 			}
 		}
