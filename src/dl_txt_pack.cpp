@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <limits.h>
+#include <float.h>
 #include <limits>
 
 #if defined(_MSC_VER)
@@ -23,7 +24,6 @@
 inline double dl_strtod(const char* str, char** endptr)
 {
 	double res = strtod(str, endptr);
-#if defined(_MSC_VER) && _MSC_VER < 1800 // older versions of strtod() on msvc did not parse inf
 	if(str == *endptr)
 	{
 		float sign = 1.0f;
@@ -40,7 +40,7 @@ inline double dl_strtod(const char* str, char** endptr)
 			default:
 				break;
 		}
-
+#if defined(_MSC_VER) && _MSC_VER < 1800 // older versions of strtod() on msvc did not parse inf
 		if(_strnicmp("infinity", str, 8) == 0)
 		{
 			*endptr = (char*)str + 8;
@@ -56,18 +56,82 @@ inline double dl_strtod(const char* str, char** endptr)
 			*endptr = (char*)str + 3;
 			return std::numeric_limits<double>::quiet_NaN() * sign;
 		}
-	}
 #endif
+			if( tolower(str[1]) == 'a' &&
+			    tolower(str[2]) == 'x' &&
+			   !isalnum(str[3]) )
+			{
+				*endptr = (char*)str + 3;
+				return DBL_MAX * sign;
+			}
+			if( tolower(str[1]) == 'i' &&
+			    tolower(str[2]) == 'n' &&
+			   !isalnum(str[3]))
+			{
+				*endptr = (char*)str + 3;
+				return DBL_MIN * sign;
+			}
+	}
 	return res;
 }
 
 inline float dl_strtof(const char* str, char** endptr)
 {
-#if _MSC_VER < 1800 // strtof was defined first in MSVC2013
-	return (float)dl_strtod( str, endptr );
+#if defined(_MSC_VER) && _MSC_VER < 1800 // strtof was defined first in MSVC2013
+	float res = (float)strtod(str, endptr);
 #else
-	return strtof(str, endptr);
+	float res = strtof(str, endptr);
 #endif
+
+	if(str == *endptr)
+	{
+		float sign = 1.0f;
+		switch(str[0])
+		{
+			case '-':
+				sign  = -1.0f;
+				++str;
+				break;
+			case '+':
+				sign  = 1.0f;
+				++str;
+				break;
+			default:
+				break;
+		}
+#if defined(_MSC_VER) && _MSC_VER < 1800 // older versions of strtod() on msvc did not parse inf
+		if(_strnicmp("infinity", str, 8) == 0)
+		{
+			*endptr = (char*)str + 8;
+			return std::numeric_limits<float>::infinity() * sign;
+		}
+		if(_strnicmp("inf", str, 3) == 0)
+		{
+			*endptr = (char*)str + 3;
+			return std::numeric_limits<float>::infinity() * sign;
+		}
+		if(_strnicmp("nan", str, 3) == 0)
+		{
+			*endptr = (char*)str + 3;
+			return std::numeric_limits<float>::quiet_NaN() * sign;
+		}
+#endif
+			if( tolower(str[1]) == 'a' &&
+			    tolower(str[2]) == 'x' &&
+			   !isalnum(str[3]) )
+			{
+				*endptr = (char*)str + 3;
+				return FLT_MAX * sign;
+			}
+			if( tolower(str[1]) == 'i' &&
+			    tolower(str[2]) == 'n' &&
+			   !isalnum(str[3]))
+			{
+				*endptr = (char*)str + 3;
+				return FLT_MIN * sign;
+			}
+	}
+	return res;
 }
 
 struct dl_txt_pack_ctx

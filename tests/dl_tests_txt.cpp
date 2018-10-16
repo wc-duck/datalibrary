@@ -915,6 +915,78 @@ TEST_F( DLText, intXX_max )
 	}
 }
 
+TEST_F( DLText, fpXX_min )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { f32 : min, f64 : min } } ),
+		STRINGIFY( { PodsDefaults : { f32 : Min, f64 : Min } } ),
+		STRINGIFY( { PodsDefaults : { f32 : MIN, f64 : MIN } } ),
+		STRINGIFY( { PodsDefaults : {f32:min,f64:min} } )
+	};
+
+    unsigned char unpack_buffer[1024];
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+	{
+		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
+		EXPECT_EQ(FLT_MIN, pods->f32);
+		EXPECT_EQ(DBL_MIN, pods->f64);
+	}
+}
+
+TEST_F( DLText, fpXX_max )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { f32 : max, f64 : max } } ),
+		STRINGIFY( { PodsDefaults : { f32 : Max, f64 : Max } } ),
+		STRINGIFY( { PodsDefaults : { f32 : MAX, f64 : MAX } } ),
+		STRINGIFY( { PodsDefaults : {f32:max,f64:max} } )
+	};
+
+    unsigned char unpack_buffer[1024];
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+	{
+		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
+		EXPECT_EQ(FLT_MAX, pods->f32);
+		EXPECT_EQ(DBL_MAX, pods->f64);
+	}
+}
+
+TEST_F( DLText, fpXX_neg_min )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { f32 : -min, f64 : -min } } ),
+		STRINGIFY( { PodsDefaults : { f32 : -Min, f64 : -Min } } ),
+		STRINGIFY( { PodsDefaults : { f32 : -MIN, f64 : -MIN } } ),
+		STRINGIFY( { PodsDefaults : {f32:-min,f64:-min} } )
+	};
+
+    unsigned char unpack_buffer[1024];
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+	{
+		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
+		EXPECT_EQ(-FLT_MIN, pods->f32);
+		EXPECT_EQ(-DBL_MIN, pods->f64);
+	}
+}
+
+TEST_F( DLText, fpXX_neg_max )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { f32 : -max, f64 : -max } } ),
+		STRINGIFY( { PodsDefaults : { f32 : -Max, f64 : -Max } } ),
+		STRINGIFY( { PodsDefaults : { f32 : -MAX, f64 : -MAX } } ),
+		STRINGIFY( { PodsDefaults : {f32:-max,f64:-max} } )
+	};
+
+    unsigned char unpack_buffer[1024];
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+	{
+		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
+		EXPECT_EQ(-FLT_MAX, pods->f32);
+		EXPECT_EQ(-DBL_MAX, pods->f64);
+	}
+}
+
 template <typename T>
 static void dl_txt_test_expect_error(dl_ctx_t Ctx, const char* txt, dl_error_t expected)
 {
@@ -927,8 +999,26 @@ TEST_F( DLText, intXX_invalid_const )
 	const char* test_str[] = {
 		STRINGIFY( { PodsDefaults : { i8 : m } } ),
 		STRINGIFY( { PodsDefaults : { i8 : Ma } } ),
+		STRINGIFY( { PodsDefaults : { i8 : Mi } } ),
 		STRINGIFY( { PodsDefaults : { i8 : MAXi } } ),
 		STRINGIFY( { PodsDefaults : { i8 : blo } } )
+	};
+
+	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
+		dl_txt_test_expect_error<PodsDefaults>(Ctx, test_str[test], DL_ERROR_MALFORMED_DATA);
+}
+
+TEST_F( DLText, fpXX_invalid_const )
+{
+	const char* test_str[] = {
+		STRINGIFY( { PodsDefaults : { f32 : m } } ),
+		STRINGIFY( { PodsDefaults : { f32 : Ma } } ),
+		STRINGIFY( { PodsDefaults : { f32 : Mi } } ),
+		STRINGIFY( { PodsDefaults : { f32 : -Ma } } ),
+		STRINGIFY( { PodsDefaults : { f32 : -Mi } } ),
+		STRINGIFY( { PodsDefaults : { f32 : MAXi } } ),
+		STRINGIFY( { PodsDefaults : { f32 : -MAXi } } ),
+		STRINGIFY( { PodsDefaults : { f32 : blo } } ),
 	};
 
 	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
