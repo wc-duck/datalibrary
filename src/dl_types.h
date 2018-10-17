@@ -112,6 +112,17 @@ enum dl_ptr_size_t
 	DL_PTR_SIZE_HOST = sizeof(void*) == 4 ? DL_PTR_SIZE_32BIT : DL_PTR_SIZE_64BIT
 };
 
+/**
+ *
+ */
+enum dl_member_flags
+{
+	DL_MEMBER_FLAG_IS_CONST                    = 1 << 0, ///< 
+	DL_MEMBER_FLAG_VERIFY_EXTERNAL_SIZE_OFFSET = 1 << 1, ///< 
+
+	DL_MEMBER_FLAG_DEFAULT = 0,
+};
+
 struct dl_member_desc
 {
 	uint32_t    name;
@@ -123,15 +134,12 @@ struct dl_member_desc
 	uint32_t    offset[2];
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
-	uint32_t 	is_const : 1;
-	uint32_t 	verify : 1;
+	uint32_t    flags;
 
 	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
 	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
 	uint32_t          bitfield_bits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
 	uint32_t          bitfield_offset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
-	bool			  IsConst()			const { return is_const == 1; }
-	bool			  ShouldVerify()	const { return verify == 1; }
 	bool              IsSimplePod()     const
 	{
 		return StorageType() != DL_TYPE_STORAGE_STR &&
@@ -192,16 +200,6 @@ struct dl_member_desc
 	void set_inline_array_cnt( uint32_t bits )
 	{
 		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_INLINE_ARRAY_CNT_MASK ) | (bits << DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT) );
-	}
-
-	void set_const( bool is_c )
-	{
-		is_const = !!is_c;
-	}
-	
-	void set_verify( bool should_verify )
-	{
-		verify = !!should_verify;
 	}
 };
 

@@ -130,8 +130,8 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		out_members[member_index].offset        = member->offset[DL_PTR_SIZE_HOST];
 		out_members[member_index].array_count   = 0;
 		out_members[member_index].bits          = 0;
-		out_members[member_index].is_const      = member->IsConst();
-		out_members[member_index].should_verify = member->ShouldVerify();
+		out_members[member_index].is_const      = ( member->flags & DL_MEMBER_FLAG_IS_CONST ) ? 1 : 0;
+		out_members[member_index].should_verify = ( member->flags & DL_MEMBER_FLAG_VERIFY_EXTERNAL_SIZE_OFFSET ) ? 1 : 0;
 
 		switch(member->AtomType())
 		{

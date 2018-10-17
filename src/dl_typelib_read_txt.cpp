@@ -990,8 +990,10 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 		member->default_value_size   = (uint32_t)default_val.len;
 	}
 
-	member->set_const(is_const);
-	member->set_verify(verify);
+	if(is_const)
+		member->flags |= (uint32_t)DL_MEMBER_FLAG_IS_CONST;
+	if(verify)
+		member->flags |= (uint32_t)DL_MEMBER_FLAG_VERIFY_EXTERNAL_SIZE_OFFSET;
 
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
