@@ -48,6 +48,16 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
                                        "#    endif\n"
                                        "#  endif\n"
                                        "\n"
+									   "   /// ... DL_C_STRUCT ...\n"
+									   "   /// The macro DL_C_STRUCT is used on external types to add struct in c\n"
+									   "   /// where it is needed. In c++ this is skipped as it is not needed and\n"
+									   "   /// could be something else such as a class or typedef.\n"
+									   "#  if defined(__cplusplus)\n"
+									   "#    define DL_C_STRUCT\n"
+									   "#  else\n"
+									   "#    define DL_C_STRUCT struct\n"
+									   "#  endif\n"
+                                       "\n"
 									   "   /// ... DL_ALIGN() ...\n"
 									   "#  if defined(_MSC_VER)\n"
 									   "#    define DL_ALIGN(x) __declspec(align(x))\n"
@@ -448,7 +458,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				{
 					dl_type_info_t sub_type;
 					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    struct %s %s;\n", sub_type.name, member->name );
+					dl_binary_writer_write_string_fmt( writer, "    DL_C_STRUCT %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				case DL_TYPE_STORAGE_PTR:
@@ -631,8 +641,8 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 			continue;
 
 		dl_binary_writer_write_string_fmt( writer, "// verify that extern type '%s' match the actual type\n", type->name );
-		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(struct %s) == %u, \"size of external type %s do not match what was specified in tld.\" );\n", type->name, type->size, type->name );
-		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( DL_ALIGNOF(struct %s) == %u, \"alignment of external type %s do not match what was specified in tld.\" );\n", type->name, type->alignment, type->name );
+		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(DL_C_STRUCT %s) == %u, \"size of external type %s do not match what was specified in tld.\" );\n", type->name, type->size, type->name );
+		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( DL_ALIGNOF(DL_C_STRUCT %s) == %u, \"alignment of external type %s do not match what was specified in tld.\" );\n", type->name, type->alignment, type->name );
 
 		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof( dl_member_info_t ) );
 		dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
