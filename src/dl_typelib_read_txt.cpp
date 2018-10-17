@@ -920,6 +920,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 	dl_txt_read_substr default_val = {0,0};
 
 	bool is_const = true;
+	bool verify = true;
 
 	do
 	{
@@ -965,11 +966,14 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 		}
 		else if( strncmp( "const", key.str, 5) == 0)
 		{
-			dl_txt_eat_white( read_state );
-			is_const = dl_txt_eat_bool( read_state) == 1;
+			is_const = dl_txt_eat_bool( read_state ) == 1;
+		}
+		else if( strncmp( "verify", key.str, 6) == 0)
+		{
+			verify = dl_txt_eat_bool( read_state ) == 1;
 		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'name', 'type', 'default' or 'comment'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'name', 'type', 'default', 'comment' or 'verify'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
@@ -987,6 +991,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 	}
 
 	member->set_const(is_const);
+	member->set_verify(verify);
 
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
@@ -1014,6 +1019,7 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	dl_txt_eat_char( ctx, read_state, '{' );
 	uint32_t align = 0;
 	bool is_extern = false;
+	bool verify = true;
 	uint32_t member_count = 0;
 	uint32_t member_start = ctx->member_count;
 	dl_txt_read_substr comment = {0,0};
@@ -1025,30 +1031,31 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 		if( key.str == 0x0 )
 			break;
 
+		dl_txt_eat_char( ctx, read_state, ':' );
 		if( strncmp( "members", key.str, 7 ) == 0 )
 		{
-			dl_txt_eat_char( ctx, read_state, ':' );
 			member_count = dl_context_load_txt_type_library_read_members( ctx, read_state );
 		}
 		else if( strncmp( "align", key.str, 5 ) == 0 )
 		{
-			dl_txt_eat_char( ctx, read_state, ':' );
 			align = dl_txt_pack_eat_uint32( ctx, read_state );
 		}
 		else if( strncmp( "extern", key.str, 6 ) == 0 )
 		{
-			dl_txt_eat_char( ctx, read_state, ':' );
-			dl_txt_eat_white( read_state );
 			is_extern = dl_txt_eat_bool( read_state ) == 1;
+		}
+		else if( strncmp( "verify", key.str, 6 ) == 0 )
+		{
+			verify = dl_txt_eat_bool( read_state ) == 1;
 		}
 		else if( strncmp( "comment", key.str, 7 ) == 0 )
 		{
-			dl_txt_eat_char( ctx, read_state, ':' );
-			dl_txt_eat_white( read_state );
 			comment = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'members', 'align', 'comment' or 'extern'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA,
+								 "unexpected key '%.*s' in type, valid keys are 'members', 'align', 'comment', 'extern' or 'verify'",
+								 key.len, key.str );
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
 	dl_typeid_t tid = dl_internal_hash_buffer( (const uint8_t*)name->str, (size_t)name->len );
@@ -1072,6 +1079,8 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
 	if( is_union )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_UNION;
+	if( verify )
+		type->flags |= (uint32_t)DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN;
 
 	dl_txt_eat_char( ctx, read_state, '}' );
 }

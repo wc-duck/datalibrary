@@ -7,6 +7,12 @@
 struct vec3_test { float x, y, z; };
 
 // this is specified as "extern" in unittest2.tld
+struct no_verify_memeber_test { float a, b, c; };
+
+// this is specified as "extern" in unittest2.tld
+struct no_verify_size_align_test { float a, b, c; int __hidden; };
+
+// this is specified as "extern" in unittest2.tld
 enum extern_enum
 {
 	extern_value1,

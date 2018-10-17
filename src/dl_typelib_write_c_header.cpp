@@ -640,26 +640,43 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		if( !type->is_extern )
 			continue;
 
-		dl_binary_writer_write_string_fmt( writer, "// verify that extern type '%s' match the actual type\n", type->name );
-		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(DL_C_STRUCT %s) == %u, \"size of external type %s do not match what was specified in tld.\" );\n", type->name, type->size, type->name );
-		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( DL_ALIGNOF(DL_C_STRUCT %s) == %u, \"alignment of external type %s do not match what was specified in tld.\" );\n", type->name, type->alignment, type->name );
+		if( type->should_verify )
+		{
+			dl_binary_writer_write_string_fmt( writer, "// verify that extern type '%s' match the actual type\n", type->name );
+			dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(DL_C_STRUCT %s) == %u, \"size of external type %s do not match what was specified in tld.\" );\n", type->name, type->size, type->name );
+			dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( DL_ALIGNOF(DL_C_STRUCT %s) == %u, \"alignment of external type %s do not match what was specified in tld.\" );\n", type->name, type->alignment, type->name );
+		}
+		else
+		{
+			dl_binary_writer_write_string_fmt( writer, "// '%s' is marked as 'verify : false' so size and align will not be verified\n", type->name );
+		}
 
 		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof( dl_member_info_t ) );
 		dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
 		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
 		{
-			dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(((struct %s*) 0)->%s) == %u, \"sizeof of member %s::%s in external type do not match what was specified in tld.\" );\n",
-													   type->name,
-													   members[member_index].name,
-													   members[member_index].size,
-													   type->name,
-													   members[member_index].name );
-			dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( offsetof(struct %s, %s) == %u, \"offset of member %s::%s in external type do not match what was specified in tld.\" );\n",
-													   type->name,
-													   members[member_index].name,
-													   members[member_index].offset,
-													   type->name,
-													   members[member_index].name );
+			dl_member_info_t* member = members + member_index;
+			if(member->should_verify)
+			{
+				dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(((struct %s*) 0)->%s) == %u, \"sizeof of member %s::%s in external type do not match what was specified in tld.\" );\n",
+															type->name,
+															member->name,
+															member->size,
+															type->name,
+															member->name );
+				dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( offsetof(struct %s, %s) == %u, \"offset of member %s::%s in external type do not match what was specified in tld.\" );\n",
+															type->name,
+															member->name,
+															member->offset,
+															type->name,
+															member->name );
+			}
+			else
+			{
+				dl_binary_writer_write_string_fmt( writer, "// %s::%s is marked as 'verify : false' so size and offset will not be verified\n",
+															type->name,
+															member->name );
+			}
 		}
 		free( members );
 	}

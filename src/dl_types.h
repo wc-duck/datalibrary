@@ -124,12 +124,14 @@ struct dl_member_desc
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
 	uint32_t 	is_const : 1;
+	uint32_t 	verify : 1;
 
 	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
 	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
 	uint32_t          bitfield_bits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
 	uint32_t          bitfield_offset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
 	bool			  IsConst()			const { return is_const == 1; }
+	bool			  ShouldVerify()	const { return verify == 1; }
 	bool              IsSimplePod()     const
 	{
 		return StorageType() != DL_TYPE_STORAGE_STR &&
@@ -196,6 +198,11 @@ struct dl_member_desc
 	{
 		is_const = !!is_c;
 	}
+	
+	void set_verify( bool should_verify )
+	{
+		verify = !!should_verify;
+	}
 };
 
 /**
@@ -203,9 +210,10 @@ struct dl_member_desc
  */
 enum dl_type_flags
 {
-	DL_TYPE_FLAG_HAS_SUBDATA = 1 << 0, ///< the type has subdata and need pointer patching.
-	DL_TYPE_FLAG_IS_EXTERNAL = 1 << 1, ///< the type is marked as "external", this says that the type is not emitted in headers and expected to get defined by the user.
-	DL_TYPE_FLAG_IS_UNION    = 1 << 2, ///< the type is a "union" type.
+	DL_TYPE_FLAG_HAS_SUBDATA                = 1 << 0, ///< the type has subdata and need pointer patching.
+	DL_TYPE_FLAG_IS_EXTERNAL                = 1 << 1, ///< the type is marked as "external", this says that the type is not emitted in headers and expected to get defined by the user.
+	DL_TYPE_FLAG_IS_UNION                   = 1 << 2, ///< the type is a "union" type.
+	DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN = 1 << 3, ///< the type is a "union" type.
 
 	DL_TYPE_FLAG_DEFAULT = 0,
 };

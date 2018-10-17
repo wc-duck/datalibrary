@@ -138,6 +138,8 @@ static inline void dl_txt_eat_char( dl_ctx_t dl_ctx, dl_txt_read_ctx* readctx, c
 
 static inline long dl_txt_eat_bool( dl_txt_read_ctx* packctx )
 {
+	dl_txt_eat_white( packctx );
+
 	if( strncmp( packctx->iter, "true", 4 ) == 0 )
 	{
 		packctx->iter += 4;

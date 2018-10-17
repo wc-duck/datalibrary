@@ -56,6 +56,27 @@
 				{ "name" : "z", "type" : "fp32" }
 			]
 		},
+		"no_verify_memeber_test" : {
+			"extern" : true,
+			"members" : [
+				// members in the actual type are named a,b,c so these are marked as "verify" : false to skip
+				// the verification.
+				{ "name" : "x", "type" : "fp32", "verify" : false },
+				{ "name" : "y", "type" : "fp32", "verify" : false },
+				{ "name" : "z", "type" : "fp32", "verify" : false }
+			]
+		},
+		"no_verify_size_align_test" : {
+			"extern" : true,
+			// the actual type has a member called __hidden that alter its size, this in a way to test out
+			// that verification is skipped.
+			"verify" : false,
+			"members" : [
+				{ "name" : "a", "type" : "fp32" },
+				{ "name" : "b", "type" : "fp32" },
+				{ "name" : "c", "type" : "fp32" }
+			]
+		},
 		"alias_test" : {
 			"members" : [
 				{ "name" : "m1", "type" : "vec3_test" },

@@ -269,7 +269,6 @@ TEST_F( DLTypeLibTxt, invalid_type_fmt_pointer_to_pod )
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "fp64*" } ] } } }) );
 }
 
-
 TEST_F( DLTypeLibUnpackTxt, round_about )
 {
 	const char* testlib1 = STRINGIFY({

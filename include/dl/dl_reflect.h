@@ -37,6 +37,7 @@ typedef struct dl_type_info
 	unsigned int member_count;
 	unsigned int is_extern : 1;
 	unsigned int is_union : 1;
+	unsigned int should_verify : 1;
 } dl_type_info_t;
 
 /*
@@ -56,6 +57,7 @@ typedef struct dl_member_info
 	unsigned int      array_count;
 	unsigned int      bits;
 	unsigned int 	  is_const : 1;
+	unsigned int 	  should_verify : 1;
 } dl_member_info_t;
 
 /*
