@@ -131,6 +131,10 @@ TYPED_TEST(DLBase, str_before_array_bug)
 	EXPECT_STREQ( mod.str,        loaded[0].str );
 	EXPECT_EQ   ( mod.arr.count,  loaded[0].arr.count );
 	EXPECT_STREQ( mod.arr[0].str, loaded[0].arr[0].str );
+
+	// Since this struct contains first a string and then an array we can use this test
+	// to check that the array is correctly aligned after load, especially after txt-packing.
+	EXPECT_EQ   ( 0u, (uint64_t)loaded[0].arr.data % DL_ALIGNOF(str_before_array_bug_arr_type));
 }
 
 TYPED_TEST(DLBase, bug_first_member_in_struct)

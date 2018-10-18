@@ -503,7 +503,10 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
     dl_txt_eat_white( &packctx->read_ctx );
 }
 
-static uint32_t dl_txt_pack_array_item_size( dl_ctx_t dl_ctx, const dl_member_desc* member )
+static void dl_txt_pack_array_item_size_align( dl_ctx_t dl_ctx,
+											   const dl_member_desc* member,
+											   size_t* size,
+											   size_t* align )
 {
 	// TODO: store this in typelib?
 	switch( member->StorageType() )
@@ -511,10 +514,14 @@ static uint32_t dl_txt_pack_array_item_size( dl_ctx_t dl_ctx, const dl_member_de
 		case DL_TYPE_STORAGE_STRUCT:
 		{
 			const dl_type_desc* type = dl_internal_find_type( dl_ctx, member->type_id );
-			return type->size[DL_PTR_SIZE_HOST];
+			*size = type->size[DL_PTR_SIZE_HOST];
+			*align = type->alignment[DL_PTR_SIZE_HOST];
+			break;
 		}
 		default:
-			return (uint32_t)dl_pod_size( member->StorageType() );
+			*size = dl_pod_size( member->StorageType() );
+			*align = *size;
+			break;
 	}
 }
 
@@ -725,12 +732,15 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 			}
 			else
 			{
-				size_t element_size = dl_txt_pack_array_item_size( dl_ctx, member );
+				size_t element_size, element_align;
+				dl_txt_pack_array_item_size_align( dl_ctx, member, &element_size, &element_align );
 				size_t array_pos = dl_binary_writer_needed_size( packctx->writer );
+				array_pos = dl_internal_align_up( array_pos, element_align );
 
 				dl_binary_writer_write_pint( packctx->writer, array_pos );
 				dl_binary_writer_write_uint32( packctx->writer, array_length );
 				dl_binary_writer_seek_end( packctx->writer );
+				dl_binary_writer_align( packctx->writer, element_align );
 				dl_binary_writer_reserve( packctx->writer, array_length * element_size );
 				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
 			}
