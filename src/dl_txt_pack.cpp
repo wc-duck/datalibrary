@@ -570,8 +570,11 @@ const char* dl_txt_skip_string( const char* str, const char* end )
 	return str;
 }
 
-static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, const char* iter, const char* end )
+static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member )
 {
+	const char* iter = packctx->read_ctx.iter;
+	const char* end  = packctx->read_ctx.end;
+
 	iter = dl_txt_skip_white( iter, end );
 	if( *iter == ']' )
 		return 0;
@@ -665,7 +668,10 @@ static uint32_t dl_txt_pack_find_array_length( const dl_member_desc* member, con
 					case '\0':
 					case ']':
 						return last_was_comma ? array_length - 1 : array_length;
-						// TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
+					default:
+						dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_PARSE_ERROR,
+									"Invalid txt-format, are you missing an '}'");
+					// TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
 				}
 			}
 		}
@@ -724,7 +730,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		case DL_TYPE_ATOM_ARRAY:
 		{
 			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
-			uint32_t array_length = dl_txt_pack_find_array_length( member, packctx->read_ctx.iter, packctx->read_ctx.end );
+			uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, member );
 			if( array_length == 0 )
 			{
 				dl_binary_writer_write_pint( packctx->writer, (size_t)-1 );

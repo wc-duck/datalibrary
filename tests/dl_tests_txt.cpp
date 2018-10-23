@@ -1176,6 +1176,13 @@ TEST_F( DLText, accept_trailing_comma_array_struct )
     EXPECT_EQ(4u, arr->Array[1].Int2);
 }
 
+TEST_F( DLText, missing_struct_end_in_struct_array )
+{
+	unsigned char out_text_data[1024];
+	const char* test_text = STRINGIFY( { StructArray1 : { Array : [{Int1 : 1, Int2 : 2}, {Int1 : 3, Int2 : 4,] } } );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
 TEST_F( DLText, hex_ints )
 {
     unsigned char unpack_buffer[1024];
