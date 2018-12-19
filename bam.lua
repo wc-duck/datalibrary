@@ -121,8 +121,14 @@ function DefaultGCCLike( platform, config, compiler )
 	elseif config == "coverage" then
 	  settings.cc.flags:Add("-O0", "-g", "--coverage")
 	  settings.link.flags:Add("--coverage")
-	else
+	elseif config == "release" then
 		settings.cc.flags:Add("-O2")
+	elseif config == "sanitizer" then
+		settings.cc.flags:Add("-O0", "-g", "-fno-omit-frame-pointer", "-fsanitize=undefined", "-fno-sanitize-recover=all")
+		settings.link.flags:Add("-fsanitize=undefined", "-fno-sanitize-recover=all")
+	else
+		print( config  .. ' is not a valid configuration' )
+		os.exit(1)
 	end
 
 	local arch = platform == 'linux_x86' and '-m32' or '-m64'
@@ -142,8 +148,11 @@ function DefaultMSVC( build_platform, config, compiler )
 		settings.cc.flags:Add("/Od", "/MDd", "/Z7", "/D \"_DEBUG\"", "/EHsc", "/GS-")
 		settings.dll.flags:Add("/DEBUG")
 		settings.link.flags:Add("/DEBUG")
-	else
+	elseif config == "release" then
 		settings.cc.flags:Add("/Ox", "/Ot", "/MD", "/D \"NDEBUG\"", "/EHsc")
+	else
+		print( config  .. ' is not a valid configuration' )
+		os.exit(1)
 	end
 
   if family == "windows" then
@@ -232,13 +241,15 @@ print( 'compiler used "' .. compiler .. '"')
 settings =
 {
 	linux_x86 = {
-	 debug   = DefaultGCCLike( "linux_x86", "debug",   compiler ),
-   release = DefaultGCCLike( "linux_x86", "release", compiler )
+	 debug     = DefaultGCCLike( "linux_x86", "debug",     compiler ),
+	 release   = DefaultGCCLike( "linux_x86", "release",   compiler ),
+	 sanitizer = DefaultGCCLike( "linux_x86", "sanitizer", compiler ),
   },
 	linux_x86_64 = {
-    debug    = DefaultGCCLike( "linux_x86_64", "debug",    compiler ),
-    coverage = DefaultGCCLike( "linux_x86_64", "coverage", compiler ),
-    release  = DefaultGCCLike( "linux_x86_64", "release",  compiler )
+    debug     = DefaultGCCLike( "linux_x86_64", "debug",      compiler ),
+    coverage  = DefaultGCCLike( "linux_x86_64", "coverage",   compiler ),
+    release   = DefaultGCCLike( "linux_x86_64", "release",    compiler ),
+    sanitizer = DefaultGCCLike( "linux_x86_64", "sanitizer",  compiler )
   },
 	win32 = {
     debug   = DefaultMSVC( "win32", "debug",   compiler ),
