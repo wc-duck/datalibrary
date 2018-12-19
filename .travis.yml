@@ -31,8 +31,12 @@ install:
   - cd ..
 
 script:
-  - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc
-  - bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
+  - |
+    if [ $DL_CONFIG = "sanitizer" ] && [ $CC = "clang" ] && [ $DL_PLATFORM = "linux_x86" ]; then
+      exit
+    fi
+    bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc
+    bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
 
 after_success:
   - |
