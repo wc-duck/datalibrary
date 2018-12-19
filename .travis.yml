@@ -11,8 +11,10 @@ env:
   matrix:
    - DL_PLATFORM=linux_x86 DL_CONFIG=debug
    - DL_PLATFORM=linux_x86 DL_CONFIG=release
+   - DL_PLATFORM=linux_x86 DL_CONFIG=sanitizer
    - DL_PLATFORM=linux_x86_64 DL_CONFIG=debug
    - DL_PLATFORM=linux_x86_64 DL_CONFIG=release
+   - DL_PLATFORM=linux_x86_64 DL_CONFIG=sanitizer
    - DL_PLATFORM=linux_x86_64 DL_CONFIG=coverage
 
 before_install:
