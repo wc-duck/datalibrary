@@ -64,20 +64,6 @@ struct convert_inplace_test
 template <typename T>
 struct DLBase : public DL
 {
-	unsigned char *store_buffer;
-	unsigned char *load_buffer;
-
-	DLBase() 
-		: store_buffer(0x0)
-	{
-
-	}
-	virtual ~DLBase() {
-		if (store_buffer != 0x0) {
-			free(store_buffer);
-		}
-	}
-
 	size_t calculate_unpack_size(dl_typeid_t type, void *pack_me) {
 		size_t unpack_me_size = 0;
 		dl_instance_calc_size(this->Ctx, type, pack_me, &unpack_me_size);
@@ -90,7 +76,7 @@ struct DLBase : public DL
 		// calc size of stored instance
 		size_t store_size = 0;
 		EXPECT_DL_ERR_OK(dl_instance_calc_size(dl_ctx, type, pack_me, &store_size));
-		store_buffer = (unsigned char*)malloc(store_size+1);
+		unsigned char* store_buffer = (unsigned char*)malloc(store_size+1);
 		for( unsigned int i = 0; i < TEST_REPS; ++i )
 		{
 			memset(store_buffer, 0xFE, store_size+1);
@@ -117,6 +103,7 @@ struct DLBase : public DL
 
 			free(out_buffer);
 		}
+		free(store_buffer);
 	}
 };
 

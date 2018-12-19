@@ -185,14 +185,15 @@ TYPED_TEST(DLBase, big_array_complex_test)
 	size_t unpack_size = this->calculate_unpack_size(big_array_test::TYPE_ID, &original);
 	big_array_test *loaded = (big_array_test*)malloc(unpack_size);
 	this->do_the_round_about( big_array_test::TYPE_ID, &original, loaded, unpack_size );
-/*
-	EXPECT_EQ(599, loaded.members.count);
-	EXPECT_EQ(3, loaded.members.data[1].dynamic_arr.count);
-	EXPECT_EQ(3, loaded.members.data[1].dynamic_arr.data[0]);
-	EXPECT_EQ(2, loaded.members.data[598].dynamic_arr.data[1]);*/
+
+	EXPECT_EQ(599u, loaded->members.count);
+	EXPECT_EQ(3u,   loaded->members.data[1].dynamic_arr.count);
+	EXPECT_EQ(3u,   loaded->members.data[1].dynamic_arr.data[0]);
+	EXPECT_EQ(2u,   loaded->members.data[598].dynamic_arr.data[1]);
 	free(original.members.data[598].dynamic_arr.data);
 	free(original.members.data[1].dynamic_arr.data);
 	free(original.members.data);
+	free(loaded);
 }
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1700 // can't test ranged for if not supported!
