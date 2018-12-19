@@ -611,7 +611,7 @@ TEST_F( DLText, basic_union_type_assignment )
 		}
 	}
 	);
-	char data_buffer[1024];
+	uint64_t data_buffer[128];
 
 	unsigned char out_data_text[1024];
 
@@ -821,7 +821,7 @@ TEST_F( DLText, multi_line_comments )
 
 TEST_F( DLText, leading_decimal_point )
 {
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : .5, f64 : .5 } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_FLOAT_EQ (.5f, pods->f32 );
     EXPECT_DOUBLE_EQ(.5,  pods->f64 );
@@ -829,7 +829,7 @@ TEST_F( DLText, leading_decimal_point )
 
 TEST_F( DLText, trailing_decimal_point )
 {
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : 5., f64 : 5. } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_FLOAT_EQ (5.f, pods->f32 );
     EXPECT_DOUBLE_EQ(5.,  pods->f64 );
@@ -837,7 +837,7 @@ TEST_F( DLText, trailing_decimal_point )
 
 TEST_F( DLText, float_infinity )
 {
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : Infinity, f64 : Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_FLOAT_EQ (std::numeric_limits<float>::infinity(),  pods->f32 );
     EXPECT_DOUBLE_EQ(std::numeric_limits<double>::infinity(), pods->f64 );
@@ -845,7 +845,7 @@ TEST_F( DLText, float_infinity )
 
 TEST_F( DLText, float_infinity_neg )
 {
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -Infinity, f64 : -Infinity } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_FLOAT_EQ (-std::numeric_limits<float>::infinity(),  pods->f32 );
     EXPECT_DOUBLE_EQ(-std::numeric_limits<double>::infinity(), pods->f64 );
@@ -853,7 +853,7 @@ TEST_F( DLText, float_infinity_neg )
 
 TEST_F( DLText, float_nan )
 {
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : NaN, f64 : NaN } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_TRUE(isnan(pods->f32) == 1);
     EXPECT_TRUE(isnan(pods->f64) == 1);
@@ -861,7 +861,7 @@ TEST_F( DLText, float_nan )
 
 TEST_F( DLText, float_nan_neg )
 {
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
     PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { f32 : -NaN, f64 : -NaN } } ), unpack_buffer, sizeof(unpack_buffer));
     EXPECT_TRUE(isnan(pods->f32) == 1);
     EXPECT_TRUE(isnan(pods->f64) == 1);
@@ -876,7 +876,7 @@ TEST_F( DLText, intXX_min )
 		STRINGIFY( { PodsDefaults : {i8:min,u8:min,i16:min,u16:min,i32:min,u32:min,i64:min,u64:min} } )
 	};
 
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
 	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
 	{
 		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
@@ -900,7 +900,7 @@ TEST_F( DLText, intXX_max )
 		STRINGIFY( { PodsDefaults : {i8:max,u8:max,i16:max,u16:max,i32:max,u32:max,i64:max,u64:max} } ),
 	};
 
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
 	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
 	{
 		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
@@ -924,7 +924,7 @@ TEST_F( DLText, fpXX_min )
 		STRINGIFY( { PodsDefaults : {f32:min,f64:min} } )
 	};
 
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
 	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
 	{
 		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
@@ -942,7 +942,7 @@ TEST_F( DLText, fpXX_max )
 		STRINGIFY( { PodsDefaults : {f32:max,f64:max} } )
 	};
 
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
 	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
 	{
 		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
@@ -960,7 +960,7 @@ TEST_F( DLText, fpXX_neg_min )
 		STRINGIFY( { PodsDefaults : {f32:-min,f64:-min} } )
 	};
 
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
 	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
 	{
 		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));
@@ -978,7 +978,7 @@ TEST_F( DLText, fpXX_neg_max )
 		STRINGIFY( { PodsDefaults : {f32:-max,f64:-max} } )
 	};
 
-    unsigned char unpack_buffer[1024];
+    uint64_t unpack_buffer[128];
 	for(uint32_t test = 0; test < DL_ARRAY_LENGTH(test_str); ++test)
 	{
 		PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, test_str[test], unpack_buffer, sizeof(unpack_buffer));

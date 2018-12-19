@@ -5,23 +5,25 @@ TYPED_TEST(DLBase, ptr)
 {
 	Pods pods = { 1, 2, 3, 4, 5, 6, 7, 8, 8.1f, 8.2 };
 	SimplePtr  orignal = { &pods, &pods };
-	SimplePtr loaded[64];
+	uint64_t load_buffer[64];
 
-	this->do_the_round_about( SimplePtr::TYPE_ID, &orignal, loaded, sizeof(loaded) );
+	this->do_the_round_about( SimplePtr::TYPE_ID, &orignal, load_buffer, sizeof(load_buffer) );
 
-	EXPECT_NE(orignal.Ptr1, loaded[0].Ptr1);
-	EXPECT_EQ(loaded[0].Ptr1, loaded[0].Ptr2);
+	SimplePtr* loaded = (SimplePtr*)load_buffer;
 
-	EXPECT_EQ(orignal.Ptr1->i8,  loaded[0].Ptr1->i8);
-	EXPECT_EQ(orignal.Ptr1->i16, loaded[0].Ptr1->i16);
-	EXPECT_EQ(orignal.Ptr1->i32, loaded[0].Ptr1->i32);
-	EXPECT_EQ(orignal.Ptr1->i64, loaded[0].Ptr1->i64);
-	EXPECT_EQ(orignal.Ptr1->u8,  loaded[0].Ptr1->u8);
-	EXPECT_EQ(orignal.Ptr1->u16, loaded[0].Ptr1->u16);
-	EXPECT_EQ(orignal.Ptr1->u32, loaded[0].Ptr1->u32);
-	EXPECT_EQ(orignal.Ptr1->u64, loaded[0].Ptr1->u64);
-	EXPECT_EQ(orignal.Ptr1->f32, loaded[0].Ptr1->f32);
-	EXPECT_EQ(orignal.Ptr1->f64, loaded[0].Ptr1->f64);
+	EXPECT_NE(orignal.Ptr1,      loaded->Ptr1);
+	EXPECT_EQ(loaded->Ptr1,      loaded->Ptr2);
+
+	EXPECT_EQ(orignal.Ptr1->i8,  loaded->Ptr1->i8);
+	EXPECT_EQ(orignal.Ptr1->i16, loaded->Ptr1->i16);
+	EXPECT_EQ(orignal.Ptr1->i32, loaded->Ptr1->i32);
+	EXPECT_EQ(orignal.Ptr1->i64, loaded->Ptr1->i64);
+	EXPECT_EQ(orignal.Ptr1->u8,  loaded->Ptr1->u8);
+	EXPECT_EQ(orignal.Ptr1->u16, loaded->Ptr1->u16);
+	EXPECT_EQ(orignal.Ptr1->u32, loaded->Ptr1->u32);
+	EXPECT_EQ(orignal.Ptr1->u64, loaded->Ptr1->u64);
+	EXPECT_EQ(orignal.Ptr1->f32, loaded->Ptr1->f32);
+	EXPECT_EQ(orignal.Ptr1->f64, loaded->Ptr1->f64);
 }
 
 TYPED_TEST(DLBase, ptr_chain)

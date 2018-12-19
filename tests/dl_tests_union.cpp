@@ -134,21 +134,23 @@ TYPED_TEST(DLBase, union_with_ptr)
 	original.value.p1 = &p;
 	original.type = test_union_ptr_type_p1;
 
-	test_union_ptr loaded[10];
+	uint64_t load_buffer[128];
 
-	this->do_the_round_about( test_union_ptr::TYPE_ID, &original, loaded, sizeof(loaded) );
+	this->do_the_round_about( test_union_ptr::TYPE_ID, &original, load_buffer, sizeof(load_buffer) );
 
-	EXPECT_EQ( original.type, loaded[0].type );
-	EXPECT_EQ( original.value.p1->i8,  loaded[0].value.p1->i8 );
-	EXPECT_EQ( original.value.p1->i16, loaded[0].value.p1->i16 );
-	EXPECT_EQ( original.value.p1->i32, loaded[0].value.p1->i32 );
-	EXPECT_EQ( original.value.p1->i64, loaded[0].value.p1->i64 );
-	EXPECT_EQ( original.value.p1->u8,  loaded[0].value.p1->u8 );
-	EXPECT_EQ( original.value.p1->u16, loaded[0].value.p1->u16 );
-	EXPECT_EQ( original.value.p1->u32, loaded[0].value.p1->u32 );
-	EXPECT_EQ( original.value.p1->u64, loaded[0].value.p1->u64 );
-	EXPECT_EQ( original.value.p1->f32, loaded[0].value.p1->f32 );
-	EXPECT_EQ( original.value.p1->f64, loaded[0].value.p1->f64 );
+	test_union_ptr* loaded = (test_union_ptr*)load_buffer;
+
+	EXPECT_EQ( original.type,          loaded->type );
+	EXPECT_EQ( original.value.p1->i8,  loaded->value.p1->i8 );
+	EXPECT_EQ( original.value.p1->i16, loaded->value.p1->i16 );
+	EXPECT_EQ( original.value.p1->i32, loaded->value.p1->i32 );
+	EXPECT_EQ( original.value.p1->i64, loaded->value.p1->i64 );
+	EXPECT_EQ( original.value.p1->u8,  loaded->value.p1->u8 );
+	EXPECT_EQ( original.value.p1->u16, loaded->value.p1->u16 );
+	EXPECT_EQ( original.value.p1->u32, loaded->value.p1->u32 );
+	EXPECT_EQ( original.value.p1->u64, loaded->value.p1->u64 );
+	EXPECT_EQ( original.value.p1->f32, loaded->value.p1->f32 );
+	EXPECT_EQ( original.value.p1->f64, loaded->value.p1->f64 );
 }
 
 // TODO: add test in dl_tests_txt.cpp of setting more than one member in txt data that it is an error.

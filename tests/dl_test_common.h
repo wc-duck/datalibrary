@@ -55,7 +55,7 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 	}
 
 template <typename T>
-static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, unsigned char* unpack_buffer, size_t unpack_buffer_size)
+static T* dl_txt_test_pack_text(dl_ctx_t Ctx, const char* txt, void* unpack_buffer, size_t unpack_buffer_size)
 {
     unsigned char out_text_data[4096];
     EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, txt, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
