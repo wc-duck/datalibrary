@@ -193,12 +193,14 @@ static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t            
 {
 	uintptr_t offset = dl_internal_read_ptr_data(member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size);
 
-	const uint8_t* ptr_data = base_data + offset;
-
-	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size] && !convert_ctx.IsSwapped(ptr_data))
+	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
 	{
-		convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR)));
-		dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
+		const uint8_t* ptr_data = base_data + offset;
+		if(!convert_ctx.IsSwapped(ptr_data))
+		{
+			convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR)));
+			dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
+		}
 	}
 }
 
