@@ -101,7 +101,7 @@ struct dl_data_header
 	dl_typeid_t root_instance_type;
 	uint32_t    instance_size;
 	uint8_t     is_64_bit_ptr; // currently uses uint8 instead of bitfield to be compiler-compliant.
-	uint8_t     pad[3];
+	uint8_t     pad[7];
 };
 
 enum dl_ptr_size_t
