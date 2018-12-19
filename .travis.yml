@@ -2,7 +2,7 @@ language: cpp
 compiler:
   - gcc
   - clang
-dist: trusty
+dist: xenial
 
 sudo: true
 
