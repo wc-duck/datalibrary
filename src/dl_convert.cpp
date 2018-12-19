@@ -671,13 +671,26 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 
 	dl_binary_writer_seek_end( writer ); // place instance at the end!
 
-	if(inst.type != 0x0)
-		dl_binary_writer_align( writer, inst.type->alignment[conv_ctx.target_ptr_size] );
-
-	*new_offset = dl_binary_writer_tell( writer );
-
 	dl_type_atom_t    atom_type    = dl_type_atom_t((inst.type_id & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT);
 	dl_type_storage_t storage_type = dl_type_storage_t((inst.type_id & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT);
+
+	if(inst.type != 0x0)
+		dl_binary_writer_align( writer, inst.type->alignment[conv_ctx.target_ptr_size] );
+	else if(atom_type == DL_TYPE_ATOM_ARRAY)
+	{
+		switch(storage_type)
+		{
+			case DL_TYPE_STORAGE_STR:
+			case DL_TYPE_STORAGE_PTR:
+				dl_binary_writer_align( writer, conv_ctx.target_ptr_size == DL_PTR_SIZE_32BIT ? 4 : 8 );
+				break;
+			default:
+				dl_binary_writer_align( writer, dl_pod_size( storage_type ) );
+				break;
+		}
+	}
+
+	*new_offset = dl_binary_writer_tell( writer );
 
 	switch( atom_type )
 	{
