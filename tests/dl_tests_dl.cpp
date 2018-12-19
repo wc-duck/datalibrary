@@ -25,21 +25,19 @@ TYPED_TEST(DLBase, bug1)
 	BugTest1_InArray array_data[3] = { { 1337, 1338, 18 }, { 7331, 8331, 19 }, { 31337, 73313, 20 } } ;
 	BugTest1 original = { { array_data, DL_ARRAY_LENGTH(array_data) } };
 
-	uint64_t load_buffer[128] = {0};
+	BugTest1 DL_ALIGN(8) loaded[10];
 
-	this->do_the_round_about( BugTest1::TYPE_ID, &original, load_buffer, sizeof(load_buffer) );
+	this->do_the_round_about( BugTest1::TYPE_ID, &original, loaded, sizeof(loaded) );
 
-	BugTest1* loaded = (BugTest1*)load_buffer;
-
-	EXPECT_EQ(array_data[0].u64_1, loaded->Arr[0].u64_1);
-	EXPECT_EQ(array_data[0].u64_2, loaded->Arr[0].u64_2);
-	EXPECT_EQ(array_data[0].u16,   loaded->Arr[0].u16);
-	EXPECT_EQ(array_data[1].u64_1, loaded->Arr[1].u64_1);
-	EXPECT_EQ(array_data[1].u64_2, loaded->Arr[1].u64_2);
-	EXPECT_EQ(array_data[1].u16,   loaded->Arr[1].u16);
-	EXPECT_EQ(array_data[2].u64_1, loaded->Arr[2].u64_1);
-	EXPECT_EQ(array_data[2].u64_2, loaded->Arr[2].u64_2);
-	EXPECT_EQ(array_data[2].u16,   loaded->Arr[2].u16);
+	EXPECT_EQ(array_data[0].u64_1, loaded[0].Arr[0].u64_1);
+	EXPECT_EQ(array_data[0].u64_2, loaded[0].Arr[0].u64_2);
+	EXPECT_EQ(array_data[0].u16,   loaded[0].Arr[0].u16);
+	EXPECT_EQ(array_data[1].u64_1, loaded[0].Arr[1].u64_1);
+	EXPECT_EQ(array_data[1].u64_2, loaded[0].Arr[1].u64_2);
+	EXPECT_EQ(array_data[1].u16,   loaded[0].Arr[1].u16);
+	EXPECT_EQ(array_data[2].u64_1, loaded[0].Arr[2].u64_1);
+	EXPECT_EQ(array_data[2].u64_2, loaded[0].Arr[2].u64_2);
+	EXPECT_EQ(array_data[2].u16,   loaded[0].Arr[2].u16);
 }
 
 TYPED_TEST(DLBase, bug2)
@@ -150,17 +148,14 @@ TYPED_TEST(DLBase, bug_first_member_in_struct)
 	};
 
 	bug_array_alignment desc = { { descs, DL_ARRAY_LENGTH(descs) } };
-	uint64_t load_buffer[128];
+	bug_array_alignment DL_ALIGN(8) loaded[10];
 
-	this->do_the_round_about( bug_array_alignment::TYPE_ID, &desc, load_buffer, sizeof(load_buffer) );
+	this->do_the_round_about( bug_array_alignment::TYPE_ID, &desc, loaded, sizeof(loaded) );
 
-	bug_array_alignment* loaded = (bug_array_alignment*)load_buffer;
-
-	EXPECT_EQ( desc.components[0].type, loaded->components[0].type );
-	EXPECT_EQ( desc.components[0].ptr,  loaded->components[0].ptr );
-
-	EXPECT_EQ( desc.components[1].type, loaded->components[1].type );
-	EXPECT_EQ( desc.components[1].ptr,  loaded->components[1].ptr );
+	EXPECT_EQ( desc.components[0].type, loaded[0].components[0].type );
+	EXPECT_EQ( desc.components[0].ptr,  loaded[0].components[0].ptr );
+	EXPECT_EQ( desc.components[1].type, loaded[0].components[1].type );
+	EXPECT_EQ( desc.components[1].ptr,  loaded[0].components[1].ptr );
 }
 
 TYPED_TEST(DLBase, bug_test_1)
