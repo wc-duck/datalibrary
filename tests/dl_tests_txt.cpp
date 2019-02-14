@@ -1176,6 +1176,19 @@ TEST_F( DLText, accept_trailing_comma_array_struct )
     EXPECT_EQ(4u, arr->Array[1].Int2);
 }
 
+TEST_F( DLText, accept_trailing_comma_struct)
+{
+	const char* test_text =
+		"{\n"
+			"\"PodsDefaults\" : {\n"
+			"\"u8\" : 5,\n"
+			"}\n"
+		"}";
+
+	unsigned char out_text_data[1024];
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
 TEST_F( DLText, missing_struct_end_in_struct_array )
 {
 	unsigned char out_text_data[1024];
