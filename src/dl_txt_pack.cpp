@@ -682,7 +682,7 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 	return (uint32_t)-1;
 }
 
-static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx, 
+static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 											 dl_txt_pack_ctx*      packctx,
 											 const dl_member_desc* member,
 											 size_t                member_pos )
@@ -837,7 +837,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 			uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, member );
 			if(array_length > member->inline_array_cnt())
 			{
-				dl_txt_read_failed( dl_ctx, 
+				dl_txt_read_failed( dl_ctx,
 									&packctx->read_ctx,
 									DL_ERROR_MALFORMED_DATA,
 									"to many elements in inline array, %u > %u", array_length, member->inline_array_cnt() );
@@ -863,7 +863,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 						for(uint32_t sub_member_i = 0; sub_member_i < sub_type->member_count; ++sub_member_i)
 						{
 							const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
-							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member,  array_pos + sub_member_i * sub_type->size[DL_PTR_SIZE_HOST]);
+							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, array_pos + sub_member->offset[DL_PTR_SIZE_HOST]);
 						}
 					}
 					break;
