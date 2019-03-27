@@ -376,7 +376,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 		{
 			dl_type_info_t sub_type;
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
-			dl_binary_writer_write_string_fmt(writer, "struct %s", sub_type.name);
+			dl_binary_writer_write_string_fmt(writer, "DL_C_STRUCT %s", sub_type.name);
 			return;
 		}
 		case DL_TYPE_STORAGE_ENUM_INT8:
