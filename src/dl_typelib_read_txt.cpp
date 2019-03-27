@@ -8,6 +8,17 @@
 #include <stdlib.h> // strtoul
 #include <ctype.h>
 
+template <typename T>
+static inline T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
+{
+	size_t old_cap = *cap;
+	size_t new_cap = ( ( old_cap < min_inc ) ? old_cap + min_inc : old_cap ) * 2;
+	if( new_cap == 0 )
+		new_cap = 8;
+	*cap = new_cap;
+	return (T*)dl_realloc( alloc, ptr, new_cap * sizeof( T ), old_cap * sizeof( T ) );
+}
+
 static uint32_t dl_alloc_string( dl_ctx_t ctx, dl_txt_read_substr* str )
 {
 	if( ctx->typedata_strings_cap - ctx->typedata_strings_size < (size_t)str->len + 2 )
