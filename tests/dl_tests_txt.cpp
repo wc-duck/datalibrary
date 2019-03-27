@@ -1176,6 +1176,19 @@ TEST_F( DLText, accept_trailing_comma_array_struct )
     EXPECT_EQ(4u, arr->Array[1].Int2);
 }
 
+TEST_F( DLText, accept_trailing_comma_struct)
+{
+	const char* test_text =
+		"{\n"
+			"\"PodsDefaults\" : {\n"
+			"\"u8\" : 5,\n"
+			"}\n"
+		"}";
+
+	unsigned char out_text_data[1024];
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+}
+
 TEST_F( DLText, missing_struct_end_in_struct_array )
 {
 	unsigned char out_text_data[1024];
@@ -1275,4 +1288,95 @@ TEST_F( DLText, hex_uint64_invalid_range )
 {
     dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u64  :  0x10000000000000000 } } ), DL_ERROR_TXT_RANGE_ERROR);
     dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u64  : -0x1                 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+
+TEST_F( DLText, inline_array_fill_default)
+{
+	unsigned char unpack_buffer[1024];
+	test_inline_array_default_struct1* s = dl_txt_test_pack_text<test_inline_array_default_struct1>(this->Ctx,
+																									STRINGIFY( { "test_inline_array_default_struct1" : {} } ),
+																									unpack_buffer,
+																									sizeof(unpack_buffer));
+	EXPECT_EQ(s->arr[0].u, 1337u);
+	EXPECT_EQ(s->arr[1].u, 1337u);
+	EXPECT_EQ(s->arr[2].u, 1337u);
+}
+
+TEST_F( DLText, inline_array_fill_default_one_set)
+{
+	unsigned char unpack_buffer[1024];
+	test_inline_array_default_struct2* s = dl_txt_test_pack_text<test_inline_array_default_struct2>(this->Ctx,
+																									STRINGIFY( { "test_inline_array_default_struct2" : {} } ),
+																									unpack_buffer,
+																									sizeof(unpack_buffer));
+
+	EXPECT_EQ(s->arr[0].u, 7331u);
+	EXPECT_EQ(s->arr[1].u, 1337u);
+	EXPECT_EQ(s->arr[2].u, 1337u);
+}
+
+TEST_F( DLText, inline_array_auto_fill_u32)
+{
+	unsigned char unpack_buffer[1024];
+
+	{
+		WithInlineArray* s = dl_txt_test_pack_text<WithInlineArray>( this->Ctx,
+																	STRINGIFY( { "WithInlineArray" : { "Array" : [] } } ),
+																	unpack_buffer,
+																	sizeof(unpack_buffer) );
+
+		EXPECT_EQ(s->Array[0], 0u);
+		EXPECT_EQ(s->Array[1], 0u);
+		EXPECT_EQ(s->Array[2], 0u);
+	}
+
+	{
+		WithInlineArray* s = dl_txt_test_pack_text<WithInlineArray>( this->Ctx,
+																	STRINGIFY( { "WithInlineArray" : { "Array" : [] } } ),
+																	unpack_buffer,
+																	sizeof(unpack_buffer) );
+
+		EXPECT_EQ(s->Array[0], 0u);
+		EXPECT_EQ(s->Array[1], 0u);
+		EXPECT_EQ(s->Array[2], 0u);
+	}
+
+	{
+		WithInlineArray* s = dl_txt_test_pack_text<WithInlineArray>( this->Ctx,
+																	STRINGIFY( { "WithInlineArray" : { "Array" : [1] } } ),
+																	unpack_buffer,
+																	sizeof(unpack_buffer) );
+
+		EXPECT_EQ(s->Array[0], 1u);
+		EXPECT_EQ(s->Array[1], 0u);
+		EXPECT_EQ(s->Array[2], 0u);
+	}
+
+	{
+		WithInlineArray* s = dl_txt_test_pack_text<WithInlineArray>( this->Ctx,
+																	STRINGIFY( { "WithInlineArray" : { "Array" : [1,2] } } ),
+																	unpack_buffer,
+																	sizeof(unpack_buffer) );
+
+		EXPECT_EQ(s->Array[0], 1u);
+		EXPECT_EQ(s->Array[1], 2u);
+		EXPECT_EQ(s->Array[2], 0u);
+	}
+
+	{
+		WithInlineArray* s = dl_txt_test_pack_text<WithInlineArray>( this->Ctx,
+																	STRINGIFY( { "WithInlineArray" : { "Array" : [1,2,3] } } ),
+																	unpack_buffer,
+																	sizeof(unpack_buffer) );
+
+		EXPECT_EQ(s->Array[0], 1u);
+		EXPECT_EQ(s->Array[1], 2u);
+		EXPECT_EQ(s->Array[2], 3u);
+	}
+}
+
+TEST_F( DLText, empty_array_should_fail_if_no_default )
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { "WithInlineArray" : {} } ), DL_ERROR_TXT_MISSING_MEMBER );	
 }

@@ -232,7 +232,7 @@ static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t c
 	if( e_info->comment )
 		dl_binary_writer_write_string_fmt( writer, "//%s\n",  e_info->comment );
 
-	dl_binary_writer_write_string_fmt( writer, "typedef enum%s\n{\n", dl_context_enum_storage_decl(e_info->storage) );
+	dl_binary_writer_write_string_fmt( writer, "typedef enum %s%s\n{\n", e_info->name, dl_context_enum_storage_decl(e_info->storage) );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof( dl_enum_value_info_t ) );
 	dl_reflect_get_enum_values( ctx, e_info->tid, values, e_info->value_count );

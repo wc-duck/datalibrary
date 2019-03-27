@@ -337,6 +337,23 @@
 			"members" : [
 				{	"name" : "dummy", "type" : "uint32", "default" : 0 }
 			]
+		},
+		"single_default_uint32" : {
+			"members" : [
+				{ "name" : "u", "type" : "uint32", "default" : 1337 }
+			]
+		},
+
+		"test_inline_array_default_struct1" : {
+			"members" : [
+				{ "name" : "arr", "type" : "single_default_uint32[3]", "default" : [] }
+			]
+		},
+
+		"test_inline_array_default_struct2" : {
+			"members" : [
+				{ "name" : "arr", "type" : "single_default_uint32[3]", "default" : [{"u" : 7331}] }
+			]
 		}
 	},
 	"unions" : {
@@ -365,10 +382,7 @@
 				{ "name" : "p1", "type" : "Pods*" },
 				{ "name" : "p2", "type" : "SubString*" }
 			]
-		}
-	},
-
-	"unions": {
+		},
 		"test_has_union_array": {
 			"members": [
 				{ "name": "floats", "type": "fp32[]"  },

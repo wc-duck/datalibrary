@@ -682,6 +682,84 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 	return (uint32_t)-1;
 }
 
+static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
+											 dl_txt_pack_ctx*      packctx,
+											 const dl_member_desc* member,
+											 size_t                member_pos )
+{
+	uint8_t* member_default_value = dl_ctx->default_data + member->default_value_offset;
+
+	uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
+
+	// ... handle bitfields differently since they take up sub-parts of bytes.
+	if(member->AtomType() == DL_TYPE_ATOM_BITFIELD)
+	{
+		uint32_t bf_bits = member->bitfield_bits();
+		uint32_t bf_offset = member->bitfield_offset();
+
+		dl_binary_writer_seek_set( packctx->writer, member_pos );
+
+		uint64_t current_data = 0;
+		switch( member->StorageType() )
+		{
+			case DL_TYPE_STORAGE_UINT8:  current_data = (uint64_t)dl_binary_writer_read_uint8 ( packctx->writer ); break;
+			case DL_TYPE_STORAGE_UINT16: current_data = (uint64_t)dl_binary_writer_read_uint16( packctx->writer ); break;
+			case DL_TYPE_STORAGE_UINT32: current_data = (uint64_t)dl_binary_writer_read_uint32( packctx->writer ); break;
+			case DL_TYPE_STORAGE_UINT64: current_data = dl_binary_writer_read_uint64( packctx->writer ); break;
+			default:
+				DL_ASSERT( false && "This should not happen!" );
+				break;
+		}
+
+		uint64_t default_value = 0;
+
+		switch( member->default_value_size )
+		{
+			case 1: default_value = (uint64_t)*member_default_value; break;
+			case 2: default_value = (uint64_t)*(uint16_t*)member_default_value; break;
+			case 3: default_value = (uint64_t)*(uint32_t*)member_default_value; break;
+			case 4: default_value = (uint64_t)*(uint64_t*)member_default_value; break;
+			default:
+				DL_ASSERT( false && "This should not happen!" );
+				break;
+		}
+		uint64_t default_value_extracted = DL_EXTRACT_BITS(default_value, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits);
+		uint64_t to_store = DL_INSERT_BITS( current_data, default_value_extracted, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits );
+		dl_binary_writer_seek_set( packctx->writer, member_pos );
+
+		switch( member->StorageType() )
+		{
+			case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_uint8 ( packctx->writer,  (uint8_t)to_store ); break;
+			case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_uint16( packctx->writer, (uint16_t)to_store ); break;
+			case DL_TYPE_STORAGE_UINT32: dl_binary_writer_write_uint32( packctx->writer, (uint32_t)to_store ); break;
+			case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_uint64( packctx->writer, (uint64_t)to_store ); break;
+			default:
+				DL_ASSERT( false && "This should not happen!" );
+				break;
+		}
+
+	}
+	else
+	{
+		dl_binary_writer_seek_set( packctx->writer, member_pos );
+		dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+	}
+
+	if( member_size != member->default_value_size )
+	{
+		uint8_t* subdata = member_default_value + member_size;
+		// ... sub ptrs, copy and patch ...
+		dl_binary_writer_seek_end( packctx->writer );
+		uintptr_t subdata_pos = dl_binary_writer_tell( packctx->writer );
+
+		dl_binary_writer_write( packctx->writer, subdata, member->default_value_size - member_size );
+
+		uint8_t* member_data = packctx->writer->data + member_pos;
+		if( !packctx->writer->dummy )
+			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size );
+	}
+}
+
 static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
 {
 	size_t member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
@@ -756,7 +834,49 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 		{
 			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
-			dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, member->inline_array_cnt() );
+			uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, member );
+			if(array_length > member->inline_array_cnt())
+			{
+				dl_txt_read_failed( dl_ctx,
+									&packctx->read_ctx,
+									DL_ERROR_MALFORMED_DATA,
+									"to many elements in inline array, %u > %u", array_length, member->inline_array_cnt() );
+			}
+
+			if(array_length > 0)
+				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
+
+			switch(member->StorageType())
+			{
+				case DL_TYPE_STORAGE_STRUCT:
+				{
+					const dl_type_desc* sub_type = dl_internal_find_type(dl_ctx, member->type_id);
+
+					// fill missing elements with defaults!
+					for(uint32_t i = array_length; i < member->inline_array_cnt(); ++i)
+					{
+						// TODO: this seek/set dance will only be needed if type has subptrs, optimize by making different code-paths?
+						size_t array_pos = dl_binary_writer_tell( packctx->writer );
+						dl_binary_writer_seek_set( packctx->writer, array_pos + i * sub_type->size[DL_PTR_SIZE_HOST] );
+
+						// TODO: replace with flag DL_FULL_TYPE_DEFAULT saying that all members has default-values.
+						for(uint32_t sub_member_i = 0; sub_member_i < sub_type->member_count; ++sub_member_i)
+						{
+							const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
+							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, array_pos + sub_member->offset[DL_PTR_SIZE_HOST]);
+						}
+					}
+					break;
+				}
+				default:
+				{
+					// default type to zero!
+					uint32_t missing_elements = member->inline_array_cnt() - array_length;
+					if(missing_elements > 0)
+						dl_binary_writer_write_zero(packctx->writer, missing_elements * dl_pod_size(member->StorageType()));
+				}
+			}
+
 			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 		}
 		break;
@@ -887,6 +1007,8 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		// ... read all members ...
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( *packctx->read_ctx.iter == ',' ) ++packctx->read_ctx.iter;
+		// We allow traailing commas, so consume whitespaces to see if we have a struct termination.
+		dl_txt_eat_white( &packctx->read_ctx );
 		if( *packctx->read_ctx.iter == '}' ) break;
 
 		dl_txt_eat_white( &packctx->read_ctx );
@@ -961,77 +1083,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MISSING_MEMBER, "member %s.%s is not set and has no default value", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
 
 			size_t   member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
-			uint8_t* member_default_value = dl_ctx->default_data + member->default_value_offset;
-
-			uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
-
-			// ... handle bitfields differently since they take up sub-parts of bytes.
-			if(member->AtomType() == DL_TYPE_ATOM_BITFIELD)
-			{
-				uint32_t bf_bits = member->bitfield_bits();
-				uint32_t bf_offset = member->bitfield_offset();
-
-				dl_binary_writer_seek_set( packctx->writer, member_pos );
-
-				uint64_t current_data = 0;
-				switch( member->StorageType() )
-				{
-					case DL_TYPE_STORAGE_UINT8:  current_data = (uint64_t)dl_binary_writer_read_uint8 ( packctx->writer ); break;
-					case DL_TYPE_STORAGE_UINT16: current_data = (uint64_t)dl_binary_writer_read_uint16( packctx->writer ); break;
-					case DL_TYPE_STORAGE_UINT32: current_data = (uint64_t)dl_binary_writer_read_uint32( packctx->writer ); break;
-					case DL_TYPE_STORAGE_UINT64: current_data = dl_binary_writer_read_uint64( packctx->writer ); break;
-					default:
-						DL_ASSERT( false && "This should not happen!" );
-						break;
-				}
-
-				uint64_t default_value = 0;
-
-				switch( member->default_value_size )
-				{
-					case 1: default_value = (uint64_t)*member_default_value; break;
-					case 2: default_value = (uint64_t)*(uint16_t*)member_default_value; break;
-					case 3: default_value = (uint64_t)*(uint32_t*)member_default_value; break;
-					case 4: default_value = (uint64_t)*(uint64_t*)member_default_value; break;
-					default:
-						DL_ASSERT( false && "This should not happen!" );
-						break;
-				}
-				uint64_t default_value_extracted = DL_EXTRACT_BITS(default_value, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits);
-				uint64_t to_store = DL_INSERT_BITS( current_data, default_value_extracted, dl_bf_offset( DL_ENDIAN_HOST, sizeof(uint8_t), bf_offset, bf_bits ), bf_bits );
-				dl_binary_writer_seek_set( packctx->writer, member_pos );
-
-				switch( member->StorageType() )
-				{
-					case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_uint8 ( packctx->writer,  (uint8_t)to_store ); break;
-					case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_uint16( packctx->writer, (uint16_t)to_store ); break;
-					case DL_TYPE_STORAGE_UINT32: dl_binary_writer_write_uint32( packctx->writer, (uint32_t)to_store ); break;
-					case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_uint64( packctx->writer, (uint64_t)to_store ); break;
-					default:
-						DL_ASSERT( false && "This should not happen!" );
-						break;
-				}
-
-			}
-			else
-			{
-				dl_binary_writer_seek_set( packctx->writer, member_pos );
-				dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
-			}
-
-			if( member_size != member->default_value_size )
-			{
-				uint8_t* subdata = member_default_value + member_size;
-				// ... sub ptrs, copy and patch ...
-				dl_binary_writer_seek_end( packctx->writer );
-				uintptr_t subdata_pos = dl_binary_writer_tell( packctx->writer );
-
-				dl_binary_writer_write( packctx->writer, subdata, member->default_value_size - member_size );
-
-				uint8_t* member_data = packctx->writer->data + member_pos;
-				if( !packctx->writer->dummy )
-					dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size );
-			}
+			dl_txt_pack_write_default_value(dl_ctx, packctx, member, member_pos);
 		}
 	}
 }
