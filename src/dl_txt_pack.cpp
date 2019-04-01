@@ -853,18 +853,19 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 					const dl_type_desc* sub_type = dl_internal_find_type(dl_ctx, member->type_id);
 
 					// fill missing elements with defaults!
+					size_t current_member_array_position = member_pos + sub_type->size[DL_PTR_SIZE_HOST] * array_length;
 					for(uint32_t i = array_length; i < member->inline_array_cnt(); ++i)
 					{
 						// TODO: this seek/set dance will only be needed if type has subptrs, optimize by making different code-paths?
-						size_t array_pos = dl_binary_writer_tell( packctx->writer );
-						dl_binary_writer_seek_set( packctx->writer, array_pos + i * sub_type->size[DL_PTR_SIZE_HOST] );
+						dl_binary_writer_seek_set( packctx->writer, current_member_array_position);
 
 						// TODO: replace with flag DL_FULL_TYPE_DEFAULT saying that all members has default-values.
 						for(uint32_t sub_member_i = 0; sub_member_i < sub_type->member_count; ++sub_member_i)
 						{
 							const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
-							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, array_pos + sub_member->offset[DL_PTR_SIZE_HOST]);
+							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
 						}
+							current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
 					}
 					break;
 				}
