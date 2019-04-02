@@ -1316,6 +1316,35 @@ TEST_F( DLText, inline_array_fill_default_one_set)
 	EXPECT_EQ(s->arr[2].u, 1337u);
 }
 
+TEST_F( DLText, arr_with_arr_as_arr_initializer)
+{
+	unsigned char unpack_buffer[1024];
+	struct_with_member_with_array_of_vector* s = dl_txt_test_pack_text<struct_with_member_with_array_of_vector>(this->Ctx,
+																								  STRINGIFY(
+																								  	{
+																								  		"struct_with_member_with_array_of_vector" : {
+																								  			"a" : {
+																								  				"varr" : [
+																								  					[
+																								  						1,
+																								  						2
+																								  					],
+																								  					[
+																								  						3,
+																								  						4
+																								  					]
+																								  				]
+																								  			}
+																								  		}
+																								  	}),
+																								  unpack_buffer,
+																								  sizeof(unpack_buffer));
+	EXPECT_EQ(s->a.varr[0].x, 1);
+	EXPECT_EQ(s->a.varr[0].y, 2);
+	EXPECT_EQ(s->a.varr[1].x, 3);
+	EXPECT_EQ(s->a.varr[1].y, 4);
+}
+
 TEST_F( DLText, inline_array_auto_fill_u32)
 {
 	unsigned char unpack_buffer[1024];
@@ -1378,5 +1407,5 @@ TEST_F( DLText, inline_array_auto_fill_u32)
 
 TEST_F( DLText, empty_array_should_fail_if_no_default )
 {
-	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { "WithInlineArray" : {} } ), DL_ERROR_TXT_MISSING_MEMBER );	
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { "WithInlineArray" : {} } ), DL_ERROR_TXT_MISSING_MEMBER );
 }
