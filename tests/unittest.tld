@@ -354,6 +354,23 @@
 			"members" : [
 				{ "name" : "arr", "type" : "single_default_uint32[3]", "default" : [{"u" : 7331}] }
 			]
+		},
+
+		"vector2_type" : {
+			"members" : [
+				{ "name" : "x", "type" : "fp32" },
+				{ "name" : "y", "type" : "fp32" }
+			]
+		},
+		"member_with_array_of_vector" : {
+			"members" : [
+				{ "name" : "varr", "type" : "vector2_type[2]" }
+			]
+		},
+		"struct_with_member_with_array_of_vector" : {
+			"members" : [
+				{ "name" : "a", "type" : "member_with_array_of_vector" }
+			]
 		}
 	},
 	"unions" : {
