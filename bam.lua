@@ -283,10 +283,10 @@ gtest_lib = StaticLibrary( gtest_settings, "gtest", Compile( gtest_settings, Col
 dl_lib    = StaticLibrary( dl_settings,    "dl",    Compile( dl_settings,    Collect( "src/*.cpp" ) ) )
 dl_shared = SharedLibrary( dl_settings,    "dlsh",  Compile( dl_so_settings, Collect( "src/*.cpp" ) ) )
 
-dl_settings.cc.includes:Add('tool/dl_pack')
-getopt   = Compile( dl_settings, CollectRecursive( "tool/dl_pack/*.c" ) )
-dl_pack  = Link( build_settings, "dl_pack",  Compile( dl_settings, CollectRecursive("tool/dl_pack/*.cpp") ), getopt, dl_lib )
-dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecursive("tool/dl_tlc/*.cpp") ), getopt, dl_lib )
+dl_settings.cc.includes:Add('tool/dlpack')
+getopt   = Compile( dl_settings, CollectRecursive( "tool/dlpack/*.c" ) )
+dl_pack  = Link( build_settings, "dlpack",   Compile( dl_settings, CollectRecursive("tool/dlpack/*.cpp") ), getopt, dl_lib )
+dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecursive("tool/dltlc/*.cpp") ), getopt, dl_lib )
 dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib )
 dlbench  = Link( test_settings,  "dlbench",  Compile( test_settings, Collect("benchmark/*.cpp") ), dl_lib )
 
