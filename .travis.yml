@@ -26,7 +26,6 @@ before_install:
 install:
   - git clone https://github.com/matricks/bam.git
   - cd bam
-  - git reset --hard c021a4c0d86dd0f042bf49046ee6bb51b88b8d96
   - ./make_unix.sh
   - cd ..
 

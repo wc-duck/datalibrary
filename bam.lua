@@ -309,13 +309,20 @@ end
 
 if family == "windows" then
 	AddJob( "test",          "unittest c",        string.gsub( dl_tests, "/", "\\" ) .. test_args, dl_tests,    "local/generated/unittest.bin" )
+
+	SkipOutputVerification("test")
 else
 	local valgrind_flags = " -v --leak-check=full --track-origins=yes "
 
 	AddJob( "test",          "unittest c",        dl_tests .. test_args,                                 dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_valgrind", "unittest valgrind", "valgrind" .. valgrind_flags .. dl_tests .. test_args, dl_tests,    "local/generated/unittest.bin" )
 	AddJob( "test_gdb",      "unittest gdb",      "gdb --args " .. dl_tests .. test_args,                dl_tests,    "local/generated/unittest.bin" )
+
+	SkipOutputVerification("test")
+	SkipOutputVerification("test_valgrind")
+	SkipOutputVerification("test_gdb")
 end
+
 
 
 PYTHON = "python"
