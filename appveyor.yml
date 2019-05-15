@@ -21,7 +21,7 @@ install:
   - if [%DL_PLATFORM%]==[winx64] call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64
   - if [%DL_PLATFORM%]==[winx64] call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
   - start /b /i /wait script\bootstrap.bat
-  - local\bam\bam.exe platform=%_DL_PLATFORM% config=%DL_CONFIG% compiler=%DL_MSVS% -r s
-  - local\bam\bam.exe platform=%_DL_PLATFORM% config=%DL_CONFIG% compiler=%DL_MSVS% -r s test
+  - local\bam\bam.exe platform=%DL_PLATFORM% config=%DL_CONFIG% compiler=%DL_MSVS% -r s
+  - local\bam\bam.exe platform=%DL_PLATFORM% config=%DL_CONFIG% compiler=%DL_MSVS% -r s test
 
 build: OFF
