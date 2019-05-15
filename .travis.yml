@@ -24,23 +24,20 @@ before_install:
   - pip install --user cpp-coveralls
 
 install:
-  - git clone https://github.com/matricks/bam.git
-  - cd bam
-  - ./make_unix.sh
-  - cd ..
+  - ./script/bootstrap.sh
 
 script:
   - |
     if [ $DL_CONFIG = "sanitizer" ] && [ $CC = "clang" ] && [ $DL_PLATFORM = "linux_x86" ]; then
       exit
     fi
-    bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc
-    bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
+    local/bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc
+    local/bam/bam compiler=$CC platform=$DL_PLATFORM config=$DL_CONFIG -r sc test
 
 after_success:
   - |
     if [ $DL_CONFIG = "coverage" ] && [ $CC = "gcc" ]; then
-      coveralls --exclude external --exclude bam --gcov-options '\-lp'
+      coveralls --exclude external --exclude local/bam --gcov-options '\-lp'
     fi
 
 addons:
@@ -49,7 +46,7 @@ addons:
       name: "wc-duck/datalibrary"
       description: "Build submitted via Travis CI"
     notification_email: fredrik.kihlander@gmail.com
-    build_command_prepend: "bam/bam compiler=$CC platform=linux_x86_64 config=debug -r sc -c"
-    build_command:   "bam/bam compiler=$CC platform=linux_x86_64 config=debug -r sc"
+    build_command_prepend: "local/bam/bam compiler=$CC platform=linux_x86_64 config=debug -r sc -c"
+    build_command:   "local/bam/bam compiler=$CC platform=linux_x86_64 config=debug -r sc"
     branch_pattern: coverity_scan
 

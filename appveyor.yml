@@ -17,9 +17,9 @@ environment:
       CONFIG: release
 
 install:
-  - start /b /i /wait compat\build_bam.bat
+  - start /b /i /wait script\bootstrap.bat
   - set WindowsSdkDir=C:\Program Files\Microsoft SDKs\Windows\v7.1
-  - bam\bam.exe platform=%PLATFORM% config=%CONFIG% compiler=%MSVS% -r s
-  - bam\bam.exe platform=%PLATFORM% config=%CONFIG% compiler=%MSVS% -r s test
+  - local/bam\bam.exe platform=%PLATFORM% config=%CONFIG% compiler=%MSVS% -r s
+  - local/bam\bam.exe platform=%PLATFORM% config=%CONFIG% compiler=%MSVS% -r s test
 
 build: OFF
