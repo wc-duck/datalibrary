@@ -323,6 +323,8 @@ else
 	SkipOutputVerification("test_gdb")
 end
 
+AddJob( "benchmark", "benchmark", dlbench, dlbench )
+SkipOutputVerification("benchmark")
 
 
 PYTHON = "python"
