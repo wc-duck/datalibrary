@@ -1339,10 +1339,10 @@ TEST_F( DLText, arr_with_arr_as_arr_initializer)
 																								  	}),
 																								  unpack_buffer,
 																								  sizeof(unpack_buffer));
-	EXPECT_EQ(s->a.varr[0].x, 1);
-	EXPECT_EQ(s->a.varr[0].y, 2);
-	EXPECT_EQ(s->a.varr[1].x, 3);
-	EXPECT_EQ(s->a.varr[1].y, 4);
+	EXPECT_EQ(s->a.varr[0].x, 1.0f);
+	EXPECT_EQ(s->a.varr[0].y, 2.0f);
+	EXPECT_EQ(s->a.varr[1].x, 3.0f);
+	EXPECT_EQ(s->a.varr[1].y, 4.0f);
 }
 
 TEST_F( DLText, inline_array_auto_fill_u32)
