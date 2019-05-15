@@ -95,20 +95,19 @@ bindings:
 	python
 
 
-## Suported types:
-int8, int16, int32, int64     - signed integer 8 - 64 bits
-uint8, uint16, uint32, uint64 - unsigned integer 8 - 64 bits
-bitfield                      - unsigned integer with specified amount of bits ( uint32 example : 2; in c )
-fp32, fp64                    - 32 bit and 64 bit floating point value ( float/double in c )
-string                        - ascii string
-inline-array                  - fixed size array of any type ( defined by dl ( int/uint etc ) or userdefined )
-array                         - variable size array of any type ( defined by dl ( int/uint etc ) or userdefined )
-pointer                       - pointer to any user-defined type 
+## Suported pod-types in defined structs:
 
-planned for the future (maybe) :
-utf8                          - utf8 encoded unicode-string
-utf16                         - utf16 encoded unicode-string
-utf32                         - utf32 encoded unicode-string
+| type          | c-storage                             | comment                                                        |
+|---------------|---------------------------------------|----------------------------------------------------------------|
+| signed ints   | int8_t, int16_t, int32_t, int64_t     |                                                                |
+| unsigned ints | uint8_t, uint16_t, uint32_t, uint64_t |                                                                |
+| bitfield      | uint32_t bf : 3                       | unsigned integer with specified amount of bits                 |
+| fp32, fp64    | float/double                          |                                                                |
+| string        | const char*                           | utf8 encoded, nul-terminated                                   |
+| inline-array  | type[20]                              | fixed length, type can be any POD-type or userdefined struct   |
+| array         | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or userdefined struct |
+| pointer       | type*                                 | pointer to any user-defined type                               |
+
 
 
 ## TLD ( Type Library Definition ) format:
