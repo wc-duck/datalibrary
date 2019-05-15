@@ -300,11 +300,9 @@ dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ), tl1, tl2, tl3, t
 
 local    test_args = ""
 local py_test_args = ""
-local cs_test_args = ""
 if ScriptArgs["test_filter"] then
 	   test_args = " --gtest_filter=" .. ScriptArgs["test_filter"]
 	py_test_args = " " .. ScriptArgs["test_filter"]
-	cs_test_args = " -run=" .. ScriptArgs["test_filter"]
 end
 
 if family == "windows" then
