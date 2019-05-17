@@ -376,7 +376,14 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(instance + type_offset));
-		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
+		const dl_member_desc* member;
+		if(type->flags & DL_TYPE_FLAG_HASH_UNION_TYPE)
+			member = dl_internal_find_member_desc_by_name_hash(dl_ctx, type, union_type);
+		else 
+		{
+			DL_ASSERT(union_type < type->member_count, "Bad union member index.");
+			member = dl_get_type_member(dl_ctx, type, union_type);
+		}
 		const uint8_t* member_data = instance + member->offset[convert_ctx.src_ptr_size];
 
 		return dl_internal_convert_collect_instances_from_member( dl_ctx, member, member_data, base_data, convert_ctx );
@@ -625,7 +632,13 @@ static dl_error_t dl_internal_convert_write_struct( dl_ctx_t            dl_ctx,
 		size_t tgt_type_offset = dl_internal_union_type_offset( dl_ctx, type, conv_ctx.target_ptr_size );
 
 		uint32_t union_type = *((uint32_t*)(instance + src_type_offset));
-		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
+		const dl_member_desc* member;
+		if((type->flags & DL_TYPE_FLAG_HASH_UNION_TYPE))
+			member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
+		else {
+			DL_ASSERT(union_type < type->member_count, "Bad union member index.");
+			member = dl_get_type_member(dl_ctx, type, union_type);
+		}
 		const uint8_t* member_data = instance + member->offset[conv_ctx.src_ptr_size];
 
 		uint32_t member_index = 0;

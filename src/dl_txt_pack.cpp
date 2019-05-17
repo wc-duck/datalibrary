@@ -525,30 +525,6 @@ static void dl_txt_pack_array_item_size_align( dl_ctx_t dl_ctx,
 	}
 }
 
-const char* dl_txt_skip_array( const char* iter, const char* end )
-{
-	iter = dl_txt_skip_white( iter, end );
-	if( *iter != '[' )
-		return "\0";
-	++iter;
-
-	int depth = 1;
-	while( iter != end && depth > 0 )
-	{
-		iter = dl_txt_skip_white( iter, end );
-		switch(*iter)
-		{
-			case 0x0: return "\0";
-			case '[': ++depth; break;
-			case ']': --depth; break;
-			default: break;
-		}
-		++iter;
-	}
-
-	return iter;
-}
-
 const char* dl_txt_skip_map( const char* iter, const char* end )
 {
 	iter = dl_txt_skip_white( iter, end );
@@ -565,6 +541,30 @@ const char* dl_txt_skip_map( const char* iter, const char* end )
 			case 0x0: return "\0";
 			case '{': ++depth; break;
 			case '}': --depth; break;
+			default: break;
+		}
+		++iter;
+	}
+
+	return iter;
+}
+
+const char* dl_txt_skip_array( const char* iter, const char* end )
+{
+	iter = dl_txt_skip_white( iter, end );
+	if( *iter != '[' )
+		return "\0";
+	++iter;
+
+	int depth = 1;
+	while( iter != end && depth > 0 )
+	{
+		iter = dl_txt_skip_white( iter, end );
+		switch(*iter)
+		{
+			case 0x0: return "\0";
+			case '[': ++depth; break;
+			case ']': --depth; break;
 			default: break;
 		}
 		++iter;
@@ -698,7 +698,7 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 						return last_was_comma ? array_length - 1 : array_length;
 					default:
 						dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_PARSE_ERROR,
-									"Invalid txt-format, are you missing an '}' or an ']'?");
+									"Invalid txt-format, are you missing an '}', received %c", *iter);
 					// TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
 				}
 			}

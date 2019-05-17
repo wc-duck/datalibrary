@@ -405,6 +405,13 @@
 				{ "name": "floats", "type": "fp32[]"  },
 				{ "name": "ints",   "type": "int32[]" }
 			]
+		},
+		"indexed_union" : {
+			"hash_union_type" : false,
+			"members" : [
+				{	"name" : "effect",				"type" : "union_with_weird_members" },
+				{	"name" : "delay",				"type" : "fp32", "default" : 0 }
+			]
 		}
 	},
 	"types" : {

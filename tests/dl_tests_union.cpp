@@ -229,6 +229,21 @@ TYPED_TEST(DLBase, union_in_array)
 	EXPECT_ARRAY_EQ( original.properties[1].value.ints.count,   original.properties[1].value.ints.data,   loaded[0].properties[1].value.ints.data );
 }
 
+TYPED_TEST(DLBase, indexed_union)
+{
+	EXPECT_EQ(indexed_union_type_effect, 0);
+	EXPECT_EQ(indexed_union_type_delay, 1);
+	indexed_union idu;
+	idu.type = indexed_union_type_delay;
+	idu.value.delay = 7.f;
+
+
+	indexed_union loaded[10];
+	this->do_the_round_about( indexed_union::TYPE_ID, &idu, loaded, sizeof(loaded) );
+	EXPECT_EQ(loaded[0].type, indexed_union_type_delay);
+	EXPECT_EQ(loaded[0].value.delay, idu.value.delay);
+}
+
 TYPED_TEST(DLBase, ptr_to_union)
 {
 }
