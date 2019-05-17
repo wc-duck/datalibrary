@@ -22,7 +22,7 @@ extern "C" {
 		dl_ctx          - Context to use.
 		txt_instance    - Zero-terminated string to pack to binary blob.
 		out_buffer      - Buffer to pack data to.
-		out_buffre_size - Size of out_buffer.
+		out_buffer_size - Size of out_buffer.
 		produced_bytes  - Number of bytes that would have been written to out_buffer if it was large enough.
 
 	Return:

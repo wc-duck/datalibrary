@@ -28,12 +28,12 @@ typedef struct dl_context* dl_ctx_t;
 	DL_ERROR_VERSION_MISMATCH                              - Data created with another version of DL.
 	DL_ERROR_OUT_OF_LIBRARY_MEMORY                         - Out of memory.
 	DL_ERROR_OUT_OF_INSTANCE_MEMORY                        - Out of instance memory.
-	DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR  - DL would need to do a dynamic allocation but has now allocator set for that.
+	DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR  - DL would need to do a dynamic allocation but has no allocator.
 	DL_ERROR_TYPE_MISMATCH                                 - Expected type A but found type B.
 	DL_ERROR_TYPE_NOT_FOUND                                - Could not find a requested type. Is the correct type library loaded?
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
 	DL_ERROR_BUFFER_TO_SMALL                               - Provided buffer is to small.
-	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platforms.
+	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platform's.
 	DL_ERROR_BAD_ALIGNMENT                                 - One argument has a bad alignment that will break, for example, loaded data.
 	DL_ERROR_UNSUPPORTED_OPERATION                         - The operation is not supported by dl-function.
 
@@ -41,7 +41,7 @@ typedef struct dl_context* dl_ctx_t;
 	DL_ERROR_TXT_MEMBER_MISSING                            - A member is missing in a struct and in do not have a default value.
 	DL_ERROR_TXT_MEMBER_SET_TWICE                          - A member is set twice in one struct.
 
-	DL_ERROR_UTIL_FILE_NOT_FOUND                           - A argument-file is not found.
+	DL_ERROR_UTIL_FILE_NOT_FOUND                           - An argument-file is not found.
 	DL_ERROR_UTIL_FILE_TYPE_MISMATCH                       - File type specified to read do not match file content.
 
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
