@@ -1081,8 +1081,6 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 								 key.len, key.str );
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
-	dl_typeid_t tid = dl_internal_hash_buffer( (const uint8_t*)name->str, (size_t)name->len );
-
 	if( member_count == 0 )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE, "types without members are not allowed" );
 
