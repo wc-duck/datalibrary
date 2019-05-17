@@ -47,10 +47,10 @@ tool\
 
 ### The Various Parts of Data Library
 
-* **load**: read an instance into memory
-* **store**: write an instance to binary form
-* **pack**: transform from run-time binary form to ready-for-disk binary form
-* **unpack**: transform from ready-for-disk binary form to run-time form
+* **load**: read an instance from packed form into memory
+* **store**: write an instance to packed form from memory
+* **pack**: pack txt/json instance to packed format
+* **unpack**: unpack from packed format to txt/json
 * generated C/C++ headers from dltlc
 * **type library (tlc)**: the file format used by Data Library itself to load/store/pack/unpack types.
 * **C-library**: data library itself, all the .cpp files in the src directory.
@@ -72,6 +72,7 @@ tool\
 | pointer       | type*                                 | pointer to any user-defined type                               |
 
 ## TLD ( Type Library Definition ) format
+
 "module"-section
 "enums"-section
 "types"-section

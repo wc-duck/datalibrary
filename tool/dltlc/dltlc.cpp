@@ -41,7 +41,7 @@ static int parse_args( int argc, const char** argv, dltlc_args* args )
 		{ "unpack",   'u', GETOPT_OPTION_TYPE_FLAG_SET, &args->unpack,    1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
 		{ "info",     'i', GETOPT_OPTION_TYPE_FLAG_SET, &args->show_info, 1, "make dl_pack show info about a packed instance.", 0x0 },
 		{ "verbose",  'v', GETOPT_OPTION_TYPE_FLAG_SET, &verbose,         1, "verbose output", 0x0 },
-		{ "c-header", 'c', GETOPT_OPTION_TYPE_FLAG_SET, &args->c_header,  1, "", 0x0 },
+		{ "c-header", 'c', GETOPT_OPTION_TYPE_FLAG_SET, &args->c_header,  1, "output c header instead of tld binary", 0x0 },
 		GETOPT_OPTIONS_END
 	};
 

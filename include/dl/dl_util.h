@@ -38,7 +38,7 @@ typedef enum
 
 /*
 	Function: dl_util_load_from_file
-		Utility function that loads an dl-instance from file.
+		Utility function that loads a dl-instance from file.
 
 	Note:
 		This function allocates memory internally by use of malloc/free and should therefore
