@@ -363,7 +363,12 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(instance + type_offset));
-		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
+
+		const dl_member_desc* member;
+		if(type->flags & DL_TYPE_FLAG_HASH_UNION_TYPE)
+			member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
+		else
+			member = dl_get_type_member( dl_ctx, type, union_type );
 
 		dl_error_t err = dl_internal_store_member( dl_ctx, member, instance + member->offset[DL_PTR_SIZE_HOST], store_ctx );
 		if( err != DL_ERROR_OK )

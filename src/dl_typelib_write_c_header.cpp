@@ -700,7 +700,10 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 			// ... generate an enum for union-members ...
 			for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
 			{
-				dl_binary_writer_write_string_fmt( writer, "    %s_type_%s = 0x%08X", type->name, members[member_index].name, dl_internal_hash_string(members[member_index].name) );
+				if( type->hash_union_type )
+					dl_binary_writer_write_string_fmt( writer, "    %s_type_%s = 0x%08X", type->name, members[member_index].name, dl_internal_hash_string(members[member_index].name) );
+				else
+					dl_binary_writer_write_string_fmt( writer, "    %s_type_%s = %d", type->name, members[member_index].name, member_index );
 
 				if( member_index < type->member_count - 1 )
 					dl_binary_writer_write_string_fmt( writer, ",\n" );

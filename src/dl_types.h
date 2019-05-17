@@ -212,6 +212,7 @@ enum dl_type_flags
 	DL_TYPE_FLAG_IS_EXTERNAL                = 1 << 1, ///< the type is marked as "external", this says that the type is not emitted in headers and expected to get defined by the user.
 	DL_TYPE_FLAG_IS_UNION                   = 1 << 2, ///< the type is a "union" type.
 	DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN = 1 << 3, ///< the type is a "union" type.
+	DL_TYPE_FLAG_HASH_UNION_TYPE            = 1 << 4, ///< the type forces union types to be hashed or not hashed
 
 	DL_TYPE_FLAG_DEFAULT = 0,
 };
@@ -461,7 +462,9 @@ static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc
 	for( unsigned int j = 0; j < e->alias_count; ++j )
 	{
 		const dl_enum_alias_desc* a = dl_get_enum_alias( ctx, e, j );
-		if( strncmp( dl_internal_enum_alias_name( ctx, a ), name, name_len ) == 0 )
+		const char* alias_name = dl_internal_enum_alias_name(ctx, a);
+		size_t alias_name_len = strlen(alias_name);
+		if( name_len == alias_name_len && strncmp(alias_name, name, name_len ) == 0 )
 		{
 			*value = ctx->enum_value_descs[ a->value_index ].value;
 			return true;

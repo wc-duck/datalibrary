@@ -1033,9 +1033,11 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	uint32_t align = 0;
 	bool is_extern = false;
 	bool verify = true;
+	bool hash_union_type = true;
 	uint32_t member_count = 0;
 	uint32_t member_start = ctx->member_count;
 	dl_txt_read_substr comment = {0,0};
+	dl_typeid_t tid = dl_internal_hash_buffer((const uint8_t*)name->str, (size_t)name->len);
 
 	do
 	{
@@ -1064,6 +1066,14 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 		else if( strncmp( "comment", key.str, 7 ) == 0 )
 		{
 			comment = dl_txt_eat_and_expect_string( ctx, read_state );
+		}
+		else if( strncmp( "hash_union_type", key.str, 15 ) == 0)
+		{
+			if(!is_union)
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA,
+								 "unexpected hash_union_type key in a non-unit type data.");
+			else
+				hash_union_type = dl_txt_eat_bool( read_state ) == 1;
 		}
 		else
 			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA,
@@ -1094,6 +1104,8 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_UNION;
 	if( verify )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN;
+	if( hash_union_type )
+		type->flags |= (uint32_t)DL_TYPE_FLAG_HASH_UNION_TYPE;
 
 	dl_txt_eat_char( ctx, read_state, '}' );
 }

@@ -1098,7 +1098,10 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	{
 		size_t type_offset = dl_internal_union_type_offset( dl_ctx, type, DL_PTR_SIZE_HOST );
 		dl_binary_writer_seek_set( packctx->writer, instance_pos + type_offset );
-		dl_binary_writer_write_uint32( packctx->writer, member_name_hash );
+		if( type->flags & DL_TYPE_FLAG_HASH_UNION_TYPE )
+			dl_binary_writer_write_uint32( packctx->writer, member_name_hash );
+		else
+			dl_binary_writer_write_uint32( packctx->writer, dl_internal_find_member( dl_ctx, type, member_name_hash ) );
 	}
 	else
 	{

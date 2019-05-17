@@ -42,6 +42,7 @@ static void dl_reflect_copy_type_info( dl_ctx_t ctx, dl_type_info_t* typeinfo, c
 	typeinfo->is_extern     = ( type->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
 	typeinfo->is_union      = ( type->flags & DL_TYPE_FLAG_IS_UNION ) ? 1 : 0;
 	typeinfo->should_verify = ( type->flags & DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN ) ? 1 : 0;
+	typeinfo->hash_union_type = ( type->flags & DL_TYPE_FLAG_HASH_UNION_TYPE ) ? 1 : 0;
 }
 
 static void dl_reflect_copy_enum_info( dl_ctx_t ctx, dl_enum_info_t* enuminfo, const dl_enum_desc* enum_ )
