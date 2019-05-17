@@ -38,6 +38,7 @@ typedef struct dl_type_info
 	unsigned int is_extern : 1;
 	unsigned int is_union : 1;
 	unsigned int should_verify : 1;
+	unsigned int hash_union_type : 1;
 } dl_type_info_t;
 
 /*
