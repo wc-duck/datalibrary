@@ -59,7 +59,7 @@ typedef enum
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
+dl_error_t DL_DLL_EXPORT dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t         type,
 								   const char* filename,     dl_util_file_type_t filetype,
 								   void**      out_instance, dl_typeid_t*        out_type,
 								   dl_allocator *allocator );
@@ -88,7 +88,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t    dl_ctx,       dl_typeid_t        
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         type,
+dl_error_t DL_DLL_EXPORT dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         type,
 									 FILE*    stream,       dl_util_file_type_t filetype,
 									 void**   out_instance, dl_typeid_t*        out_type,
 									 size_t*  consumed_bytes, dl_allocator *allocator );
@@ -114,7 +114,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       dl_typeid_t         
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_t         type,
+dl_error_t DL_DLL_EXPORT dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_t         type,
 										   const char*  filename,     dl_util_file_type_t filetype,
 										   void*        out_instance, size_t              out_instance_size,
 										   dl_typeid_t* out_type, dl_allocator *allocator );
@@ -141,7 +141,7 @@ dl_error_t dl_util_load_from_file_inplace( dl_ctx_t     dl_ctx,       dl_typeid_
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
+dl_error_t DL_DLL_EXPORT dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 								  const char* filename,   dl_util_file_type_t filetype,
 								  dl_endian_t out_endian, size_t              out_ptr_size,
 								  const void* out_instance, dl_allocator *allocator );
@@ -168,7 +168,7 @@ dl_error_t dl_util_store_to_file( dl_ctx_t    dl_ctx,     dl_typeid_t         ty
 	Returns:
 		DL_ERROR_OK on success.
 */
-dl_error_t dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
+dl_error_t DL_DLL_EXPORT dl_util_store_to_stream( dl_ctx_t    dl_ctx,     dl_typeid_t         type,
 									FILE*       stream,     dl_util_file_type_t filetype,
 									dl_endian_t out_endian, size_t              out_ptr_size,
 									const void* out_instance, dl_allocator *allocator );
