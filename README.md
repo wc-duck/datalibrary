@@ -1,10 +1,14 @@
 # Data Library
 
+The data library, or DL for short, is a library for serialization of data c/c++.
+
+---
+
 | Linux GCC/Clang | Windows MSVC | Coverity | Code Coverage |
 |-----------------|--------------|----------|---------------|
 | [![Build Status](https://travis-ci.org/wc-duck/datalibrary.svg)](https://travis-ci.org/wc-duck/datalibrary) | [![Build status](https://ci.appveyor.com/api/projects/status/caoqg9y6c2vehtaw?svg=true)](https://ci.appveyor.com/project/wc-duck/datalibrary) | [![Build status](https://scan.coverity.com/projects/5151/badge.svg)](https://scan.coverity.com/projects/5151) | [![Coverage Status](https://coveralls.io/repos/github/wc-duck/datalibrary/badge.svg?branch=master)](https://coveralls.io/github/wc-duck/datalibrary?branch=master) |
 
-The data library, or DL for short, is a library for serialization of data c/c++.
+---
 
 ## Goals of this Library
 
