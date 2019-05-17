@@ -55,7 +55,7 @@ tool\
 * **type library (tlc)**: the file format used by Data Library itself to load/store/pack/unpack types.
 * **C-library**: data library itself, all the .cpp files in the src directory.
 * **dltlc**: data library type-library-compiler
-* **dl_pack**: tool to pack/unpack/convert instances.
+* **dl_pack**: tool to pack/unpack/convert instances to/from JSON.
 * **bindings**: python, lua
 
 ## Suported pod-types in defined structs
@@ -109,7 +109,7 @@ structs are defined in a typelibrary like this:
 }
 ```
 
-Save above code to example.tld and run this through 'dltlc' to generate C-headers and
+Save above code to example.tld and run this through `dltlc` to generate C-headers and
 a typelibrary-definition-file, we will call it example.bin.
 
 ```
@@ -241,6 +241,8 @@ You can also build specific 'targets' with `local/bam/bam platform=<platform> co
 ### Building with CMake
 
 A basic CMakelists.txt file is included to build a shared library, along with `dltlc` and `dlpack`. CMake is not *officially* supported by original Data Library author, but is included here by a contributor for convenience.
+
+See `run_cmake_msvs_2017.bat` for an example of running CMake on Windows for MSVS2017.
 
 ## License
 
