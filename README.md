@@ -1,6 +1,6 @@
 # Data Library
 
-The data library, or DL for short, is a library for serialization of data c/c++.
+The data library, or DL for short, is a library for serialization of data c/c++
 
 ---
 
@@ -28,14 +28,14 @@ Here is some additional information about the source code in this repository.
 
 ```
 src/
-  *.cpp        - contains the bulk of the library that is used both runtime and by the compilers.
+  *.cpp        - Contains the bulk of the library that is used both runtime and by the compilers.
                  Suggestion is to build src/*.cpp into a library.
 tool\
   dltlc\
-    dltlc.cpp  - this is the source to the typelib-compiler, also called dltlc. Suggestion
+    dltlc.cpp  - This is the source to the typelib-compiler, also called dltlc. Suggestion
                  is to build this as an exe and link to above built lib.
   dlpack\
-    dlpack.cpp - this is a tool that wraps the lib built from src/ to perform json -> binary,
+    dlpack.cpp - This is a tool that wraps the lib built from src/ to perform json -> binary,
                  binary -> json and inspection of binary instances.
 ```
 
