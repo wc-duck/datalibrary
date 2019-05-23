@@ -58,7 +58,7 @@ tool\
 * **dl_pack**: tool to pack/unpack/convert instances to/from JSON.
 * **bindings**: python, lua
 
-## Suported pod-types in defined structs
+## Supported POD-Types in Defined Structs
 
 | type          | C-storage                             | comment                                                        |
 |---------------|---------------------------------------|----------------------------------------------------------------|
@@ -71,15 +71,33 @@ tool\
 | array         | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or userdefined struct |
 | pointer       | type*                                 | pointer to any user-defined type                               |
 
-## TLD ( Type Library Definition ) format
+## TLD (Type Library Definition) Format
 
-"module"-section
-"enums"-section
-"types"-section
-	"type"
-		"members"-array
+Most of the `tld` format is simply JSON (Javascript Notation Object), with some small nuances. This is called DL-JSON (or dl-json, standing for Data Library JSON).
 
-## Text data format
+* Valid JSON IS valid DL-JSON.
+* DL-JSON support comments // and /**/.
+* DL JSON can use '' or "" for strings/keys.
+* DL-JSON '' or "" is optional on keys.
+* Keys need to be valid c-identifiers.
+* Comma `,` is accepted for last item in JSON-array and JSON-map.
+* New-line in strings are valid.
+
+keyword | Description
+--- | ---
+module | Unused and deprecated.
+usercode | Code that will be copied, verbatim, into generated headers (e.g. include statements).
+default | Value used in text-pack if member was not specified.
+comment | Comment that will be copied, verbatim, as a comment into generated header. Valid on members and types.
+verify | When using "extern" on a type DL will not generate the type in headers and expect the user to provide the type. DL will however generate static_assert for size, alignment and member-offset. Setting verify to false will skip these asserts as well. Used to workaround some issues. For example verifying private members. My most used case is that I have a vec3 in my own code exposed to dl as extern. It store data as a __128 but I want to set it with "x", "y", "z" in text.
+enum | JSON-object of enum types.
+types | JSON-object of types; all of the structs to be specified within the `tld` file.
+members | Array of member JSON-objects.
+member | JSON-object containing multiple key-pairs, especailly the `"name" : "member_name"` and the `"type" : "int32"` pairs. Can also contain a `"default" : "some_default_value"` pair.
+
+## Instance Text Format
+
+Not yet documented here.
 
 "type"-section
 "data"-section
@@ -97,27 +115,26 @@ structs are defined in a typelibrary like this:
 
 ```json
 {
-	"module" : "example",
 	"types" : {
-		"my_type" : {
+		"data_t" : {
 			"members" : [
-				{ "name" : "integer", "type" : "uint32" },
-				{ "name" : "string",  "type" : "string" },
-				{ "name" : "array",   "type" : "uint16[]" }
+				{ "name" : "id", "type" : "string" },
+				{ "name" : "x", "type" : "fp32" },
+				{ "name" : "y", "type" : "fp32" },
+				{ "name" : "array", "type" : "uint32[]" }
 			]
 		}
 	}
 }
 ```
 
-Save above code to example.tld and run this through `dltlc` to generate C-headers and
-a typelibrary-definition-file, we will call it example.bin.
+Save above code to example.tld and run this through `dltlc` to generate an optional C-header and
+a `tld` file called example_tld.bin. `dltlc` must be run twice, like so.
 
-```
-./dltlc -c example.h -o example.bin example.tld
-```
+1. `dltlc -o example_tld.bin example.tld`
+2. `dltlc -c -o example_dl.h example.tld`
 
-### Create dl-context and load a type-library:
+### Create DL Context and Load a Type Library
 
 ```c
 #include <dl/dl.h>
@@ -135,7 +152,7 @@ dl_ctx_t create_dl_ctx()
 	unsigned char* lib_data = 0x0;
 	unsigned int lib_data_size = 0;
 
-	read_from_file( "example.bin", &lib_data, &lib_data_size );
+	read_from_file( "example_tld.bin", &lib_data, &lib_data_size );
 
 	dl_context_load_type_library( dl_ctx, lib_data, lib_data_size );
 
@@ -143,28 +160,30 @@ dl_ctx_t create_dl_ctx()
 }
 ```
 
-### Store instance to file
+### Store Instance to File
 
 ```c
 #include <dl/dl_util.h>
-#include "example.h"
+#include "example_tld.h"
 
 void store_me( dl_ctx_t dl_ctx )
 {
-	example e;
-	e.integer = 1337;
-	e.string  = "I like cowbells!";
 	uint16 arr[] = { 1, 2, 3, 4, 5, 6 };
-	e.array.data  = arr;
-	e.array.count = 6;
+
+	data_t instance_data;
+	instance_data.id = "Data Identifier.";
+	instance_data.x = 10.0f;
+	instance_data.y = 15.0f;
+	instance_data.array.data = arr;
+	instance_data.array.count = 6;
 
 	dl_util_store_to_file( dl_ctx,
-						       example::TYPE_ID,         // type identifier for example-type
-						       "path/to/store/to.file",  // file to store to
-						       DL_UTIL_FILE_TYPE_BINARY, // store as binary file
-						       DL_ENDIAN_HOST,           // store with endian of this system
-						       sizeof(void*),            // store with pointer-size of this system
-						       &e );                     // instance to store
+	                       data_t::TYPE_ID,          // type identifier for example-type
+	                       "path/to/store/to.file",  // file to store to
+	                       DL_UTIL_FILE_TYPE_BINARY, // store as binary file
+	                       DL_ENDIAN_HOST,           // store with endian of this system
+	                       sizeof(void*),            // store with pointer-size of this system
+	                       &e );                     // instance to store
 }
 ```
 
@@ -172,25 +191,37 @@ void store_me( dl_ctx_t dl_ctx )
 
 ```c
 #include <dl/dl_util.h>
-#include "example.h"
+#include "example_tld.h"
 
 void load_me( dl_ctx_t dl_ctx )
 {
-	example* e;
+	data_t* instance_data;
 
 	dl_util_load_from_file( dl_ctx,
-							example::TYPE_ID,         // type identifier for example-type
-							"path/to/read/from.file", // file to read
-							DL_UTIL_FILE_TYPE_AUTO,   // autodetect if file is binary or text
-							(void**)&e,               // instance will be returned here
-							0x0 );
+	                        data_t::TYPE_ID,          // type identifier for example-type
+	                        "path/to/read/from.file", // file to read
+	                        DL_UTIL_FILE_TYPE_AUTO,   // autodetect if file is binary or text
+	                        (void**)&instance_data,   // instance will be returned here
+	                        0x0 );
 
-	printf( "e->integer = %u\n", e->integer );
-	printf( "e->string  = %s\n", e->string );
-	for( unsigned int i = 0; i < e->array.count; ++i )
-		printf( "e->array[%u] = %u\n", i, e->array.data[i] );
+	printf( "instance_data->id  = %s\n", instance_data->id );
+	printf( "instance_data->x = %f\n", instance_data->x );
+	printf( "instance_data->x = %f\n", instance_data->y );
+	for( unsigned int i = 0; i < instance_data->array.count; ++i )
+		printf( "instance_data->array[%u] = %u\n", i, instance_data->array.data[i] );
 
-	free( e ); // by default memory for e will be allocated by malloc
+	// Prints:
+	// instance_data->id = Data Identifier
+	// instance_data->x = 10.000000
+	// instance_data->y = 15.000000
+	// instance_data->array[%u] = 1
+	// instance_data->array[%u] = 2
+	// instance_data->array[%u] = 3
+	// instance_data->array[%u] = 4
+	// instance_data->array[%u] = 5
+	// instance_data->array[%u] = 6
+
+	free( instance_data ); // by default memory for instance_data will be allocated by malloc
 }
 ```
 
