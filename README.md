@@ -83,17 +83,121 @@ Most of the `tld` format is simply JSON (Javascript Notation Object), with some 
 * Comma `,` is accepted for last item in JSON-array and JSON-map.
 * New-line in strings are valid.
 
-keyword | Description
---- | ---
-module | Unused and deprecated.
-usercode | Code that will be copied, verbatim, into generated headers (e.g. include statements).
-default | Value used in text-pack if member was not specified.
-comment | Comment that will be copied, verbatim, as a comment into generated header. Valid on members and types.
-verify | When using "extern" on a type DL will not generate the type in headers and expect the user to provide the type. DL will however generate static_assert for size, alignment and member-offset. Setting verify to false will skip these asserts as well. Used to workaround some issues. For example verifying private members. My most used case is that I have a vec3 in my own code exposed to dl as extern. It store data as a __128 but I want to set it with "x", "y", "z" in text.
-enum | JSON-object of enum types.
-types | JSON-object of types; all of the structs to be specified within the `tld` file.
-members | Array of member JSON-objects.
-member | JSON-object containing multiple key-pairs, especailly the `"name" : "member_name"` and the `"type" : "int32"` pairs. Can also contain a `"default" : "some_default_value"` pair.
+```javascript
+{
+    // "module" is unused and deprecated.
+    "module" : "unit_test",
+
+    // "usercode" Code that will be copied, verbatim, into generated headers (e.g. include statements).
+    "usercode" : "#include \"../../tests/dl_test_included.h\"",
+
+    // A typelibrary can have any number of "enums" sections. In each of these sections enum-types are specified.
+    // An enum is just the same thing as in c/c++ a collection of integer-values.
+    "enums" : {
+        // each key in "enums" declare an enum with that name, in this case an enum called "my_enum"
+        "my_enum" : {
+            // an enum can be declared "extern", declaring a type extern will make it NOT be generated in .h-files and
+            // the actual definition is expected to be found in "other ways" ( from other includes most likely ).
+            // dl will however generate static_assert():s to check that all values are set correctly and exist.
+            // Defaults to `false` if not set
+            "extern" : true,
+
+            // "type" specifies the storage-type of the generated enum. The storage type can be any signed or unsigned 
+            // integer type supported by dl.
+            // Defaults to `uint32` if not set.
+            "type"   : int8,
+
+            // "values" are the actual values of the enum-type as a dict.
+            "values" : {
+                // ... a value can be specified as a simple integer ...
+                "MY_VALUE" : 3,
+
+                // ... or it can be specified in hex ...
+                "MY_HEX_VALUE" : 0x123,
+
+                // ... or like this in special cases where you want to use "aliases".
+                "MY_ALIASED_VALUE" : {
+                    "value"   : 5,
+
+                    // these aliases + the enum-name will map to this enum value when parsed in the text-format.
+                    // In this case writing "MY_ALIASED_VALUE", "apa" or "kossa" would all result in a
+                    // MY_ALIASED_VALUE when packed to binary.
+                    // it was added as to shorten the text-format and still keep more descriptive names
+                    // in the generated headers.
+                    "aliases" : ["apa", "kossa"]
+                }
+            }
+        }
+    },
+
+    // A typelibrary can have any number of "types" sections. In each of these sections types are specified.
+    // A type will result in a `struct` in the generated .h-files and are the top-most building-block in dl.
+    "types" : {
+        // each key in "types" declare a type with that name, in this case an enum called "my_type"
+        "my_type" : {
+            // a type can be declared "extern", declaring a type extern will make it NOT be generated in .h-files and
+            // the actual definition is expected to be found in "other ways" ( from other includes most likely ).
+            // dl will however generate static_assert():s to check that sizeof(), alignment, member-names, member-offsets
+            // etc matches.
+            // Defaults to `false` if not set
+            "extern"  : false,
+
+            // if a type was specified as extern you can omit the generated static_assert() by setting "verify" to true.
+            // this is mostly usefull in cases where we can't generate all checks. Such as when using namespaces, having
+            // private data-members etc.
+            // Defaults to `false` if not set
+            "verify"  : false,
+
+            // "align" can be used to force the alignment of a type.
+            // Defaults to the types "natural alignment" if not set.
+            "align"   : 128
+
+            // "comment" will be output in the .h-files for this specified type.
+            // If not set, no comment will be written to .h
+            "comment" : "this type is a nice type!",
+
+            // "members" is a list of all members of this type.
+            "members" : [
+                // one {} per member and the members will be ordered as they are in this list.
+                {
+                    // "name" of the member, will be used to generate member-name in .h, used in txt-format, used by reflection etc.
+                    // Required field.
+                    "name"    : "member",
+
+                    // "type" of the member, this can be any of the types listed in "Supported POD-Types in Defined Structs".
+                    // Required field.
+                    "type"    : "int32",
+
+                    // "default" is a value to use, while packing text-data, if this member was not specified. Works with all types
+                    // including arrays. However pointers can only be defaulted to `null`
+                    // If not set the member will be a required field when packing text.
+                    "default" : 0,
+
+                    // "verify" works in the same way as on the type, but only for this member.
+                    "verify"  : false,
+
+                    // "comment" works in the same way as on the type, but only for this member.
+                    "comment" : "only used in unittests to check for errors"
+                }
+            ]
+        }
+    },
+
+    // A typelibrary can have any number of "types" sections. In each of these sections unions are specified.
+    // A union-types is a bit special as in how they are packed. The use the same format as "types" to specify members etc
+    // but will generate a struct containing one .type-member and one .value that is a union where .type specifies what
+    // union-value is currently valid. See separate section on 'union'-types.
+    "unions" : {
+        // see doc for "types" as they are the same.
+        "my_union" : {
+            "members" : [
+                { "name" : "an_int",  "type" : "int32", },
+                { "name" : "a_float", "type" : "fp32", }
+            ]
+        }
+    },
+}
+```
 
 ## Instance Text Format
 
