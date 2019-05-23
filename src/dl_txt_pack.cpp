@@ -1013,8 +1013,7 @@ static const dl_txt_read_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx 
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	uint64_t members_set = 0;
-	bool     union_member_set = false;
-	uint32_t member_name_hash = 0;
+	uint32_t member_index = 0xFFFFFFFF;
 
 	dl_txt_eat_white( &packctx->read_ctx );
 
@@ -1064,22 +1063,19 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		if( type->flags & DL_TYPE_FLAG_IS_UNION )
 		{
-			if( union_member_set )
-			{
+			if( member_index != 0xFFFFFFFF )
 				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, "multiple members of union-type was set! %s.%.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
-			}
-			union_member_set = true;
 		}
 
-		member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
-		unsigned int member_id = dl_internal_find_member( dl_ctx, type, member_name_hash );
-		if( member_id > type->member_count )
+		uint32_t member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
+		member_index = dl_internal_find_member( dl_ctx, type, member_name_hash );
+		if( member_index > type->member_count )
 		{
 			dl_txt_pack_validate_c_symbol_key(dl_ctx, packctx, member_name);
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type '%s' has no member named '%.*s'", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		}
 
-		uint64_t member_bit = ( 1ULL << member_id );
+		uint64_t member_bit = ( 1ULL << member_index );
 		if( member_bit & members_set )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "member '%s.%.*s' is set twice", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		members_set |= member_bit;
@@ -1087,7 +1083,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
 		// ... read member ...
-		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_id ) );
+		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
 	}
 
 	// ... find close }
@@ -1098,7 +1094,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	{
 		size_t type_offset = dl_internal_union_type_offset( dl_ctx, type, DL_PTR_SIZE_HOST );
 		dl_binary_writer_seek_set( packctx->writer, instance_pos + type_offset );
-		dl_binary_writer_write_uint32( packctx->writer, member_name_hash );
+		dl_binary_writer_write_uint32( packctx->writer, dl_internal_typeid_of(dl_ctx, type) + member_index + 1 );
 	}
 	else
 	{
