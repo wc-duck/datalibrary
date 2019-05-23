@@ -99,10 +99,6 @@ member | JSON-object containing multiple key-pairs, especailly the `"name" : "me
 
 Not yet documented here.
 
-## Text Data Format
-
-Not yet documented here.
-
 "type"-section
 "data"-section
 "subdata"-section
