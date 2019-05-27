@@ -207,11 +207,82 @@ Type-libs in text-format follows this format.
 
 ## Instance Text Format
 
-Not yet documented here.
+Instances in text-format follows this format.
 
-"type"-section
-"data"-section
-"subdata"-section
+```javascript
+{
+    // root level always contain one key that is the type of the root object of the data.
+    // In this case we would have to have a type called 'my_type' in the typelibrary used
+    // to work with this data.
+    "my_type" : {
+        // each member is represented by a key with the name of the member in 'my_type'.
+
+        "int_member1"  : 123,        // integers is writtend as integers ...
+        "int_member2"  : 0xFE,       // ... or in hex ...
+        "int_member3"  : min,        // ... or as a constant, supported are (+-)min/max which value are depending on member-type.
+
+        "float_member1" : 1.2,       // fp32/fp64 are written as floats ...
+        "float_member2" : infinity,  // ... or as a constant, supported are (+-)infinity/nan which value are depending on member-type.
+
+        "bitfield_member" : 234,     // bitfields follow the same rules as ints.
+
+        // strings are just strings ...
+        "string_member1" : "some string"
+        "string_member2" : "where new
+lines are
+left untouched!",
+        "string_member3" : "strings also support escapes like \n\r\t\b\"",
+        "string_member3" : 'and you can invert the char used to use " directly!',
+
+        // inline arrays are just arrays with the correct type ...
+        "inline_array_member1"  : [1, 2, 3],
+
+        // ... it could be a struct with x and y members.
+        "inline_array_member2"  : [
+            {
+                "x" : 1,
+                "y" : 2
+            },
+            {
+                "x" : 3,
+                "y" : 4
+            },
+        ],
+
+        // arrays have the exact same rules and format as inline array.
+        "array_member" : [1, 2, 3],
+
+        // pointers use name to refer into a sub-section of the data and will be turned into a pointer after load.
+        "pointer_member" : "my_pointer1",
+
+        // a member that is struct of another type is just parsed as the root-instance...
+        "my_struct_member1" : {
+            "x" : 1,
+            "y" : 2
+        },
+
+        // struct can also be parsed from arrays if it is following some specific rules. This was added to make
+        // simple structs, such as vec3 and matrix easier to write.
+        // The rules says that members will be parsed in the order that they were defined in the type if members
+        // are left out they must be at the end of the struct and have a default-value.
+        "my_struct_member2" : [ 1, 2 ],
+    },
+
+    // __subdata is where content of structs pointed to by "pointers" are stored.
+    "__subdata" : {
+        // this is the instance pointed to by "my_pointer1", it is parsed in the same way as the root-instance and the type is deduced from the
+        // member pointing to it.
+        "my_pointer1" : {
+            "some_int"       : 1,
+            "my_sub_pointer" : "another_sub_data"
+        },
+
+        "another_sub_data" : {
+            "some_float" : 1.23
+        }
+    }
+}
+```
 
 ## Examples
 
