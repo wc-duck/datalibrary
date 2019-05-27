@@ -71,9 +71,10 @@ tool\
 | array         | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or userdefined struct |
 | pointer       | type*                                 | pointer to any user-defined type                               |
 
-## TLD (Type Library Definition) Format
+## DL-JSON
 
-Most of the `tld` format is simply JSON (Javascript Notation Object), with some small nuances. This is called DL-JSON (or dl-json, standing for Data Library JSON).
+All text-data in DL, type-libraries and instances, is simply JSON (Javascript Notation Object), with some small nuances. This is called 
+DL-JSON (or dl-json, standing for Data Library JSON).
 
 * Valid JSON IS valid DL-JSON.
 * DL-JSON support comments // and /**/.
@@ -82,6 +83,10 @@ Most of the `tld` format is simply JSON (Javascript Notation Object), with some 
 * Keys need to be valid c-identifiers.
 * Comma `,` is accepted for last item in JSON-array and JSON-map.
 * New-line in strings are valid.
+
+## TLD (Type Library Definition) Format
+
+Type-libs in text-format follows this format.
 
 ```javascript
 {
