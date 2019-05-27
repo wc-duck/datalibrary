@@ -60,16 +60,16 @@ tool\
 
 ## Supported POD-Types in Defined Structs
 
-| type          | C-storage                             | comment                                                        |
-|---------------|---------------------------------------|----------------------------------------------------------------|
-| signed ints   | int8_t, int16_t, int32_t, int64_t     |                                                                |
-| unsigned ints | uint8_t, uint16_t, uint32_t, uint64_t |                                                                |
-| bitfield      | uint32_t bf : 3                       | unsigned integer with specified amount of bits                 |
-| fp32, fp64    | float/double                          |                                                                |
-| string        | const char*                           | utf8 encoded, nul-terminated                                   |
-| inline-array  | type[20]                              | fixed length, type can be any POD-type or userdefined struct   |
-| array         | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or userdefined struct |
-| pointer       | type*                                 | pointer to any user-defined type                               |
+| name           | tld-type                     | C-storage                             | comment                                                        |
+|----------------|------------------------------|---------------------------------------|----------------------------------------------------------------|
+| signed int     | int8, int16, int32, int64    | int8_t, int16_t, int32_t, int64_t     |                                                                |
+| unsigned int   | int8, uint16, uint32, uint64 | uint8_t, uint16_t, uint32_t, uint64_t |                                                                |
+| floating point | fp32, fp64                   | float/double                          |                                                                |
+| bitfield       | bitfield:<bits>              | uint32_t bf : 3                       | unsigned integer with specified amount of bits                 |
+| string         | string                       | const char*                           | utf8 encoded, nul-terminated                                   |
+| inline_array   | int8[20], some_type[20]      | type[20]                              | fixed length, type can be any POD-type or userdefined struct   |
+| array          | int8[], some_type[]          | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or userdefined struct |
+| pointer        | some_type*                   | type*                                 | pointer to any user-defined type                               |
 
 ## DL-JSON
 
@@ -169,7 +169,8 @@ Type-libs in text-format follows this format.
                     // Required field.
                     "name"    : "member",
 
-                    // "type" of the member, this can be any of the types listed in "Supported POD-Types in Defined Structs".
+                    // "type" of the member, this can be any of the types listed in "Supported POD-Types in Defined Structs" under
+                    // "tld-type".
                     // Required field.
                     "type"    : "int32",
 
