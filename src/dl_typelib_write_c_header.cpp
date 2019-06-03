@@ -241,6 +241,9 @@ static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t c
 	{
 		if(j > 0)
 			dl_binary_writer_write_string( writer, ",\n", 2 );
+		if(values[j].comment)
+			dl_binary_writer_write_string_fmt(writer, "    // %s\n", values[j].comment);
+
 		dl_binary_writer_write_string_fmt(writer, "    %s = ", values[j].name);
 		dl_context_write_c_header_enum_value( writer, e_info->storage, &values[j]);
 	}

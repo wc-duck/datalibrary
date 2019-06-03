@@ -550,11 +550,13 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 	dl_enum_alias_desc* alias = dl_alloc_enum_alias( ctx, value_name );
 	alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
 	value->main_alias  = (uint32_t)(alias - ctx->enum_alias_descs);
+	value->comment     = 0xFFFFFFFF;
 
 	if( *read_state->iter == '{' )
 	{
 		dl_txt_eat_char( ctx, read_state, '{' );
 		bool value_set = false;
+
 		do
 		{
 			dl_txt_read_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
@@ -579,13 +581,22 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 				} while( dl_txt_try_eat_char( read_state, ',' ) );
 				dl_txt_eat_char( ctx, read_state, ']' );
 			}
+			else if( strncmp( "comment", key.str, 7 ) == 0 )
+			{
+				if(value->comment != 0xFFFFFFFF)
+					dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "enum value have multiple 'comment'-sections present!" );
+				dl_txt_read_substr comment = dl_txt_eat_and_expect_string( ctx, read_state );
+
+				value->comment = dl_alloc_string(ctx, &comment);
+			}
 			else
-				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'value', or 'aliases'", key.len, key.str );
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'value', 'aliases' or 'comment'", key.len, key.str );
 
 		} while( dl_txt_try_eat_char( read_state, ',' ) );
 
 		if( !value_set )
 			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "enum value is having aliases but is missing its value!" );
+
 		dl_txt_eat_char( ctx, read_state, '}' );
 	}
 	else

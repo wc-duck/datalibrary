@@ -17,8 +17,8 @@
 			"values" : {
 				"TESTENUM2_VALUE1" : 7,
 				"TESTENUM2_VALUE2" : 1337,
-				"TESTENUM2_VALUE3" : 1338,
-				"TESTENUM2_VALUE4" : 1337
+				"TESTENUM2_VALUE3" : { "value" : 1338, "comment" : "whippzores!" },
+				"TESTENUM2_VALUE4" : { "value" : 1337, "comment" : "whoppa!" }
 			}
 		},
 

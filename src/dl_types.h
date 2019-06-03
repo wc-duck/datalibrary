@@ -231,6 +231,7 @@ struct dl_type_desc
 struct dl_enum_value_desc
 {
 	uint32_t main_alias;
+	uint32_t comment;
 	uint64_t value;
 };
 
@@ -330,13 +331,14 @@ static inline const dl_type_desc* dl_internal_find_type(dl_ctx_t dl_ctx, dl_type
     return 0x0;
 }
 
-static inline const char* dl_internal_type_name      ( dl_ctx_t ctx, const dl_type_desc*       type   ) { return &ctx->typedata_strings[type->name]; }
-static inline const char* dl_internal_type_comment   ( dl_ctx_t ctx, const dl_type_desc*       type   ) { return type->comment != UINT32_MAX ? &ctx->typedata_strings[type->comment] : 0x0; }
-static inline const char* dl_internal_member_name    ( dl_ctx_t ctx, const dl_member_desc*     member ) { return &ctx->typedata_strings[member->name]; }
-static inline const char* dl_internal_member_comment ( dl_ctx_t ctx, const dl_member_desc*     member ) { return member->comment != UINT32_MAX ? &ctx->typedata_strings[member->comment] : 0x0; }
-static inline const char* dl_internal_enum_name      ( dl_ctx_t ctx, const dl_enum_desc*       enum_  ) { return &ctx->typedata_strings[enum_->name]; }
-static inline const char* dl_internal_enum_comment   ( dl_ctx_t ctx, const dl_enum_desc*       enum_  ) { return enum_->comment != UINT32_MAX ? &ctx->typedata_strings[enum_->comment] : 0x0; }
-static inline const char* dl_internal_enum_alias_name( dl_ctx_t ctx, const dl_enum_alias_desc* alias  ) { return &ctx->typedata_strings[alias->name]; }
+static inline const char* dl_internal_type_name         ( dl_ctx_t ctx, const dl_type_desc*       type   ) { return &ctx->typedata_strings[type->name]; }
+static inline const char* dl_internal_type_comment      ( dl_ctx_t ctx, const dl_type_desc*       type   ) { return type->comment != UINT32_MAX ? &ctx->typedata_strings[type->comment] : 0x0; }
+static inline const char* dl_internal_member_name       ( dl_ctx_t ctx, const dl_member_desc*     member ) { return &ctx->typedata_strings[member->name]; }
+static inline const char* dl_internal_member_comment    ( dl_ctx_t ctx, const dl_member_desc*     member ) { return member->comment != UINT32_MAX ? &ctx->typedata_strings[member->comment] : 0x0; }
+static inline const char* dl_internal_enum_name         ( dl_ctx_t ctx, const dl_enum_desc*       enum_  ) { return &ctx->typedata_strings[enum_->name]; }
+static inline const char* dl_internal_enum_comment      ( dl_ctx_t ctx, const dl_enum_desc*       enum_  ) { return enum_->comment != UINT32_MAX ? &ctx->typedata_strings[enum_->comment] : 0x0; }
+static inline const char* dl_internal_enum_alias_name   ( dl_ctx_t ctx, const dl_enum_alias_desc* alias  ) { return &ctx->typedata_strings[alias->name]; }
+static inline const char* dl_internal_enum_value_comment( dl_ctx_t ctx, const dl_enum_value_desc* value  ) { return value->comment != UINT32_MAX ? &ctx->typedata_strings[value->comment] : 0x0; }
 
 static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, const char* name )
 {

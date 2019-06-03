@@ -80,7 +80,8 @@ typedef struct dl_enum_info
 */
 typedef struct dl_enum_value_info
 {
-	const char*  name;
+	const char* name;
+	const char* comment;
 	union
 	{
 		int8_t   i8;

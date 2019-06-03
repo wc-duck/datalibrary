@@ -159,6 +159,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_
 	{
 		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, value );
 		out_values[value].name  = dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias]);
+		out_values[value].comment = dl_internal_enum_value_comment( dl_ctx, v);
 		out_values[value].value.u64 = v->value;
 	}
 
