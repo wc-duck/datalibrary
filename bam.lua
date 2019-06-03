@@ -155,15 +155,6 @@ function DefaultMSVC( build_platform, config, compiler )
 		os.exit(1)
 	end
 
-  -- if family == "windows" then
-  --   local wrapper_path  = "compat/" .. compiler .. "/" .. settings.platform
-  --   settings.cc.exe_c   = wrapper_path .. "/cl.bat"
-  --   settings.cc.exe_cxx = wrapper_path .. "/cl.bat"
-  --   settings.lib.exe    = wrapper_path .. "/lib.bat"
-  --   settings.dll.exe    = wrapper_path .. "/link.bat"
-  --   settings.link.exe   = wrapper_path .. "/link.bat"
-  -- end
-
 	return settings
 end
 
