@@ -4,10 +4,8 @@
 #define DL_DL_DEFINES_H_INCLUDED
 
 #if defined(_MSC_VER)
-	#define DL_FORCEINLINE __forceinline
 	#define DL_DLL_EXPORT  __declspec(dllexport)
 #elif defined(__GNUC__)
-	#define DL_FORCEINLINE inline __attribute__((always_inline))
 	#define DL_DLL_EXPORT
 #else
 	#error No supported compiler

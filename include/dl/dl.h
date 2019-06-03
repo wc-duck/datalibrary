@@ -133,7 +133,7 @@ typedef enum
 	DL_ENDIAN_LITTLE,
 } dl_endian_t;
 
-DL_FORCEINLINE dl_endian_t dl_endian_host()
+static inline dl_endian_t dl_endian_host()
 {
 	union { unsigned char c[4]; unsigned int  i; } test;
 	test.i = 0xAABBCCDD;
