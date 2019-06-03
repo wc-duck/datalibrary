@@ -408,6 +408,12 @@ static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_t
 	return &ctx->member_descs[ type->member_start + member_index ];
 }
 
+static inline const dl_member_desc* dl_internal_union_type_to_member( dl_ctx_t dl_ctx, const dl_type_desc* type, uint32_t union_type )
+{
+	// type is typeid + member_index + 1, + one to separate the member-id from the type-id.
+	return dl_get_type_member(dl_ctx, type, union_type - dl_internal_typeid_of(dl_ctx, type) - 1);
+}
+
 static inline uint32_t dl_internal_union_type_offset(dl_ctx_t ctx, const dl_type_desc* type, dl_ptr_size_t ptr_size)
 {
 	uint32_t max_member_size = 0; // TODO: calc and store this in type?

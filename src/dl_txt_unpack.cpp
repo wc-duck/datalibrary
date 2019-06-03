@@ -683,7 +683,7 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(struct_data + type_offset));
-		const dl_member_desc* member = dl_internal_find_member_desc_by_name_hash( dl_ctx, type, union_type );
+		const dl_member_desc* member = dl_internal_union_type_to_member(dl_ctx, type, union_type);
 		dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
 		dl_binary_writer_write( writer, "\n", 1 );
 	}

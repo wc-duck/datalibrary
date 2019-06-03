@@ -22,7 +22,7 @@ extern "C" {
 		dl_ctx          - Context to use.
 		txt_instance    - Zero-terminated string to pack to binary blob.
 		out_buffer      - Buffer to pack data to.
-		out_buffre_size - Size of out_buffer.
+		out_buffer_size - Size of out_buffer.
 		produced_bytes  - Number of bytes that would have been written to out_buffer if it was large enough.
 
 	Return:
@@ -43,13 +43,13 @@ dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance,
 	Parameters:
 		dl_ctx            - Context to use.
 		txt_instance      - Zero-terminated string to calculate binary blob size of.
-		out_instance_size - Size required to pack _pTxtData.
+		out_instance_size - Size required to pack txt_instance.
 */
 dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size );
 
 /*
 	Function: dl_txt_unpack
-		Unpack binary blob packed with SDBLPack to intermediate-data-format.
+		Unpack binary packed instance to text-format.
 
 	Parameters:
 		dl_ctx                - Context to use.
@@ -76,8 +76,8 @@ dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t dl_ctx,                       d
 		dl_ctx                - Context to use.
 		type                  - Type stored in packed_instace.
 		packed_instance       - Buffer with packed data.
-		packed_instance_size  - Size of _pPackedData.
-		out_txt_instance_size - Size required to unpack _pPackedData.
+		packed_instance_size  - Size of packed_instance.
+		out_txt_instance_size - Size required to unpack packed_instance.
 
 	Note:
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
