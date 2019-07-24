@@ -201,11 +201,11 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	def_member->offset[0] = 0;
 	def_member->offset[1] = 0;
 
-	dl_internal_str_format( def_buffer, sizeof(def_buffer), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
-
+	int num_want_to_write = dl_internal_str_format( def_buffer, sizeof(def_buffer), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
+	DL_ASSERT(num_want_to_write < sizeof(def_buffer), "Too big default value.");
 	size_t prod_bytes;
 	dl_error_t err;
-	err = dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes );
+	err = dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes, DL_PACKFLAGS_NONE );
 	if( err != DL_ERROR_OK )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_INVALID_DEFAULT_VALUE, "failed to pack default-value for member \"%s\" with error \"%s\"",
 															dl_internal_member_name( ctx, member ),
@@ -213,7 +213,7 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 
 	uint8_t* pack_buffer = (uint8_t*)dl_alloc( &ctx->alloc, prod_bytes );
 
-	dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0 );
+	dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0, DL_PACKFLAGS_NONE );
 
 	// TODO: convert packed instance to typelib endian/ptrsize here!
 
@@ -1212,8 +1212,8 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 					if( sub_type == 0x0 )
 					{
 						const dl_type_desc* owner_type = dl_internal_member_owner( ctx, member );
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, 
-											"couldn't find type for member '%s::%s'", 
+						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND,
+											"couldn't find type for member '%s::%s'",
 											dl_internal_type_name( ctx, owner_type ),
 											dl_internal_member_name( ctx, member ) );
 					}

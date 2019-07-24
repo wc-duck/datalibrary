@@ -328,9 +328,9 @@ static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 	}
 }
 
-static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
+static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, dl_pack_flags_t pack_flags );
 
-static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member, uint32_t array_length )
+static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member, uint32_t array_length, dl_pack_flags_t pack_flags )
 {
 	switch( member->StorageType() )
 	{
@@ -463,11 +463,11 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 			for( uint32_t i = 0; i < array_length -1; ++i )
 			{
 				dl_binary_writer_seek_set( packctx->writer, array_pos + i * type->size[DL_PTR_SIZE_HOST] );
-				dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+				dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type, pack_flags );
 				dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ',' );
 			}
 			dl_binary_writer_seek_set( packctx->writer, array_pos + (array_length - 1) * type->size[DL_PTR_SIZE_HOST] );
-			dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+			dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type, pack_flags );
 		}
 		break;
 		case DL_TYPE_STORAGE_ENUM_INT8:
@@ -525,30 +525,6 @@ static void dl_txt_pack_array_item_size_align( dl_ctx_t dl_ctx,
 	}
 }
 
-const char* dl_txt_skip_array( const char* iter, const char* end )
-{
-	iter = dl_txt_skip_white( iter, end );
-	if( *iter != '[' )
-		return "\0";
-	++iter;
-
-	int depth = 1;
-	while( iter != end && depth > 0 )
-	{
-		iter = dl_txt_skip_white( iter, end );
-		switch(*iter)
-		{
-			case 0x0: return "\0";
-			case '[': ++depth; break;
-			case ']': --depth; break;
-			default: break;
-		}
-		++iter;
-	}
-
-	return iter;
-}
-
 const char* dl_txt_skip_map( const char* iter, const char* end )
 {
 	iter = dl_txt_skip_white( iter, end );
@@ -565,6 +541,30 @@ const char* dl_txt_skip_map( const char* iter, const char* end )
 			case 0x0: return "\0";
 			case '{': ++depth; break;
 			case '}': --depth; break;
+			default: break;
+		}
+		++iter;
+	}
+
+	return iter;
+}
+
+const char* dl_txt_skip_array( const char* iter, const char* end )
+{
+	iter = dl_txt_skip_white( iter, end );
+	if( *iter != '[' )
+		return "\0";
+	++iter;
+
+	int depth = 1;
+	while( iter != end && depth > 0 )
+	{
+		iter = dl_txt_skip_white( iter, end );
+		switch(*iter)
+		{
+			case 0x0: return "\0";
+			case '[': ++depth; break;
+			case ']': --depth; break;
 			default: break;
 		}
 		++iter;
@@ -788,7 +788,7 @@ static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 	}
 }
 
-static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
+static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member, dl_pack_flags_t pack_flags )
 {
 	size_t member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
 	dl_binary_writer_seek_set( packctx->writer, member_pos );
@@ -811,7 +811,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_FP64:   dl_txt_pack_eat_and_write_fp64( dl_ctx, packctx );   break;
 				case DL_TYPE_STORAGE_STR:    dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
 				case DL_TYPE_STORAGE_PTR:    dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
-				case DL_TYPE_STORAGE_STRUCT: dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) ); break;
+				case DL_TYPE_STORAGE_STRUCT: dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), pack_flags ); break;
 				case DL_TYPE_STORAGE_ENUM_INT8:
 				case DL_TYPE_STORAGE_ENUM_INT16:
 				case DL_TYPE_STORAGE_ENUM_INT32:
@@ -854,7 +854,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				dl_binary_writer_seek_end( packctx->writer );
 				dl_binary_writer_align( packctx->writer, element_align );
 				dl_binary_writer_reserve( packctx->writer, array_length * element_size );
-				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
+				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length, pack_flags );
 			}
 			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 		}
@@ -872,37 +872,40 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 			}
 
 			if(array_length > 0)
-				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
+				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length, pack_flags );
 
-			switch(member->StorageType())
+			if( ( pack_flags & DL_PACKFLAGS_NO_DEFAULTS ) == 0 )
 			{
-				case DL_TYPE_STORAGE_STRUCT:
+				switch(member->StorageType())
 				{
-					const dl_type_desc* sub_type = dl_internal_find_type(dl_ctx, member->type_id);
-
-					// fill missing elements with defaults!
-					size_t current_member_array_position = member_pos + sub_type->size[DL_PTR_SIZE_HOST] * array_length;
-					for(uint32_t i = array_length; i < member->inline_array_cnt(); ++i)
+					case DL_TYPE_STORAGE_STRUCT:
 					{
-						// TODO: this seek/set dance will only be needed if type has subptrs, optimize by making different code-paths?
-						dl_binary_writer_seek_set( packctx->writer, current_member_array_position);
+						const dl_type_desc* sub_type = dl_internal_find_type(dl_ctx, member->type_id);
 
-						// TODO: replace with flag DL_FULL_TYPE_DEFAULT saying that all members has default-values.
-						for(uint32_t sub_member_i = 0; sub_member_i < sub_type->member_count; ++sub_member_i)
+						// fill missing elements with defaults!
+						size_t current_member_array_position = member_pos + sub_type->size[DL_PTR_SIZE_HOST] * array_length;
+						for(uint32_t i = array_length; i < member->inline_array_cnt(); ++i)
 						{
-							const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
-							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
+							// TODO: this seek/set dance will only be needed if type has subptrs, optimize by making different code-paths?
+							dl_binary_writer_seek_set( packctx->writer, current_member_array_position);
+
+							// TODO: replace with flag DL_FULL_TYPE_DEFAULT saying that all members has default-values.
+							for(uint32_t sub_member_i = 0; sub_member_i < sub_type->member_count; ++sub_member_i)
+							{
+								const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
+								dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
+							}
+ 							current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
 						}
-							current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
+						break;
 					}
-					break;
-				}
-				default:
-				{
-					// default type to zero!
-					uint32_t missing_elements = member->inline_array_cnt() - array_length;
-					if(missing_elements > 0)
-						dl_binary_writer_write_zero(packctx->writer, missing_elements * dl_pod_size(member->StorageType()));
+					default:
+					{
+						// default type to zero!
+						uint32_t missing_elements = member->inline_array_cnt() - array_length;
+						if(missing_elements > 0)
+							dl_binary_writer_write_zero(packctx->writer, missing_elements * dl_pod_size(member->StorageType()));
+					}
 				}
 			}
 
@@ -951,7 +954,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 	}
 }
 
-static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
+static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, dl_pack_flags_t pack_flags )
 {
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
 
@@ -962,7 +965,7 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	// ... pack all members in order ...
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ), pack_flags );
 
 		dl_txt_eat_white( &packctx->read_ctx );
 
@@ -1010,7 +1013,7 @@ static const dl_txt_read_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx 
 	return res;
 }
 
-static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
+static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, dl_pack_flags_t pack_flags )
 {
 	uint64_t members_set = 0;
 	uint32_t member_index = 0xFFFFFFFF;
@@ -1019,7 +1022,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 	if( *packctx->read_ctx.iter == '[' )
 	{
-		dl_txt_pack_eat_and_write_array_struct( dl_ctx, packctx, type );
+		dl_txt_pack_eat_and_write_array_struct( dl_ctx, packctx, type, pack_flags );
 		return;
 	}
 
@@ -1083,7 +1086,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
 		// ... read member ...
-		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ), pack_flags );
 	}
 
 	// ... find close }
@@ -1096,7 +1099,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		dl_binary_writer_seek_set( packctx->writer, instance_pos + type_offset );
 		dl_binary_writer_write_uint32( packctx->writer, dl_internal_typeid_of(dl_ctx, type) + member_index + 1 );
 	}
-	else
+	else if( ( pack_flags & DL_PACKFLAGS_NO_DEFAULTS ) == 0 )
 	{
 		for( uint32_t i = 0; i < type->member_count; ++i )
 		{
@@ -1113,7 +1116,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	}
 }
 
-static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
+static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_pack_flags_t pack_flags )
 {
 	if( packctx->subdata_count == 0 )
 		return DL_ERROR_OK;
@@ -1167,7 +1170,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		dl_binary_writer_align( packctx->writer, type->alignment[DL_PTR_SIZE_HOST] );
 		size_t inst_pos = dl_binary_writer_tell( packctx->writer );
 
-		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type, pack_flags );
 
 		if( subinstances_count >= DL_ARRAY_LENGTH(subinstances) )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "to many subdatas." );
@@ -1207,7 +1210,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	return DL_ERROR_OK;
 }
 
-static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
+static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_pack_flags_t pack_flags )
 {
 #if defined(_MSC_VER )
 #pragma warning(push)
@@ -1237,16 +1240,16 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		}
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
-		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
+		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type, pack_flags );
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
-		dl_txt_pack_finalize_subdata( dl_ctx, packctx );
+		dl_txt_pack_finalize_subdata( dl_ctx, packctx, pack_flags );
 		return root_type;
 	}
 	return 0x0;
 }
 
-dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes )
+dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, dl_pack_flags_t pack_flags )
 {
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer,
@@ -1265,7 +1268,12 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	packctx.subdata_count = 0;
 	packctx.read_ctx.err = DL_ERROR_OK;
 
-	const dl_type_desc* root_type = dl_txt_pack_inner( dl_ctx, &packctx );
+	if(pack_flags & DL_PACKFLAGS_IS_WRITING_TO_EXISTING_INSTANCE) {
+		dl_data_header *existing_header = (dl_data_header *)out_buffer;
+		writer.needed_size = existing_header->instance_size;
+	}
+
+	const dl_type_desc* root_type = dl_txt_pack_inner( dl_ctx, &packctx, pack_flags );
 	if( packctx.read_ctx.err == DL_ERROR_OK )
 	{
 		// write header
@@ -1283,6 +1291,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 
 		if( produced_bytes )
 			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);
+
 	}
 	else
 	{
@@ -1293,5 +1302,5 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 
 dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size )
 {
-	return dl_txt_pack( dl_ctx, txt_instance, 0x0, 0, out_instance_size );
+	return dl_txt_pack( dl_ctx, txt_instance, 0x0, 0, out_instance_size, DL_PACKFLAGS_NONE );
 }

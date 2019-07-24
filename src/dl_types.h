@@ -476,7 +476,9 @@ static inline bool dl_internal_find_enum_value( dl_ctx_t ctx, const dl_enum_desc
 	for( unsigned int j = 0; j < e->alias_count; ++j )
 	{
 		const dl_enum_alias_desc* a = dl_get_enum_alias( ctx, e, j );
-		if( strncmp( dl_internal_enum_alias_name( ctx, a ), name, name_len ) == 0 )
+		const char* alias_name = dl_internal_enum_alias_name(ctx, a);
+		size_t alias_name_len = strlen(alias_name);
+		if( name_len == alias_name_len && strncmp(alias_name, name, name_len ) == 0 )
 		{
 			*value = ctx->enum_value_descs[ a->value_index ].value;
 			return true;

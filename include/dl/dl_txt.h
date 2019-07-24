@@ -14,6 +14,12 @@
 extern "C" {
 #endif
 
+typedef enum {
+	DL_PACKFLAGS_NONE = 0,
+	DL_PACKFLAGS_NO_DEFAULTS = 1 << 0, 						// Causes the packing to not write the defaults into the packed instance.
+	DL_PACKFLAGS_IS_WRITING_TO_EXISTING_INSTANCE = 1 << 1,	// Assumes that the out_buffer is already filled with an instance. Any dynamic data is written after this and assumed that there is space for.
+} dl_pack_flags_t;
+
 /*
 	Function: dl_txt_pack
 		Pack string of intermediate-data to binary blob that is loadable by dl_instance_load.
@@ -24,6 +30,7 @@ extern "C" {
 		out_buffer      - Buffer to pack data to.
 		out_buffer_size - Size of out_buffer.
 		produced_bytes  - Number of bytes that would have been written to out_buffer if it was large enough.
+		pack_flags        Flags to take into consideration when packing
 
 	Return:
 		DL_ERROR_OK on success. Packing an instance to a 0-sized out_buffer is thought of as a success as
@@ -34,7 +41,7 @@ extern "C" {
 	Note:
 		The instance after pack will be in current platform endian.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, dl_pack_flags_t pack_flags );
 
 /*
 	Function: dl_txt_pack_calc_size
@@ -43,9 +50,10 @@ dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance,
 	Parameters:
 		dl_ctx            - Context to use.
 		txt_instance      - Zero-terminated string to calculate binary blob size of.
-		out_instance_size - Size required to pack txt_instance.
+		out_instance_size - Size required to pack _pTxtData.
+		pack_flags          Flags to take into consideration when calculating packing size
 */
-dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size );
+dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size, dl_pack_flags_t pack_flags );
 
 /*
 	Function: dl_txt_unpack

@@ -114,13 +114,13 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       	dl_typeid_t        
 		{
 			// calc needed space
 			size_t packed_size = 0;
-			error = dl_txt_pack( dl_ctx, (char*)file_content, 0x0, 0, &packed_size );
+			error = dl_txt_pack( dl_ctx, (char*)file_content, 0x0, 0, &packed_size, DL_PACKFLAGS_NONE );
 
 			if(error != DL_ERROR_OK) { dl_free( allocator, file_content); return error; }
 
 			load_instance = (unsigned char*)dl_alloc( allocator, packed_size );
 
-			error = dl_txt_pack(dl_ctx, (char*)file_content, load_instance, packed_size, 0x0);
+			error = dl_txt_pack( dl_ctx, (char*)file_content, load_instance, packed_size, 0x0, DL_PACKFLAGS_NONE );
 
 			load_size = packed_size;
 
