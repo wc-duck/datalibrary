@@ -41,7 +41,7 @@ typedef enum {
 	Note:
 		The instance after pack will be in current platform endian.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, dl_pack_flags_t pack_flags );
+dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, dl_pack_flags_t pack_flags = DL_PACKFLAGS_NONE );
 
 /*
 	Function: dl_txt_pack_calc_size
