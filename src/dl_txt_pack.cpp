@@ -1300,7 +1300,7 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	return packctx.read_ctx.err;
 }
 
-dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size )
+dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size, dl_pack_flags_t flags )
 {
-	return dl_txt_pack( dl_ctx, txt_instance, 0x0, 0, out_instance_size, DL_PACKFLAGS_NONE );
+	return dl_txt_pack( dl_ctx, txt_instance, 0x0, 0, out_instance_size, flags );
 }
