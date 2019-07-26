@@ -202,7 +202,7 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	def_member->offset[1] = 0;
 
 	int num_want_to_write = dl_internal_str_format( def_buffer, sizeof(def_buffer), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
-	DL_ASSERT(num_want_to_write < sizeof(def_buffer), "Too big default value.");
+	DL_ASSERT((size_t)num_want_to_write < sizeof(def_buffer), "Too big default value.");
 	size_t prod_bytes;
 	dl_error_t err;
 	err = dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes, DL_PACKFLAGS_NONE );
