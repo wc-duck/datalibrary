@@ -53,7 +53,7 @@ dl_error_t DL_DLL_EXPORT dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance,
 		out_instance_size - Size required to pack _pTxtData.
 		pack_flags          Flags to take into consideration when calculating packing size
 */
-dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size, dl_pack_flags_t pack_flags );
+dl_error_t DL_DLL_EXPORT dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size, dl_pack_flags_t pack_flags = DL_PACKFLAGS_NONE );
 
 /*
 	Function: dl_txt_unpack
