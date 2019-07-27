@@ -96,8 +96,8 @@ unsigned long long dl_txt_pack_eat_strtoull( dl_ctx_t dl_ctx, dl_txt_read_ctx* r
 
 void dl_report_error_location( dl_ctx_t ctx, const char* txt, const char* end, const char* error_pos )
 {
-	int line = 0;
-	int col = 0;
+	int line = 1;
+	int col = 1;
 	const char* last_line = txt;
 	const char* iter = txt;
 	while( iter != end && iter != error_pos )
