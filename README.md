@@ -84,6 +84,25 @@ DL-JSON (or dl-json, standing for Data Library JSON).
 * Comma `,` is accepted for last item in JSON-array and JSON-map.
 * New-line in strings are valid.
 
+### Integers
+
+Integers in DL-JSON can be specified in a few more ways than what is valid in ordinary json. All these formats are valid for all sized/signedness of ints
+and DL will always error out if the value do not fit the type.
+
+* normal integers, such as 1, -2, 1337 etc.
+* hexadecimal integers, such as 0x0, 0xDEADBEEF, -0x123
+* constants `min` and `max` whose value depend on size/signedness of integer.
+* constants `true` and `false` resulting in 0 and 1
+
+### Floating point values.
+
+Floating point values in DL-JSON can be specified in a few more ways than what is valid in ordinary json. All these formats are valid for both 32 and 64-bit floats 
+and DL will always error out if the value do not fit the type.
+
+* normal floats, such as 1.0, -2.0, 123.456
+* scientific float notation, such as 3.2e+12, 1.2e-5
+* constants `inf`, `infinity` and `nan` ( ignoring case! )
+
 ## TLD (Type Library Definition) Format
 
 Type-libs in text-format follows this format.
