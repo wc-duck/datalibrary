@@ -1012,7 +1012,7 @@ static const dl_txt_read_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx 
 
 static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
-	uint64_t members_set = 0;
+	uint64_t members_set[DL_MEMBERS_IN_TYPE_MAX / 64] = {0};
 	uint32_t member_index = 0xFFFFFFFF;
 
 	dl_txt_eat_white( &packctx->read_ctx );
@@ -1075,11 +1075,13 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER, "type '%s' has no member named '%.*s'", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		}
 
-		DL_ASSERT(member_index < 64);
-		uint64_t member_bit = ( 1ULL << member_index );
-		if( member_bit & members_set )
+		DL_ASSERT(member_index < DL_MEMBERS_IN_TYPE_MAX);
+		int member_bit_chunk = member_index % DL_MEMBERS_IN_TYPE_MAX;
+		int member_bit_index = member_index / DL_MEMBERS_IN_TYPE_MAX;
+		uint64_t member_bit = ( 1ULL << member_bit_index );
+		if( member_bit & members_set[member_bit_chunk] )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "member '%s.%.*s' is set twice", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
-		members_set |= member_bit;
+		members_set[member_bit_chunk] |= member_bit;
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
@@ -1101,7 +1103,9 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	{
 		for( uint32_t i = 0; i < type->member_count; ++i )
 		{
-			if( members_set & ( 1ULL << i ) )
+			int member_bit_chunk = i % DL_MEMBERS_IN_TYPE_MAX;
+			int member_bit_index = i / DL_MEMBERS_IN_TYPE_MAX;
+			if( members_set[member_bit_chunk] & ( 1ULL << member_bit_index ) )
 				continue;
 
 			const dl_member_desc* member = dl_get_type_member( dl_ctx, type, i );

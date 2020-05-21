@@ -20,6 +20,14 @@ extern "C" {
 typedef struct dl_context* dl_ctx_t;
 
 /*
+	Max amount of members in one single type
+
+	Note:
+		if this is changed by the user, this need to be a multiple of 2
+*/
+static const int DL_MEMBERS_IN_TYPE_MAX = 2048;
+
+/*
 	Enum: dl_error_t
 		Error-codes from DL
 

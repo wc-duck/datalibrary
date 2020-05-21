@@ -291,14 +291,12 @@ static char* dl_test_build_many_members(int member_cnt)
 
 TEST_F( DLTypeLibTxt, invalid_typelib_too_many_members)
 {
-	const int MAX_MEMBERS = 64;
-
-	char* typelib = dl_test_build_many_members(MAX_MEMBERS);
+	char* typelib = dl_test_build_many_members(DL_MEMBERS_IN_TYPE_MAX);
 
 	typelibtxt_expect_error( ctx, DL_ERROR_OK, typelib );
 	free(typelib);
 
-	typelib = dl_test_build_many_members(MAX_MEMBERS + 1);
+	typelib = dl_test_build_many_members(DL_MEMBERS_IN_TYPE_MAX + 1);
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, typelib );
 	free(typelib);
 }

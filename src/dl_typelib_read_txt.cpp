@@ -1034,11 +1034,12 @@ static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, 
 		++member_count;
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
-	if(member_count > 64)
+	if(member_count > DL_MEMBERS_IN_TYPE_MAX)
 		dl_txt_read_failed(dl_ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, 
-							"type '%.*s' has to many members, a type can't have more than 64 members and this has %u", 
+							"type '%.*s' has to many members, a type can't have more than %d members and this has %u", 
 							type_name->len,
 							type_name->str,
+							DL_MEMBERS_IN_TYPE_MAX,
 							member_count);
 
 	dl_txt_eat_char( dl_ctx, read_state, ']' );
