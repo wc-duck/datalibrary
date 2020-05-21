@@ -269,6 +269,40 @@ TEST_F( DLTypeLibTxt, invalid_type_fmt_pointer_to_pod )
 	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, STRINGIFY({ "types" : { "t"  : { "members" : [ { "name" : "m", "type" : "fp64*" } ] } } }) );
 }
 
+static char* dl_test_build_many_members(int member_cnt)
+{
+	char* typelib = (char*)malloc(100 * 1024); // should be enough for anyone!?! (I trust valgrind to help me out here!)
+	typelib[0] = '\0';
+	strcat(typelib, STRINGIFY( { "types" : { 
+									"t" : { 
+										"members" : [));
+
+	for(int i = 0; i < member_cnt; ++i)
+	{
+		char mem[256];
+		snprintf(mem, sizeof(mem), "\n\t{ \"name\" : \"m%d\", \"type\" : \"int8\" }", i);
+		strcat(typelib, mem);
+		if(i != member_cnt -1)
+		strcat(typelib, ",");
+	}
+	strcat(typelib, "] } } }");
+	return typelib;
+}
+
+TEST_F( DLTypeLibTxt, invalid_typelib_too_many_members)
+{
+	const int MAX_MEMBERS = 64;
+
+	char* typelib = dl_test_build_many_members(MAX_MEMBERS);
+
+	typelibtxt_expect_error( ctx, DL_ERROR_OK, typelib );
+	free(typelib);
+
+	typelib = dl_test_build_many_members(MAX_MEMBERS + 1);
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, typelib );
+	free(typelib);
+}
+
 TEST_F( DLTypeLibUnpackTxt, round_about )
 {
 	const char* testlib1 = STRINGIFY({

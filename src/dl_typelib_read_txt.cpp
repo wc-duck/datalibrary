@@ -1020,7 +1020,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
 
-static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state )
+static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* type_name )
 {
 	uint32_t member_count = 0;
 	dl_txt_eat_char( dl_ctx, read_state, '[' );
@@ -1033,6 +1033,13 @@ static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, 
 		dl_context_load_txt_type_library_read_member( dl_ctx, read_state );
 		++member_count;
 	} while( dl_txt_try_eat_char( read_state, ',') );
+
+	if(member_count > 64)
+		dl_txt_read_failed(dl_ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, 
+							"type '%.*s' has to many members, a type can't have more than 64 members and this has %u", 
+							type_name->len,
+							type_name->str,
+							member_count);
 
 	dl_txt_eat_char( dl_ctx, read_state, ']' );
 	return member_count;
@@ -1058,7 +1065,7 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 		dl_txt_eat_char( ctx, read_state, ':' );
 		if( strncmp( "members", key.str, 7 ) == 0 )
 		{
-			member_count = dl_context_load_txt_type_library_read_members( ctx, read_state );
+			member_count = dl_context_load_txt_type_library_read_members( ctx, read_state, name );
 		}
 		else if( strncmp( "align", key.str, 5 ) == 0 )
 		{
