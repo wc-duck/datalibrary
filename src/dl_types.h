@@ -296,6 +296,12 @@ struct dl_context
 	size_t   default_data_size;
 };
 
+struct dl_substr
+{
+	const char* str;
+	int len;
+};
+
 #if defined( __GNUC__ )
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
 #endif
@@ -357,6 +363,20 @@ static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx
 	}
 	return 0x0;
 }
+
+static inline const dl_type_desc* dl_internal_find_type_by_name( dl_ctx_t dl_ctx, const dl_substr* name )
+{
+	for(unsigned int i = 0; i < dl_ctx->type_count; ++i)
+	{
+		dl_type_desc* desc = &dl_ctx->type_descs[i];
+		const char* t_name = dl_internal_type_name( dl_ctx, desc );
+		if( strncmp( name->str, t_name, (size_t)name->len ) == 0 )
+			if(t_name[name->len] == '\0')
+				return desc;
+	}
+	return 0x0;
+}
+
 
 static inline size_t dl_pod_size( dl_type_storage_t storage )
 {

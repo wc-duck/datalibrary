@@ -143,7 +143,7 @@ struct dl_txt_pack_ctx
 
 	struct
 	{
-		dl_txt_read_substr name;
+		dl_substr name;
 		const dl_type_desc* type;
 		size_t patch_pos;
 	} subdata[256];
@@ -237,7 +237,7 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	if( dl_txt_pack_eat_and_write_null(packctx) )
 		return;
 
-	dl_txt_read_substr str = dl_txt_eat_string( &packctx->read_ctx );
+	dl_substr str = dl_txt_eat_string( &packctx->read_ctx );
 	if( str.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'string' or 'null'" );
 
@@ -277,7 +277,7 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 static void dl_txt_pack_eat_and_write_enum( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_enum_desc* edesc )
 {
 	dl_txt_eat_white( &packctx->read_ctx );
-	dl_txt_read_substr ename = dl_txt_eat_string( &packctx->read_ctx );
+	dl_substr ename = dl_txt_eat_string( &packctx->read_ctx );
 	if( ename.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected string" );
 
@@ -306,7 +306,7 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	if( dl_txt_pack_eat_and_write_null(packctx) )
 		return;
 
-	dl_txt_read_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
+	dl_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
 	if( ptr.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
 
@@ -319,7 +319,7 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	++packctx->subdata_count;
 }
 
-static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_txt_read_substr symbol )
+static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr symbol )
 {
 	for(int i = 0; i < symbol.len; ++i)
 	{
@@ -982,9 +982,9 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 }
 
-static const dl_txt_read_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
+static const dl_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
 {
-	dl_txt_read_substr res = {0x0, 0};
+	dl_substr res = {0x0, 0};
 	switch(*readctx->iter)
 	{
 		case '"':
@@ -1040,7 +1040,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		if( *packctx->read_ctx.iter == '}' ) break;
 
 		dl_txt_eat_white( &packctx->read_ctx );
-		dl_txt_read_substr member_name = dl_txt_eat_object_key( &packctx->read_ctx );
+		dl_substr member_name = dl_txt_eat_object_key( &packctx->read_ctx );
 		if( member_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing member name." );
 
@@ -1129,7 +1129,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	struct
 	{
-		dl_txt_read_substr name;
+		dl_substr name;
 		size_t pos;
 	} subinstances[256];
 	subinstances[0].name.str = "__root";
@@ -1145,7 +1145,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		if( *packctx->read_ctx.iter != '"' )
 			break;
 
-		dl_txt_read_substr subdata_name = dl_txt_eat_string( &packctx->read_ctx );
+		dl_substr subdata_name = dl_txt_eat_string( &packctx->read_ctx );
 		if( subdata_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing subdata instance-name." );
 
@@ -1228,17 +1228,15 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 		// ... find first and only key, the type name of the type to pack ...
 		dl_txt_eat_white( &packctx->read_ctx );
-		dl_txt_read_substr root_type_name = dl_txt_eat_object_key( &packctx->read_ctx );
+		dl_substr root_type_name = dl_txt_eat_object_key( &packctx->read_ctx );
 		if( root_type_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key with root type name" );
 
-		char type_name[1024] = {0}; // TODO: make a dl_internal_find_type_by_name() that take string name.
-		strncpy( type_name, root_type_name.str, (size_t)root_type_name.len );
-		const dl_type_desc* root_type = dl_internal_find_type_by_name( dl_ctx, type_name );
+		const dl_type_desc* root_type = dl_internal_find_type_by_name( dl_ctx, &root_type_name );
 		if( root_type == 0x0 )
 		{
 			dl_txt_pack_validate_c_symbol_key(dl_ctx, packctx, root_type_name);
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "root type was set as \"%s\", but no such type was loaded.", type_name );
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "root type was set as \"%.*s\", but no such type was loaded.", root_type_name.len, root_type_name.str );
 		}
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );

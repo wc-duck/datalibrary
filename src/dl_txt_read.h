@@ -14,12 +14,6 @@ struct dl_txt_read_ctx
 	dl_error_t err;
 };
 
-struct dl_txt_read_substr
-{
-	const char* str;
-	int len;
-};
-
 
 #if defined( __GNUC__ )
 static void dl_txt_read_failed( dl_ctx_t ctx, dl_txt_read_ctx* readctx, dl_error_t err, const char* fmt, ... ) __attribute__((format( printf, 4, 5 )));
@@ -91,9 +85,9 @@ inline void dl_txt_eat_white( dl_txt_read_ctx* readctx )
 	readctx->iter = dl_txt_skip_white( readctx->iter, readctx->end );
 }
 
-static dl_txt_read_substr dl_txt_eat_string_quote( dl_txt_read_ctx* readctx, char quote )
+static dl_substr dl_txt_eat_string_quote( dl_txt_read_ctx* readctx, char quote )
 {
-	dl_txt_read_substr res = {0x0, 0};
+	dl_substr res = {0x0, 0};
 	if( *readctx->iter != quote )
 		return res;
 
@@ -116,7 +110,7 @@ static dl_txt_read_substr dl_txt_eat_string_quote( dl_txt_read_ctx* readctx, cha
 	return res;
 }
 
-static inline dl_txt_read_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
+static inline dl_substr dl_txt_eat_string( dl_txt_read_ctx* readctx )
 {
 	if(*readctx->iter == '"')
 		return dl_txt_eat_string_quote( readctx, '"' );

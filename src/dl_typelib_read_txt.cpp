@@ -19,7 +19,7 @@ static inline T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t
 	return (T*)dl_realloc( alloc, ptr, new_cap * sizeof( T ), old_cap * sizeof( T ) );
 }
 
-static uint32_t dl_alloc_string( dl_ctx_t ctx, dl_txt_read_substr* str )
+static uint32_t dl_alloc_string( dl_ctx_t ctx, dl_substr* str )
 {
 	if( ctx->typedata_strings_cap - ctx->typedata_strings_size < (size_t)str->len + 2 )
 	{
@@ -70,7 +70,7 @@ static dl_member_desc* dl_alloc_member( dl_ctx_t ctx )
 	return member;
 }
 
-static dl_enum_desc* dl_alloc_enum( dl_ctx_t ctx, dl_txt_read_substr* name )
+static dl_enum_desc* dl_alloc_enum( dl_ctx_t ctx, dl_substr* name )
 {
 	if( ctx->enum_capacity <= ctx->enum_count )
 	{
@@ -107,7 +107,7 @@ static dl_enum_value_desc* dl_alloc_enum_value( dl_ctx_t ctx )
 	return value;
 }
 
-static dl_enum_alias_desc* dl_alloc_enum_alias( dl_ctx_t ctx, dl_txt_read_substr* name )
+static dl_enum_alias_desc* dl_alloc_enum_alias( dl_ctx_t ctx, dl_substr* name )
 {
 	if( ctx->enum_alias_capacity <= ctx->enum_alias_count )
 		ctx->enum_alias_descs = dl_grow_array( &ctx->alloc, ctx->enum_alias_descs, &ctx->enum_alias_capacity, 0 );
@@ -191,7 +191,7 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	// TODO: check that typename do not exist in the ctx!
 
 	size_t name_start = ctx->typedata_strings_size;
-	dl_txt_read_substr temp = { "a_type_here", 11 };
+	dl_substr temp = { "a_type_here", 11 };
 	def_type->name = dl_alloc_string( ctx, &temp );
 	def_type->size[DL_PTR_SIZE_HOST]      = member->size[DL_PTR_SIZE_HOST];
 	def_type->alignment[DL_PTR_SIZE_HOST] = member->alignment[DL_PTR_SIZE_HOST];
@@ -501,10 +501,10 @@ static inline uint32_t dl_txt_pack_eat_uint32( dl_ctx_t dl_ctx, dl_txt_read_ctx*
 	return (uint32_t)dl_txt_pack_eat_strtoull(dl_ctx, read_state, UINT32_MAX, "uint32");
 }
 
-static dl_txt_read_substr dl_txt_eat_and_expect_string( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
+static dl_substr dl_txt_eat_and_expect_string( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
 {
 	dl_txt_eat_white( read_state );
-	dl_txt_read_substr str = dl_txt_eat_string( read_state );
+	dl_substr str = dl_txt_eat_string( read_state );
 	if( str.str == 0x0 )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "expected string" );
 	return str;
@@ -542,7 +542,7 @@ static uint64_t dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx,
 static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 															   dl_type_storage_t   storage,
 															   dl_txt_read_ctx*    read_state,
-															   dl_txt_read_substr* value_name )
+															   dl_substr* value_name )
 {
 	dl_enum_value_desc* value = dl_alloc_enum_value( ctx );
 
@@ -559,7 +559,7 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 
 		do
 		{
-			dl_txt_read_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
+			dl_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
 
 			dl_txt_eat_char( ctx, read_state, ':' );
 
@@ -573,7 +573,7 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 				dl_txt_eat_char( ctx, read_state, '[' );
 				do
 				{
-					dl_txt_read_substr alias_name = dl_txt_eat_and_expect_string( ctx, read_state );
+					dl_substr alias_name = dl_txt_eat_and_expect_string( ctx, read_state );
 
 					dl_enum_alias_desc* enum_alias = dl_alloc_enum_alias( ctx, &alias_name );
 					enum_alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
@@ -585,7 +585,7 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 			{
 				if(value->comment != 0xFFFFFFFF)
 					dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "enum value have multiple 'comment'-sections present!" );
-				dl_txt_read_substr comment = dl_txt_eat_and_expect_string( ctx, read_state );
+				dl_substr comment = dl_txt_eat_and_expect_string( ctx, read_state );
 
 				value->comment = dl_alloc_string(ctx, &comment);
 			}
@@ -607,8 +607,8 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 
 static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 															 dl_txt_read_ctx* read_state,
-															 dl_txt_read_substr* name,
-															 dl_txt_read_substr* comment,
+															 dl_substr* name,
+															 dl_substr* comment,
 															 const char** values_iter,
 															 const char** type_iter,
 															 const char** end_iter,
@@ -622,7 +622,7 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
 	{
-		dl_txt_read_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
+		dl_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
 		dl_txt_eat_char( ctx, read_state, ':' );
 		dl_txt_eat_white( read_state );
 
@@ -660,7 +660,7 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 	*end_iter = read_state->iter;
 }
 
-static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* name )
+static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_substr* name )
 {
 	uint32_t value_start = ctx->enum_value_count;
 	uint32_t alias_start = ctx->enum_alias_count;
@@ -668,7 +668,7 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	const char* values_iter;
 	const char* type_iter;
 	const char* end_iter;
-	dl_txt_read_substr comment = { 0, 0 };
+	dl_substr comment = { 0, 0 };
 	bool        is_extern;
 	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &comment, &values_iter, &type_iter, &end_iter, &is_extern);
 
@@ -679,7 +679,7 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 
 		storage = DL_TYPE_STORAGE_CNT;
 
-		dl_txt_read_substr type_str = dl_txt_eat_and_expect_string( ctx, read_state );
+		dl_substr type_str = dl_txt_eat_and_expect_string( ctx, read_state );
 		switch(type_str.len)
 		{
 			case 4:
@@ -722,7 +722,7 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
 	{
-		dl_txt_read_substr value_name = dl_txt_eat_and_expect_string( ctx, read_state );
+		dl_substr value_name = dl_txt_eat_and_expect_string( ctx, read_state );
 
 		dl_txt_eat_char( ctx, read_state, ':' );
 		dl_txt_eat_white( read_state );
@@ -753,7 +753,7 @@ static void dl_context_load_txt_type_library_read_enums( dl_ctx_t ctx, dl_txt_re
 
 	do
 	{
-		dl_txt_read_substr enum_name = dl_txt_eat_and_expect_string( ctx, read_state );
+		dl_substr enum_name = dl_txt_eat_and_expect_string( ctx, read_state );
 		dl_txt_eat_char( ctx, read_state, ':' );
 		dl_context_load_txt_type_library_read_enum( ctx, read_state, &enum_name );
 
@@ -762,7 +762,7 @@ static void dl_context_load_txt_type_library_read_enums( dl_ctx_t ctx, dl_txt_re
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
 
-static int dl_parse_type( dl_ctx_t ctx, dl_txt_read_substr* type, dl_member_desc* member, dl_txt_read_ctx* read_state )
+static int dl_parse_type( dl_ctx_t ctx, dl_substr* type, dl_member_desc* member, dl_txt_read_ctx* read_state )
 {
     #define DL_PARSE_TYPE_VALID_FMT_STR "\nvalid formats, 'type', 'type*', 'type[count]', 'type[]', 'bitfield:bits'"
 
@@ -936,17 +936,17 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 {
 	dl_txt_eat_char( ctx, read_state, '{' );
 
-	dl_txt_read_substr name = {0,0};
-	dl_txt_read_substr type = {0,0};
-	dl_txt_read_substr comment = {0,0};
-	dl_txt_read_substr default_val = {0,0};
+	dl_substr name = {0,0};
+	dl_substr type = {0,0};
+	dl_substr comment = {0,0};
+	dl_substr default_val = {0,0};
 
 	bool is_const = true;
 	bool verify = true;
 
 	do
 	{
-		dl_txt_read_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
+		dl_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
 
 		dl_txt_eat_char( ctx, read_state, ':' );
 		if( strncmp( "name", key.str, 4 ) == 0 )
@@ -1020,7 +1020,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 	dl_txt_eat_char( ctx, read_state, '}' );
 }
 
-static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* type_name )
+static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_state, dl_substr* type_name )
 {
 	uint32_t member_count = 0;
 	dl_txt_eat_char( dl_ctx, read_state, '[' );
@@ -1046,7 +1046,7 @@ static uint32_t dl_context_load_txt_type_library_read_members( dl_ctx_t dl_ctx, 
 	return member_count;
 }
 
-static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_txt_read_substr* name, bool is_union )
+static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_read_ctx* read_state, dl_substr* name, bool is_union )
 {
 	dl_txt_eat_char( ctx, read_state, '{' );
 	uint32_t align = 0;
@@ -1054,12 +1054,12 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	bool verify = true;
 	uint32_t member_count = 0;
 	uint32_t member_start = ctx->member_count;
-	dl_txt_read_substr comment = {0,0};
+	dl_substr comment = {0,0};
 
 	do
 	{
 		dl_txt_eat_white( read_state );
-		dl_txt_read_substr key = dl_txt_eat_string( read_state );
+		dl_substr key = dl_txt_eat_string( read_state );
 		if( key.str == 0x0 )
 			break;
 
@@ -1125,7 +1125,7 @@ static void dl_context_load_txt_type_library_read_types( dl_ctx_t ctx, dl_txt_re
 
 	do
 	{
-		dl_txt_read_substr type_name = dl_txt_eat_and_expect_string( ctx, read_state );
+		dl_substr type_name = dl_txt_eat_and_expect_string( ctx, read_state );
 
 		dl_txt_eat_char( ctx, read_state, ':' );
 		dl_context_load_txt_type_library_read_type( ctx, read_state, &type_name, is_union );
@@ -1167,17 +1167,17 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 
 		do
 		{
-			dl_txt_read_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
+			dl_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
 			dl_txt_eat_char( ctx, read_state, ':' );
 
 			if( strncmp( "module", key.str, 6 ) == 0 )
 			{
-				dl_txt_read_substr module = dl_txt_eat_and_expect_string( ctx, read_state );
+				dl_substr module = dl_txt_eat_and_expect_string( ctx, read_state );
 				(void)module;
 			}
 			else if( strncmp( "usercode", key.str, 8 ) == 0 )
 			{
-				dl_txt_read_substr usercode = dl_txt_eat_and_expect_string( ctx, read_state );
+				dl_substr usercode = dl_txt_eat_and_expect_string( ctx, read_state );
 				(void)usercode;
 			}
 			else if( strncmp( "enums", key.str, 5 ) == 0 )
