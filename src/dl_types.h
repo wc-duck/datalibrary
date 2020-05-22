@@ -80,6 +80,8 @@ typedef enum
 	DL_TYPE_FORCE_32_BIT = 0x7FFFFFFF
 } dl_type_t;
 
+DL_STATIC_ASSERT(DL_INLINE_ARRAY_LENGTH_MAX == (DL_TYPE_INLINE_ARRAY_CNT_MASK >> DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT), "bad value of DL_INLINE_ARRAY_LENGTH_MAX");
+
 static const uintptr_t DL_NULL_PTR_OFFSET[2] =
 {
 	(uintptr_t)0xFFFFFFFF, // DL_PTR_SIZE_32BIT
@@ -204,9 +206,10 @@ struct dl_member_desc
 		return (uint32_t)(type & DL_TYPE_INLINE_ARRAY_CNT_MASK) >> DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT;
 	}
 
-	void set_inline_array_cnt( uint32_t bits )
+	void set_inline_array_cnt( uint32_t count )
 	{
-		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_INLINE_ARRAY_CNT_MASK ) | (bits << DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT) );
+		DL_ASSERT(count <= DL_INLINE_ARRAY_LENGTH_MAX);
+		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_INLINE_ARRAY_CNT_MASK ) | (count << DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT) );
 	}
 };
 

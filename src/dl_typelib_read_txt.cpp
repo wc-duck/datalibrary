@@ -894,6 +894,9 @@ static int dl_parse_type( dl_ctx_t ctx, dl_substr* type, dl_member_desc* member,
 
 	if( is_inline_array )
 	{
+		if(inline_array_len >= DL_INLINE_ARRAY_LENGTH_MAX)
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "inline array can't have more than %d elements, this has %u", DL_INLINE_ARRAY_LENGTH_MAX-1, inline_array_len);
+
 		member->set_inline_array_cnt( inline_array_len );
 		if( inline_array_len == 0 )
 		{

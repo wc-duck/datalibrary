@@ -25,7 +25,12 @@ typedef struct dl_context* dl_ctx_t;
 	Note:
 		if this is changed by the user, this need to be a multiple of 2
 */
-static const int DL_MEMBERS_IN_TYPE_MAX = 2048;
+static const int DL_MEMBERS_IN_TYPE_MAX     = 2048;
+
+/*
+	Max length of an inline array in a member.
+*/
+static const int DL_INLINE_ARRAY_LENGTH_MAX = 0xFFFF;
 
 /*
 	Enum: dl_error_t

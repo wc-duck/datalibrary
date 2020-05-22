@@ -301,6 +301,20 @@ TEST_F( DLTypeLibTxt, invalid_typelib_too_many_members)
 	free(typelib);
 }
 
+TEST_F( DLTypeLibTxt, inline_array_too_big)
+{
+	char typelib[2048];
+	snprintf(typelib, sizeof(typelib), STRINGIFY({
+		"types" : { "t" : { "members" : [{ "name" : "a", "type" : "int8[%d]" }]}} }),
+		 DL_INLINE_ARRAY_LENGTH_MAX-1 );
+	typelibtxt_expect_error( ctx, DL_ERROR_OK, typelib );
+
+	snprintf(typelib, sizeof(typelib), STRINGIFY({
+		"types" : { "t" : { "members" : [{ "name" : "a", "type" : "int8[%d]" }]}} }),
+		 DL_INLINE_ARRAY_LENGTH_MAX );
+	typelibtxt_expect_error( ctx, DL_ERROR_TXT_PARSE_ERROR, typelib );
+}
+
 TEST_F( DLTypeLibUnpackTxt, round_about )
 {
 	const char* testlib1 = STRINGIFY({
