@@ -7,7 +7,9 @@
 
 static void test_log_error( const char* msg, void* )
 {
-	printf( "%s\n", msg );
+	static bool print_error_msg = false;
+    if(print_error_msg)
+		printf( "%s\n", msg );
 }
 
 void DL::SetUp()

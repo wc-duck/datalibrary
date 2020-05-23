@@ -1055,6 +1055,98 @@ TEST_F( DLText, numbers_start_with_plus )
     EXPECT_EQ(1.0,  pods->f64);
 }
 
+TEST_F( DLText, binary_literals )
+{
+    uint64_t unpack_buffer[128];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { 
+		PodsDefaults : { 
+			i8  : 0b010110,
+			u8  : 0b101101,
+			i16 : 0b010110,
+			u16 : 0b101101,
+			i32 : 0b010110,
+			u32 : 0b101101,
+			i64 : 0b010110,
+			u64 : 0b101101,
+		}
+	} ), unpack_buffer, sizeof(unpack_buffer));
+	
+	EXPECT_EQ(22,  pods->i8);
+	EXPECT_EQ(45,  pods->u8);
+	EXPECT_EQ(22,  pods->i16);
+	EXPECT_EQ(45,  pods->u16);
+	EXPECT_EQ(22,  pods->i32);
+	EXPECT_EQ(45u, pods->u32);
+	EXPECT_EQ(22,  pods->i64);
+	EXPECT_EQ(45u, pods->u64);
+}
+
+TEST_F( DLText, negative_binary_literals )
+{
+    uint64_t unpack_buffer[128];
+    PodsDefaults* pods = dl_txt_test_pack_text<PodsDefaults>(Ctx, STRINGIFY( { 
+		PodsDefaults : { 
+			i8  : -0b010110,
+			i16 : -0b010110,
+			i32 : -0b010110,
+			i64 : -0b010110,
+		}
+	} ), unpack_buffer, sizeof(unpack_buffer));
+
+	EXPECT_EQ(-22,  pods->i8);
+	EXPECT_EQ(-22,  pods->i16);
+	EXPECT_EQ(-22,  pods->i32);
+	EXPECT_EQ(-22,  pods->i64);
+}
+
+TEST_F( DLText, binary_literals_range_int8 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i8  : 0b01111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i8  : 0b11111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, binary_literals_range_int16 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i16 : 0b0111111111111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i16 : 0b1111111111111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, binary_literals_range_int32 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i32 : 0b01111111111111111111111111111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i32 : 0b11111111111111111111111111111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, binary_literals_range_int64 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i64 : 0b0111111111111111111111111111111111111111111111111111111111111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { i64 : 0b1111111111111111111111111111111111111111111111111111111111111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, binary_literals_range_uint8 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u8  : 0b011111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u8  : 0b111111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, binary_literals_range_uint16 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u16 : 0b01111111111111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u16 : 0b11111111111111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, binary_literals_range_uint32 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u32 : 0b011111111111111111111111111111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u32 : 0b111111111111111111111111111111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
+TEST_F( DLText, binary_literals_range_uint64 ) 
+{
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u64 : 0b01111111111111111111111111111111111111111111111111111111111111111 } } ), DL_ERROR_OK);
+	dl_txt_test_expect_error<PodsDefaults>(Ctx, STRINGIFY( { PodsDefaults : { u64 : 0b11111111111111111111111111111111111111111111111111111111111111111 } } ), DL_ERROR_TXT_RANGE_ERROR);
+}
+
 TEST_F( DLText, accept_trailing_comma_array_i8 )
 {
     unsigned char unpack_buffer[1024];
