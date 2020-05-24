@@ -91,6 +91,7 @@ and DL will always error out if the value do not fit the type.
 
 * normal integers, such as 1, -2, 1337 etc.
 * hexadecimal integers, such as 0x0, 0xDEADBEEF, -0x123
+* binary literals, such as 0b1001 and -0b001101
 * constants `min` and `max` whose value depend on size/signedness of integer.
 * constants `true` and `false` resulting in 0 and 1
 
@@ -138,6 +139,12 @@ Type-libs in text-format follows this format.
 
                 // ... or it can be specified in hex ...
                 "MY_HEX_VALUE" : 0x123,
+
+                // ... or as a binary literal, maybe use more of them ...
+                "BIT1"       : 0b000001,
+                "BIT2"       : 0b000010,
+                "BIT3"       : 0b000100,
+                "BIT1_AND_2" : 0b000011,
 
                 // ... or like this in special cases where you want to use "aliases".
                 "MY_ALIASED_VALUE" : {
@@ -238,6 +245,7 @@ Instances in text-format follows this format.
 
         "int_member1"  : 123,        // integers is writtend as integers ...
         "int_member2"  : 0xFE,       // ... or in hex ...
+        "int_member2"  : 0b11001,    // ... or as a binary literal ...
         "int_member3"  : min,        // ... or as a constant, supported are (+-)min/max which value are depending on member-type.
 
         "float_member1" : 1.2,       // fp32/fp64 are written as floats ...
