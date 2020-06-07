@@ -113,7 +113,9 @@ Type-libs in text-format follows this format.
     // "module" is unused and deprecated.
     "module" : "unit_test",
 
-    // "c_includes" Code that will be copied, verbatim, into generated headers (e.g. include statements).
+    // "c_includes" is a list of includes to output to generated c-header. DL will not do anything more that save and
+    // write these to the header as '#include "../../tests/dl_test_included.h"' or '#include <some/system/header.h>'
+    // if the specified string starts with '<'.
     "c_includes" : ["../../tests/dl_test_included.h", 
                     "<some/system/header.h>"],
 
