@@ -66,7 +66,7 @@ long long dl_txt_pack_eat_strtoll( dl_ctx_t dl_ctx, dl_txt_read_ctx* read_ctx, l
 		dl_txt_read_failed( dl_ctx, read_ctx, DL_ERROR_TXT_RANGE_ERROR, "expected a value of type '%s', more than 63 bits in binary literal", type );
 
 	if(bin.was_binlit)
-		v = (bin.was_negative ? -1 : 1) * bin.value;
+		v = (bin.was_negative ? -1 : 1) * (long long)bin.value;
 	else
 	{
 		errno = 0;
