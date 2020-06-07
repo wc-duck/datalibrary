@@ -107,7 +107,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->enum_value_descs = dl_realloc_array( &dl_ctx->alloc, dl_ctx->enum_value_descs, dl_ctx->enum_value_count + header.enum_value_count,           dl_ctx->enum_value_count );
 	dl_ctx->enum_alias_descs = dl_realloc_array( &dl_ctx->alloc, dl_ctx->enum_alias_descs, dl_ctx->enum_alias_count + header.enum_alias_count,           dl_ctx->enum_alias_count );
 	dl_ctx->typedata_strings = dl_realloc_array( &dl_ctx->alloc, dl_ctx->typedata_strings, dl_ctx->typedata_strings_size + header.typeinfo_strings_size, dl_ctx->typedata_strings_size );
-	dl_ctx->c_includes       = dl_realloc_array( &dl_ctx->alloc, dl_ctx->c_includes,       dl_ctx->c_includes_size + header.c_includes_size,             dl_ctx->c_includes_size );
+	if(header.c_includes_size)
+		dl_ctx->c_includes   = dl_realloc_array( &dl_ctx->alloc, dl_ctx->c_includes,       dl_ctx->c_includes_size + header.c_includes_size,             dl_ctx->c_includes_size );
 
 	memcpy( dl_ctx->type_ids         + dl_ctx->type_count,            lib_data + types_lookup_offset, sizeof( dl_typeid_t ) * header.type_count );
 	memcpy( dl_ctx->enum_ids         + dl_ctx->enum_count,            lib_data + enums_lookup_offset, sizeof( dl_typeid_t ) * header.enum_count );
@@ -117,7 +118,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	memcpy( dl_ctx->enum_value_descs + dl_ctx->enum_value_count,      lib_data + enum_values_offset,  sizeof( dl_enum_value_desc ) * header.enum_value_count );
 	memcpy( dl_ctx->enum_alias_descs + dl_ctx->enum_alias_count,      lib_data + enum_aliases_offset, sizeof( dl_enum_alias_desc ) * header.enum_alias_count );
 	memcpy( dl_ctx->typedata_strings + dl_ctx->typedata_strings_size, lib_data + typedata_strings_offset, header.typeinfo_strings_size );
-	memcpy( dl_ctx->c_includes       + dl_ctx->c_includes_size,       lib_data + c_includes_offset,       header.c_includes_size );
+	if(header.c_includes_size)
+		memcpy( dl_ctx->c_includes   + dl_ctx->c_includes_size,       lib_data + c_includes_offset,       header.c_includes_size );
 
 	if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
 	{
