@@ -4,7 +4,6 @@
 #define CONTAINER_ARRAY_H_INCLUDED
 
 #include <dl/dl_defines.h>
-#include <new>
 
 /*
 Class: CArrayNoResizeBase
@@ -25,7 +24,7 @@ public:
 
 	/*
 	Destructor: CArrayNoResizeBase
-	Constructs an array that is 
+	Constructs an array that is
 	*/
 	~CArrayStatic(){Reset();}
 
@@ -59,7 +58,7 @@ public:
 	}
 	/*
 	Function: Len()
-	Get used size	
+	Get used size
 
 	Returns:
 	Returns Return used length;
@@ -119,7 +118,7 @@ public:
 	*/
 	T& operator[](size_t _iEl)
 	{
-		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Storage[_iEl];
 	}
 
@@ -134,65 +133,18 @@ public:
 	*/
 	const T& operator[](size_t _iEl) const
 	{
-		DL_ASSERT(_iEl < m_nElements && "Index out of bound");		
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Storage[_iEl];
 	}
 
 	/*
 	Function: GetBasePtr
 	Get the array base pointer.
-	
+
 	Returns:
 	Returns array base pointer.
 	*/
 	inline T* GetBasePtr() { return m_Storage; }
-};
-
-/*
-	Class: CStackStatic
-		Implementation of a stack containing its own static memory.
-
-	Parameters:
-		T         - Type of elements in stack
-		SIZE      - Number of elements in stack
-*/
-template <typename T, int SIZE>
-class CStackStatic
-{
-public:
-	CArrayStatic<T, SIZE> m_Data;
-	/*
-		Function: Push
-	*/
-	void Push(const T& _Elem) { m_Data.Add(_Elem); }
-
-	/*
-		Function: Pop
-
-		Note:
-			A call to top on an empty stack is invalid!
-	*/
-	void Pop() { m_Data.Decr(); }
-
-	/*
-		Function: Top
-			Return a reference to the current top-element on the stack.
-
-		Note:
-			A call to top on an empty stack is invalid!
-	*/
-	T& Top() { DL_ASSERT( !Empty() && "Stack is empty" ); return m_Data[m_Data.Len() - 1]; }
-
-	/*
-		Function: Empty
-	*/
-	bool Empty() { return Len() == 0; }
-
-	/*
-		Function: Len
-			Return the number of elements currently in the stack.
-	*/
-	size_t Len() { return m_Data.Len(); }
 };
 
 #endif //CONTAINER_ARRAY_H_INCLUDED

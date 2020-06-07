@@ -5,7 +5,7 @@
 
 // TODO: replace with murmur3
 
-DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8_t* buffer, size_t bytes )
+static inline uint32_t dl_internal_hash_buffer( const uint8_t* buffer, size_t bytes )
 {
 	uint32_t hash = 5381;
 	for (unsigned int i = 0; i < bytes; i++)
@@ -13,7 +13,7 @@ DL_FORCEINLINE static uint32_t dl_internal_hash_buffer( const uint8_t* buffer, s
 	return hash - 5381;
 }
 
-DL_FORCEINLINE static uint32_t dl_internal_hash_string( const char* str )
+static inline uint32_t dl_internal_hash_string( const char* str )
 {
 	uint32_t hash = 5381;
 	for (unsigned int i = 0; str[i] != 0; i++)

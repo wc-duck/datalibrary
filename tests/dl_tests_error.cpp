@@ -72,20 +72,11 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 		#include "generated/unittest.bin.h"
 	};
 
-	unsigned char modded_type_lib[sizeof(typelib)];
-
+	uint32_t modded_type_lib[sizeof(typelib)/sizeof(uint32_t) + 1];
 	memcpy( modded_type_lib, typelib, sizeof(typelib) );
 
-	EXPECT_EQ(4u, sizeof(unsigned int));
-
-	union
-	{
-		unsigned char* lib;
-		unsigned int*  version;
-	} conv;
-	conv.lib = modded_type_lib;
 	// testing that errors are returned correctly by modding data.
-	unsigned int* lib_version = conv.version + 1;
+	uint32_t* lib_version = modded_type_lib + 1;
 
 	EXPECT_EQ(4u, *lib_version);
 
@@ -95,7 +86,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 	dl_create_params_t p;
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
 	EXPECT_DL_ERR_OK( dl_context_create( &tmp_ctx, &p ) );
-	EXPECT_DL_ERR_EQ( DL_ERROR_VERSION_MISMATCH, dl_context_load_type_library( tmp_ctx, modded_type_lib, sizeof(modded_type_lib) ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_VERSION_MISMATCH, dl_context_load_type_library( tmp_ctx, (unsigned char*)modded_type_lib, sizeof(modded_type_lib) ) );
 	EXPECT_DL_ERR_OK( dl_context_destroy( tmp_ctx ) );
 }
 

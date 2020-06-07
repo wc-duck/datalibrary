@@ -33,19 +33,25 @@ dl_error_t dl_reflect_loaded_enumids( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, u
 
 static void dl_reflect_copy_type_info( dl_ctx_t ctx, dl_type_info_t* typeinfo, const dl_type_desc* type )
 {
-	typeinfo->tid          = ctx->type_ids[ type - ctx->type_descs ];
-	typeinfo->name         = dl_internal_type_name( ctx, type );
-	typeinfo->size         = type->size[DL_PTR_SIZE_HOST];
-	typeinfo->alignment    = type->alignment[DL_PTR_SIZE_HOST];
-	typeinfo->member_count = type->member_count;
-	typeinfo->is_extern    = ( type->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
+	typeinfo->tid           = ctx->type_ids[ type - ctx->type_descs ];
+	typeinfo->name          = dl_internal_type_name( ctx, type );
+	typeinfo->comment       = dl_internal_type_comment( ctx, type );
+	typeinfo->size          = type->size[DL_PTR_SIZE_HOST];
+	typeinfo->alignment     = type->alignment[DL_PTR_SIZE_HOST];
+	typeinfo->member_count  = type->member_count;
+	typeinfo->is_extern     = ( type->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
+	typeinfo->is_union      = ( type->flags & DL_TYPE_FLAG_IS_UNION ) ? 1 : 0;
+	typeinfo->should_verify = ( type->flags & DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN ) ? 1 : 0;
 }
 
 static void dl_reflect_copy_enum_info( dl_ctx_t ctx, dl_enum_info_t* enuminfo, const dl_enum_desc* enum_ )
 {
 	enuminfo->tid         = ctx->enum_ids[ enum_ - ctx->enum_descs ];
 	enuminfo->name        = dl_internal_enum_name( ctx, enum_ );
+	enuminfo->comment     = dl_internal_enum_comment( ctx, enum_ );
+	enuminfo->storage     = enum_->storage;
 	enuminfo->value_count = enum_->value_count;
+	enuminfo->is_extern   = ( enum_->flags & DL_TYPE_FLAG_IS_EXTERNAL ) ? 1 : 0;
 }
 
 dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_type_info_t* out_types, unsigned int out_types_size )
@@ -114,14 +120,18 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 	{
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
 
-		out_members[member_index].name        = dl_internal_member_name( dl_ctx, member );
-		out_members[member_index].type        = member->type;
-		out_members[member_index].type_id     = member->type_id;
-		out_members[member_index].size        = member->size[DL_PTR_SIZE_HOST];
-		out_members[member_index].alignment   = member->alignment[DL_PTR_SIZE_HOST];
-		out_members[member_index].offset      = member->offset[DL_PTR_SIZE_HOST];
-		out_members[member_index].array_count = 0;
-		out_members[member_index].bits        = 0;
+		out_members[member_index].name          = dl_internal_member_name( dl_ctx, member );
+		out_members[member_index].comment       = dl_internal_member_comment( dl_ctx, member );
+		out_members[member_index].atom          = member->AtomType();
+		out_members[member_index].storage       = member->StorageType();
+		out_members[member_index].type_id       = member->type_id;
+		out_members[member_index].size          = member->size[DL_PTR_SIZE_HOST];
+		out_members[member_index].alignment     = member->alignment[DL_PTR_SIZE_HOST];
+		out_members[member_index].offset        = member->offset[DL_PTR_SIZE_HOST];
+		out_members[member_index].array_count   = 0;
+		out_members[member_index].bits          = 0;
+		out_members[member_index].is_const      = ( member->flags & DL_MEMBER_FLAG_IS_CONST ) ? 1 : 0;
+		out_members[member_index].should_verify = ( member->flags & DL_MEMBER_FLAG_VERIFY_EXTERNAL_SIZE_OFFSET ) ? 1 : 0;
 
 		switch(member->AtomType())
 		{
@@ -129,7 +139,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 				out_members[member_index].array_count = member->inline_array_cnt();
 				break;
 			case DL_TYPE_ATOM_BITFIELD:
-				out_members[member_index].bits = member->BitFieldBits();
+				out_members[member_index].bits = member->bitfield_bits();
 				break;
 			default:
 				break;
@@ -149,7 +159,8 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_
 	{
 		const dl_enum_value_desc* v = dl_get_enum_value( dl_ctx, e, value );
 		out_values[value].name  = dl_internal_enum_alias_name( dl_ctx, &dl_ctx->enum_alias_descs[v->main_alias]);
-		out_values[value].value = v->value;
+		out_values[value].comment = dl_internal_enum_value_comment( dl_ctx, v);
+		out_values[value].value.u64 = v->value;
 	}
 
 	return DL_ERROR_OK;

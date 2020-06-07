@@ -1,32 +1,38 @@
 {
 	"module" : "unit_test",
-	
-	"usercode" : [ "#include \"../../tests/dl_test_included.h\"" ],
-	
+
+	"c_includes" : [ "<stdio.h>" ], // just testing... not actually needed!
+
 	"enums" : {
 		"TestEnum1" : {
-			"TESTENUM1_VALUE1" : 0,
-			"TESTENUM1_VALUE2" : 1,
-			"TESTENUM1_VALUE3" : 2,
-			"TESTENUM1_VALUE4" : 3
+			"values" : {
+				"TESTENUM1_VALUE1" : 0,
+				"TESTENUM1_VALUE2" : 1,
+				"TESTENUM1_VALUE3" : 2,
+				"TESTENUM1_VALUE4" : 3
+			}
 		},
 
 		"TestEnum2" : {
-			"TESTENUM2_VALUE1" : 7,
-			"TESTENUM2_VALUE2" : 1337,
-			"TESTENUM2_VALUE3" : 1338,
-			"TESTENUM2_VALUE4" : 1337
+			"values" : {
+				"TESTENUM2_VALUE1" : 7,
+				"TESTENUM2_VALUE2" : 1337,
+				"TESTENUM2_VALUE3" : { "value" : 1338, "comment" : "whippzores!" },
+				"TESTENUM2_VALUE4" : { "value" : 1337, "comment" : "whoppa!" }
+			}
 		},
 
 		"multi_alias_enum" : {
-			"MULTI_ALIAS1" : { "value" : 7, "aliases" : [ "alias1", "alias2", "alias3" ] },
-			"MULTI_ALIAS2" : { "value" : 8, "aliases" : [ "alias4" ] }
+			"values" : {
+				"MULTI_ALIAS1" : { "value" : 7, "aliases" : [ "alias1", "alias2", "alias3" ] },
+				"MULTI_ALIAS2" : { "value" : 8, "aliases" : [ "alias4" ] }
+			}
 		}
 	},
-	
+
 	"types" : {
 		"unused" : { "members" : [ { "name" : "member",  "type" : "int32", "comment" : "only used in unittests to check for errors" } ] },
-		
+
 		"Pods" : {
 			"members" : [
 				{ "name" : "i8",  "type" : "int8"   },
@@ -41,27 +47,57 @@
 				{ "name" : "f64", "type" : "fp64"   }
 			]
 		},
-		
+
+		"i8Array"   : { "members" : [ { "name" : "arr",  "type" : "int8[]"   } ] },
+        "i16Array"  : { "members" : [ { "name" : "arr",  "type" : "int16[]"  } ] },
+        "i32Array"  : { "members" : [ { "name" : "arr",  "type" : "int32[]"  } ] },
+        "i64Array"  : { "members" : [ { "name" : "arr",  "type" : "int64[]"  } ] },
+        "u8Array"   : { "members" : [ { "name" : "arr",  "type" : "uint8[]"  } ] },
+        "u16Array"  : { "members" : [ { "name" : "arr",  "type" : "uint16[]" } ] },
+        "u32Array"  : { "members" : [ { "name" : "arr",  "type" : "uint32[]" } ] },
+        "u64Array"  : { "members" : [ { "name" : "arr",  "type" : "uint64[]" } ] },
+        "fp32Array" : { "members" : [ { "name" : "arr",  "type" : "fp32[]"   } ] },
+        "fp64Array" : { "members" : [ { "name" : "arr",  "type" : "fp64[]"   } ] },
+        "strArray"  : { "members" : [ { "name" : "arr",  "type" : "string[]" } ] },
+        "ptrArray"  : { "members" : [ { "name" : "arr",  "type" : "Pods*[]"  } ] },
+        "enumArray" : { "members" : [ { "name" : "arr",  "type" : "TestEnum1[]" } ] },
+        "default_empty_type" : { "members" : [ { "name" : "empty", "type" : "uint32", "default" : 0 } ] }
+	},
+
+	"unions" : {
+		"test_union_simple" : {
+			"members" : [
+				{ "name" : "item1", "type" : "int32" },
+				{ "name" : "item2", "type" : "fp32"  },
+				{ "name" : "item3", "type" : "Pods"  }
+			]
+		}
+	},
+
+	"types" : {
 		"MorePods"     : { "members" : [ { "name" : "Pods1", "type" : "Pods"  },  { "name" : "Pods2", "type" : "Pods" }   ] },
 		"Pods2"        : { "members" : [ { "name" : "Int1",  "type" : "uint32" }, { "name" : "Int2",  "type" : "uint32" } ] },
 		"Pod2InStruct" : { "members" : [ { "name" : "Pod1",  "type" : "Pods2" },  { "name" : "Pod2",  "type" : "Pods2" }  ] },
-		
-		"Pod2InStructInStruct"        : { "members" : [ { "name" : "p2struct", "type" : "Pod2InStruct" } ] }, 
+
+		"Pod2InStructInStruct"        : { "members" : [ { "name" : "p2struct", "type" : "Pod2InStruct" } ] },
 		"WithInlineArray"             : { "members" : [ { "name" : "Array",    "type" : "uint32[3]" } ] },
 		"WithInlineStructArray"       : { "members" : [ { "name" : "Array",    "type" : "Pods2[3]" } ] },
 		"WithInlineStructStructArray" : { "members" : [ { "name" : "Array",    "type" : "WithInlineStructArray[2]" } ] },
-		
-		"PodArray1"    : { "members" : [ { "name" : "u32_arr", "type" : "uint32[]" } ] }, 
-		"PodArray2"    : { "members" : [ { "name" : "sub_arr", "type" : "PodArray1[]" } ] }, 
-		
+
+		"SubString"                   : { "members" : [ { "name" : "Str",      "type" : "string" } ] },
+		"InlineArrayWithSubString"    : { "members" : [ { "name" : "Array",    "type" : "SubString[2]" } ] },
+
+		"PodArray1"    : { "members" : [ { "name" : "u32_arr", "type" : "uint32[]" } ] },
+		"PodArray2"    : { "members" : [ { "name" : "sub_arr", "type" : "PodArray1[]" } ] },
+
 		"StructArray1" : { "members" : [ { "name" : "Array", "type" : "Pods2[]" }  ] },
-		
+
 		"Strings"           : { "members" : [ { "name" : "Str1", "type" : "string" }, { "name" : "Str2", "type" : "string" } ] },
 		"StringInlineArray" : { "members" : [ { "name" : "Strings", "type" : "string[3]" } ] },
 		"StringArray"       : { "members" : [ { "name" : "Strings", "type" : "string[]" } ] },
-		
+
 		"TestBits" : {
-			"members" : [ 
+			"members" : [
 				{ "name" : "Bit1", "type" : "bitfield:1" },
 				{ "name" : "Bit2", "type" : "bitfield:2" },
 				{ "name" : "Bit3", "type" : "bitfield:3" },
@@ -71,14 +107,14 @@
 				{ "name" : "Bit6", "type" : "bitfield:3" }
 			]
 		},
-		
+
 		"MoreBits" : {
-			"members" : [ 
+			"members" : [
 				{ "name" : "Bit1", "type" : "bitfield:15" },
 				{ "name" : "Bit2", "type" : "bitfield:7" }
 			]
 		},
-		
+
 		"BitBitfield64" : {
 			"members" : [
 				{ "name" : "Package",  "type" : "bitfield:7" },
@@ -87,21 +123,21 @@
 				{ "name" : "FileHash", "type" : "bitfield:32" }
 			]
 		},
-		
+
 		"SimplePtr" : {
-			"members" : [ 
+			"members" : [
 				{ "name" : "Ptr1", "type" : "Pods*" },
-				{ "name" : "Ptr2", "type" : "Pods*" } 
-			] 
+				{ "name" : "Ptr2", "type" : "Pods*" }
+			]
 		},
-		
+
 		"PtrChain" : {
 			"members" : [
 				{ "name" : "Int",  "type" : "uint32" },
 				{ "name" : "Next", "type" : "PtrChain*" }
 			]
 		},
-		
+
 		"DoublePtrChain" : {
 			"members" : [
 				{ "name" : "Int",  "type" : "uint32" },
@@ -109,14 +145,26 @@
 				{ "name" : "Prev", "type" : "DoublePtrChain*" }
 			]
 		},
-		
+
+		"inline_ptr_array" : {
+			"members" : [
+				{ "name" : "arr", "type" : "Pods2*[3]" }
+			]
+		},
+
+		"ptr_array" : {
+			"members" : [
+				{ "name" : "arr", "type" : "Pods2*[]" }
+			]
+		},
+
 		"A128BitAlignedType" : { "align" : 128, "members" : [ { "name" : "Int",  "type" : "uint32" } ] },
-		
+
 		"TestingEnum" : { "members" : [ { "name" : "TheEnum", "type" : "TestEnum1" } ] },
-		
+
 		"InlineArrayEnum" : { "members" : [ { "name" : "EnumArr", "type" : "TestEnum2[4]" } ] },
 		"ArrayEnum"       : { "members" : [ { "name" : "EnumArr", "type" : "TestEnum2[]" } ] },
-		
+
 		// testing a comment here
 		"PodsDefaults" : {
 			"members" : [
@@ -133,6 +181,16 @@
 			]
 		},
 
+		"BitfieldDefaultsMulti" : {
+			"members" : [
+				{ "name": "f1", "type" : "bitfield:1", "default" : 0 },
+				{ "name": "f2", "type" : "bitfield:1", "default" : 1 },
+				{ "name": "f3", "type" : "bitfield:2", "default" : 0 },
+				{ "name": "f4", "type" : "bitfield:2", "default" : 1 },
+				{ "name": "f5", "type" : "bitfield:2", "default" : 2 },
+				{ "name": "f6", "type" : "bitfield:2", "default" : 3 }
+			]
+		},
 		/*
 			And a multiline comment here
 		*/
@@ -140,7 +198,7 @@
 		"DefaultEnum" :     { "members" : [ { "name" : "Enum",   "type" : "TestEnum1", "default" : "TESTENUM1_VALUE3"           } ] },
 		"DefaultStruct" :   { "members" : [ { "name" : "Struct", "type" : "Pods2",     "default" : { "Int1" : 13, "Int2" : 37 } } ] },
 		"DefaultPtr"  :     { "members" : [ { "name" : "Ptr",    "type" : "Pods*",     "default" : null                         } ] },
-		
+
 		/**
 			another comment
 		*/
@@ -156,13 +214,12 @@
 									  "default" : [ { "u32_arr" : [ 1, 3 ] }, { "u32_arr" : [ 3, 7 ] } ]
 									}
 	                             ] },
-		
 		///* hard one
 		"DefaultArrayPod"  :    { "members" : [ { "name" : "Arr",  "type" : "uint32[]",    "default" : [ 1, 3, 3, 7 ] } ] },
 		"DefaultArrayStr"  :    { "members" : [ { "name" : "Arr",  "type" : "string[]",    "default" : [ "cow", "bells", "are", "cool" ] } ] },
 		"DefaultArrayEnum" :    { "members" : [ { "name" : "Arr",  "type" : "TestEnum1[]", "default" : [ "TESTENUM1_VALUE3",
 		                                                                                                 "TESTENUM1_VALUE1",
-		                                                                                                 "TESTENUM1_VALUE2", 
+		                                                                                                 "TESTENUM1_VALUE2",
 		                                                                                                 "TESTENUM1_VALUE4" ] } ] },
 		"DefaultArrayArray" : { "members" : [ {
 									"name" : "Arr",
@@ -171,7 +228,7 @@
 								  }
 	                            ] },
 
-		"DefaultWithOtherDataBefore" : { 
+		"DefaultWithOtherDataBefore" : {
 			"members" : [
 				{ "name" : "t1",  "type" : "string" },
 				{ "name" : "Str", "type" : "string", "default" : "who" }
@@ -186,25 +243,25 @@
 				{ "name" : "e4", "type" : "multi_alias_enum" }
 			]
 		},
-		
+
 		"BugTest4" : {
 			"members" : [
 				{ "name" : "struct_with_str_arr", "type" : "StringArray[]" }
 			]
 		},
-		
+
 		"PtrHolder" : { "members" : [ { "name" : "ptr", "type" : "Pods2*"      } ] },
 		"PtrArray"  : { "members" : [ { "name" : "arr", "type" : "PtrHolder[]" } ] },
-		
+
 		"circular_array_ptr_holder" : { "members" : [ { "name" : "ptr", "type" : "circular_array*" } ] },
-		"circular_array" : { 
-			"members" : [ 
+		"circular_array" : {
+			"members" : [
 				{ "name" : "val", "type" : "uint16" }, // alignment-bug here, put this member after array and it will fail!
-				{ "name" : "arr", "type" : "circular_array_ptr_holder[]" } 
+				{ "name" : "arr", "type" : "circular_array_ptr_holder[]" }
 			]
 		},
-		
-		
+
+
 		"str_before_array_bug_arr_type" : { "members" : [ { "name" : "str", "type" : "string" } ] },
 		"str_before_array_bug" : {
 		    "members" : [
@@ -212,7 +269,7 @@
 		        { "name" : "arr", "type": "str_before_array_bug_arr_type[]"}
 		    ]
 		},
-		
+
 		"bug_array_alignment_struct" : {
 			"members" : [
 				{ "name" : "type",         "type" : "uint32" },
@@ -220,23 +277,151 @@
 				{ "name" : "used_sources", "type" : "uint32" }
 			]
 		},
-		
+
 		"bug_array_alignment" : {
 			"members" : [
 				{ "name" : "components", "type" : "bug_array_alignment_struct[]" }
 			]
 		},
-		
+
 		"test_array_pad_1" : {
 			"members" : [
 				{ "name" : "ptr",          "type" : "uint8[]" },
 				{ "name" : "type",         "type" : "uint32"  }
 			]
 		},
-		
+
 		"test_array_pad" : {
 			"members" : [
 				{ "name" : "components", "type" : "test_array_pad_1[]" }
+			]
+		},
+
+		"test_inline_array_size_from_enum" : {
+			"members" : [
+				{ "name" : "arr1", "type" : "int32[TESTENUM2_VALUE1]" },
+				{ "name" : "arr2", "type" : "int32[TESTENUM1_VALUE4]" }
+			]
+		},
+
+		"test_inline_array_of_unions" : {
+			"members" : [
+				{ "name" : "arr", "type" : "test_union_simple[3]" }
+			]
+		},
+
+		"single_int" : {
+			"members" : [
+				{ "name" : "val", "type" : "int32" }
+			]
+		},
+
+		"struct_with_a_bitfield" : {
+			"comment" : "! not_reloadable",
+			"members" : [
+				{	"name" : "my_variable_1",	"type" : "uint64", "default" : 0 },
+				{	"name" : "my_variable_2",	"type" : "uint32", "default" : 0 },
+				{	"name" : "my_variable_3",	"type" : "bitfield:1" }
+			]
+		},
+		"struct_with_some_defaults" : {
+			"members" : [
+				{ 	"name" : "some_variable_1", 	"type" : "uint32" },
+				{	"name" : "some_variable_2",		"type" : "fp32",			"default" : 0.5 },
+				{ 	"name" : "some_variable_3",		"type" : "fp32",			"default" : 0 },
+				{	"name" : "some_variable_4",		"type" : "fp32",			"default" : 20 },
+				{	"name" : "some_variable_5",		"type" : "fp32",			"default" : 0.1 }
+			]
+		},
+		"struct_with_one_member_and_default" : {
+			"members" : [
+				{	"name" : "dummy", "type" : "uint32", "default" : 0 }
+			]
+		},
+		"single_default_uint32" : {
+			"members" : [
+				{ "name" : "u", "type" : "uint32", "default" : 1337 }
+			]
+		},
+
+		"test_inline_array_default_struct1" : {
+			"members" : [
+				{ "name" : "arr", "type" : "single_default_uint32[3]", "default" : [] }
+			]
+		},
+
+		"test_inline_array_default_struct2" : {
+			"members" : [
+				{ "name" : "arr", "type" : "single_default_uint32[3]", "default" : [{"u" : 7331}] }
+			]
+		},
+
+		"vector2_type" : {
+			"members" : [
+				{ "name" : "x", "type" : "fp32" },
+				{ "name" : "y", "type" : "fp32" }
+			]
+		},
+		"member_with_array_of_vector" : {
+			"members" : [
+				{ "name" : "varr", "type" : "vector2_type[2]" }
+			]
+		},
+		"struct_with_member_with_array_of_vector" : {
+			"members" : [
+				{ "name" : "a", "type" : "member_with_array_of_vector" }
+			]
+		}
+	},
+	"unions" : {
+		"union_with_weird_members" : {
+			"members" : [
+				{ "name" : "spawn_particles",	"type" : "struct_with_a_bitfield" },
+				{ "name" : "decay",				"type" : "struct_with_some_defaults" },
+				{ "name" : "hide_all_meshes",	"type" : "struct_with_one_member_and_default" }
+			]
+		},
+
+		"test_union_inline_array" : {
+			"members" : [
+				{ "name" : "i32",    "type" : "int32" },
+				{ "name" : "inlarr", "type" : "int32[6]" }
+			]
+		},
+		"test_union_array" : {
+			"members" : [
+				{ "name" : "i32", "type" : "int32" },
+				{ "name" : "arr", "type" : "int32[]" }
+			]
+		},
+		"test_union_ptr" : {
+			"members" : [
+				{ "name" : "p1", "type" : "Pods*" },
+				{ "name" : "p2", "type" : "SubString*" }
+			]
+		},
+		"test_has_union_array": {
+			"members": [
+				{ "name": "floats", "type": "fp32[]"  },
+				{ "name": "ints",   "type": "int32[]" }
+			]
+		}
+	},
+	"types" : {
+		"union_with_weird_members_event" : {
+			"members" : [
+				{	"name" : "effect",				"type" : "union_with_weird_members" },
+				{	"name" : "delay",				"type" : "fp32", "default" : 0 }
+			]
+		},
+		"struct_with_array_of_weird_unions" : {
+			"members" : [
+				{ "name" : "event_array",				"type" : "union_with_weird_members_event[]" }
+			]
+		},
+		"test_with_union_array" : {
+			"members" : [
+				{ "name" : "properties", "type" : "test_has_union_array[]" }
 			]
 		}
 	}

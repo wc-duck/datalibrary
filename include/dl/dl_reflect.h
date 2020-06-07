@@ -5,11 +5,13 @@
 
 /*
 	File: dl_reflect.h
-		Functions used to get information about types and type-members. Mostly designed for 
+		Functions used to get information about types and type-members. Mostly designed for
 		use when binding DL towards other languages.
 */
 
 #include <dl/dl.h>
+
+#include <stdint.h>
 
 /*
 	Struct: dl_type_context_info_t
@@ -29,10 +31,13 @@ typedef struct dl_type_info
 {
 	dl_typeid_t  tid;
 	const char*  name;
+	const char*  comment;
 	unsigned int size;
 	unsigned int alignment;
 	unsigned int member_count;
 	unsigned int is_extern : 1;
+	unsigned int is_union : 1;
+	unsigned int should_verify : 1;
 } dl_type_info_t;
 
 /*
@@ -41,14 +46,18 @@ typedef struct dl_type_info
 */
 typedef struct dl_member_info
 {
-	const char*  name;
-	dl_type_t    type;
-	dl_typeid_t  type_id;
-	unsigned int size;
-	unsigned int alignment;
-	unsigned int offset;
-	unsigned int array_count;
-	unsigned int bits;
+	const char*       name;
+	const char*       comment;
+	dl_type_atom_t    atom;
+	dl_type_storage_t storage;
+	dl_typeid_t       type_id;
+	unsigned int      size;
+	unsigned int      alignment;
+	unsigned int      offset;
+	unsigned int      array_count;
+	unsigned int      bits;
+	unsigned int 	  is_const : 1;
+	unsigned int 	  should_verify : 1;
 } dl_member_info_t;
 
 /*
@@ -57,9 +66,12 @@ typedef struct dl_member_info
 */
 typedef struct dl_enum_info
 {
-	dl_typeid_t  tid;
-	const char*  name;
-	unsigned int value_count;
+	dl_typeid_t       tid;
+	const char*       name;
+	const char*       comment;
+	dl_type_storage_t storage;
+	unsigned int      value_count;
+	unsigned int      is_extern : 1;
 } dl_enum_info_t;
 
 /*
@@ -68,8 +80,19 @@ typedef struct dl_enum_info
 */
 typedef struct dl_enum_value_info
 {
-	const char*  name;
-	unsigned int value;
+	const char* name;
+	const char* comment;
+	union
+	{
+		int8_t   i8;
+		int16_t  i16;
+		int32_t  i32;
+		int64_t  i64;
+		uint8_t  u8;
+		uint16_t u16;
+		uint32_t u32;
+		uint64_t u64;
+	} value;
 } dl_enum_value_info_t;
 
 #ifdef __cplusplus

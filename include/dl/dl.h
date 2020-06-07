@@ -20,6 +20,19 @@ extern "C" {
 typedef struct dl_context* dl_ctx_t;
 
 /*
+	Max amount of members in one single type
+
+	Note:
+		if this is changed by the user, this need to be a multiple of 2
+*/
+static const int DL_MEMBERS_IN_TYPE_MAX     = 2048;
+
+/*
+	Max length of an inline array in a member.
+*/
+static const int DL_INLINE_ARRAY_LENGTH_MAX = 0xFFFF;
+
+/*
 	Enum: dl_error_t
 		Error-codes from DL
 
@@ -28,12 +41,12 @@ typedef struct dl_context* dl_ctx_t;
 	DL_ERROR_VERSION_MISMATCH                              - Data created with another version of DL.
 	DL_ERROR_OUT_OF_LIBRARY_MEMORY                         - Out of memory.
 	DL_ERROR_OUT_OF_INSTANCE_MEMORY                        - Out of instance memory.
-	DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR  - DL would need to do a dynamic allocation but has now allocator set for that.
+	DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR  - DL would need to do a dynamic allocation but has no allocator.
 	DL_ERROR_TYPE_MISMATCH                                 - Expected type A but found type B.
 	DL_ERROR_TYPE_NOT_FOUND                                - Could not find a requested type. Is the correct type library loaded?
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
 	DL_ERROR_BUFFER_TO_SMALL                               - Provided buffer is to small.
-	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platforms.
+	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platform's.
 	DL_ERROR_BAD_ALIGNMENT                                 - One argument has a bad alignment that will break, for example, loaded data.
 	DL_ERROR_UNSUPPORTED_OPERATION                         - The operation is not supported by dl-function.
 
@@ -41,7 +54,7 @@ typedef struct dl_context* dl_ctx_t;
 	DL_ERROR_TXT_MEMBER_MISSING                            - A member is missing in a struct and in do not have a default value.
 	DL_ERROR_TXT_MEMBER_SET_TWICE                          - A member is set twice in one struct.
 
-	DL_ERROR_UTIL_FILE_NOT_FOUND                           - A argument-file is not found.
+	DL_ERROR_UTIL_FILE_NOT_FOUND                           - An argument-file is not found.
 	DL_ERROR_UTIL_FILE_TYPE_MISMATCH                       - File type specified to read do not match file content.
 
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
@@ -57,7 +70,6 @@ typedef enum
 	DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS,
 	DL_ERROR_TYPE_MISMATCH,
 	DL_ERROR_TYPE_NOT_FOUND,
-	DL_ERROR_MEMBER_NOT_FOUND,
 	DL_ERROR_BUFFER_TO_SMALL,
 	DL_ERROR_ENDIAN_MISMATCH,
 	DL_ERROR_BAD_ALIGNMENT,
@@ -66,12 +78,14 @@ typedef enum
 	DL_ERROR_UNSUPPORTED_OPERATION,
 
 	DL_ERROR_TXT_PARSE_ERROR,
-	DL_ERROR_TXT_MULTIPLE_DATA_SECTIONS,
-	DL_ERROR_TXT_DATA_SECTION_MISSING,
-	DL_ERROR_TXT_MEMBER_MISSING,
+	DL_ERROR_TXT_MISSING_MEMBER,
 	DL_ERROR_TXT_MEMBER_SET_TWICE,
+	DL_ERROR_TXT_INVALID_MEMBER,
+	DL_ERROR_TXT_RANGE_ERROR,
 	DL_ERROR_TXT_INVALID_MEMBER_TYPE,
 	DL_ERROR_TXT_INVALID_ENUM_VALUE,
+	DL_ERROR_TXT_MISSING_SECTION,
+	DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET,
 
 	DL_ERROR_TYPELIB_MISSING_MEMBERS_IN_TYPE,
 
@@ -82,59 +96,49 @@ typedef enum
 } dl_error_t;
 
 /*
-	Enum: dl_type_t
-		Enumeration that describes a specific type in DL.
+	Enum: dl_type_atom_t
+		used in dl_type_t and determies the 'atom' type of a member.
 */
 typedef enum
 {
-	// Type-layout
-	DL_TYPE_ATOM_MIN_BIT             = 0,
-	DL_TYPE_ATOM_MAX_BIT             = 7,
-	DL_TYPE_STORAGE_MIN_BIT          = 8,
-	DL_TYPE_STORAGE_MAX_BIT          = 15,
-	DL_TYPE_BITFIELD_SIZE_MIN_BIT    = 16,
-	DL_TYPE_BITFIELD_SIZE_MAX_BIT    = 23,
-	DL_TYPE_BITFIELD_OFFSET_MIN_BIT  = 24,
-	DL_TYPE_BITFIELD_OFFSET_MAX_BIT  = 31,
-	DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT = 16,
-	DL_TYPE_INLINE_ARRAY_CNT_MAX_BIT = 31,
+	DL_TYPE_ATOM_POD,
+	DL_TYPE_ATOM_ARRAY,
+	DL_TYPE_ATOM_INLINE_ARRAY,
+	DL_TYPE_ATOM_BITFIELD,
 
-	// Field sizes
-	DL_TYPE_BITFIELD_SIZE_BITS_USED    = DL_TYPE_BITFIELD_SIZE_MAX_BIT + 1   - DL_TYPE_BITFIELD_SIZE_MIN_BIT,
-	DL_TYPE_BITFIELD_OFFSET_BITS_USED  = DL_TYPE_BITFIELD_OFFSET_MAX_BIT + 1 - DL_TYPE_BITFIELD_OFFSET_MIN_BIT,
-	DL_TYPE_INLINE_ARRAY_CNT_BITS_USED = DL_TYPE_INLINE_ARRAY_CNT_MAX_BIT + 1 - DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT,
+	DL_TYPE_ATOM_CNT
+} dl_type_atom_t;
 
-	// Masks
-	DL_TYPE_ATOM_MASK             = DL_BITRANGE(DL_TYPE_ATOM_MIN_BIT,             DL_TYPE_ATOM_MAX_BIT),
-	DL_TYPE_STORAGE_MASK          = DL_BITRANGE(DL_TYPE_STORAGE_MIN_BIT,          DL_TYPE_STORAGE_MAX_BIT),
-	DL_TYPE_BITFIELD_SIZE_MASK    = DL_BITRANGE(DL_TYPE_BITFIELD_SIZE_MIN_BIT,    DL_TYPE_BITFIELD_SIZE_MAX_BIT),
-	DL_TYPE_BITFIELD_OFFSET_MASK  = DL_BITRANGE(DL_TYPE_BITFIELD_OFFSET_MIN_BIT,  DL_TYPE_BITFIELD_OFFSET_MAX_BIT),
-	DL_TYPE_INLINE_ARRAY_CNT_MASK = DL_BITRANGE(DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT, DL_TYPE_INLINE_ARRAY_CNT_MAX_BIT),
+/*
+	Enum: dl_type_storage_t
+		used in dl_type_t and determies the 'storage' type of a member.
+*/
+typedef enum
+{
+	DL_TYPE_STORAGE_INT8,
+	DL_TYPE_STORAGE_INT16,
+	DL_TYPE_STORAGE_INT32,
+	DL_TYPE_STORAGE_INT64,
+	DL_TYPE_STORAGE_UINT8,
+	DL_TYPE_STORAGE_UINT16,
+	DL_TYPE_STORAGE_UINT32,
+	DL_TYPE_STORAGE_UINT64,
+	DL_TYPE_STORAGE_FP32,
+	DL_TYPE_STORAGE_FP64,
+	DL_TYPE_STORAGE_ENUM_INT8,
+	DL_TYPE_STORAGE_ENUM_INT16,
+	DL_TYPE_STORAGE_ENUM_INT32,
+	DL_TYPE_STORAGE_ENUM_INT64,
+	DL_TYPE_STORAGE_ENUM_UINT8,
+	DL_TYPE_STORAGE_ENUM_UINT16,
+	DL_TYPE_STORAGE_ENUM_UINT32,
+	DL_TYPE_STORAGE_ENUM_UINT64,
+	DL_TYPE_STORAGE_STR,
+	DL_TYPE_STORAGE_PTR,
+	DL_TYPE_STORAGE_STRUCT,
 
-	// Atomic types
-	DL_TYPE_ATOM_POD          = DL_INSERT_BITS(0x00000000, 1, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1),
-	DL_TYPE_ATOM_ARRAY        = DL_INSERT_BITS(0x00000000, 2, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1),
-	DL_TYPE_ATOM_INLINE_ARRAY = DL_INSERT_BITS(0x00000000, 3, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1),
-	DL_TYPE_ATOM_BITFIELD     = DL_INSERT_BITS(0x00000000, 4, DL_TYPE_ATOM_MIN_BIT, DL_TYPE_ATOM_MAX_BIT + 1),
-
-	// Storage type
-	DL_TYPE_STORAGE_INT8   = DL_INSERT_BITS(0x00000000,  1, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_INT16  = DL_INSERT_BITS(0x00000000,  2, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_INT32  = DL_INSERT_BITS(0x00000000,  3, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_INT64  = DL_INSERT_BITS(0x00000000,  4, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_UINT8  = DL_INSERT_BITS(0x00000000,  5, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_UINT16 = DL_INSERT_BITS(0x00000000,  6, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_UINT32 = DL_INSERT_BITS(0x00000000,  7, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_UINT64 = DL_INSERT_BITS(0x00000000,  8, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_FP32   = DL_INSERT_BITS(0x00000000,  9, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_FP64   = DL_INSERT_BITS(0x00000000, 10, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_STR    = DL_INSERT_BITS(0x00000000, 11, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_PTR    = DL_INSERT_BITS(0x00000000, 12, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_STRUCT = DL_INSERT_BITS(0x00000000, 13, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-	DL_TYPE_STORAGE_ENUM   = DL_INSERT_BITS(0x00000000, 14, DL_TYPE_STORAGE_MIN_BIT, DL_TYPE_STORAGE_MAX_BIT + 1),
-
-	DL_TYPE_FORCE_32_BIT = 0x7FFFFFFF
-} dl_type_t;
+	DL_TYPE_STORAGE_CNT
+} dl_type_storage_t;
 
 typedef enum
 {
@@ -142,7 +146,7 @@ typedef enum
 	DL_ENDIAN_LITTLE,
 } dl_endian_t;
 
-DL_FORCEINLINE dl_endian_t dl_endian_host()
+static inline dl_endian_t dl_endian_host()
 {
 	union { unsigned char c[4]; unsigned int  i; } test;
 	test.i = 0xAABBCCDD;
