@@ -115,6 +115,27 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "#endif // __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n\n" );
 }
 
+static void dl_context_write_c_header_includes( dl_binary_writer* writer, dl_ctx_t ctx )
+{
+	if(ctx->c_includes_size == 0)
+		return;
+
+	dl_binary_writer_write_string_fmt( writer, "//----------------------------------------------\n"
+											   "//                   INCLUDES                   \n"
+											   "//----------------------------------------------\n\n" );
+	size_t pos = 0;
+	while(pos < ctx->c_includes_size)
+	{
+		const char* include = ctx->c_includes + pos;
+		dl_binary_writer_write_string_fmt( writer, include[0] == '<' 
+													? "#include %s\n" 
+													: "#include \"%s\"\n", include );
+		pos += strlen(include) + 1;
+	}
+
+	dl_binary_writer_write_string_fmt( writer, "\n\n");
+}
+
 static void dl_context_write_c_header_end( dl_binary_writer* writer, const char* module_name_uppercase )
 {
 	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
@@ -783,6 +804,8 @@ dl_error_t dl_context_write_type_library_c_header( dl_ctx_t dl_ctx, const char* 
 	dl_binary_writer_init( &writer, (uint8_t*)out_header, out_header_size, out_header == 0x0, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 
 	dl_context_write_c_header_begin( &writer, MODULE_NAME );
+
+	dl_context_write_c_header_includes( &writer, dl_ctx );
 
 	dl_context_write_c_header_typeids( &writer, dl_ctx );
 

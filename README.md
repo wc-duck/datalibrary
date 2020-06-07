@@ -113,8 +113,9 @@ Type-libs in text-format follows this format.
     // "module" is unused and deprecated.
     "module" : "unit_test",
 
-    // "usercode" Code that will be copied, verbatim, into generated headers (e.g. include statements).
-    "usercode" : "#include \"../../tests/dl_test_included.h\"",
+    // "c_includes" Code that will be copied, verbatim, into generated headers (e.g. include statements).
+    "c_includes" : ["../../tests/dl_test_included.h", 
+                    "<some/system/header.h>"],
 
     // A typelibrary can have any number of "enums" sections. In each of these sections enum-types are specified.
     // An enum is just the same thing as in c/c++ a collection of integer-values.

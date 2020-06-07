@@ -22,15 +22,27 @@ static inline T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t
 static uint32_t dl_alloc_string( dl_ctx_t ctx, dl_substr* str )
 {
 	if( ctx->typedata_strings_cap - ctx->typedata_strings_size < (size_t)str->len + 2 )
-	{
 		ctx->typedata_strings = dl_grow_array( &ctx->alloc, ctx->typedata_strings, &ctx->typedata_strings_cap, (size_t)str->len + 2 );
-	}
+
 	uint32_t pos = (uint32_t)ctx->typedata_strings_size;
 	memcpy( &ctx->typedata_strings[ pos ], str->str, (size_t)str->len );
 	ctx->typedata_strings[ pos + (size_t)str->len ] = 0;
 	ctx->typedata_strings_size += (size_t)str->len + 1;
 	return pos;
 }
+
+static uint32_t dl_alloc_include( dl_ctx_t ctx, dl_substr* str )
+{
+	if( ctx->c_includes_cap - ctx->c_includes_size < (size_t)str->len + 2 )
+		ctx->c_includes = dl_grow_array( &ctx->alloc, ctx->c_includes, &ctx->c_includes_cap, (size_t)str->len + 2 );
+
+	uint32_t pos = (uint32_t)ctx->c_includes_size;
+	memcpy( &ctx->c_includes[ pos ], str->str, (size_t)str->len );
+	ctx->c_includes[ pos + (size_t)str->len ] = 0;
+	ctx->c_includes_size += (size_t)str->len + 1;
+	return pos;
+}
+
 
 static dl_type_desc* dl_alloc_type( dl_ctx_t ctx, dl_typeid_t tid )
 {
@@ -745,6 +757,23 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	edesc->comment     = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
 }
 
+static void dl_context_load_txt_type_library_read_c_includes( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
+{
+	// uint32_t includes = 0;
+	dl_txt_eat_char( ctx, read_state, '[' );
+	dl_txt_eat_white( read_state );
+	if( *read_state->iter == ']' )
+		return; // ... empty includes ...
+
+	do
+	{
+		dl_substr include = dl_txt_eat_and_expect_string( ctx, read_state );
+		dl_alloc_include(ctx, &include);
+	} while (dl_txt_try_eat_char( read_state, ','));
+
+	dl_txt_eat_char( ctx, read_state, ']' );
+}
+
 static void dl_context_load_txt_type_library_read_enums( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
 {
 	dl_txt_eat_char( ctx, read_state, '{' );
@@ -1178,10 +1207,9 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				dl_substr module = dl_txt_eat_and_expect_string( ctx, read_state );
 				(void)module;
 			}
-			else if( strncmp( "usercode", key.str, 8 ) == 0 )
+			else if( strncmp( "c_includes", key.str, 10 ) == 0 )
 			{
-				dl_substr usercode = dl_txt_eat_and_expect_string( ctx, read_state );
-				(void)usercode;
+				dl_context_load_txt_type_library_read_c_includes( ctx, read_state );
 			}
 			else if( strncmp( "enums", key.str, 5 ) == 0 )
 			{
@@ -1196,7 +1224,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 				dl_context_load_txt_type_library_read_types( ctx, read_state, false );
 			}
 			else
-				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'module', 'usercode', 'enums', 'unions' or 'types'", key.len, key.str );
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'module', 'c_includes', 'enums', 'unions' or 'types'", key.len, key.str );
 
 		} while( dl_txt_try_eat_char( read_state, ',') );
 

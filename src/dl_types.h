@@ -101,6 +101,7 @@ struct dl_typelib_header
 
 	uint32_t default_value_size;
 	uint32_t typeinfo_strings_size;
+	uint32_t c_includes_size;
 };
 
 struct dl_data_header
@@ -293,7 +294,11 @@ struct dl_context
 
 	char*  typedata_strings;
 	size_t typedata_strings_size;
-	size_t typedata_strings_cap; // rename to capacity
+	size_t typedata_strings_cap;
+
+	char*  c_includes;
+	size_t c_includes_size;
+	size_t c_includes_cap;
 
 	uint8_t* default_data;
 	size_t   default_data_size;

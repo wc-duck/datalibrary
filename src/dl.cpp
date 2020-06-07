@@ -39,6 +39,7 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 	dl_free( &dl_ctx->alloc, dl_ctx->enum_alias_descs );
 	dl_free( &dl_ctx->alloc, dl_ctx->typedata_strings );
 	dl_free( &dl_ctx->alloc, dl_ctx->default_data );
+	dl_free( &dl_ctx->alloc, dl_ctx->c_includes );
 	dl_free( &dl_ctx->alloc, dl_ctx );
 	return DL_ERROR_OK;
 }
@@ -51,11 +52,11 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	dl_data_header* header = (dl_data_header*)packed_instance;
 
 	if( packed_instance_size < sizeof(dl_data_header) ) return DL_ERROR_MALFORMED_DATA;
-	if( header->id == DL_INSTANCE_ID_SWAPED )          return DL_ERROR_ENDIAN_MISMATCH;
-	if( header->id != DL_INSTANCE_ID )                 return DL_ERROR_MALFORMED_DATA;
-	if( header->version != DL_INSTANCE_VERSION )       return DL_ERROR_VERSION_MISMATCH;
-	if( header->root_instance_type != type_id )        return DL_ERROR_TYPE_MISMATCH;
-	if( header->instance_size > instance_size )        return DL_ERROR_BUFFER_TO_SMALL;
+	if( header->id == DL_INSTANCE_ID_SWAPED )           return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->id != DL_INSTANCE_ID )                  return DL_ERROR_MALFORMED_DATA;
+	if( header->version != DL_INSTANCE_VERSION )        return DL_ERROR_VERSION_MISMATCH;
+	if( header->root_instance_type != type_id )         return DL_ERROR_TYPE_MISMATCH;
+	if( header->instance_size > instance_size )         return DL_ERROR_BUFFER_TO_SMALL;
 
 	const dl_type_desc* root_type = dl_internal_find_type( dl_ctx, header->root_instance_type );
 	if( root_type == 0x0 )
