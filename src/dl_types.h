@@ -465,21 +465,6 @@ static inline uint32_t dl_internal_union_type_offset(dl_ctx_t ctx, const dl_type
 	return dl_internal_align_up(max_member_size, max_member_alignment);
 }
 
-static inline const dl_member_desc* dl_internal_find_member_desc_by_name_hash( dl_ctx_t dl_ctx, const dl_type_desc* type, uint32_t name_hash )
-{
-	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
-	{
-		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
-		const char* member_name = dl_internal_member_name( dl_ctx, member );
-
-		// TODO: cache hashed name in ctx, this needs to be done not to depend on saving the string-names in the ctx.
-		uint32_t member_name_hash = dl_internal_hash_string( member_name );
-		if( member_name_hash == name_hash )
-			return member;
-	}
-	return 0x0;
-}
-
 static inline const dl_enum_value_desc* dl_get_enum_value( dl_ctx_t ctx, const dl_enum_desc* e, unsigned int value_index )
 {
 	return ctx->enum_value_descs + e->value_start + value_index;

@@ -1,8 +1,6 @@
 #ifndef DL_HASH_H_INCLUDED
 #define DL_HASH_H_INCLUDED
 
-#include <dl/dl_defines.h>
-
 // TODO: replace with murmur3
 
 static inline uint32_t dl_internal_hash_buffer( const uint8_t* buffer, size_t bytes )
