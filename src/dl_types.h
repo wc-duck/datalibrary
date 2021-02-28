@@ -80,7 +80,11 @@ typedef enum
 	DL_TYPE_FORCE_32_BIT = 0x7FFFFFFF
 } dl_type_t;
 
-DL_STATIC_ASSERT(DL_INLINE_ARRAY_LENGTH_MAX == (1 << (DL_TYPE_INLINE_ARRAY_CNT_MAX_BIT - DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT + 1))-1, "bad value of DL_INLINE_ARRAY_LENGTH_MAX");
+// This check is not REALLY true, you can use static_assert on some compilers before this, but it is early enough
+// for me to not have to write a big chunk of macro just to use static_assert ONCE!
+#if __cplusplus >= 201103L
+	static_assert(DL_INLINE_ARRAY_LENGTH_MAX == (1 << (DL_TYPE_INLINE_ARRAY_CNT_MAX_BIT - DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT + 1))-1, "bad value of DL_INLINE_ARRAY_LENGTH_MAX");
+#endif
 
 static const uintptr_t DL_NULL_PTR_OFFSET[2] =
 {
