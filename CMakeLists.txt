@@ -43,9 +43,7 @@ set(DATA_LIBRARY_HDRS
 	include/dl/dl_util.h
 
 	src/dl_alloc.h
-	src/dl_assert.h
 	src/dl_binary_writer.h
-	src/dl_hash.h
 	src/dl_internal_util.h
 	src/dl_patch_ptr.h
 	src/dl_swap.h

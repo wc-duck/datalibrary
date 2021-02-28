@@ -114,7 +114,7 @@ static size_t dl_internal_ptr_size(dl_ptr_size_t size_enum)
 	{
 		case DL_PTR_SIZE_32BIT: return 4;
 		case DL_PTR_SIZE_64BIT: return 8;
-		default: DL_ASSERT(false, "unknown ptr size!"); return 0;
+		default: DL_ASSERT(false && "unknown ptr size!"); return 0;
 	}
 }
 

@@ -436,6 +436,73 @@ void load_me( dl_ctx_t dl_ctx )
 }
 ```
 
+## Overriding default behaviour
+
+DL supports some customization of its internal by defining your own config-file that override any of the 
+defaults that DL provides.
+
+This is picked up in DL by including `DL_USER_CONFIG`. This can be defined either in code or via the
+command-line.
+
+```c
+#define DL_USER_CONFIG "my_dl_config.h"
+```
+
+> Note: It's really important that all build-targets using dl is compiled with the same DL_USER_CONFIG,
+>       at least IF overriding the hash-functions as hashes must be consistent between compile and load.
+
+This allows the user to configure how DL handles:
+
+### Asserts
+
+DL exposes 2 macros that can be overridden for asserts, DL_ASSERT(expr) and DL_ASSERT_MSG(expr, fmt, ...)
+where the first one is a bog-standard assert with the same api as assert() and DL_ASSERT_MSG support
+assert-messages with printf-style string and arguments.
+As a user you can opt in to override none, one or both of these.
+If you implement none of them the standard assert() from assert.h will be used. If only one is implemented
+the other one will be implemented with the other.
+
+```c
+#define DL_ASSERT(expr) MY_SUPER_ASSERT(expr)
+
+#define DL_ASSERT_MSG(expr, fmt, ...) if(expr) { printf("assert was hit: " fmt, ##__VA_ARGS__ ); DEBUG_BREAKPOINT; }
+```
+
+### Hash-function
+
+DL also allows the user to override what hash-function is used internally. This might be useful if you
+want to use the same one throughout your code, track what hashes are generated and maybe other things.
+
+Two functions are exposed for the user to override, DL_HASH_BUFFER(buffer, byte_count) and 
+DL_HASH_STRING(str). You are allowed to override None, only DL_HASH_BUFFER or both.
+If DL_HASH_STRING is not defined it will be implemented via DL_HASH_BUFFER + strlen().
+
+Important to note here is that DL_HASH_BUFFER(str, strlen(str)) is required to be the same as 
+DL_HASH_STRING().
+
+The 2 macros must expand to something converting to an uint32_t in the end.
+
+If none of the macros are defined, dl will use a fairly simple default hash-function.
+
+```c
+// override with murmurhash3
+
+namespace mmh3 {
+    #include "MurmurHash3.inc"
+}
+
+static inline my_murmur(void* buffer, unsigned int len)
+{
+	uint32_t res;
+	mmh3::MurmurHash3_x86_32( buffer, len, 1234, &res );
+	return res;
+}
+
+#define DL_HASH_BUFFER(buf, len) my_murmur(buf, len)
+#define DL_HASH_STRING(str)      my_murmur(str, strlen(str))
+```
+
+
 ## Other Build Options
 
 ### Building with Bam

@@ -141,7 +141,7 @@ static void dl_txt_unpack_enum( dl_ctx_t dl_ctx, dl_binary_writer* writer, const
 			return;
 		}
 	}
-	DL_ASSERT(false, "failed to find enum value " DL_PINT_FMT_STR, value);
+	DL_ASSERT_MSG(false, "failed to find enum value " DL_PINT_FMT_STR, value);
 }
 
 static void dl_txt_unpack_ptr( dl_binary_writer* writer, uintptr_t offset )
@@ -323,7 +323,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_INT8:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			int8_t* mem = (int8_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -338,7 +338,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_UINT8:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			uint8_t* mem = (uint8_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -353,7 +353,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_INT16:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			int16_t* mem = (int16_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -368,7 +368,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_UINT16:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			uint16_t* mem = (uint16_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -383,7 +383,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_INT32:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			int32_t* mem = (int32_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -398,7 +398,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			uint32_t* mem = (uint32_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -413,7 +413,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_INT64:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			int64_t* mem = (int64_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )
@@ -428,7 +428,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		case DL_TYPE_STORAGE_ENUM_UINT64:
 		{
 			const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, tid );
-			DL_ASSERT( e != 0x0, "handle this error!");
+			DL_ASSERT( e != 0x0 );
 
 			uint64_t* mem = (uint64_t*)array_data;
 			for( uint32_t i = 0; i < array_count - 1; ++i )

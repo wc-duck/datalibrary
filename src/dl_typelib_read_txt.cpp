@@ -1177,7 +1177,7 @@ static const dl_type_desc* dl_internal_member_owner( dl_ctx_t ctx, const dl_memb
 			member_index < type->member_start + type->member_count)
 			return type;
 	}
-	DL_ASSERT(false, "couldn't find owner-type of member '%s'", dl_internal_member_name(ctx, member));
+	DL_ASSERT_MSG(false, "couldn't find owner-type of member '%s'", dl_internal_member_name(ctx, member));
 	return 0x0;
 }
 

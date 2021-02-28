@@ -7,13 +7,13 @@
 	#define __STDC_LIMIT_MACROS
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 
 #include <dl/dl.h>
-#include "dl_hash.h"
+#include "dl_config.h"
 #include "dl_alloc.h"
 #include "dl_swap.h"
-#include "dl_assert.h"
 
 #include <stdarg.h> // for va_list
 
