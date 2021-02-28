@@ -3,8 +3,6 @@
 #include "dl_binary_writer.h"
 #include "dl_patch_ptr.h"
 
-#include "container/dl_array.h"
-
 #include <dl/dl.h>
 
 dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_params )
