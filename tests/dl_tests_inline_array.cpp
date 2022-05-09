@@ -138,8 +138,8 @@ TYPED_TEST(DLBase, inline_array_enum_size)
 	test_inline_array_size_from_enum original = { { 1, 2, 3, 4, 5, 6, 7 }, { 3, 4, 5 } };
 	test_inline_array_size_from_enum loaded;
 
-	EXPECT_EQ( TESTENUM2_VALUE1, DL_ARRAY_LENGTH(original.arr1) );
-	EXPECT_EQ( TESTENUM1_VALUE4, DL_ARRAY_LENGTH(original.arr2) );
+	EXPECT_EQ( (uint32_t)TESTENUM2_VALUE1, DL_ARRAY_LENGTH(original.arr1) );
+	EXPECT_EQ( (uint32_t)TESTENUM1_VALUE4, DL_ARRAY_LENGTH(original.arr2) );
 
 	this->do_the_round_about( test_inline_array_size_from_enum::TYPE_ID, &original, &loaded, sizeof(loaded) );
 
