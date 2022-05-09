@@ -310,6 +310,9 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 		}
 		case DL_TYPE_STORAGE_STRUCT:
 		{
+			dl_binary_writer_write( writer, "\n", 1 );
+			dl_txt_unpack_write_indent( writer, unpack_ctx );
+			unpack_ctx->indent += 2;
 			const dl_type_desc* type = dl_internal_find_type( dl_ctx, tid );
 			for( uint32_t i = 0; i < array_count - 1; ++i )
 			{
@@ -318,6 +321,7 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 
 			}
 			dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, array_data + (array_count - 1) * type->size[DL_PTR_SIZE_HOST] );
+			unpack_ctx->indent -= 2;
 			break;
 		}
 		case DL_TYPE_STORAGE_ENUM_INT8:
