@@ -13,7 +13,7 @@ struct TAlignmentOf
         struct CAlign { ~CAlign() {}; unsigned char m_Dummy; T m_T; };
         enum { ALIGNOF = sizeof(CAlign) - sizeof(T) };
 };
-#define DL_ALIGNMENTOF(Type) TAlignmentOf<Type>::ALIGNOF
+#define DL_ALIGNMENTOF(Type) (unsigned int)TAlignmentOf<Type>::ALIGNOF
 
 class DLReflect : public DL {};
 
