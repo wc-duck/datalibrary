@@ -1076,8 +1076,8 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		}
 
 		DL_ASSERT(member_index < DL_MEMBERS_IN_TYPE_MAX);
-		int member_bit_chunk = member_index % DL_MEMBERS_IN_TYPE_MAX;
-		int member_bit_index = member_index / DL_MEMBERS_IN_TYPE_MAX;
+		int member_bit_chunk = member_index / 64;
+		int member_bit_index = member_index % 64;
 		uint64_t member_bit = ( 1ULL << member_bit_index );
 		if( member_bit & members_set[member_bit_chunk] )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MEMBER_SET_TWICE, "member '%s.%.*s' is set twice", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
@@ -1103,8 +1103,8 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	{
 		for( uint32_t i = 0; i < type->member_count; ++i )
 		{
-			int member_bit_chunk = i % DL_MEMBERS_IN_TYPE_MAX;
-			int member_bit_index = i / DL_MEMBERS_IN_TYPE_MAX;
+			int member_bit_chunk = i / 64;
+			int member_bit_index = i % 64;
 			if( members_set[member_bit_chunk] & ( 1ULL << member_bit_index ) )
 				continue;
 

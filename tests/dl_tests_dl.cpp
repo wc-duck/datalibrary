@@ -290,6 +290,22 @@ TEST_F( DL, bug_with_substring_and_inplace_load )
 	EXPECT_STREQ( t1.sub.str, loaded->sub.str );
 }
 
+TEST_F( DL, lots_of_members )
+{
+	test_lots_of_members t1;
+	memset(&t1, 0xFE, sizeof(t1));
+	unsigned char packed_instance[256];
+
+	// store instance to binary
+	size_t pack_size;
+	EXPECT_DL_ERR_OK( dl_instance_store( this->Ctx, test_lots_of_members::TYPE_ID, (void**)(void*)&t1, packed_instance, sizeof( packed_instance ), &pack_size ) );
+
+	test_lots_of_members* loaded;
+	EXPECT_DL_ERR_OK( dl_instance_load_inplace( this->Ctx, test_lots_of_members::TYPE_ID, packed_instance, pack_size, (void**)(void*)&loaded, 0x0 ) );
+
+	EXPECT_EQ(0, memcmp(loaded, &t1, sizeof(t1)));
+}
+
 int main(int argc, char **argv)
 {
 	::testing::InitGoogleTest(&argc, argv);

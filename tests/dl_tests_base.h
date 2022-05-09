@@ -119,6 +119,6 @@ typedef ::testing::Types<
 	,convert_inplace_test<4, DL_ENDIAN_BIG>
 	,convert_inplace_test<8, DL_ENDIAN_BIG>
 > DLBaseTypes;
-TYPED_TEST_CASE(DLBase, DLBaseTypes);
+TYPED_TEST_SUITE(DLBase, DLBaseTypes);
 
 #endif // DL_TESTS_DL_TESTS_BASE_H

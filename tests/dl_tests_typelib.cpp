@@ -374,9 +374,10 @@ TEST_F( DLTypeLibUnpackTxt, round_about_big )
 	// ... pack from text ...
 	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, testlib1, sizeof(testlib1)-1 ) );
 
+	size_t txt_buffer_size = 4096*8;
 	size_t txt_size = 0;
-	char testlib_txt_buffer[4096*4];
-	EXPECT_DL_ERR_OK( dl_context_write_txt_type_library( ctx, testlib_txt_buffer, sizeof(testlib_txt_buffer), &txt_size ) );
+	char* testlib_txt_buffer = (char*)malloc(txt_buffer_size);
+	EXPECT_DL_ERR_OK( dl_context_write_txt_type_library( ctx, testlib_txt_buffer, txt_buffer_size, &txt_size ) );
 
 	dl_ctx_t ctx2;
 	dl_create_params_t p;
@@ -384,6 +385,8 @@ TEST_F( DLTypeLibUnpackTxt, round_about_big )
 	p.error_msg_func = test_log_error;
 	EXPECT_DL_ERR_OK( dl_context_create( &ctx2, &p ) );
 	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx2, testlib_txt_buffer, txt_size ) );
+
+	free((void*)testlib_txt_buffer);
 
 	dl_context_destroy( ctx2 );
 }
