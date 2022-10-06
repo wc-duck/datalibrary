@@ -229,6 +229,15 @@ TYPED_TEST(DLBase, union_in_array)
 	EXPECT_ARRAY_EQ( original.properties[1].value.ints.count,   original.properties[1].value.ints.data,   loaded[0].properties[1].value.ints.data );
 }
 
+TYPED_TEST(DLBase, union_wrong_type)
+{
+	test_union_simple original;
+	memset( &original, 0, sizeof(original) ); // Now original.type is 0 which is invalid
+
+	size_t store_size = 0;
+	EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_instance_calc_size(this->Ctx, test_union_simple::TYPE_ID, &original, &store_size) );
+}
+
 TYPED_TEST(DLBase, ptr_to_union)
 {
 }

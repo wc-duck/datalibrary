@@ -446,7 +446,7 @@ static inline const dl_enum_desc* dl_internal_find_enum( dl_ctx_t dl_ctx, dl_typ
 
 static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_type_desc* type, unsigned int member_index )
 {
-	return &ctx->member_descs[ type->member_start + member_index ];
+	return member_index >= ctx->member_count ? nullptr : &ctx->member_descs[ type->member_start + member_index ];
 }
 
 static inline const dl_member_desc* dl_internal_union_type_to_member( dl_ctx_t dl_ctx, const dl_type_desc* type, uint32_t union_type )
