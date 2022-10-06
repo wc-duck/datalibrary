@@ -17,7 +17,7 @@ struct dl_patched_ptrs
 
 	bool patched( const uint8_t* addr )
 	{
-		for (unsigned int i = 0; i < addresses.Len(); ++i)
+		for (size_t i = 0; i < addresses.Len(); ++i)
 			if( addr == addresses[i] )
 				return true;
 		return false;

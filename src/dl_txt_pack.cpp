@@ -1176,7 +1176,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
-	for (size_t i = 0; i < packctx->subdata.Len(); ++i)
+	for( size_t i = 0; i < packctx->subdata.Len(); ++i )
 	{
 		bool found = false;
 		for( size_t j = 0; j < subinstances.Len(); ++j )
