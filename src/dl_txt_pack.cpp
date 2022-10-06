@@ -136,17 +136,21 @@ inline float dl_strtof(const char* str, char** endptr)
 
 struct dl_txt_pack_ctx
 {
+	explicit dl_txt_pack_ctx(dl_allocator alloc)
+	    : subdata(alloc)
+	{
+	}
+
 	dl_txt_read_ctx read_ctx;
 	dl_binary_writer* writer;
 	const char* subdata_pos;
-	int subdata_count;
-
-	struct
+	struct SSubData
 	{
 		dl_substr name;
 		const dl_type_desc* type;
 		size_t patch_pos;
-	} subdata[256];
+	}; 
+	CArrayStatic<SSubData, 256> subdata;
 };
 
 static void dl_txt_pack_eat_and_write_int8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
@@ -310,13 +314,7 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	if( ptr.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
 
-	if( packctx->subdata_count == DL_ARRAY_LENGTH( packctx->subdata ) )
-		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "to many pointers! ( better error here! )" );
-
-	packctx->subdata[packctx->subdata_count].name = ptr;
-	packctx->subdata[packctx->subdata_count].type = type;
-	packctx->subdata[packctx->subdata_count].patch_pos = patch_pos;
-	++packctx->subdata_count;
+	packctx->subdata.Add({ ptr, type, patch_pos });
 }
 
 static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr symbol )
@@ -1120,22 +1118,20 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {
-	if( packctx->subdata_count == 0 )
+	if( packctx->subdata.Len() == 0 )
 		return DL_ERROR_OK;
 	if( packctx->subdata_pos == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MISSING_SECTION, "instance has pointers but no \"__subdata\"-member" );
 
 	packctx->read_ctx.iter = packctx->subdata_pos;
 
-	struct
+	struct SSubInstance
 	{
 		dl_substr name;
 		size_t pos;
-	} subinstances[256];
-	subinstances[0].name.str = "__root";
-	subinstances[0].name.len = 6;
-	subinstances[0].pos = 0;
-	size_t subinstances_count = 1;
+	};
+	CArrayStatic<SSubInstance, 256> subinstances(dl_ctx->alloc);
+	subinstances.Add({ { "__root" , 6}, 0 });
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
 
@@ -1152,7 +1148,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
 		int subdata_item = -1;
-		for( int i = 0; i < packctx->subdata_count; ++i )
+		for (int i = 0; i < packctx->subdata.Len(); ++i)
 		{
 			if( packctx->subdata[i].name.len != subdata_name.len )
 				continue;
@@ -1174,11 +1170,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
 
-		if( subinstances_count >= DL_ARRAY_LENGTH(subinstances) )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "to many subdatas." );
-		subinstances[subinstances_count].name = subdata_name;
-		subinstances[subinstances_count].pos = inst_pos;
-		++subinstances_count;
+		subinstances.Add({ subdata_name, inst_pos });
 
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( packctx->read_ctx.iter[0] == ',' )
@@ -1189,10 +1181,10 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
-	for( int i = 0; i < packctx->subdata_count; ++i )
+	for (int i = 0; i < packctx->subdata.Len(); ++i)
 	{
 		bool found = false;
-		for( size_t j = 0; j < subinstances_count; ++j )
+		for( size_t j = 0; j < subinstances.Len(); ++j )
 		{
 			if( packctx->subdata[i].name.len != subinstances[j].name.len )
 				continue;
@@ -1259,13 +1251,12 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 						   DL_ENDIAN_HOST,
 						   DL_ENDIAN_HOST,
 						   DL_PTR_SIZE_HOST );
-	dl_txt_pack_ctx packctx;
+	dl_txt_pack_ctx packctx(dl_ctx->alloc);
 	packctx.writer  = &writer;
 	packctx.read_ctx.start = txt_instance;
 	packctx.read_ctx.end   = txt_instance + strlen(txt_instance); // TODO: pass to function!
 	packctx.read_ctx.iter  = txt_instance;
 	packctx.subdata_pos = 0x0;
-	packctx.subdata_count = 0;
 	packctx.read_ctx.err = DL_ERROR_OK;
 
 	const dl_type_desc* root_type = dl_txt_pack_inner( dl_ctx, &packctx );

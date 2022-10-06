@@ -3,23 +3,21 @@
 
 struct dl_patched_ptrs
 {
-	uint8_t* addresses[128];
-	unsigned int next_addr;
+	CArrayStatic<const uint8_t*, 128> addresses;
 
-	dl_patched_ptrs()
-		: next_addr(0)
+	explicit dl_patched_ptrs(dl_allocator alloc)
+	    : addresses(alloc)
 	{}
 
-	void add( uint8_t* addr )
+	void add( const uint8_t* addr )
 	{
-		DL_ASSERT( next_addr < DL_ARRAY_LENGTH( addresses ) );
 		DL_ASSERT( !patched( addr ) );
-		addresses[next_addr++] = addr;
+		addresses.Add(addr);
 	}
 
-	bool patched( uint8_t* addr )
+	bool patched( const uint8_t* addr )
 	{
-		for( unsigned int i = 0; i < next_addr; ++i )
+		for (unsigned int i = 0; i < addresses.Len(); ++i)
 			if( addr == addresses[i] )
 				return true;
 		return false;
@@ -261,7 +259,7 @@ void dl_internal_patch_member( dl_ctx_t              ctx,
 							   uintptr_t             base_address,
 							   uintptr_t             patch_distance )
 {
-	dl_patched_ptrs patched;
+	dl_patched_ptrs patched(ctx->alloc);
 	dl_internal_patch_member( ctx, member, member_data, base_address, patch_distance, &patched );
 }
 
@@ -271,7 +269,7 @@ void dl_internal_patch_instance( dl_ctx_t            ctx,
 								 uintptr_t           base_address,
 								 uintptr_t           patch_distance )
 {
-	dl_patched_ptrs patched;
+	dl_patched_ptrs patched(ctx->alloc);
 	patched.add( instance );
 
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )

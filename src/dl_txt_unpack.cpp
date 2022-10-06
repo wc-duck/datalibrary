@@ -7,14 +7,19 @@
 
 struct dl_txt_unpack_ctx
 {
+	explicit dl_txt_unpack_ctx(dl_allocator alloc)
+	    : ptrs(alloc)
+	{
+	}
+
 	const uint8_t* packed_instance;
 	int indent;
-	struct
+	struct SPtr
 	{
 		uintptr_t offset;
 		dl_typeid_t tid;
-	} ptrs[256];
-	int ptrs_count;
+	};
+	CArrayStatic<SPtr, 256> ptrs;
 	bool has_ptrs;
 };
 
@@ -544,12 +549,11 @@ static void dl_txt_unpack_write_subdata_ptr( dl_ctx_t            dl_ctx,
 	if( offset == 0 )
 		return;
 
-	for( int i = 0; i < unpack_ctx->ptrs_count; ++i )
+	for( int i = 0; i < unpack_ctx->ptrs.Len(); ++i )
 		if( unpack_ctx->ptrs[i].offset == offset )
 			return;
 
-	// TODO: overflow!
-	unpack_ctx->ptrs[unpack_ctx->ptrs_count++].offset = offset;
+	unpack_ctx->ptrs.Add( { offset, 0 } );
 
 	dl_txt_unpack_write_indent( writer, unpack_ctx );
 	dl_txt_unpack_ptr( writer, offset );
@@ -772,10 +776,9 @@ dl_error_t dl_txt_unpack( dl_ctx_t dl_ctx,                       dl_typeid_t typ
 						   DL_ENDIAN_HOST,
 						   DL_PTR_SIZE_HOST );
 
-	dl_txt_unpack_ctx unpackctx;
+	dl_txt_unpack_ctx unpackctx(dl_ctx->alloc);
 	unpackctx.packed_instance = packed_instance + sizeof(dl_data_header);
 	unpackctx.indent = 0;
-	unpackctx.ptrs_count = 0;
 	unpackctx.has_ptrs = false;
 
 	dl_txt_unpack_root( dl_ctx, &unpackctx, &writer, header->root_instance_type );
