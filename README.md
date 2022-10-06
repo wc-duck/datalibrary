@@ -16,7 +16,7 @@ Provide a way to serialize data from a "json-like" format into binary and back w
 
 DL also provides ways to convert serialized blobs between platforms that differ in endianness and/or pointer-size.
 
-Finally, by using a user-defined schema, here after referred to as a TLD, packing "json" to binary perform type-checks, range-checks etc on the input data.
+Finally, by using a user-defined schema, hereafter referred to as a TLD, packing "json" to binary perform type-checks, range-checks etc on the input data.
 
 ## Building
 
@@ -60,16 +60,16 @@ tool\
 
 ## Supported POD-Types in Defined Structs
 
-| name           | tld-type                     | C-storage                             | comment                                                        |
-|----------------|------------------------------|---------------------------------------|----------------------------------------------------------------|
-| signed int     | int8, int16, int32, int64    | int8_t, int16_t, int32_t, int64_t     |                                                                |
-| unsigned int   | int8, uint16, uint32, uint64 | uint8_t, uint16_t, uint32_t, uint64_t |                                                                |
-| floating point | fp32, fp64                   | float/double                          |                                                                |
-| bitfield       | bitfield:<bits>              | uint32_t bf : 3                       | unsigned integer with specified amount of bits                 |
-| string         | string                       | const char*                           | utf8 encoded, null-terminated                                  |
-| inline_array   | int8[20], some_type[20]      | type[20]                              | fixed length, type can be any POD-type or userdefined struct   |
-| array          | int8[], some_type[]          | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or userdefined struct |
-| pointer        | some_type*                   | type*                                 | pointer to any user-defined type                               |
+| name           | tld-type                     | C-storage                             | comment                                                         |
+|----------------|------------------------------|---------------------------------------|-----------------------------------------------------------------|
+| signed int     | int8, int16, int32, int64    | int8_t, int16_t, int32_t, int64_t     |                                                                 |
+| unsigned int   | int8, uint16, uint32, uint64 | uint8_t, uint16_t, uint32_t, uint64_t |                                                                 |
+| floating point | fp32, fp64                   | float/double                          |                                                                 |
+| bitfield       | bitfield:<bits>              | uint32_t bf : 3                       | unsigned integer with specified amount of bits                  |
+| string         | string                       | const char*                           | utf8 encoded, null-terminated                                   |
+| inline_array   | int8[20], some_type[20]      | type[20]                              | fixed length, type can be any POD-type or user defined struct   |
+| array          | int8[], some_type[]          | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or user defined struct |
+| pointer        | some_type*                   | type*                                 | pointer to any user-defined type                                |
 
 ## DL-JSON
 
