@@ -563,7 +563,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				{
 					dl_type_info_t sub_type;
 					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
-					dl_binary_writer_write_string_fmt( writer, "    struct %s %s;\n", sub_type.name, member->name );
+					dl_binary_writer_write_string_fmt( writer, "    DL_C_STRUCT %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				case DL_TYPE_STORAGE_PTR:
