@@ -157,7 +157,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 
 static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
-static void dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
 {
 	uint8_t* data = *(uint8_t**)instance;
 	uintptr_t offset = store_ctx->FindWrittenPtr( data );
@@ -183,15 +183,17 @@ static void dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_
 
 		store_ctx->AddWrittenPtr(data, offset);
 
-		dl_internal_instance_store(dl_ctx, sub_type, data, store_ctx);
-
+		dl_error_t err = dl_internal_instance_store(dl_ctx, sub_type, data, store_ctx);
+		if (DL_ERROR_OK != err)
+			return err;
 		dl_binary_writer_seek_set( &store_ctx->writer, pos );
 	}
 
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
+	return DL_ERROR_OK;
 }
 
-static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
 {
 	switch( storage_type )
 	{
@@ -201,7 +203,11 @@ static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_
 			if( sub_type->flags & DL_TYPE_FLAG_HAS_SUBDATA )
 			{
 				for (uint32_t elem = 0; elem < count; ++elem)
-					dl_internal_instance_store(dl_ctx, sub_type, instance + (elem * size_), store_ctx);
+				{
+					dl_error_t err = dl_internal_instance_store(dl_ctx, sub_type, instance + (elem * size_), store_ctx);
+					if (DL_ERROR_OK != err)
+						return err;
+				}
 			}
 			else
 				dl_binary_writer_write( &store_ctx->writer, instance, count * size_ );
@@ -219,6 +225,7 @@ static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_
 			dl_binary_writer_write( &store_ctx->writer, instance, count * size );
 			break;
 	}
+	return DL_ERROR_OK;
 }
 
 static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
@@ -240,7 +247,9 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
-					dl_internal_instance_store( dl_ctx, sub_type, instance, store_ctx );
+					dl_error_t err = dl_internal_instance_store(dl_ctx, sub_type, instance, store_ctx);
+					if (DL_ERROR_OK != err)
+						return err;
 				}
 				break;
 				case DL_TYPE_STORAGE_STR:
@@ -254,7 +263,9 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
-					dl_internal_store_ptr( dl_ctx, instance, sub_type, store_ctx );
+					dl_error_t err = dl_internal_store_ptr( dl_ctx, instance, sub_type, store_ctx );
+					if (DL_ERROR_OK != err)
+						return err;
 				}
 				break;
 				default: // default is a standard pod-type
@@ -325,7 +336,9 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 
 				uint8_t* data = *(uint8_t**)data_ptr;
 
-				dl_internal_store_array( dl_ctx, storage_type, sub_type, data, count, size, store_ctx );
+				dl_error_t err = dl_internal_store_array(dl_ctx, storage_type, sub_type, data, count, size, store_ctx);
+				if (DL_ERROR_OK != err)
+					return err;
 				dl_binary_writer_seek_set( &store_ctx->writer, pos );
 			}
 
@@ -363,6 +376,11 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(instance + type_offset));
 		const dl_member_desc* member = dl_internal_union_type_to_member(dl_ctx, type, union_type);
+		if (member == nullptr)
+		{
+			dl_log_error(dl_ctx, "Could not find union type %X for type %s", union_type, dl_internal_type_name(dl_ctx, type));
+			return DL_ERROR_MALFORMED_DATA;
+		}
 
 		dl_error_t err = dl_internal_store_member( dl_ctx, member, instance + member->offset[DL_PTR_SIZE_HOST], store_ctx );
 		if( err != DL_ERROR_OK )
