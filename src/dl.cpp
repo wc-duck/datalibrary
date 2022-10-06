@@ -114,7 +114,7 @@ struct CDLBinStoreContext
 
 	uintptr_t FindWrittenPtr( void* ptr )
 	{
-		for (int i = 0; i < written_ptrs.Len(); ++i)
+		for (size_t i = 0; i < written_ptrs.Len(); ++i)
 			if( written_ptrs[i].ptr == ptr )
 				return written_ptrs[i].pos;
 

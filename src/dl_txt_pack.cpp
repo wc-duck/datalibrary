@@ -77,12 +77,7 @@ inline double dl_strtod(const char* str, char** endptr)
 
 inline float dl_strtof(const char* str, char** endptr)
 {
-#if defined(_MSC_VER) && _MSC_VER < 1800 // strtof was defined first in MSVC2013
-	float res = (float)strtod(str, endptr);
-#else
 	float res = strtof(str, endptr);
-#endif
-
 	if(str == *endptr)
 	{
 		float sign = 1.0f;
@@ -1147,8 +1142,8 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
-		int subdata_item = -1;
-		for (int i = 0; i < packctx->subdata.Len(); ++i)
+		size_t subdata_item = std::numeric_limits<size_t>::max();
+		for (size_t i = 0; i < packctx->subdata.Len(); ++i)
 		{
 			if( packctx->subdata[i].name.len != subdata_name.len )
 				continue;
@@ -1160,7 +1155,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 			}
 		}
 
-		if( subdata_item < 0 )
+		if (subdata_item == std::numeric_limits<size_t>::max())
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata." );
 		const dl_type_desc* type = packctx->subdata[subdata_item].type;
 
@@ -1181,7 +1176,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
-	for (int i = 0; i < packctx->subdata.Len(); ++i)
+	for (size_t i = 0; i < packctx->subdata.Len(); ++i)
 	{
 		bool found = false;
 		for( size_t j = 0; j < subinstances.Len(); ++j )

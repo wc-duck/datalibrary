@@ -549,7 +549,7 @@ static void dl_txt_unpack_write_subdata_ptr( dl_ctx_t            dl_ctx,
 	if( offset == 0 )
 		return;
 
-	for( int i = 0; i < unpack_ctx->ptrs.Len(); ++i )
+	for (size_t i = 0; i < unpack_ctx->ptrs.Len(); ++i)
 		if( unpack_ctx->ptrs[i].offset == offset )
 			return;
 
