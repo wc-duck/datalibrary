@@ -114,7 +114,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_fp32)
 {
 	std::vector<float>data( 10000 );
 	fp32_array inst = { { &data[0], (uint32_t)data.size() } };
-	for( size_t i = 0; i < data.size(); ++i ) inst.arr[(uint32_t)i] = (float)i;
+	for( size_t i = 0; i < data.size(); ++i ) inst.arr[i] = (float)i;
 
 	dlbench& f = *ubench_fixture;
 	dlbench_txt_instance t( f.ctx, &inst );
@@ -131,7 +131,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_fp32_zero)
 {
 	std::vector<float>data( 10000 );
 	fp32_array inst = { { &data[0], (uint32_t)data.size() } };
-	for( size_t i = 0; i < data.size(); ++i ) inst.arr[(uint32_t)i] = 0.0f;
+	for( size_t i = 0; i < data.size(); ++i ) inst.arr[i] = 0.0f;
 
 	dlbench& f = *ubench_fixture;
 	dlbench_txt_instance t( f.ctx, &inst );
@@ -152,8 +152,8 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_array_fp32)
 	for( size_t i = 0; i < data.size(); ++i )
 	{
 		static float data2[] = { 1.0f, 2.0f, 3.0f };
-		inst.arr[(uint32_t)i].arr.data = data2;
-		inst.arr[(uint32_t)i].arr.count = DL_ARRAY_LENGTH(data2);
+		inst.arr[i].arr.data = data2;
+		inst.arr[i].arr.count = DL_ARRAY_LENGTH(data2);
 	}
 
 	dlbench& f = *ubench_fixture;
@@ -171,7 +171,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_str)
 {
 	std::vector<char*> data(10000);
 	str_array inst = { { (const char**)&data[0], (uint32_t)data.size() } };
-	for( size_t i = 0; i < data.size(); ++i ) inst.arr[(uint32_t)i] = "apa";
+	for( size_t i = 0; i < data.size(); ++i ) inst.arr[i] = "apa";
 
 	dlbench& f = *ubench_fixture;
 	dlbench_txt_instance t( f.ctx, &inst );
@@ -188,7 +188,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_str_null)
 {
 	std::vector<char*> data(10000);
 	str_array inst = { { (const char**)&data[0], (uint32_t)data.size() } };
-	for( size_t i = 0; i < data.size(); ++i ) inst.arr[(uint32_t)i] = 0x0;
+	for( size_t i = 0; i < data.size(); ++i ) inst.arr[i] = 0x0;
 
 	dlbench& f = *ubench_fixture;
 	dlbench_txt_instance t( f.ctx, &inst );

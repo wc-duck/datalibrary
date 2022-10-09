@@ -119,17 +119,17 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "#    define DL_ASSERT(x) // default to non-implemented.\n"
 									   "#  endif\n"
 									   "\n"
-									   "   // ... DLArray ...\n"
+									   "   // ... DL_DECLARE_ARRAY ...\n"
 									   "#  if defined(__cplusplus)\n"
 									   "	  template <typename T>\n"
-									   "	  struct DLArrayStruct\n"
+									   "	  struct dl_array\n"
 									   "	  {\n"
-									   "		   inline const T& operator[](uint32_t i) const\n"
+									   "		   inline const T& operator[](size_t i) const\n"
 									   "		   {\n"
 									   "		       DL_ASSERT(i < count);\n"
 									   "		       return data[i];\n"
 									   "		   }\n"
-									   "		   inline T& operator[](uint32_t i)\n"
+									   "		   inline T& operator[](size_t i)\n"
 									   "		   {\n"
 									   "		       DL_ASSERT(i < count);\n"
 									   "		       return data[i];\n"
@@ -154,13 +154,13 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "		   uint32_t count;\n"
 									   "	   };\n"
 									   "	   template <>\n"
-									   "	   struct DLArrayStruct<const char*> {\n"
-									   "		   inline const char*& operator[](uint32_t i) const\n"
+									   "	   struct dl_array<const char*> {\n"
+									   "		   inline const char*& operator[](size_t i) const\n"
 									   "		   {\n"
 									   "		       DL_ASSERT(i < count);\n"
 									   "		       return data[i];\n"
 									   "		   }\n"
-									   "		   inline const char*& operator[](uint32_t i)\n"
+									   "		   inline const char*& operator[](size_t i)\n"
 									   "		   {\n"
 									   "		       DL_ASSERT(i < count);\n"
 									   "		       return data[i];\n"
@@ -184,9 +184,9 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "		   const char** data;\n"
 									   "		   uint32_t count;\n"
 									   "	   };\n"
-									   "#	 define DLArray(type) DLArrayStruct<type>\n"
+									   "#	 define DL_DECLARE_ARRAY(type) dl_array<type>\n"
 									   "#  else\n"
-									   "#	 define DLArray(type)  \\\n"
+									   "#	 define DL_DECLARE_ARRAY(type)  \\\n"
 									   "       struct              \\\n"
 									   "       {                   \\\n"
 									   "           type* data;     \\\n"
@@ -616,7 +616,7 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 		{
-		    dl_binary_writer_write_string_fmt(writer, "    DLArray(");
+		    dl_binary_writer_write_string_fmt(writer, "    DL_DECLARE_ARRAY(");
 		    dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
 		    dl_binary_writer_write_string_fmt(writer, ") %s;\n ", member->name);
 		}
