@@ -6,23 +6,6 @@
 #include <dl/dl.h>
 #include <dl/dl_convert.h>
 
-template <typename T, int SIZE>
-class CArrayStatic
-{
-public:
-	T m_Storage[SIZE];
-	size_t m_nElements;
-
-	CArrayStatic() { m_nElements = 0; }
-
-	inline size_t Len()      { return m_nElements; }
-
-	void Add(const T& _Element) { DL_ASSERT(m_nElements != SIZE && "Array is full"); new(&(m_Storage[m_nElements])) T(_Element); m_nElements++; }
-
-	      T& operator[](size_t _iEl)       { DL_ASSERT(_iEl < m_nElements && "Index out of bound"); return m_Storage[_iEl]; }
-	const T& operator[](size_t _iEl) const { DL_ASSERT(_iEl < m_nElements && "Index out of bound"); return m_Storage[_iEl]; }
-};
-
 struct SInstance
 {
 	SInstance()
@@ -50,11 +33,13 @@ struct SInstance
 class SConvertContext
 {
 public:
-	SConvertContext( dl_endian_t src_endian, dl_endian_t tgt_endian, dl_ptr_size_t src_ptr_size, dl_ptr_size_t tgt_ptr_size )
+	SConvertContext( dl_endian_t src_endian, dl_endian_t tgt_endian, dl_ptr_size_t src_ptr_size, dl_ptr_size_t tgt_ptr_size, dl_allocator allocator )
 		: src_endian(src_endian)
 		, tgt_endian(tgt_endian)
 		, src_ptr_size(src_ptr_size)
 		, target_ptr_size(tgt_ptr_size)
+	    , instances(allocator)
+	    , m_lPatchOffset(allocator)
 	{}
 
 	bool IsSwapped( const uint8_t* ptr )
@@ -820,14 +805,14 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer, out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, out_ptr_size );
 
-	SConvertContext conv_ctx( src_endian, out_endian, src_ptr_size, out_ptr_size );
+	SConvertContext conv_ctx( src_endian, out_endian, src_ptr_size, out_ptr_size, dl_ctx->alloc );
 
 	conv_ctx.instances.Add(SInstance(packed_instance, root_type, 0x0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STRUCT)));
 	dl_error_t err = dl_internal_convert_collect_instances(dl_ctx, root_type, packed_instance, packed_instance_base, conv_ctx);
 
 	// TODO: we need to sort the instances here after their offset!
 
-	SInstance* insts = conv_ctx.instances.m_Storage;
+	SInstance* insts = &conv_ctx.instances[0];
 	std::sort( insts, insts + conv_ctx.instances.Len(), dl_internal_sort_pred );
 
 	for(unsigned int i = 0; i < conv_ctx.instances.Len(); ++i)

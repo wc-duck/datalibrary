@@ -106,15 +106,15 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 
 struct CDLBinStoreContext
 {
-	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy )
+	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy, dl_allocator alloc )
+	    : written_ptrs(alloc)
 	{
 		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
-		num_written_ptrs = 0;
 	}
 
 	uintptr_t FindWrittenPtr( void* ptr )
 	{
-		for( int i = 0; i < num_written_ptrs; ++i )
+		for (size_t i = 0; i < written_ptrs.Len(); ++i)
 			if( written_ptrs[i].ptr == ptr )
 				return written_ptrs[i].pos;
 
@@ -123,20 +123,17 @@ struct CDLBinStoreContext
 
 	void AddWrittenPtr( const void* ptr, uintptr_t pos )
 	{
-		DL_ASSERT( num_written_ptrs < (int)DL_ARRAY_LENGTH(written_ptrs) );
-		written_ptrs[num_written_ptrs].ptr = ptr;
-		written_ptrs[num_written_ptrs].pos = pos;
-		++num_written_ptrs;
+		written_ptrs.Add( { pos, ptr } );
 	}
 
 	dl_binary_writer writer;
 
-	struct
+	struct SWrittenPtr
 	{
 		uintptr_t   pos;
 		const void* ptr;
-	} written_ptrs[128];
-	int num_written_ptrs;
+	};
+	CArrayStatic<SWrittenPtr, 128> written_ptrs;
 };
 
 static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContext* store_ctx )
@@ -440,7 +437,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 		store_ctx_buffer_size = out_buffer_size - sizeof(dl_data_header);
 	}
 
-	CDLBinStoreContext store_context( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy );
+	CDLBinStoreContext store_context( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy, dl_ctx->alloc );
 
 	dl_binary_writer_reserve( &store_context.writer, type->size[DL_PTR_SIZE_HOST] );
 	store_context.AddWrittenPtr(instance, 0); // if pointer refere to root-node, it can be found at offset 0
