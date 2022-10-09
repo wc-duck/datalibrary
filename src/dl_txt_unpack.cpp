@@ -556,7 +556,7 @@ static void dl_txt_unpack_write_subdata_ptr( dl_ctx_t            dl_ctx,
 	dl_txt_unpack_ptr( writer, offset );
 	dl_binary_writer_write( writer, " : ", 3 );
 
-	assert(offset < unpack_ctx->packed_instance_size);
+	DL_ASSERT_MSG(offset < unpack_ctx->packed_instance_size, "Trying to read from offset %d in a buffer of size %d bytes", offset, unpack_ctx->packed_instance_size);
 
 	dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, sub_type, &unpack_ctx->packed_instance[offset] );
 
@@ -680,7 +680,7 @@ static void dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unp
 		// TODO: check if type is not set at all ...
 		size_t type_offset = dl_internal_union_type_offset(dl_ctx, type, DL_PTR_SIZE_HOST);
 
-		assert(size_t((struct_data + type_offset) - unpack_ctx->packed_instance) < unpack_ctx->packed_instance_size);
+		DL_ASSERT_MSG(size_t((struct_data + type_offset) - unpack_ctx->packed_instance) < unpack_ctx->packed_instance_size, "Trying to read from offset %d in a buffer of size %d bytes", size_t((struct_data + type_offset) - unpack_ctx->packed_instance), unpack_ctx->packed_instance_size);
 
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(struct_data + type_offset));
@@ -707,7 +707,7 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 		// TODO: check if type is not set at all ...
 		size_t type_offset = dl_internal_union_type_offset( dl_ctx, type, DL_PTR_SIZE_HOST );
 
-		assert(size_t((struct_data + type_offset) - unpack_ctx->packed_instance) < unpack_ctx->packed_instance_size);
+		DL_ASSERT_MSG(size_t((struct_data + type_offset) - unpack_ctx->packed_instance) < unpack_ctx->packed_instance_size, "Trying to read from offset %d in a buffer of size %d bytes", size_t((struct_data + type_offset) - unpack_ctx->packed_instance), unpack_ctx->packed_instance_size);
 
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(struct_data + type_offset));
