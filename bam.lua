@@ -66,37 +66,29 @@ function get_compiler()
   compiler = ScriptArgs["compiler"]
 
   if family == "windows" then
-    local has_msvs14 = os.getenv('VS140COMNTOOLS') ~= nil
-    local has_msvs10 = os.getenv('VS100COMNTOOLS') ~= nil
-    local has_msvs8  = os.getenv('VS80COMNTOOLS') ~= nil
+    local has_msvs = {}
+    for i=8,30 do
+      has_msvs[i] = os.getenv('VS' .. i .. '0COMNTOOLS') ~= nil
+    end
 
     if compiler == nil then
-      -- set default compiler
-      if     has_msvs14 then compiler = 'msvs14'
-      elseif has_msvs10 then compiler = 'msvs10'
-      elseif has_msvs8  then compiler = 'msvs8'
-      else   compiler = nil
-      end
-    elseif compiler == 'msvs14' then
-      if not has_msvs14 then
-        print( compiler  .. ' is not installed on this machine' )
-        os.exit(1)
-      end
-    elseif compiler == 'msvs10' then
-      if not has_msvs10 then
-        print( compiler  .. ' is not installed on this machine' )
-        os.exit(1)
-      end
-    elseif compiler == 'msvs8' then
-      if not has_msvs8 then
-        print( compiler  .. ' is not installed on this machine' )
-        os.exit(1)
+      for i=30,8,-1 do
+        if has_msvs[i] then
+          compiler = 'msvs' .. i
+          break
+        end
       end
     else
-      print( compiler  .. ' is not installed on this machine' )
-      os.exit(1)
+      for i=8,30 do
+        if compiler == ('msvs' .. i) then
+          if not has_msvs[i] then
+            print( compiler  .. ' is not installed on this machine' )
+            os.exit(1)
+          end
+          break
+        end
+      end
     end
-  else
     if compiler == nil then
       compiler = 'gcc'
     end
