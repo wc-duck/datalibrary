@@ -113,6 +113,26 @@ TYPED_TEST(DLBase, bug4)
 	}
 }
 
+TYPED_TEST(DLBase, bug5)
+{
+	// testing bug where array of structs with pointers caused crash
+	PtrChain arr[2];
+	arr[0].Int = 2;
+	arr[0].Next = &arr[1];
+	arr[1].Int = 1;
+	arr[1].Next = &arr[0];
+
+	BugTest5 original;
+	original.array.data = &arr[0];
+	original.array.count = 2;
+
+	BugTest5 loaded[1024];
+
+	this->do_the_round_about(original.TYPE_ID, &original, &loaded, sizeof(loaded));
+
+	EXPECT_EQ(2U, loaded[0].array[0].Int);
+}
+
 TYPED_TEST(DLBase, str_before_array_bug)
 {
 	// Test for bug #7, where string written before array would lead to mis-alignment of the array.
