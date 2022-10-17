@@ -207,3 +207,21 @@ TYPED_TEST(DLBase, ptr_array)
 	EXPECT_NE( loaded[0].arr[0], loaded[0].arr[1] );
 	EXPECT_EQ( loaded[0].arr[0], loaded[0].arr[2] );
 }
+
+TYPED_TEST(DLBase, ptr_chain_long)
+{
+	PtrChain ptrs[1024];
+	for (size_t i = 0; i < DL_ARRAY_LENGTH(ptrs) - 1; ++i)
+		ptrs[i] = { (uint32_t) i, &ptrs[i + 1] };
+	ptrs[DL_ARRAY_LENGTH(ptrs) - 1] = { DL_ARRAY_LENGTH(ptrs) - 1, &ptrs[0] };
+
+	PtrChain loaded[1024];
+
+	this->do_the_round_about(PtrChain::TYPE_ID, &ptrs, &loaded, sizeof(loaded));
+
+	for (size_t i = 0; i < DL_ARRAY_LENGTH(ptrs) - 1; ++i)
+	{
+		EXPECT_EQ(loaded[i].Next, &loaded[i + 1]);
+		EXPECT_EQ(loaded[i].Int, i);
+	}
+}

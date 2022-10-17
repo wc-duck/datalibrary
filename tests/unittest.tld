@@ -253,6 +253,12 @@
 			]
 		},
 
+		"BugTest5" : {
+			"members" : [
+				{ "name" : "array", "type" : "PtrChain[]" }
+			]
+		},
+
 		"PtrHolder" : { "members" : [ { "name" : "ptr", "type" : "Pods2*"      } ] },
 		"PtrArray"  : { "members" : [ { "name" : "arr", "type" : "PtrHolder[]" } ] },
 

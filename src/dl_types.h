@@ -16,6 +16,7 @@
 #include "dl_swap.h"
 
 #include <stdarg.h> // for va_list
+#include <new> // for inplace new
 
 #define DL_BITMASK(_Bits)                   ( (1ULL << (_Bits)) - 1ULL )
 #define DL_BITRANGE(_MinBit,_MaxBit)		( ((1ULL << (_MaxBit)) | ((1ULL << (_MaxBit))-1ULL)) ^ ((1ULL << (_MinBit))-1ULL) )
@@ -314,6 +315,84 @@ struct dl_substr
 	int len;
 };
 
+// A growable array using a stack buffer while small. Use it to avoid dynamic allocations while the stack is big enough, but fall back to heap if it grows past the wanted stack size
+template <typename T, int SIZE>
+class CArrayStatic
+{
+private:
+	inline void GrowIfNeeded()
+	{
+		if (m_nElements >= m_nCapacity)
+		{
+			size_t curr_size = sizeof(T) * m_nCapacity;
+			if (m_Ptr != &m_Storage[0])
+			{
+				m_Ptr = reinterpret_cast<T*>(dl_realloc(&m_Allocator, m_Ptr, curr_size * 2, curr_size));
+			}
+			else
+			{
+				void* new_mem = dl_alloc(&m_Allocator, curr_size * 2);
+				memcpy(new_mem, m_Storage, curr_size);
+				m_Ptr = reinterpret_cast<T*>(new_mem);
+			}
+			m_nCapacity *= 2;
+		}
+	}
+
+public:
+	T* m_Ptr;
+	T m_Storage[SIZE];
+	size_t m_nElements;
+	size_t m_nCapacity;
+	dl_allocator m_Allocator;
+
+	explicit CArrayStatic(dl_allocator allocator)
+	{
+		m_nElements = 0;
+		m_nCapacity = SIZE;
+		m_Ptr = &m_Storage[0];
+		m_Allocator = allocator;
+	}
+
+	~CArrayStatic()
+	{
+		if (m_Ptr != &m_Storage[0])
+		{
+			dl_free(&m_Allocator, m_Ptr);
+		}
+	}
+
+	inline size_t Len()
+	{
+		return m_nElements;
+	}
+
+	void Add(const T& _Element)
+	{
+		GrowIfNeeded();
+		new (&m_Ptr[m_nElements]) T(_Element);
+		m_nElements++;
+	}
+
+	void Add(T&& _Element)
+	{
+		GrowIfNeeded();
+		new (&m_Ptr[m_nElements]) T(std::move(_Element));
+		m_nElements++;
+	}
+
+	T& operator[](size_t _iEl)
+	{
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
+		return m_Ptr[_iEl];
+	}
+	const T& operator[](size_t _iEl) const
+	{
+		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
+		return m_Ptr[_iEl];
+	}
+};
+
 #if defined( __GNUC__ )
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
 #endif
@@ -446,7 +525,7 @@ static inline const dl_enum_desc* dl_internal_find_enum( dl_ctx_t dl_ctx, dl_typ
 
 static inline const dl_member_desc* dl_get_type_member( dl_ctx_t ctx, const dl_type_desc* type, unsigned int member_index )
 {
-	return &ctx->member_descs[ type->member_start + member_index ];
+	return member_index >= ctx->member_count ? nullptr : &ctx->member_descs[ type->member_start + member_index ];
 }
 
 static inline const dl_member_desc* dl_internal_union_type_to_member( dl_ctx_t dl_ctx, const dl_type_desc* type, uint32_t union_type )

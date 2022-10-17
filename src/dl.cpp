@@ -106,15 +106,15 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 
 struct CDLBinStoreContext
 {
-	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy )
+	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy, dl_allocator alloc )
+	    : written_ptrs(alloc)
 	{
 		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
-		num_written_ptrs = 0;
 	}
 
 	uintptr_t FindWrittenPtr( void* ptr )
 	{
-		for( int i = 0; i < num_written_ptrs; ++i )
+		for (size_t i = 0; i < written_ptrs.Len(); ++i)
 			if( written_ptrs[i].ptr == ptr )
 				return written_ptrs[i].pos;
 
@@ -123,20 +123,17 @@ struct CDLBinStoreContext
 
 	void AddWrittenPtr( const void* ptr, uintptr_t pos )
 	{
-		DL_ASSERT( num_written_ptrs < (int)DL_ARRAY_LENGTH(written_ptrs) );
-		written_ptrs[num_written_ptrs].ptr = ptr;
-		written_ptrs[num_written_ptrs].pos = pos;
-		++num_written_ptrs;
+		written_ptrs.Add( { pos, ptr } );
 	}
 
 	dl_binary_writer writer;
 
-	struct
+	struct SWrittenPtr
 	{
 		uintptr_t   pos;
 		const void* ptr;
-	} written_ptrs[128];
-	int num_written_ptrs;
+	};
+	CArrayStatic<SWrittenPtr, 128> written_ptrs;
 };
 
 static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContext* store_ctx )
@@ -157,7 +154,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 
 static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx );
 
-static void dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
 {
 	uint8_t* data = *(uint8_t**)instance;
 	uintptr_t offset = store_ctx->FindWrittenPtr( data );
@@ -183,15 +180,17 @@ static void dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_
 
 		store_ctx->AddWrittenPtr(data, offset);
 
-		dl_internal_instance_store(dl_ctx, sub_type, data, store_ctx);
-
+		dl_error_t err = dl_internal_instance_store(dl_ctx, sub_type, data, store_ctx);
+		if (DL_ERROR_OK != err)
+			return err;
 		dl_binary_writer_seek_set( &store_ctx->writer, pos );
 	}
 
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
+	return DL_ERROR_OK;
 }
 
-static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
 {
 	switch( storage_type )
 	{
@@ -201,7 +200,11 @@ static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_
 			if( sub_type->flags & DL_TYPE_FLAG_HAS_SUBDATA )
 			{
 				for (uint32_t elem = 0; elem < count; ++elem)
-					dl_internal_instance_store(dl_ctx, sub_type, instance + (elem * size_), store_ctx);
+				{
+					dl_error_t err = dl_internal_instance_store(dl_ctx, sub_type, instance + (elem * size_), store_ctx);
+					if (DL_ERROR_OK != err)
+						return err;
+				}
 			}
 			else
 				dl_binary_writer_write( &store_ctx->writer, instance, count * size_ );
@@ -219,6 +222,7 @@ static void dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_
 			dl_binary_writer_write( &store_ctx->writer, instance, count * size );
 			break;
 	}
+	return DL_ERROR_OK;
 }
 
 static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
@@ -240,7 +244,9 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
-					dl_internal_instance_store( dl_ctx, sub_type, instance, store_ctx );
+					dl_error_t err = dl_internal_instance_store(dl_ctx, sub_type, instance, store_ctx);
+					if (DL_ERROR_OK != err)
+						return err;
 				}
 				break;
 				case DL_TYPE_STORAGE_STR:
@@ -254,7 +260,9 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
-					dl_internal_store_ptr( dl_ctx, instance, sub_type, store_ctx );
+					dl_error_t err = dl_internal_store_ptr( dl_ctx, instance, sub_type, store_ctx );
+					if (DL_ERROR_OK != err)
+						return err;
 				}
 				break;
 				default: // default is a standard pod-type
@@ -325,7 +333,9 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 
 				uint8_t* data = *(uint8_t**)data_ptr;
 
-				dl_internal_store_array( dl_ctx, storage_type, sub_type, data, count, size, store_ctx );
+				dl_error_t err = dl_internal_store_array(dl_ctx, storage_type, sub_type, data, count, size, store_ctx);
+				if (DL_ERROR_OK != err)
+					return err;
 				dl_binary_writer_seek_set( &store_ctx->writer, pos );
 			}
 
@@ -363,6 +373,11 @@ static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_des
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(instance + type_offset));
 		const dl_member_desc* member = dl_internal_union_type_to_member(dl_ctx, type, union_type);
+		if (member == nullptr)
+		{
+			dl_log_error(dl_ctx, "Could not find union type %X for type %s", union_type, dl_internal_type_name(dl_ctx, type));
+			return DL_ERROR_MALFORMED_DATA;
+		}
 
 		dl_error_t err = dl_internal_store_member( dl_ctx, member, instance + member->offset[DL_PTR_SIZE_HOST], store_ctx );
 		if( err != DL_ERROR_OK )
@@ -422,7 +437,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 		store_ctx_buffer_size = out_buffer_size - sizeof(dl_data_header);
 	}
 
-	CDLBinStoreContext store_context( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy );
+	CDLBinStoreContext store_context( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy, dl_ctx->alloc );
 
 	dl_binary_writer_reserve( &store_context.writer, type->size[DL_PTR_SIZE_HOST] );
 	store_context.AddWrittenPtr(instance, 0); // if pointer refere to root-node, it can be found at offset 0
