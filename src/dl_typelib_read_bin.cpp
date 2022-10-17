@@ -229,7 +229,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		void* loaded_instance;
 		size_t consumed;
 		dl_error_t err = dl_instance_load_inplace( dl_ctx, type_id, (uint8_t*)dl_ctx->metadatas[dl_ctx->metadatas_count + i], instance_size + sizeof( dl_data_header ), &loaded_instance, &consumed );
-		DL_ASSERT( DL_ERROR_OK == err );
+		DL_ASSERT( DL_ERROR_OK == err ); (void)err;
 		DL_ASSERT( instance_size + sizeof( dl_data_header ) == consumed );
 	}
 
