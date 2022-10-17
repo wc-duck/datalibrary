@@ -345,16 +345,16 @@ structs are defined in a typelibrary like this:
 
 ```json
 {
-    "types" : {
-        "data_t" : {
-            "members" : [
-                { "name" : "id", "type" : "string" },
-                { "name" : "x", "type" : "fp32" },
-                { "name" : "y", "type" : "fp32" },
-                { "name" : "array", "type" : "uint32[]" }
-            ]
-        }
-    }
+	"types" : {
+		"data_t" : {
+			"members" : [
+				{ "name" : "id", "type" : "string" },
+				{ "name" : "x", "type" : "fp32" },
+				{ "name" : "y", "type" : "fp32" },
+				{ "name" : "array", "type" : "uint32[]" }
+			]
+		}
+	}
 }
 ```
 
@@ -371,22 +371,22 @@ a `tld` file called example_tld.bin. `dltlc` must be run twice, like so.
 
 dl_ctx_t create_dl_ctx()
 {
-    // create and load context
-    dl_ctx_t dl_ctx;
-    dl_create_params_t create_params;
-    DL_CREATE_PARAMS_SET_DEFAULT( create_params );
+	// create and load context
+	dl_ctx_t dl_ctx;
+	dl_create_params_t create_params;
+	DL_CREATE_PARAMS_SET_DEFAULT( create_params );
 
-    dl_context_create( &dl_ctx, &create_params );
+	dl_context_create( &dl_ctx, &create_params );
 
-    // load typelibrary
-    unsigned char* lib_data = 0x0;
-    unsigned int lib_data_size = 0;
+	// load typelibrary
+	unsigned char* lib_data = 0x0;
+	unsigned int lib_data_size = 0;
 
-    read_from_file( "example_tld.bin", &lib_data, &lib_data_size );
+	read_from_file( "example_tld.bin", &lib_data, &lib_data_size );
 
-    dl_context_load_type_library( dl_ctx, lib_data, lib_data_size );
+	dl_context_load_type_library( dl_ctx, lib_data, lib_data_size );
 
-    return dl_ctx;
+	return dl_ctx;
 }
 ```
 
@@ -398,22 +398,22 @@ dl_ctx_t create_dl_ctx()
 
 void store_me( dl_ctx_t dl_ctx )
 {
-    uint16 arr[] = { 1, 2, 3, 4, 5, 6 };
+	uint16 arr[] = { 1, 2, 3, 4, 5, 6 };
 
-    data_t instance_data;
-    instance_data.id = "Data Identifier.";
-    instance_data.x = 10.0f;
-    instance_data.y = 15.0f;
-    instance_data.array.data = arr;
-    instance_data.array.count = 6;
+	data_t instance_data;
+	instance_data.id = "Data Identifier.";
+	instance_data.x = 10.0f;
+	instance_data.y = 15.0f;
+	instance_data.array.data = arr;
+	instance_data.array.count = 6;
 
-    dl_util_store_to_file( dl_ctx,
-                           data_t::TYPE_ID,          // type identifier for example-type
-                           "path/to/store/to.file",  // file to store to
-                           DL_UTIL_FILE_TYPE_BINARY, // store as binary file
-                           DL_ENDIAN_HOST,           // store with endian of this system
-                           sizeof(void*),            // store with pointer-size of this system
-                           &instance_data );         // instance to store
+	dl_util_store_to_file( dl_ctx,
+	                       data_t::TYPE_ID,          // type identifier for example-type
+	                       "path/to/store/to.file",  // file to store to
+	                       DL_UTIL_FILE_TYPE_BINARY, // store as binary file
+	                       DL_ENDIAN_HOST,           // store with endian of this system
+	                       sizeof(void*),            // store with pointer-size of this system
+	                       &instance_data );         // instance to store
 }
 ```
 
@@ -425,33 +425,33 @@ void store_me( dl_ctx_t dl_ctx )
 
 void load_me( dl_ctx_t dl_ctx )
 {
-    data_t* instance_data;
+	data_t* instance_data;
 
-    dl_util_load_from_file( dl_ctx,
-                            data_t::TYPE_ID,          // type identifier for example-type
-                            "path/to/read/from.file", // file to read
-                            DL_UTIL_FILE_TYPE_AUTO,   // autodetect if file is binary or text
-                            (void**)&instance_data,   // instance will be returned here
-                            0x0 );
+	dl_util_load_from_file( dl_ctx,
+	                        data_t::TYPE_ID,          // type identifier for example-type
+	                        "path/to/read/from.file", // file to read
+	                        DL_UTIL_FILE_TYPE_AUTO,   // autodetect if file is binary or text
+	                        (void**)&instance_data,   // instance will be returned here
+	                        0x0 );
 
-    printf( "instance_data->id  = %s\n", instance_data->id );
-    printf( "instance_data->x = %f\n", instance_data->x );
-    printf( "instance_data->x = %f\n", instance_data->y );
-    for( unsigned int i = 0; i < instance_data->array.count; ++i )
-        printf( "instance_data->array[%u] = %u\n", i, instance_data->array.data[i] );
+	printf( "instance_data->id  = %s\n", instance_data->id );
+	printf( "instance_data->x = %f\n", instance_data->x );
+	printf( "instance_data->x = %f\n", instance_data->y );
+	for( unsigned int i = 0; i < instance_data->array.count; ++i )
+		printf( "instance_data->array[%u] = %u\n", i, instance_data->array.data[i] );
 
-    // Prints:
-    // instance_data->id = Data Identifier
-    // instance_data->x = 10.000000
-    // instance_data->y = 15.000000
-    // instance_data->array[%u] = 1
-    // instance_data->array[%u] = 2
-    // instance_data->array[%u] = 3
-    // instance_data->array[%u] = 4
-    // instance_data->array[%u] = 5
-    // instance_data->array[%u] = 6
+	// Prints:
+	// instance_data->id = Data Identifier
+	// instance_data->x = 10.000000
+	// instance_data->y = 15.000000
+	// instance_data->array[%u] = 1
+	// instance_data->array[%u] = 2
+	// instance_data->array[%u] = 3
+	// instance_data->array[%u] = 4
+	// instance_data->array[%u] = 5
+	// instance_data->array[%u] = 6
 
-    free( instance_data ); // by default memory for instance_data will be allocated by malloc
+	free( instance_data ); // by default memory for instance_data will be allocated by malloc
 }
 ```
 
@@ -512,9 +512,9 @@ namespace mmh3 {
 
 static inline my_murmur(void* buffer, unsigned int len)
 {
-    uint32_t res;
-    mmh3::MurmurHash3_x86_32( buffer, len, 1234, &res );
-    return res;
+	uint32_t res;
+	mmh3::MurmurHash3_x86_32( buffer, len, 1234, &res );
+	return res;
 }
 
 #define DL_HASH_BUFFER(buf, len) my_murmur(buf, len)
@@ -529,41 +529,41 @@ static inline my_murmur(void* buffer, unsigned int len)
 Bam is officially supported by the original author of Data Library. If you want to build the library with bam, as is done during development and on autobuilders, these are the steps needed.
 
 Run script/bootstrap.sh or script/bootstrap.bat depending on your platform, this will only have to be done once.
-    - these scripts will expect there to be a compiler and git in your PATH ( 'gcc' or 'clang' on 'unix', 'msvc' on windows )
-    - after this step there should be a local/bam/bam(.exe)
+	- these scripts will expect there to be a compiler and git in your PATH ( 'gcc' or 'clang' on 'unix', 'msvc' on windows )
+	- after this step there should be a local/bam/bam(.exe)
 
 Run `local/bam/bam platform=<platform> config=<config> compiler=<compiler> -r sc`
-    - this will build all target for the specified platform and configuration into `local/<platform>/<compiler>/<config>`
+	- this will build all target for the specified platform and configuration into `local/<platform>/<compiler>/<config>`
 
-    - platforms:
-        * linux_x86    - 32bit linux x86 build.
-        * linux_x86_64 - 64bit linux x86 build.
-        * win32        - 32bit windows build.
-        * winx64       - 64bit windows build.
+	- platforms:
+		* linux_x86    - 32bit linux x86 build.
+		* linux_x86_64 - 64bit linux x86 build.
+		* win32        - 32bit windows build.
+		* winx64       - 64bit windows build.
 
-    - configs
-        * debug        - non-optimized build
-        * release      - optimized build
-        * sanitizer    - sanitizer build
-        * coverage     - special config used for code-coverage on autobuilders
+	- configs
+		* debug        - non-optimized build
+		* release      - optimized build
+		* sanitizer    - sanitizer build
+		* coverage     - special config used for code-coverage on autobuilders
 
-    - compilers:
-        * gcc          - build with gcc ( linux only as of now )
-        * clang        - build with gcc ( linux only as of now )
-        * msvs14       - build with msvc14 ( windows only )
-        * msvs10       - build with msvc10 ( windows only )
-        * msvs8        - build with msvc8 ( windows only )
+	- compilers:
+		* gcc          - build with gcc ( linux only as of now )
+		* clang        - build with gcc ( linux only as of now )
+		* msvs14       - build with msvc14 ( windows only )
+		* msvs10       - build with msvc10 ( windows only )
+		* msvs8        - build with msvc8 ( windows only )
 
 > Note:
 > msvc14/msvc10/msvc8 compiler will be replaced with only msvc later and use the cl.exe/link.exe found in PATH
 
 You can also build specific 'targets' with `local/bam/bam platform=<platform> config=<config> compiler=<compiler> -r sc <target>`
 
-    - valid targets
-        * 'test'          - build unittests and all its dependencies + run tests
-        * 'test_valgrind' - build unittests and all its dependencies + run tests under valgrind
-        * 'test_gdb'      - build unittests and all its dependencies + run tests under gdb
-        * 'benchmark'     - build benchmark and all its dependencies + run benchmarks
+	- valid targets
+		* 'test'          - build unittests and all its dependencies + run tests
+		* 'test_valgrind' - build unittests and all its dependencies + run tests under valgrind
+		* 'test_gdb'      - build unittests and all its dependencies + run tests under gdb
+		* 'benchmark'     - build benchmark and all its dependencies + run benchmarks
 
 > when running any of the 'test*' targets you can also specify 'test_filter=***' to pass a filter on what tests to run to the executable.
 
