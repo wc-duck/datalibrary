@@ -33,10 +33,11 @@ static void dl_internal_read_typelibrary_header( dl_typelib_header* header, cons
 		header->member_count     = dl_swap_endian_uint32( header->member_count );
 		header->enum_value_count = dl_swap_endian_uint32( header->enum_value_count );
 		header->enum_alias_count = dl_swap_endian_uint32( header->enum_alias_count );
-
+		
 		header->default_value_size    = dl_swap_endian_uint32( header->default_value_size );
 		header->typeinfo_strings_size = dl_swap_endian_uint32( header->typeinfo_strings_size );
 		header->c_includes_size       = dl_swap_endian_uint32( header->c_includes_size );
+		header->metadatas_count       = dl_swap_endian_uint32( header->metadatas_count );
 	}
 }
 
@@ -47,12 +48,16 @@ static void dl_endian_swap_type_desc( dl_type_desc* desc )
 	desc->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_32BIT] );
 	desc->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_64BIT] );
 	desc->member_count                 = dl_swap_endian_uint32( desc->member_count );
+	desc->metadata_count               = dl_swap_endian_uint32( desc->metadata_count );
+	desc->metadata_start               = dl_swap_endian_uint32( desc->metadata_start );
 }
 
 static void dl_endian_swap_enum_desc( dl_enum_desc* desc )
 {
-	desc->value_count = dl_swap_endian_uint32( desc->value_count );
-	desc->value_start = dl_swap_endian_uint32( desc->value_start );
+	desc->value_count    = dl_swap_endian_uint32( desc->value_count );
+	desc->value_start    = dl_swap_endian_uint32( desc->value_start );
+	desc->metadata_count = dl_swap_endian_uint32( desc->metadata_count );
+	desc->metadata_start = dl_swap_endian_uint32( desc->metadata_start );
 }
 
 static void dl_endian_swap_member_desc( dl_member_desc* desc )
@@ -66,11 +71,15 @@ static void dl_endian_swap_member_desc( dl_member_desc* desc )
 	desc->alignment[DL_PTR_SIZE_32BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_32BIT] );
 	desc->alignment[DL_PTR_SIZE_64BIT] = dl_swap_endian_uint32( desc->alignment[DL_PTR_SIZE_64BIT] );
 	desc->default_value_offset         = dl_swap_endian_uint32( desc->default_value_offset );
+	desc->metadata_count               = dl_swap_endian_uint32( desc->metadata_count );
+	desc->metadata_start               = dl_swap_endian_uint32( desc->metadata_start );
 }
 
 static void dl_endian_swap_enum_value_desc( dl_enum_value_desc* desc )
 {
-	desc->value = dl_swap_endian_uint64( desc->value );
+	desc->value          = dl_swap_endian_uint64( desc->value );
+	desc->metadata_count = dl_swap_endian_uint32( desc->metadata_count );
+	desc->metadata_start = dl_swap_endian_uint32( desc->metadata_start );
 }
 
 template <typename T>
@@ -100,6 +109,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	size_t defaults_offset         = enum_aliases_offset + sizeof( dl_enum_alias_desc ) * header.enum_alias_count;
 	size_t typedata_strings_offset = defaults_offset + header.default_value_size;
 	size_t c_includes_offset       = typedata_strings_offset + header.typeinfo_strings_size;
+	size_t metadatas_offset        = c_includes_offset + header.c_includes_size;
 
 	dl_ctx->type_ids         = dl_realloc_array( &dl_ctx->alloc, dl_ctx->type_ids,         dl_ctx->type_count + header.type_count,                       dl_ctx->type_count );
 	dl_ctx->type_descs       = dl_realloc_array( &dl_ctx->alloc, dl_ctx->type_descs,       dl_ctx->type_count + header.type_count,                       dl_ctx->type_count );
@@ -111,6 +121,18 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->typedata_strings = dl_realloc_array( &dl_ctx->alloc, dl_ctx->typedata_strings, dl_ctx->typedata_strings_size + header.typeinfo_strings_size, dl_ctx->typedata_strings_size );
 	if(header.c_includes_size)
 		dl_ctx->c_includes   = dl_realloc_array( &dl_ctx->alloc, dl_ctx->c_includes,       dl_ctx->c_includes_size + header.c_includes_size,             dl_ctx->c_includes_size );
+	if(header.metadatas_count)
+	{
+		dl_ctx->metadatas    = dl_realloc_array( &dl_ctx->alloc, dl_ctx->metadatas,        dl_ctx->metadatas_count + header.metadatas_count,               dl_ctx->metadatas_count );
+		for( unsigned int i = 0; i < header.metadatas_count; ++i )
+		{
+			uint32_t metadata_offset              = *reinterpret_cast<const uint32_t*>( lib_data + metadatas_offset + i * sizeof( uint32_t ) );
+			metadata_offset                       = ( DL_ENDIAN_HOST == DL_ENDIAN_BIG ) ? dl_swap_endian_uint32( metadata_offset ) : metadata_offset;
+			const dl_data_header* metadata_header          = reinterpret_cast<const dl_data_header*>( lib_data + metadatas_offset + header.metadatas_count * sizeof( uint32_t ) + metadata_offset );
+			size_t instance_size                  = ( DL_ENDIAN_HOST == DL_ENDIAN_BIG ) ? dl_swap_endian_uint32( metadata_header->instance_size ) : metadata_header->instance_size;
+			dl_ctx->metadatas[dl_ctx->metadatas_count + i] = dl_alloc( &dl_ctx->alloc, instance_size + sizeof( dl_data_header ) );
+		}
+	}
 
 	memcpy( dl_ctx->type_ids         + dl_ctx->type_count,            lib_data + types_lookup_offset, sizeof( dl_typeid_t ) * header.type_count );
 	memcpy( dl_ctx->enum_ids         + dl_ctx->enum_count,            lib_data + enums_lookup_offset, sizeof( dl_typeid_t ) * header.enum_count );
@@ -140,10 +162,16 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		if(dl_ctx->type_descs[ dl_ctx->type_count + i ].comment != UINT32_MAX)
 			dl_ctx->type_descs[ dl_ctx->type_count + i ].comment += td_str_offset;
 		dl_ctx->type_descs[ dl_ctx->type_count + i ].member_start += dl_ctx->member_count;
+		if( dl_ctx->type_descs[ dl_ctx->type_count + i ].metadata_start )
+			dl_ctx->type_descs[ dl_ctx->type_count + i ].metadata_start += dl_ctx->metadatas_count;
 	}
 
 	for( unsigned int i = 0; i < header.member_count; ++i )
+	{
 		dl_ctx->member_descs[ dl_ctx->member_count + i ].name += td_str_offset;
+		if( dl_ctx->member_descs[ dl_ctx->member_count + i ].metadata_start )
+			dl_ctx->member_descs[ dl_ctx->member_count + i ].metadata_start += dl_ctx->metadatas_count;
+	}
 
 	for( unsigned int i = 0; i < header.enum_count; ++i )
 	{
@@ -152,6 +180,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			dl_ctx->enum_descs[ dl_ctx->enum_count+ i ].comment += td_str_offset;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].alias_start += dl_ctx->enum_alias_count;
+		if( dl_ctx->enum_descs[ dl_ctx->enum_count + i ].metadata_start )
+			dl_ctx->enum_descs[ dl_ctx->enum_count + i ].metadata_start += dl_ctx->metadatas_count;
 	}
 
 	for( unsigned int i = 0; i < header.enum_alias_count; ++i )
@@ -163,6 +193,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	for( unsigned int i = 0; i < header.enum_value_count; ++i )
 	{
 		dl_ctx->enum_value_descs[ dl_ctx->enum_value_count + i ].main_alias += dl_ctx->enum_alias_count;
+		if( dl_ctx->enum_value_descs[ dl_ctx->enum_value_count + i ].metadata_start )
+			dl_ctx->enum_value_descs[ dl_ctx->enum_value_count + i ].metadata_start += dl_ctx->metadatas_count;
 	}
 
 	dl_ctx->type_count            += header.type_count;
@@ -171,6 +203,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->enum_value_count      += header.enum_value_count;
 	dl_ctx->enum_alias_count      += header.enum_alias_count;
 	dl_ctx->typedata_strings_size += header.typeinfo_strings_size;
+	dl_ctx->c_includes_size       += header.c_includes_size;
 
 	// we still need to keep the capacity around here, even as they are the same as the type-counts in
 	// the case where we were to read a typelib from text into this ctx as that would do an incremental
@@ -183,6 +216,25 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->enum_alias_capacity   = dl_ctx->enum_alias_count;
 	dl_ctx->typedata_strings_cap  = dl_ctx->typedata_strings_size;
 	dl_ctx->c_includes_cap        = dl_ctx->c_includes_size;
+
+	// The types used for meta data must be known to be able to patch the data with dl_instance_load_inplace
+	for( unsigned int i = 0; i < header.metadatas_count; ++i )
+	{
+		uint32_t metadata_offset              = *reinterpret_cast<const uint32_t*>( lib_data + metadatas_offset + i * sizeof( uint32_t ) );
+		metadata_offset                       = ( DL_ENDIAN_HOST == DL_ENDIAN_BIG ) ? dl_swap_endian_uint32( metadata_offset ) : metadata_offset;
+		const dl_data_header* metadata_header = reinterpret_cast<const dl_data_header*>( lib_data + metadatas_offset + header.metadatas_count * sizeof( uint32_t ) + metadata_offset );
+		size_t instance_size                  = ( DL_ENDIAN_HOST == DL_ENDIAN_BIG ) ? dl_swap_endian_uint32( metadata_header->instance_size ) : metadata_header->instance_size;
+		memcpy( dl_ctx->metadatas[dl_ctx->metadatas_count + i], metadata_header, instance_size + sizeof( dl_data_header ) );
+		dl_typeid_t type_id = ( DL_ENDIAN_HOST == DL_ENDIAN_BIG ) ? dl_swap_endian_uint32( metadata_header->root_instance_type ) : metadata_header->root_instance_type;
+		void* loaded_instance;
+		size_t consumed;
+		dl_error_t err = dl_instance_load_inplace( dl_ctx, type_id, (uint8_t*)dl_ctx->metadatas[dl_ctx->metadatas_count + i], instance_size + sizeof( dl_data_header ), &loaded_instance, &consumed );
+		DL_ASSERT( DL_ERROR_OK == err );
+		DL_ASSERT( instance_size + sizeof( dl_data_header ) == consumed );
+	}
+
+	dl_ctx->metadatas_count       += header.metadatas_count;
+	dl_ctx->metadatas_cap         = dl_ctx->metadatas_count;
 
 	return dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
 }

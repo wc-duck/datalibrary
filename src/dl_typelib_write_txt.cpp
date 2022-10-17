@@ -1,4 +1,5 @@
 #include <dl/dl_typelib.h>
+#include <dl/dl_txt.h>
 #include "dl_binary_writer.h"
 #include <dl/dl_reflect.h>
 
@@ -38,7 +39,14 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t st
 	}
 }
 
-static void dl_binary_writer_write_fmt( dl_binary_writer* writer, const char* fmt, ... ) // add check of fmt string
+#if defined( __GNUC__ ) || defined( __clang__ )
+#  ifndef _Printf_format_string_
+#	 define _Printf_format_string_
+#  endif
+static void dl_binary_writer_write_fmt( dl_binary_writer* writer, const char* fmt, ... ) __attribute__( ( __format__( __printf__, 2, 3 ) ) );
+#endif
+
+static void dl_binary_writer_write_fmt( dl_binary_writer* writer, _Printf_format_string_ const char* fmt, ... )
 {
 	char buffer[2048];
 	va_list args;
@@ -71,7 +79,45 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 
 	free( values );
 
-	dl_binary_writer_write_fmt( writer, "      }\n    }", 1 );
+	dl_binary_writer_write_fmt( writer, "      }" );
+
+	uint32_t metadata_count = 0;
+	dl_get_metadata_cnt( ctx, tid, &metadata_count );
+	if( metadata_count )
+	{
+		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
+		for( uint32_t i = 0; i < metadata_count; ++i )
+		{
+			size_t produced_bytes = 0;
+
+			dl_typeid_t metadata_type_id;
+			void* metadata_instance;
+			uint32_t metadata_size;
+			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_size, &metadata_instance );
+
+			// jumping through hoops, pack the data and write it as json with wrong indent
+			size_t packed_size;
+			dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
+			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
+			dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
+
+			size_t txt_instance_size;
+			dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
+			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
+			dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
+			dl_free( &ctx->alloc, packed_instance );
+
+			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
+			dl_free( &ctx->alloc, text_instance );
+			if( i < metadata_count - 1 )
+				dl_binary_writer_write( writer, ",\n", 2 );
+			else
+				dl_binary_writer_write( writer, "\n", 1 );
+		}
+		dl_binary_writer_write_fmt( writer, "      ]" );
+	}
+
+	dl_binary_writer_write_fmt( writer, "\n    }" );
 }
 
 static void dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* writer )
@@ -97,35 +143,71 @@ static void dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* writer )
 	dl_binary_writer_write_fmt( writer, "  },\n" );
 }
 
-static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer, dl_member_info_t* member )
+static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer, dl_typeid_t tid, uint32_t member_index, const dl_member_info_t* member )
 {
 	dl_binary_writer_write_fmt( writer, "        { \"name\" : \"%s\", ", member->name );
 
 	switch( member->atom )
 	{
-		case DL_TYPE_ATOM_POD:
-			dl_binary_writer_write_fmt( writer,
-										member->storage == DL_TYPE_STORAGE_PTR
-											? "\"type\" : \"%s*\""
-											: "\"type\" : \"%s\"",
-										dl_context_type_to_string( ctx, member->storage, member->type_id ) );
+	case DL_TYPE_ATOM_POD:
+		dl_binary_writer_write_fmt( writer,
+		                            member->storage == DL_TYPE_STORAGE_PTR
+		                                ? "\"type\" : \"%s*\""
+		                                : "\"type\" : \"%s\"",
+		                            dl_context_type_to_string( ctx, member->storage, member->type_id ) );
 		break;
-		case DL_TYPE_ATOM_BITFIELD:
-			dl_binary_writer_write_fmt( writer, "\"type\" : \"bitfield:%u\"", member->bits );
+	case DL_TYPE_ATOM_BITFIELD:
+		dl_binary_writer_write_fmt( writer, "\"type\" : \"bitfield:%u\"", member->bits );
 		break;
-		case DL_TYPE_ATOM_ARRAY:
-			dl_binary_writer_write_fmt( writer, "\"type\" : \"%s[]\"", dl_context_type_to_string( ctx, member->storage, member->type_id ) );
+	case DL_TYPE_ATOM_ARRAY:
+		dl_binary_writer_write_fmt( writer, "\"type\" : \"%s[]\"", dl_context_type_to_string( ctx, member->storage, member->type_id ) );
 		break;
-		case DL_TYPE_ATOM_INLINE_ARRAY:
-			dl_binary_writer_write_fmt( writer,
-										member->storage == DL_TYPE_STORAGE_PTR
-											? "\"type\" : \"%s*[%u]\""
-											: "\"type\" : \"%s[%u]\"",
-										dl_context_type_to_string( ctx, member->storage, member->type_id ),
-										member->array_count );
+	case DL_TYPE_ATOM_INLINE_ARRAY:
+		dl_binary_writer_write_fmt( writer,
+		                            member->storage == DL_TYPE_STORAGE_PTR
+		                                ? "\"type\" : \"%s*[%u]\""
+		                                : "\"type\" : \"%s[%u]\"",
+		                            dl_context_type_to_string( ctx, member->storage, member->type_id ),
+		                            member->array_count );
 		break;
-		default:
-			DL_ASSERT( false );
+	default:
+		DL_ASSERT( false );
+	}
+
+	uint32_t metadata_count = 0;
+	dl_get_member_metadata_cnt( ctx, tid, member_index, &metadata_count );
+	if( metadata_count )
+	{
+		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
+		for( uint32_t i = 0; i < metadata_count; ++i )
+		{
+			size_t produced_bytes = 0;
+
+			dl_typeid_t metadata_type_id;
+			void* metadata_instance;
+			uint32_t metadata_size;
+			dl_get_member_metadata( ctx, tid, member_index, i, &metadata_type_id, &metadata_size, &metadata_instance );
+
+			// jumping through hoops, pack the data and write it as json with wrong indent
+			size_t packed_size;
+			dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
+			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
+			dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
+
+			size_t txt_instance_size;
+			dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
+			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
+			dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
+			dl_free( &ctx->alloc, packed_instance );
+
+			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
+			dl_free( &ctx->alloc, text_instance );
+			if( i < metadata_count - 1 )
+				dl_binary_writer_write( writer, ",\n", 2 );
+			else
+				dl_binary_writer_write( writer, "\n", 1 );
+		}
+		dl_binary_writer_write_fmt( writer, "      ]" );
 	}
 	dl_binary_writer_write( writer, " }", 2 );
 }
@@ -143,14 +225,50 @@ static void dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* writer, d
 	dl_binary_writer_write_fmt( writer, "      \"members\" : [\n" );
 	for( unsigned int member_index = 0; member_index < type_info.member_count; ++member_index )
 	{
-		dl_context_write_txt_member( ctx, writer, &members[member_index] );
+		dl_context_write_txt_member( ctx, writer, tid, member_index, &members[member_index] );
 		if( member_index < type_info.member_count - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
 			dl_binary_writer_write( writer, "\n", 1 );
 	}
+	dl_binary_writer_write_fmt( writer, "      ]" );
 
-	dl_binary_writer_write_fmt( writer, "      ]\n    }" );
+	uint32_t metadata_count = 0;
+	dl_get_metadata_cnt( ctx, tid, &metadata_count );
+	if( metadata_count )
+	{
+		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
+		for( uint32_t i = 0; i < metadata_count; ++i )
+		{
+			size_t produced_bytes = 0;
+
+			dl_typeid_t metadata_type_id;
+			void* metadata_instance;
+			uint32_t metadata_size;
+			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_size, &metadata_instance );
+
+			// jumping through hoops, pack the data and write it as json with wrong indent
+			size_t packed_size;
+			dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
+			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
+			dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
+
+			size_t txt_instance_size;
+			dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
+			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
+			dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
+			dl_free( &ctx->alloc, packed_instance );
+
+			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
+			dl_free( &ctx->alloc, text_instance );
+			if( i < metadata_count - 1 )
+				dl_binary_writer_write( writer, ",\n", 2 );
+			else
+				dl_binary_writer_write( writer, "\n", 1 );
+		}
+		dl_binary_writer_write_fmt( writer, "      ]" );
+	}
+	dl_binary_writer_write_fmt( writer, "\n    }" );
 	free( members );
 }
 

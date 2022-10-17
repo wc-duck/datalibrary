@@ -47,7 +47,7 @@
 	#define DL_UNUSED
 #endif
 
-static const uint32_t DL_UNUSED DL_TYPELIB_VERSION         = 4; // format version for type-libraries.
+static const uint32_t DL_UNUSED DL_TYPELIB_VERSION         = 5; // format version for type-libraries.
 static const uint32_t DL_UNUSED DL_INSTANCE_VERSION        = 1; // format version for instances.
 static const uint32_t DL_UNUSED DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
 static const uint32_t DL_UNUSED DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
@@ -107,6 +107,7 @@ struct dl_typelib_header
 	uint32_t default_value_size;
 	uint32_t typeinfo_strings_size;
 	uint32_t c_includes_size;
+	uint32_t metadatas_count;
 };
 
 struct dl_data_header
@@ -150,6 +151,8 @@ struct dl_member_desc
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
 	uint32_t    flags;
+	uint32_t    metadata_count;
+	uint32_t    metadata_start;
 
 	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
 	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
@@ -241,7 +244,8 @@ struct dl_type_desc
 	uint32_t member_count;
 	uint32_t member_start;
 	uint32_t comment;
-
+	uint32_t metadata_count;
+	uint32_t metadata_start;
 };
 
 struct dl_enum_value_desc
@@ -249,6 +253,8 @@ struct dl_enum_value_desc
 	uint32_t main_alias;
 	uint32_t comment;
 	uint64_t value;
+	uint32_t metadata_count;
+	uint32_t metadata_start;
 };
 
 struct dl_enum_desc
@@ -261,6 +267,8 @@ struct dl_enum_desc
 	uint32_t          alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
 	uint32_t          alias_start; /// offset into alias list where aliases for this enum-value start.
 	uint32_t		  comment;
+	uint32_t          metadata_count;
+	uint32_t          metadata_start;
 };
 
 struct dl_enum_alias_desc
@@ -281,6 +289,7 @@ struct dl_context
 	unsigned int member_count;
 	unsigned int enum_value_count;
 	unsigned int enum_alias_count;
+	unsigned int metadatas_count;
 
 	size_t type_capacity;
 	size_t enum_capacity;
@@ -304,6 +313,9 @@ struct dl_context
 	char*  c_includes;
 	size_t c_includes_size;
 	size_t c_includes_cap;
+
+	void** metadatas;
+	size_t metadatas_cap;
 
 	uint8_t* default_data;
 	size_t   default_data_size;
@@ -397,7 +409,7 @@ public:
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
 #endif
 
-inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
+inline void dl_log_error( dl_ctx_t dl_ctx, _Printf_format_string_ const char* fmt, ... )
 {
 	if( dl_ctx->error_msg_func == 0x0 )
 		return;
