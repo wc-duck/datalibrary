@@ -34,7 +34,9 @@ static void dl_internal_read_typelibrary_header( dl_typelib_header* header, cons
 		header->enum_value_count = dl_swap_endian_uint32( header->enum_value_count );
 		header->enum_alias_count = dl_swap_endian_uint32( header->enum_alias_count );
 
-		header->default_value_size   = dl_swap_endian_uint32( header->default_value_size );
+		header->default_value_size    = dl_swap_endian_uint32( header->default_value_size );
+		header->typeinfo_strings_size = dl_swap_endian_uint32( header->typeinfo_strings_size );
+		header->c_includes_size       = dl_swap_endian_uint32( header->c_includes_size );
 	}
 }
 
@@ -180,6 +182,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->enum_value_capacity   = dl_ctx->enum_value_count;
 	dl_ctx->enum_alias_capacity   = dl_ctx->enum_alias_count;
 	dl_ctx->typedata_strings_cap  = dl_ctx->typedata_strings_size;
+	dl_ctx->c_includes_cap        = dl_ctx->c_includes_size;
 
 	return dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
 }
