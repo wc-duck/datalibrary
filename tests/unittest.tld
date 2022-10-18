@@ -92,6 +92,9 @@
 
 		"StructArray1" : { "members" : [ { "name" : "Array", "type" : "Pods2[]" }  ] },
 
+		"StructArrayRecursive1" : { "members" : [ { "name" : "Array", "type" : "StructArrayRecursive2[]" }  ] },
+		"StructArrayRecursive2" : { "members" : [ { "name" : "Array", "type" : "StructArrayRecursive1[]" }  ] },
+
 		"Strings"           : { "members" : [ { "name" : "Str1", "type" : "string" }, { "name" : "Str2", "type" : "string" } ] },
 		"StringInlineArray" : { "members" : [ { "name" : "Strings", "type" : "string[3]" } ] },
 		"StringArray"       : { "members" : [ { "name" : "Strings", "type" : "string[]" } ] },
