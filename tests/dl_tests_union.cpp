@@ -151,6 +151,23 @@ TYPED_TEST(DLBase, union_with_ptr)
 	EXPECT_EQ( original.value.p1->f64, loaded[0].value.p1->f64 );
 }
 
+TYPED_TEST(DLBase, union_with_inline_arr_ptr)
+{
+	WithInlineArray wi  = { { 1, 2, 3 } };
+	test_union_ptr original;
+	original.value.p3 = &wi;
+	original.type = test_union_ptr_type_p3;
+
+	test_union_ptr DL_ALIGN(8) loaded[10];
+
+	this->do_the_round_about( test_union_ptr::TYPE_ID, &original, loaded, sizeof(loaded) );
+
+	EXPECT_EQ( original.type, loaded[0].type );
+	EXPECT_EQ( 1u, original.value.p3->Array[0]);
+	EXPECT_EQ( 2u, original.value.p3->Array[1]);
+	EXPECT_EQ( 3u, original.value.p3->Array[2]);
+}
+
 // TODO: add test in dl_tests_txt.cpp of setting more than one member in txt data that it is an error.
 
 TYPED_TEST(DLBase, union_in_inline_array)
