@@ -327,6 +327,12 @@ struct dl_substr
 	int len;
 };
 
+#ifdef _MSC_VER
+#  define FORCEINLINE __forceinline
+#else
+#  define FORCEINLINE inline __attribute__( ( always_inline ) )
+#endif
+
 // A growable array using a stack buffer while small. Use it to avoid dynamic allocations while the stack is big enough, but fall back to heap if it grows past the wanted stack size
 template <typename T, int SIZE>
 class CArrayStatic
@@ -393,12 +399,12 @@ public:
 		m_nElements++;
 	}
 
-	T& operator[](size_t _iEl)
+	FORCEINLINE T& operator[]( size_t _iEl )
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Ptr[_iEl];
 	}
-	const T& operator[](size_t _iEl) const
+	FORCEINLINE const T& operator[]( size_t _iEl ) const
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Ptr[_iEl];
@@ -406,6 +412,7 @@ public:
 };
 
 #if defined( __GNUC__ )
+#	define _Printf_format_string_
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
 #endif
 

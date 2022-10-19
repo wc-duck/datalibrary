@@ -70,7 +70,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 
 	for( unsigned int j = 0; j < enum_info.value_count; ++j )
 	{
-		dl_binary_writer_write_fmt( writer, "        \"%s\" : %u", values[j].name, values[j].value );
+		dl_binary_writer_write_fmt( writer, "        \"%s\" : %lu", values[j].name, values[j].value.u64 );
 		if( j < enum_info.value_count - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
