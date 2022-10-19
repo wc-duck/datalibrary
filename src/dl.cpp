@@ -111,6 +111,7 @@ struct CDLBinStoreContext
 {
 	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy, dl_allocator alloc )
 	    : written_ptrs(alloc)
+		, strings(alloc)
 	{
 		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 	}
@@ -129,6 +130,15 @@ struct CDLBinStoreContext
 		written_ptrs.Add( { pos, ptr } );
 	}
 
+	uint32_t GetStringOffset(const char* str, uint32_t length, uint32_t hash)
+	{
+		for (size_t i = 0; i < strings.Len(); ++i)
+			if (strings[i].hash == hash && strings[i].length == length && strcmp(str, strings[i].str) == 0)
+				return strings[i].offset;
+
+		return 0;
+	}
+
 	dl_binary_writer writer;
 
 	struct SWrittenPtr
@@ -137,6 +147,15 @@ struct CDLBinStoreContext
 		const void* ptr;
 	};
 	CArrayStatic<SWrittenPtr, 128> written_ptrs;
+
+	struct SString
+	{
+		const char* str;
+		uint32_t length;
+		uint32_t hash;
+		uint32_t offset;
+	};
+	CArrayStatic<SString, 128> strings;
 };
 
 static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContext* store_ctx )
@@ -147,11 +166,18 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 		dl_binary_writer_write( &store_ctx->writer, &DL_NULL_PTR_OFFSET[ DL_PTR_SIZE_HOST ], sizeof(uintptr_t) );
 		return;
 	}
-	uintptr_t pos = dl_binary_writer_tell( &store_ctx->writer );
-	dl_binary_writer_seek_end( &store_ctx->writer );
-	uintptr_t offset = dl_binary_writer_tell( &store_ctx->writer );
-	dl_binary_writer_write( &store_ctx->writer, str, strlen(str) + 1 );
-	dl_binary_writer_seek_set( &store_ctx->writer, pos );
+	uint32_t hash = dl_internal_hash_string(str);
+	uint32_t length = (uint32_t) strlen(str);
+	uintptr_t offset = store_ctx->GetStringOffset(str, length, hash);
+	if (offset == 0) // Merge identical strings
+	{
+		uintptr_t pos = dl_binary_writer_tell(&store_ctx->writer);
+		dl_binary_writer_seek_end(&store_ctx->writer);
+		offset = dl_binary_writer_tell(&store_ctx->writer);
+		dl_binary_writer_write(&store_ctx->writer, str, length + 1);
+		store_ctx->strings.Add( {str, length, hash, (uint32_t) offset} );
+		dl_binary_writer_seek_set(&store_ctx->writer, pos);
+	}
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 }
 

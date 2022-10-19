@@ -153,7 +153,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_array_fp32)
 	{
 		static float data2[] = { 1.0f, 2.0f, 3.0f };
 		inst.arr[i].arr.data = data2;
-		inst.arr[i].arr.count = DL_ARRAY_LENGTH( data2 );
+		inst.arr[i].arr.count = DL_ARRAY_LENGTH(data2);
 	}
 
 	dlbench& f = *ubench_fixture;

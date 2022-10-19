@@ -56,7 +56,7 @@ TYPED_TEST(DLBase, array_with_sub_array2)
 
 TYPED_TEST(DLBase, array_string)
 {
-	const char* array_data[] = { "I like", "the", "1337 ", "cowbells of doom!" }; // TODO: test string-arrays with , in strings.
+	const char* array_data[] = { "I like", "the", "1337 ", "cowbells of doom!" };
 	StringArray original = { { array_data, DL_ARRAY_LENGTH(array_data) } };
 	StringArray loaded[10];
 
@@ -66,6 +66,32 @@ TYPED_TEST(DLBase, array_string)
 	EXPECT_STREQ(original.Strings[1], loaded[0].Strings[1]);
 	EXPECT_STREQ(original.Strings[2], loaded[0].Strings[2]);
 	EXPECT_STREQ(original.Strings[3], loaded[0].Strings[3]);
+}
+
+TYPED_TEST(DLBase, array_string_merge)
+{
+	const char* array_data[] = { "cowbell, cowbell", "cowbell, cowbell" };
+	StringArray original = { { array_data, DL_ARRAY_LENGTH(array_data) } };
+	StringArray loaded[20];
+
+	this->do_the_round_about(StringArray::TYPE_ID, &original, &loaded[0], sizeof(loaded) / 2);
+
+	EXPECT_STREQ(original.Strings[0], loaded[0].Strings[0]);
+	EXPECT_STREQ(original.Strings[1], loaded[0].Strings[1]);
+
+	const char* array_data_2[] = { "cowbell 1", "cowbell 2" };
+	original = { { array_data_2, DL_ARRAY_LENGTH(array_data_2) } };
+
+	this->do_the_round_about(StringArray::TYPE_ID, &original, &loaded[10], sizeof(loaded) / 2);
+
+	EXPECT_STREQ(original.Strings[0], loaded[10].Strings[0]);
+	EXPECT_STREQ(original.Strings[1], loaded[10].Strings[1]);
+
+	size_t merged_store_size = 0; // Two long but identical strings, should be merged
+	EXPECT_DL_ERR_OK(dl_instance_calc_size(this->Ctx, loaded[0].TYPE_ID, &loaded[0], &merged_store_size));
+	size_t unique_store_size = 0; // Two shorter and different strings, should not be merged
+	EXPECT_DL_ERR_OK(dl_instance_calc_size(this->Ctx, loaded[10].TYPE_ID, &loaded[10], &unique_store_size));
+	EXPECT_LT(merged_store_size, unique_store_size); // Check that long merged strings take less memory than short unique strings
 }
 
 TYPED_TEST(DLBase, array_string_null)
@@ -84,7 +110,7 @@ TYPED_TEST(DLBase, array_string_null)
 
 TYPED_TEST(DLBase, array_string_with_commas)
 {
-	const char* array_data[] = { "I li,ke", "the", "13,37 ", "cowbe,lls of doom!" }; // TODO: test string-arrays with , in strings.
+	const char* array_data[] = { "I li,ke", "the", "13,37 ", "cowbe,lls of doom!" };
 	StringArray original = { { array_data, DL_ARRAY_LENGTH(array_data) } };
 	StringArray loaded[10];
 
