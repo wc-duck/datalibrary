@@ -139,8 +139,8 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       	dl_typeid_t        
 			return DL_ERROR_INTERNAL_ERROR;
 	}
 
-	error = dl_instance_load( dl_ctx, type, load_instance, load_size, load_instance, load_size, 0x0 );
-
+	error = dl_instance_load_inplace( dl_ctx, type, load_instance, load_size, out_instance, 0x0 );
+	memmove( load_instance, *out_instance, load_size - sizeof( dl_data_header ) );
 	*out_instance = load_instance;
 
 	if( out_type != 0x0 )

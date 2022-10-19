@@ -65,9 +65,8 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	// if( !dl_internal_is_align( instance, pType->m_Alignment[DL_PTR_SIZE_HOST] ) )
 	//	return DL_ERROR_BAD_ALIGNMENT;
 
-	// TODO: memmove here is a hack, should only need memcpy but due to abuse of dl_instance_load in dl_util.cpp
-	// memmove is needed!
-	memmove( instance, packed_instance + sizeof(dl_data_header), header->instance_size );
+	DL_ASSERT( (uint8_t*)instance + header->instance_size > packed_instance || (uint8_t*)instance < packed_instance + header->instance_size );
+	memcpy( instance, packed_instance + sizeof(dl_data_header), header->instance_size );
 
 	dl_internal_patch_instance( dl_ctx, root_type, (uint8_t*)instance, 0x0, (uintptr_t)instance );
 
