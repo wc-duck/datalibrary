@@ -302,7 +302,7 @@ static void dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, d
 
 	for( unsigned int j = 0; j < e_info->value_count; ++j )
 	{
-		dl_binary_writer_write_string_fmt( writer, "static const %s %s = ", e_info->name, values[j].name );
+		dl_binary_writer_write_string_fmt( writer, "static constexpr const %s %s = ", e_info->name, values[j].name );
 		dl_context_write_c_header_enum_value( writer, e_info->storage, &values[j] );
 		dl_binary_writer_write_string_fmt( writer, ";\n");
 	}
@@ -756,7 +756,7 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 			dl_binary_writer_write_string_fmt( writer, "struct %s\n{\n", type->name );
 
 		dl_binary_writer_write_string_fmt( writer, "#if defined( __cplusplus )\n"
-												   "    static const uint32_t TYPE_ID = 0x%08X;\n"
+												   "    static constexpr const uint32_t TYPE_ID = 0x%08X;\n"
 												   "#endif // defined( __cplusplus )\n\n", type->tid );
 
 		if( type->is_union )

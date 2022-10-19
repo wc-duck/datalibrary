@@ -919,6 +919,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 	if(out_instance != 0x0)
 	{
 		dl_data_header* new_header = (dl_data_header*)out_instance;
+		memset(new_header, 0, sizeof(dl_data_header));
 		new_header->id                 = DL_INSTANCE_ID;
 		new_header->version            = DL_INSTANCE_VERSION;
 		new_header->root_instance_type = type;

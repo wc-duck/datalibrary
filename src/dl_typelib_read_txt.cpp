@@ -102,6 +102,8 @@ static dl_enum_desc* dl_alloc_enum( dl_ctx_t ctx, dl_substr* name )
 	e->value_count = 0;
 	e->alias_count = 0;
 	e->alias_start = ctx->enum_alias_count;
+	e->metadata_count = 0;
+	e->metadata_start = 0;
 	return e;
 }
 
@@ -622,6 +624,8 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 	alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
 	value->main_alias  = (uint32_t)(alias - ctx->enum_alias_descs);
 	value->comment     = 0xFFFFFFFF;
+	value->metadata_start = 0;
+	value->metadata_count = 0;
 
 	if( *read_state->iter == '{' )
 	{
