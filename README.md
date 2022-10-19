@@ -133,7 +133,9 @@ Type-libs in text-format follows this format.
             // "type" specifies the storage-type of the generated enum. The storage type can be any signed or unsigned 
             // integer type supported by dl.
             // Defaults to `uint32` if not set.
-            "type"   : int8,
+            "type"   : "int64",
+			
+			"comment": "my_enum is an externally declared enumeration and have 7 values",
 
             // "values" are the actual values of the enum-type as a dict.
             "values" : {
@@ -158,7 +160,9 @@ Type-libs in text-format follows this format.
                     // MY_ALIASED_VALUE when packed to binary.
                     // it was added as to shorten the text-format and still keep more descriptive names
                     // in the generated headers.
-                    "aliases" : ["apa", "kossa"]
+                    "aliases" : ["apa", "kossa"],
+					
+					"comment": "This enumerator has aliases"
                 }
             }
         }
@@ -212,7 +216,10 @@ Type-libs in text-format follows this format.
                     "verify"  : false,
 
                     // "comment" works in the same way as on the type, but only for this member.
-                    "comment" : "only used in unittests to check for errors"
+                    "comment" : "only used in unittests to check for errors",
+
+					// "const" adds the const type modifier to this member in the generated header file
+                    "const" : true
                 }
             ]
         }
