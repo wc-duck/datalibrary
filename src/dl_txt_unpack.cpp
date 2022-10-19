@@ -630,8 +630,19 @@ static void dl_txt_unpack_write_member_subdata(dl_ctx_t dl_ctx, dl_txt_unpack_ct
 														   member->inline_array_cnt(),
 														   dl_internal_find_type( dl_ctx, member->type_id ) );
 				break;
+				case DL_TYPE_STORAGE_STRUCT:
+				{
+					const dl_type_desc* subtype = dl_internal_find_type( dl_ctx, member->type_id );
+					if( subtype->flags & DL_TYPE_FLAG_HAS_SUBDATA )
+					{
+						for( uint32_t i = 0; i < member->inline_array_cnt(); ++i )
+							dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, member_data + i * subtype->size[DL_PTR_SIZE_HOST] );
+					}
+				}
+				break;
 				default:
-					DL_ASSERT(false);
+					// ignore ...
+			    break;
 			}
 		}
 		break;
