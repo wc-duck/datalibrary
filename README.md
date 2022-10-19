@@ -134,8 +134,8 @@ Type-libs in text-format follows this format.
             // integer type supported by dl.
             // Defaults to `uint32` if not set.
             "type"   : "int64",
-			
-			"comment": "my_enum is an externally declared enumeration and have 7 values",
+
+            "comment": "my_enum is an externally declared enumeration and have 7 values",
 
             // "values" are the actual values of the enum-type as a dict.
             "values" : {
@@ -161,8 +161,8 @@ Type-libs in text-format follows this format.
                     // it was added as to shorten the text-format and still keep more descriptive names
                     // in the generated headers.
                     "aliases" : ["apa", "kossa"],
-					
-					"comment": "This enumerator has aliases"
+
+                    "comment": "This enumerator has aliases"
                 }
             }
         }
@@ -218,7 +218,7 @@ Type-libs in text-format follows this format.
                     // "comment" works in the same way as on the type, but only for this member.
                     "comment" : "only used in unittests to check for errors",
 
-					// "const" adds the const type modifier to this member in the generated header file
+                    // "const" adds the const type modifier to this member in the generated header file
                     "const" : true
                 }
             ]

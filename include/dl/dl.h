@@ -45,7 +45,7 @@ static const int DL_INLINE_ARRAY_LENGTH_MAX = 0xFFFF;
 	DL_ERROR_TYPE_MISMATCH                                 - Expected type A but found type B.
 	DL_ERROR_TYPE_NOT_FOUND                                - Could not find a requested type. Is the correct type library loaded?
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
-	DL_ERROR_BUFFER_TOO_SMALL                               - Provided buffer is to small.
+	DL_ERROR_BUFFER_TOO_SMALL                              - Provided buffer is to small.
 	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platform's.
 	DL_ERROR_BAD_ALIGNMENT                                 - One argument has a bad alignment that will break, for example, loaded data.
 	DL_ERROR_UNSUPPORTED_OPERATION                         - The operation is not supported by dl-function.
