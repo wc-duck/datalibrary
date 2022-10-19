@@ -78,6 +78,7 @@
 		"MorePods"     : { "members" : [ { "name" : "Pods1", "type" : "Pods"  },  { "name" : "Pods2", "type" : "Pods" }   ] },
 		"Pods2"        : { "members" : [ { "name" : "Int1",  "type" : "uint32" }, { "name" : "Int2",  "type" : "uint32" } ] },
 		"Pod2InStruct" : { "members" : [ { "name" : "Pod1",  "type" : "Pods2" },  { "name" : "Pod2",  "type" : "Pods2" }  ] },
+		"PodPtr" : { "members" : [ { "name" : "PodPtr1",  "type" : "Pods2*" } ] },
 
 		"Pod2InStructInStruct"        : { "members" : [ { "name" : "p2struct", "type" : "Pod2InStruct" } ] },
 		"WithInlineArray"             : { "members" : [ { "name" : "Array",    "type" : "uint32[3]" } ] },
@@ -91,6 +92,9 @@
 		"PodArray2"    : { "members" : [ { "name" : "sub_arr", "type" : "PodArray1[]" } ] },
 
 		"StructArray1" : { "members" : [ { "name" : "Array", "type" : "Pods2[]" }  ] },
+
+		"StructArrayRecursive1" : { "members" : [ { "name" : "Array", "type" : "StructArrayRecursive2[]" }  ] },
+		"StructArrayRecursive2" : { "members" : [ { "name" : "Array", "type" : "StructArrayRecursive1[]" }  ] },
 
 		"Strings"           : { "members" : [ { "name" : "Str1", "type" : "string" }, { "name" : "Str2", "type" : "string" } ] },
 		"StringInlineArray" : { "members" : [ { "name" : "Strings", "type" : "string[3]" } ] },
@@ -155,6 +159,26 @@
 		"ptr_array" : {
 			"members" : [
 				{ "name" : "arr", "type" : "Pods2*[]" }
+			]
+		},
+		"ptr_inline_array" : {
+			"members" : [
+				{"name" : "ptr", "type" : "WithInlineArray*"}
+			]
+		},
+		"ptr_inline_array2" : {
+			"members" : [
+				{"name" : "ptr", "type" : "WithInlineStructArray*"}
+			]
+		},
+		"inline_array_pod_ptr" : {
+			"members" : [
+				{"name" : "inlarr", "type" : "PodPtr[2]"}
+			]
+		},
+		"ptr_struct_inline_array_ptr" : {
+			"members" : [
+				{"name" : "ptr", "type" : "inline_array_pod_ptr*"}
 			]
 		},
 
@@ -403,7 +427,8 @@
 		"test_union_ptr" : {
 			"members" : [
 				{ "name" : "p1", "type" : "Pods*" },
-				{ "name" : "p2", "type" : "SubString*" }
+				{ "name" : "p2", "type" : "SubString*" },
+				{ "name" : "p3", "type" : "WithInlineArray*" }
 			]
 		},
 		"test_has_union_array": {
