@@ -48,7 +48,7 @@
 #endif
 
 static const uint32_t DL_UNUSED DL_TYPELIB_VERSION         = 4; // format version for type-libraries.
-static const uint32_t DL_UNUSED DL_INSTANCE_VERSION        = 1; // format version for instances.
+static const uint32_t DL_UNUSED DL_INSTANCE_VERSION        = 2; // format version for instances.
 static const uint32_t DL_UNUSED DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
 static const uint32_t DL_UNUSED DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
 static const uint32_t DL_UNUSED DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
@@ -89,8 +89,8 @@ typedef enum
 
 static const uintptr_t DL_NULL_PTR_OFFSET[2] =
 {
-	(uintptr_t)0xFFFFFFFF, // DL_PTR_SIZE_32BIT
-	(uintptr_t)-1          // DL_PTR_SIZE_64BIT
+	(uintptr_t)0, // DL_PTR_SIZE_32BIT
+	(uintptr_t)0  // DL_PTR_SIZE_64BIT
 };
 
 struct dl_typelib_header
@@ -116,7 +116,9 @@ struct dl_data_header
 	dl_typeid_t root_instance_type;
 	uint32_t    instance_size;
 	uint8_t     is_64_bit_ptr; // currently uses uint8 instead of bitfield to be compiler-compliant.
-	uint8_t     pad[7];
+	uint8_t     need_slow_patching; // currently uses uint8 instead of bitfield to be compiler-compliant.
+	uint8_t     pad[2];
+	uint32_t    first_pointer_to_patch;
 };
 
 enum dl_ptr_size_t

@@ -174,7 +174,7 @@ static inline void dl_binary_writer_write_array( dl_binary_writer* writer, const
 }
 
 // val is expected to be in host-endian!!!
-static inline void dl_binary_writer_write_ptr( dl_binary_writer* writer, size_t val )
+static inline void dl_binary_writer_write_ptr( dl_binary_writer* writer, uint64_t val )
 {
 	if( writer->target_endian != DL_ENDIAN_HOST )
 	{
