@@ -12,13 +12,15 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t st
 		case DL_TYPE_STORAGE_PTR:
 		{
 			dl_type_info_t sub_type;
-			dl_reflect_get_type_info( ctx, tid, &sub_type );
+		    if( dl_reflect_get_type_info( ctx, tid, &sub_type ) != DL_ERROR_OK )
+			    return nullptr;
 			return sub_type.name;
 		}
 		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			dl_enum_info_t sub_type;
-			dl_reflect_get_enum_info( ctx, tid, &sub_type );
+			if( dl_reflect_get_enum_info( ctx, tid, &sub_type ) != DL_ERROR_OK )
+			    return nullptr;
 			return sub_type.name;
 		}
 		case DL_TYPE_STORAGE_INT8:   return "int8";
@@ -49,16 +51,18 @@ static void dl_binary_writer_write_fmt( dl_binary_writer* writer, const char* fm
 	dl_binary_writer_write( writer, buffer, (size_t)res );
 }
 
-static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, dl_typeid_t tid )
+static dl_error_t dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, dl_typeid_t tid )
 {
 	dl_enum_info_t enum_info;
-	dl_reflect_get_enum_info( ctx, tid, &enum_info );
+	dl_error_t err = dl_reflect_get_enum_info( ctx, tid, &enum_info );
+	if( DL_ERROR_OK != err ) return err;
 
 	dl_binary_writer_write_fmt( writer, "    \"%s\" : {\n"
 	                                    "      \"values\" : {\n", enum_info.name );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
-	dl_reflect_get_enum_values( ctx, tid, values, enum_info.value_count );
+	err = dl_reflect_get_enum_values( ctx, tid, values, enum_info.value_count );
+	if( DL_ERROR_OK != err ) return err;
 
 	for( unsigned int j = 0; j < enum_info.value_count; ++j )
 	{
@@ -72,20 +76,24 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 	free( values );
 
 	dl_binary_writer_write_fmt( writer, "      }\n    }", 1 );
+	return DL_ERROR_OK;
 }
 
-static void dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* writer )
+static dl_error_t dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* writer )
 {
 	dl_binary_writer_write_fmt( writer, "  \"enums\" : {\n" );
 	dl_type_context_info_t ctx_info;
-	dl_reflect_context_info( ctx, &ctx_info );
+	dl_error_t err = dl_reflect_context_info( ctx, &ctx_info );
+	if( DL_ERROR_OK != err ) return err;
 
 	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_enums * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_enumids( ctx, tids, ctx_info.num_enums );
+	err = dl_reflect_loaded_enumids( ctx, tids, ctx_info.num_enums );
+	if( DL_ERROR_OK != err ) return err;
 
 	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 	{
-		dl_context_write_txt_enum( ctx, writer, tids[enum_index] );
+		err = dl_context_write_txt_enum( ctx, writer, tids[enum_index] );
+		if( DL_ERROR_OK != err ) return err;
 		if( enum_index < ctx_info.num_enums - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
@@ -95,9 +103,10 @@ static void dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* writer )
 	free( tids );
 
 	dl_binary_writer_write_fmt( writer, "  },\n" );
+	return DL_ERROR_OK;
 }
 
-static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer, dl_member_info_t* member )
+static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer, dl_member_info_t* member )
 {
 	dl_binary_writer_write_fmt( writer, "        { \"name\" : \"%s\", ", member->name );
 
@@ -128,22 +137,26 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer,
 			DL_ASSERT( false );
 	}
 	dl_binary_writer_write( writer, " }", 2 );
+	return DL_ERROR_OK;
 }
 
-static void dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* writer, dl_typeid_t tid )
+static dl_error_t dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* writer, dl_typeid_t tid )
 {
 	dl_type_info_t type_info;
-	dl_reflect_get_type_info( ctx, tid, &type_info );
+	dl_error_t err = dl_reflect_get_type_info( ctx, tid, &type_info );
+	if( DL_ERROR_OK != err ) return err;
 
 	dl_binary_writer_write_fmt( writer, "    \"%s\" : {\n", type_info.name );
 
 	dl_member_info_t* members = (dl_member_info_t*)malloc( type_info.member_count * sizeof( dl_member_info_t ) );
-	dl_reflect_get_type_members( ctx, tid, members, type_info.member_count );
+	err = dl_reflect_get_type_members( ctx, tid, members, type_info.member_count );
+	if( DL_ERROR_OK != err ) return err;
 
 	dl_binary_writer_write_fmt( writer, "      \"members\" : [\n" );
 	for( unsigned int member_index = 0; member_index < type_info.member_count; ++member_index )
 	{
-		dl_context_write_txt_member( ctx, writer, &members[member_index] );
+		err = dl_context_write_txt_member( ctx, writer, &members[member_index] );
+		if( DL_ERROR_OK != err ) return err;
 		if( member_index < type_info.member_count - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
@@ -152,21 +165,25 @@ static void dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* writer, d
 
 	dl_binary_writer_write_fmt( writer, "      ]\n    }" );
 	free( members );
+	return DL_ERROR_OK;
 }
 
-static void dl_context_write_txt_types( dl_ctx_t ctx, dl_binary_writer* writer )
+static dl_error_t dl_context_write_txt_types( dl_ctx_t ctx, dl_binary_writer* writer )
 {
 	dl_binary_writer_write_fmt( writer, "  \"types\" : {\n" );
 
 	dl_type_context_info_t ctx_info;
-	dl_reflect_context_info( ctx, &ctx_info );
+	dl_error_t err = dl_reflect_context_info( ctx, &ctx_info );
+	if( DL_ERROR_OK != err ) return err;
 
 	dl_typeid_t* tids = (dl_typeid_t*)malloc( ctx_info.num_types * sizeof( dl_typeid_t ) );
-	dl_reflect_loaded_typeids( ctx, tids, ctx_info.num_types );
+	err = dl_reflect_loaded_typeids( ctx, tids, ctx_info.num_types );
+	if( DL_ERROR_OK != err ) return err;
 
 	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
 	{
-		dl_context_write_txt_type( ctx, writer, tids[type_index] );
+		err = dl_context_write_txt_type( ctx, writer, tids[type_index] );
+		if( DL_ERROR_OK != err ) return err;
 		if( type_index < ctx_info.num_types - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
@@ -175,6 +192,7 @@ static void dl_context_write_txt_types( dl_ctx_t ctx, dl_binary_writer* writer )
 
 	free( tids );
 	dl_binary_writer_write_fmt( writer, "  }\n" );
+	return DL_ERROR_OK;
 }
 
 dl_error_t dl_context_write_txt_type_library( dl_ctx_t ctx, char* out_lib, size_t out_lib_size, size_t* produced_bytes )
@@ -189,8 +207,10 @@ dl_error_t dl_context_write_txt_type_library( dl_ctx_t ctx, char* out_lib, size_
 						   DL_PTR_SIZE_HOST );
 
 	dl_binary_writer_write( &writer, "{\n", 2 );
-	dl_context_write_txt_enums( ctx, &writer );
-	dl_context_write_txt_types( ctx, &writer );
+	dl_error_t err = dl_context_write_txt_enums( ctx, &writer );
+	if( DL_ERROR_OK != err ) return err;
+	err = dl_context_write_txt_types( ctx, &writer );
+	if( DL_ERROR_OK != err ) return err;
 	dl_binary_writer_write( &writer, "}\n\0", 3 );
 
 	if( out_lib_size > 0 )

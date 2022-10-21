@@ -130,7 +130,8 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t dl_ctx,       	dl_typeid_t        
 
 			if( type == 0 ) // autodetect type
 			{
-				dl_instance_get_info( load_instance, packed_size, &info);
+			    error = dl_instance_get_info( load_instance, packed_size, &info );
+				if(error != DL_ERROR_OK) { dl_free( allocator, load_instance); return error; }
 				type = info.root_type;
 			}
 		}

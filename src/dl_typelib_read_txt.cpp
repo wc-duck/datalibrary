@@ -225,7 +225,11 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 
 	uint8_t* pack_buffer = (uint8_t*)dl_alloc( &ctx->alloc, prod_bytes );
 
-	dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0 );
+	err = dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0 );
+	if( err != DL_ERROR_OK )
+		dl_txt_read_failed( ctx, read_state, DL_ERROR_INVALID_DEFAULT_VALUE, "failed to pack default-value for member \"%s\" with error \"%s\"",
+															dl_internal_member_name( ctx, member ),
+															dl_error_to_string( err ) );
 
 	// TODO: convert packed instance to typelib endian/ptrsize here!
 
