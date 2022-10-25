@@ -869,7 +869,7 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 			}
 
 			if(array_length > 0)
-		    {
+			{
 				dl_error_t err = dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
 				if( DL_ERROR_OK != err ) return err;
 			}

@@ -669,7 +669,7 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 						uint32_t  array_count  = *(uint32_t*)(member_data + sizeof(uintptr_t));
 						const uint8_t* array = unpack_ctx->packed_instance + array_offset;
 						for( uint32_t i = 0; i < array_count; ++i )
-				        {
+						{
 							dl_error_t err = dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, array + i * subtype->size[DL_PTR_SIZE_HOST] );
 							if( DL_ERROR_OK != err ) return err;
 						}
