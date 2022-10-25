@@ -8,7 +8,7 @@
 struct dl_txt_unpack_ctx
 {
 	explicit dl_txt_unpack_ctx(dl_allocator alloc)
-	    : ptrs(alloc)
+		: ptrs(alloc)
 	{
 	}
 
@@ -643,7 +643,7 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 					if( subtype->flags & DL_TYPE_FLAG_HAS_SUBDATA )
 					{
 						for( uint32_t i = 0; i < member->inline_array_cnt(); ++i )
-				        {
+						{
 							dl_error_t err = dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, member_data + i * subtype->size[DL_PTR_SIZE_HOST] );
 							if( DL_ERROR_OK != err ) return err;
 						}
@@ -652,7 +652,7 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 				break;
 				default:
 					// ignore ...
-			    break;
+				break;
 			}
 		}
 		break;
@@ -691,13 +691,13 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 				break;
 				default:
 					// ignore ...
-			    break;
+				break;
 			}
-	    }
+		}
 		break;
 		default:
 			// ignore ...
-		    break;
+			break;
 	}
 	return DL_ERROR_OK;
 }
