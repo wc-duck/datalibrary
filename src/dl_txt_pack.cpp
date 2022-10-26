@@ -1038,7 +1038,7 @@ static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack
 		// ... read all members ...
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( *packctx->read_ctx.iter == ',' ) ++packctx->read_ctx.iter;
-		// We allow traailing commas, so consume whitespaces to see if we have a struct termination.
+		// We allow trailing commas, so consume whitespaces to see if we have a struct termination.
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( *packctx->read_ctx.iter == '}' ) break;
 

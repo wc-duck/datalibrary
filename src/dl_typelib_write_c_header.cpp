@@ -59,6 +59,14 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "#    define DL_C_STRUCT struct\n"
 									   "#  endif\n"
                                        "\n"
+									   "   /// ... DL_C_ENUM ...\n"
+									   "   /// Same concept as DL_C_STRUCT\n"
+									   "#  if defined(__cplusplus)\n"
+									   "#    define DL_C_ENUM\n"
+									   "#  else\n"
+									   "#    define DL_C_ENUM enum\n"
+									   "#  endif\n"
+                                       "\n"
 									   "   /// ... DL_ALIGN() ...\n"
 									   "#  if defined(_MSC_VER)\n"
 									   "#    define DL_ALIGN(x) __declspec(align(x))\n"
@@ -166,11 +174,11 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "		       DL_DATA_ASSERT(i < count);\n"
 									   "		       return data[i];\n"
 									   "		   }\n"
-									   "		   inline const char* const* const begin() const\n"
+									   "		   inline const char* const* begin() const\n"
 									   "		   {\n"
 									   "		       return data;\n"
 									   "		   }\n"
-									   "		   inline const char* const* const end() const\n"
+									   "		   inline const char* const* end() const\n"
 									   "		   {\n"
 									   "		       return data + count;\n"
 									   "		   }\n"
@@ -447,7 +455,7 @@ static dl_error_t dl_context_write_c_header_enums( dl_binary_writer* writer, dl_
 				break;
 		};
 
-		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(sizeof(enum %s) == %u, \"size of external enum %s do not match what was specified in tld.\");\n", enum_->name, enum_size, enum_->name );
+		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(sizeof(DL_C_ENUM %s) == %u, \"size of external enum %s do not match what was specified in tld.\");\n", enum_->name, enum_size, enum_->name );
 		
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof(dl_enum_value_info_t) );
 		DL_DEFER( { free( values ); } );

@@ -221,7 +221,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t 
 		members_size  - Size of _pMembers.
 
 	Returns:
-		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if out_members do not fit all members, or other error if appropriate!
+		DL_ERROR_OK on success, DL_ERROR_BUFFER_TOO_SMALL if out_members do not fit all members, or other error if appropriate!
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid_t type, dl_member_info_t* out_members, unsigned int out_members_size );
 
@@ -236,7 +236,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		out_values_size - Size of out_values.
 
 	Returns:
-		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if out_members do not fit all members, or other error if appropriate!
+		DL_ERROR_OK on success, DL_ERROR_BUFFER_TOO_SMALL if out_members do not fit all members, or other error if appropriate!
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_t type, dl_enum_value_info_t* out_values, unsigned int out_values_size );
 
