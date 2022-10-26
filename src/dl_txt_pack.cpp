@@ -1122,19 +1122,19 @@ struct SSubInstance
 
 struct dl_internal_sort_pred
 {
-	__forceinline bool operator()(const SSubInstance& i1, const SSubInstance& i2)
+	inline bool operator()(const SSubInstance& i1, const SSubInstance& i2)
 	{
 		return i1.name_hash < i2.name_hash;
 	}
-	__forceinline bool operator()(const dl_txt_pack_ctx::SSubData& i1, const dl_txt_pack_ctx::SSubData& i2)
+	inline bool operator()(const dl_txt_pack_ctx::SSubData& i1, const dl_txt_pack_ctx::SSubData& i2)
 	{
 		return i1.name_hash < i2.name_hash;
 	}
-	__forceinline bool operator()(const SSubInstance& i1, uint32_t i2)
+	inline bool operator()(const SSubInstance& i1, uint32_t i2)
 	{
 		return i1.name_hash < i2;
 	}
-	__forceinline bool operator()(const dl_txt_pack_ctx::SSubData& i1, uint32_t i2)
+	inline bool operator()(const dl_txt_pack_ctx::SSubData& i1, uint32_t i2)
 	{
 		return i1.name_hash < i2;
 	}
@@ -1173,7 +1173,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		{
 			if( results->name_hash != name_hash )
 			{
-				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata." );
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata '%.*s'", subdata_name.str, subdata_name.len );
 			}
 
 			if( results->name.len == subdata_name.len && strncmp(results->name.str, subdata_name.str, (size_t)subdata_name.len) == 0 )
