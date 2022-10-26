@@ -311,7 +311,7 @@ dl_error_t dl_context_write_txt_type_library( dl_ctx_t ctx, char* out_lib, size_
 	if( out_lib_size > 0 )
 		// if( write_ctx.write_pos > write_ctx.buffer_size )
 		if( writer.needed_size > out_lib_size )
-			return DL_ERROR_BUFFER_TO_SMALL;
+			return DL_ERROR_BUFFER_TOO_SMALL;
 	if( produced_bytes )
 		*produced_bytes = writer.needed_size;
 

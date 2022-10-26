@@ -194,7 +194,7 @@ Type-libs in text-format follows this format.
 
             // "align" can be used to force the alignment of a type.
             // Defaults to the types "natural alignment" if not set.
-            "align"   : 128
+            "align"   : 128,
 
             // "comment" will be output in the .h-files for this specified type.
             // If not set, no comment will be written to .h
@@ -245,11 +245,11 @@ Type-libs in text-format follows this format.
         // see doc for "types" as they are the same.
         "my_union" : {
             "members" : [
-                { "name" : "an_int",  "type" : "int32", },
-                { "name" : "a_float", "type" : "fp32", }
+                { "name" : "an_int",  "type" : "int32" },
+                { "name" : "a_float", "type" : "fp32" }
             ]
         }
-    },
+    }
 }
 ```
 
