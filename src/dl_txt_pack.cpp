@@ -1285,7 +1285,7 @@ dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsi
 			header.id                     = DL_INSTANCE_ID;
 			header.version                = DL_INSTANCE_VERSION;
 			header.root_instance_type     = dl_internal_typeid_of( dl_ctx, root_type );
-			header.instance_size          = (uint32_t)dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header );
+			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header ));
 			header.is_64_bit_ptr          = sizeof( void* ) == 8 ? 1 : 0;
 			header.first_pointer_to_patch = pointers.Len() ? (uint32_t)pointers[0] : 0;
 

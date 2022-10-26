@@ -960,7 +960,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 				uint64_t offsets = *(uint64_t*)patch_mem;
 				if( src_endian != DL_ENDIAN_HOST )
 					offsets = dl_swap_endian_uint64( offsets );
-				offset_to_next_pointer_to_patch = offsets >> 32;
+				offset_to_next_pointer_to_patch = uint32_t(offsets >> 32);
 				*(uint64_t*)patch_mem  = *(uint64_t*)patch_mem & patch_mask;
 			}
 		}

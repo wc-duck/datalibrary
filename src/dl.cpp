@@ -527,7 +527,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	dl_binary_writer_seek_end( &store_context.writer );
 	if( header )
 	{
-		header->instance_size = (uint32_t)dl_binary_writer_tell( &store_context.writer ) - sizeof( dl_data_header );
+		header->instance_size = uint32_t( dl_binary_writer_tell( &store_context.writer ) - sizeof( dl_data_header ) );
 
 		uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
 		if( dl_binary_writer_tell( &store_context.writer ) >= ( 1ULL << offset_shift ) )
