@@ -2,8 +2,8 @@
 #include <dl/dl_reflect.h>
 
 #include "dl_binary_writer.h"
+#include "dl_internal_util.h"
 
-#include <memory>
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -223,9 +223,6 @@ static void dl_context_write_c_header_end( dl_binary_writer* writer, const char*
 	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
 }
 
-template <class T>
-using dl_unique_malloc_ptr = std::unique_ptr<T, decltype( &free )>;
-
 static dl_error_t dl_context_write_c_header_typeids( dl_binary_writer* writer, dl_ctx_t ctx )
 {
 	dl_binary_writer_write_string_fmt( writer, "//----------------------------------------------\n"
@@ -239,8 +236,9 @@ static dl_error_t dl_context_write_c_header_typeids( dl_binary_writer* writer, d
 
 	if(ctx_info.num_enums != 0)
 	{
-		dl_unique_malloc_ptr<dl_enum_info_t[]> enum_infos( (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof(dl_enum_info_t) ), free );
-		err = dl_reflect_loaded_enums(ctx, enum_infos.get(), ctx_info.num_enums);
+		dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof(dl_enum_info_t) );
+		DL_DEFER( { free( enum_infos ); } );
+		err = dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
 		if( err != DL_ERROR_OK )
 			return err;
 
@@ -252,8 +250,9 @@ static dl_error_t dl_context_write_c_header_typeids( dl_binary_writer* writer, d
 
 	if(ctx_info.num_types != 0)
 	{
-		dl_unique_malloc_ptr<dl_type_info_t[]> type_info( (dl_type_info_t*)malloc( ctx_info.num_types * sizeof(dl_type_info_t) ), free );
-		err = dl_reflect_loaded_types( ctx, type_info.get(), ctx_info.num_types );
+		dl_type_info_t* type_info = (dl_type_info_t*)malloc( ctx_info.num_types * sizeof(dl_type_info_t) );
+		DL_DEFER( { free( type_info ); } );
+		err = dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
 		if( err != DL_ERROR_OK )
 			return err;
 
@@ -344,8 +343,9 @@ static dl_error_t dl_context_write_c_header_enum( dl_binary_writer* writer, dl_c
 
 	dl_binary_writer_write_string_fmt( writer, "typedef enum %s%s\n{\n", e_info->name, dl_context_enum_storage_decl(e_info->storage) );
 
-	dl_unique_malloc_ptr<dl_enum_value_info_t[]> values( (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof( dl_enum_value_info_t ) ), free );
-	dl_error_t err = dl_reflect_get_enum_values( ctx, e_info->tid, values.get(), e_info->value_count );
+	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof(dl_enum_value_info_t) );
+	DL_DEFER( { free( values ); } );
+	dl_error_t err = dl_reflect_get_enum_values( ctx, e_info->tid, values, e_info->value_count );
 	if (DL_ERROR_OK != err) return err;
 
 	for( unsigned int j = 0; j < e_info->value_count; ++j )
@@ -385,9 +385,10 @@ static dl_error_t dl_context_write_c_header_enum_fallback( dl_binary_writer* wri
 			/*ignore*/
 			break;
 	}
-
-	dl_unique_malloc_ptr<dl_enum_value_info_t[]> values( (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof( dl_enum_value_info_t ) ), free );
-	dl_error_t err = dl_reflect_get_enum_values( ctx, e_info->tid, values.get(), e_info->value_count );
+	
+	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof(dl_enum_value_info_t) );
+	DL_DEFER( { free( values ); } );
+	dl_error_t err = dl_reflect_get_enum_values( ctx, e_info->tid, values, e_info->value_count );
 	if (DL_ERROR_OK != err) return err;
 
 	for( unsigned int j = 0; j < e_info->value_count; ++j )
@@ -413,9 +414,10 @@ static dl_error_t dl_context_write_c_header_enums( dl_binary_writer* writer, dl_
 	dl_binary_writer_write_string_fmt( writer, "//----------------------------------------------\n"
 											   "//                   ENUMS:s                    \n"
 											   "//----------------------------------------------\n\n" );
-
-	dl_unique_malloc_ptr<dl_enum_info_t[]> enum_infos( (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof(dl_enum_info_t) ), free );
-	err = dl_reflect_loaded_enums(ctx, enum_infos.get(), ctx_info.num_enums);
+	
+	dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof(dl_enum_info_t) );
+	DL_DEFER( { free( enum_infos ); } );
+	err = dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
 	if (DL_ERROR_OK != err) return err;
 
 	unsigned int extern_cnt = 0;
@@ -446,9 +448,10 @@ static dl_error_t dl_context_write_c_header_enums( dl_binary_writer* writer, dl_
 		};
 
 		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(sizeof(enum %s) == %u, \"size of external enum %s do not match what was specified in tld.\");\n", enum_->name, enum_size, enum_->name );
-
-		dl_unique_malloc_ptr<dl_enum_value_info_t[]> values( (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof( dl_enum_value_info_t ) ), free );
-		err = dl_reflect_get_enum_values( ctx, enum_->tid, values.get(), enum_->value_count );
+		
+		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof(dl_enum_value_info_t) );
+		DL_DEFER( { free( values ); } );
+		err = dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
 		if (DL_ERROR_OK != err) return err;
 
 		for( unsigned int j = 0; j < enum_->value_count; ++j )
@@ -675,9 +678,10 @@ static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_
 	dl_binary_writer_write_string_fmt( writer, "//----------------------------------------------\n"
 											   "//                   TYPES:s                    \n"
 											   "//----------------------------------------------\n\n" );
-
-	dl_unique_malloc_ptr<dl_type_info_t[]> type_info( (dl_type_info_t*)malloc( ctx_info.num_types * sizeof(dl_type_info_t) ), free );
-	err = dl_reflect_loaded_types( ctx, type_info.get(), ctx_info.num_types );
+	
+	dl_type_info_t* type_info = (dl_type_info_t*)malloc( ctx_info.num_types * sizeof(dl_type_info_t) );
+	DL_DEFER( { free( type_info ); } );
+	err = dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
 	if (DL_ERROR_OK != err) return err;
 
 	// ... write checks for extern types ...
@@ -697,9 +701,10 @@ static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_
 		{
 			dl_binary_writer_write_string_fmt( writer, "// '%s' is marked as 'verify : false' so size and align will not be verified\n", type->name );
 		}
-
-		dl_unique_malloc_ptr<dl_member_info_t[]> members( (dl_member_info_t*)malloc( type->member_count * sizeof(dl_member_info_t) ), free );
-		err = dl_reflect_get_type_members( ctx, type->tid, members.get(), type->member_count );
+		
+		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof(dl_member_info_t) );
+		DL_DEFER( { free( members ); } );
+		err = dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
 		if (DL_ERROR_OK != err) return err;
 		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
 		{
@@ -736,8 +741,9 @@ static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_
 		if( type->is_extern )
 			continue;
 		
-		dl_unique_malloc_ptr<dl_member_info_t[]> members( (dl_member_info_t*)malloc( type->member_count * sizeof(dl_member_info_t) ), free );
-		err = dl_reflect_get_type_members( ctx, type->tid, members.get(), type->member_count );
+		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof(dl_member_info_t) );
+		DL_DEFER( { free( members ); } );
+		err = dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
 		if (DL_ERROR_OK != err) return err;
 
 		if( type->is_union )
