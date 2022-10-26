@@ -1173,7 +1173,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		{
 			if( results->name_hash != name_hash )
 			{
-				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata '%.*s'", subdata_name.str, subdata_name.len );
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata '%.*s'", subdata_name.len, subdata_name.str );
 			}
 
 			if( results->name.len == subdata_name.len && strncmp(results->name.str, subdata_name.str, (size_t)subdata_name.len) == 0 )
