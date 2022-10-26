@@ -133,7 +133,9 @@ Type-libs in text-format follows this format.
             // "type" specifies the storage-type of the generated enum. The storage type can be any signed or unsigned 
             // integer type supported by dl.
             // Defaults to `uint32` if not set.
-            "type"   : int8,
+            "type"   : "int64",
+
+            "comment": "my_enum is an externally declared enumeration and have 7 values",
 
             // "values" are the actual values of the enum-type as a dict.
             "values" : {
@@ -158,7 +160,9 @@ Type-libs in text-format follows this format.
                     // MY_ALIASED_VALUE when packed to binary.
                     // it was added as to shorten the text-format and still keep more descriptive names
                     // in the generated headers.
-                    "aliases" : ["apa", "kossa"]
+                    "aliases" : ["apa", "kossa"],
+
+                    "comment": "This enumerator has aliases"
                 }
             }
         }
@@ -184,7 +188,7 @@ Type-libs in text-format follows this format.
 
             // "align" can be used to force the alignment of a type.
             // Defaults to the types "natural alignment" if not set.
-            "align"   : 128
+            "align"   : 128,
 
             // "comment" will be output in the .h-files for this specified type.
             // If not set, no comment will be written to .h
@@ -212,7 +216,10 @@ Type-libs in text-format follows this format.
                     "verify"  : false,
 
                     // "comment" works in the same way as on the type, but only for this member.
-                    "comment" : "only used in unittests to check for errors"
+                    "comment" : "only used in unittests to check for errors",
+
+                    // "const" adds the const type modifier to this member in the generated header file
+                    "const" : true
                 }
             ]
         }
@@ -226,11 +233,11 @@ Type-libs in text-format follows this format.
         // see doc for "types" as they are the same.
         "my_union" : {
             "members" : [
-                { "name" : "an_int",  "type" : "int32", },
-                { "name" : "a_float", "type" : "fp32", }
+                { "name" : "an_int",  "type" : "int32" },
+                { "name" : "a_float", "type" : "fp32" }
             ]
         }
-    },
+    }
 }
 ```
 
@@ -394,7 +401,7 @@ void store_me( dl_ctx_t dl_ctx )
 	                       DL_UTIL_FILE_TYPE_BINARY, // store as binary file
 	                       DL_ENDIAN_HOST,           // store with endian of this system
 	                       sizeof(void*),            // store with pointer-size of this system
-	                       &e );                     // instance to store
+	                       &instance_data );         // instance to store
 }
 ```
 

@@ -55,25 +55,31 @@ TEST_F( DLUtil, store_load_binary )
 											 DL_ENDIAN_HOST,
 											 sizeof(void*),
 											 &p,
+											 0x0,
+											 0x0,
 											 0x0 ) );
 
 	union { Pods* p2; void* vp; } conv;
 	conv.p2 = 0x0;
 	dl_typeid_t stored_type;
 
-	// read struct from temp-flle.
+	// read struct from temp-file.
+	void* allocated_mem;
 	EXPECT_DL_ERR_OK( dl_util_load_from_file( Ctx,
 											  Pods::TYPE_ID,
 											  TEMP_FILE_NAME,
 											  DL_UTIL_FILE_TYPE_BINARY,
 											  &conv.vp,
 											  &stored_type,
+	                                          &allocated_mem,
+											  0x0,
+											  0x0,
 											  0x0 ) );
 
 	dl_typeid_t expect = Pods::TYPE_ID;
 	EXPECT_EQ( expect, stored_type );
 	check_loaded( conv.p2 );
-	free( conv.p2 );
+	free( allocated_mem );
 }
 
 TEST_F( DLUtil, store_load_text )
@@ -86,25 +92,31 @@ TEST_F( DLUtil, store_load_text )
 											 DL_ENDIAN_HOST,
 											 sizeof(void*),
 											 &p,
-											 0x0 ) );
+											 0x0,
+											 0x0,
+											 0x0) );
 
 	union { Pods* p2; void* vp; } conv;
 	conv.p2 = 0x0;
 	dl_typeid_t stored_type;
 
-	// read struct from temp-flle.
+	// read struct from temp-file.
+	void* allocated_mem;
 	EXPECT_DL_ERR_OK( dl_util_load_from_file( Ctx,
 											  Pods::TYPE_ID,
 											  TEMP_FILE_NAME,
 											  DL_UTIL_FILE_TYPE_TEXT,
 											  &conv.vp,
 											  &stored_type,
+	                                          &allocated_mem,
+											  0x0,
+											  0x0,
 											  0x0 ) );
 
 	dl_typeid_t expect = Pods::TYPE_ID;
 	EXPECT_EQ( expect, stored_type );
 	check_loaded( conv.p2 );
-	free( conv.p2 );
+	free( allocated_mem );
 }
 
 TEST_F( DLUtil, load_text_from_binary_error )
@@ -116,18 +128,23 @@ TEST_F( DLUtil, load_text_from_binary_error )
 											 DL_ENDIAN_HOST,
 											 sizeof(void*),
 											 &p,
+											 0x0,
+											 0x0,
 											 0x0 ) );
 
 	union { Pods* p2; void* vp; } conv;
 	conv.p2 = 0x0;
 	dl_typeid_t stored_type;
-
+	void* allocated_mem;
 	EXPECT_DL_ERR_EQ( DL_ERROR_UTIL_FILE_TYPE_MISMATCH, dl_util_load_from_file( Ctx,
 																				Pods::TYPE_ID,
 																				TEMP_FILE_NAME,
 																				DL_UTIL_FILE_TYPE_TEXT,
 																				&conv.vp,
 																				&stored_type,
+																				&allocated_mem,
+																				0x0,
+																				0x0,
 																				0x0 ) );
 
 	EXPECT_EQ( 0x0, conv.p2 ); // should be untouched
@@ -142,18 +159,23 @@ TEST_F( DLUtil, load_binary_from_text_error )
 											 DL_ENDIAN_HOST,
 											 sizeof(void*),
 											 &p,
+											 0x0,
+											 0x0,
 											 0x0 ) );
 
 	union { Pods* p2; void* vp; } conv;
 	conv.p2 = 0x0;
 	dl_typeid_t stored_type;
-
+	void* allocated_mem;
 	EXPECT_DL_ERR_EQ( DL_ERROR_UTIL_FILE_TYPE_MISMATCH, dl_util_load_from_file( Ctx,
 																				Pods::TYPE_ID,
 																				TEMP_FILE_NAME,
 																				DL_UTIL_FILE_TYPE_BINARY,
 																				&conv.vp,
 																				&stored_type,
+																				&allocated_mem,
+																				0x0,
+																				0x0,
 																				0x0 ) );
 
 	EXPECT_EQ( 0x0, conv.p2 ); // should be untouched
@@ -168,25 +190,30 @@ TEST_F( DLUtil, auto_detect_binary_file_format )
 											 DL_ENDIAN_HOST,
 											 sizeof(void*),
 											 &p,
+											 0x0,
+											 0x0,
 											 0x0 ) );
 
 	union { Pods* p2; void* vp; } conv;
 	conv.p2 = 0x0;
 	dl_typeid_t stored_type;
-
+	void* allocated_mem;
 	EXPECT_DL_ERR_OK( dl_util_load_from_file( Ctx,
 											  0, // check autodetection of type
 											  TEMP_FILE_NAME,
 											  DL_UTIL_FILE_TYPE_AUTO,
 											  &conv.vp,
 											  &stored_type,
+	                                          &allocated_mem,
+											  0x0,
+											  0x0,
 											  0x0 ) );
 
 	dl_typeid_t expect = Pods::TYPE_ID;
 	EXPECT_EQ( expect, stored_type );
 	check_loaded( conv.p2 );
 
-	free( conv.p2 );
+	free( allocated_mem );
 }
 
 TEST_F( DLUtil, auto_detect_text_file_format )
@@ -198,31 +225,36 @@ TEST_F( DLUtil, auto_detect_text_file_format )
 											 DL_ENDIAN_HOST,
 											 sizeof(void*),
 											 &p,
+											 0x0,
+											 0x0,
 											 0x0 ) );
 
 	union { Pods* p2; void* vp; } conv;
 	conv.p2 = 0x0;
 	dl_typeid_t stored_type;
-
+	void* allocated_mem;
 	EXPECT_DL_ERR_OK( dl_util_load_from_file( Ctx,
 											  0, // check autodetection of type
 											  TEMP_FILE_NAME,
 											  DL_UTIL_FILE_TYPE_AUTO,
 											  &conv.vp,
 											  &stored_type,
+	                                          &allocated_mem,
+											  0x0,
+											  0x0,
 											  0x0 ) );
 
 	dl_typeid_t expect = Pods::TYPE_ID;
 	EXPECT_EQ( expect, stored_type );
 	check_loaded( conv.p2 );
 
-	free( conv.p2 );
+	free( allocated_mem );
 }
 
 TEST_F( DLUtil, dl_util_load_non_existing_file )
 {
 	EXPECT_DL_ERR_EQ( DL_ERROR_UTIL_FILE_NOT_FOUND,
-					  dl_util_load_from_file( Ctx, 0, "whobb whobb whoob", DL_UTIL_FILE_TYPE_AUTO, 0, 0, 0 ) );
+					  dl_util_load_from_file( Ctx, 0, "whobb whobb whoob", DL_UTIL_FILE_TYPE_AUTO, 0, 0, 0, 0, 0, 0 ) );
 }
 
 // store in other endian and load!
