@@ -82,7 +82,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 	dl_binary_writer_write_fmt( writer, "      }" );
 
 	uint32_t metadata_count = 0;
-	dl_get_metadata_cnt( ctx, tid, &metadata_count );
+	dl_get_metadata_count( ctx, tid, &metadata_count );
 	if( metadata_count )
 	{
 		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
@@ -92,8 +92,7 @@ static void dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* writer, d
 
 			dl_typeid_t metadata_type_id;
 			void* metadata_instance;
-			uint32_t metadata_size;
-			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_size, &metadata_instance );
+			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_instance );
 
 			// jumping through hoops, pack the data and write it as json with wrong indent
 			size_t packed_size;
@@ -175,7 +174,7 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer,
 	}
 
 	uint32_t metadata_count = 0;
-	dl_get_member_metadata_cnt( ctx, tid, member_index, &metadata_count );
+	dl_get_member_metadata_count( ctx, tid, member_index, &metadata_count );
 	if( metadata_count )
 	{
 		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
@@ -185,8 +184,7 @@ static void dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer,
 
 			dl_typeid_t metadata_type_id;
 			void* metadata_instance;
-			uint32_t metadata_size;
-			dl_get_member_metadata( ctx, tid, member_index, i, &metadata_type_id, &metadata_size, &metadata_instance );
+			dl_get_member_metadata( ctx, tid, member_index, i, &metadata_type_id, &metadata_instance );
 
 			// jumping through hoops, pack the data and write it as json with wrong indent
 			size_t packed_size;
@@ -234,7 +232,7 @@ static void dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* writer, d
 	dl_binary_writer_write_fmt( writer, "      ]" );
 
 	uint32_t metadata_count = 0;
-	dl_get_metadata_cnt( ctx, tid, &metadata_count );
+	dl_get_metadata_count( ctx, tid, &metadata_count );
 	if( metadata_count )
 	{
 		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
@@ -244,8 +242,7 @@ static void dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* writer, d
 
 			dl_typeid_t metadata_type_id;
 			void* metadata_instance;
-			uint32_t metadata_size;
-			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_size, &metadata_instance );
+			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_instance );
 
 			// jumping through hoops, pack the data and write it as json with wrong indent
 			size_t packed_size;

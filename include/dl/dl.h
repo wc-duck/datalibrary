@@ -412,25 +412,25 @@ typedef struct dl_instance_info
 dl_error_t DL_DLL_EXPORT dl_instance_get_info( const unsigned char* packed_instance, size_t packed_instance_size, dl_instance_info_t* out_info );
 
 /*
-	Function: dl_get_metadata_cnt
+	Function: dl_get_metadata_count
 	    Fetch the number of meta data instances for the specified type, enum or union
 
 	Parameters:
-	    dl_ctx          - Context to load type-library into.
+	    dl_ctx          - Context where type-info for type and metadata is stored.
 	    type            - Type id for type to fetch the meta data count of.
 	    count           - The number of meta data instances available for the give type
 
 	Return:
 	    DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_get_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int* count );
+dl_error_t DL_DLL_EXPORT dl_get_metadata_count( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int* count );
 
 /*
-	Function: dl_get_member_metadata_cnt
+	Function: dl_get_member_metadata_count
 	    Fetch the number of meta data instances for the specified type member, enumerator or union member
 
 	Parameters:
-	    dl_ctx          - Context to load type-library into.
+	    dl_ctx          - Context where type-info for type and metadata is stored.
 	    type            - Type id for type to fetch the meta data count of.
 	    item_index      - The index of the member, enumerator or union member
 	    count           - The number of meta data instances available for the give type
@@ -438,14 +438,14 @@ dl_error_t DL_DLL_EXPORT dl_get_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_t type,
 	Return:
 	    DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_get_member_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int item_index, unsigned int* count );
+dl_error_t DL_DLL_EXPORT dl_get_member_metadata_count( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int item_index, unsigned int* count );
 
 /*
 	Function: dl_get_metadata
 		Fetch the number of meta data instances for the specified type
 
 	Parameters:
-		dl_ctx            - Context to load type-library into.
+		dl_ctx            - Context where type-info for type and metadata is stored.
 		type              - Type id for type to fetch the meta data instance of.
 		index             - The index of the meta data to fetch
 		out_type_id       - The type id of the returned meta data instance
@@ -455,14 +455,14 @@ dl_error_t DL_DLL_EXPORT dl_get_member_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_
 	Return:
 		DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_get_metadata( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int index, dl_typeid_t* out_type_id, unsigned int* out_instance_size, void** out_instance );
+dl_error_t DL_DLL_EXPORT dl_get_metadata( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int index, dl_typeid_t* out_type_id, void** out_instance );
 
 /*
 	Function: dl_get_member_metadata
 	    Fetch the number of meta data instances for the specified type
 
 	Parameters:
-	    dl_ctx            - Context to load type-library into.
+	    dl_ctx            - Context where type-info for type and metadata is stored.
 	    type              - Type id for type to fetch the meta data instance of.
 	    index             - The index of the meta data to fetch
 	    item_index        - The index of the member, enumerator or union member
@@ -473,7 +473,7 @@ dl_error_t DL_DLL_EXPORT dl_get_metadata( dl_ctx_t dl_ctx, dl_typeid_t type, uns
 	Return:
 	    DL_ERROR_OK on success.
 */
-dl_error_t DL_DLL_EXPORT dl_get_member_metadata( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int index, unsigned int item_index, dl_typeid_t* out_type_id, unsigned int* out_instance_size, void** out_instance );
+dl_error_t DL_DLL_EXPORT dl_get_member_metadata( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned int index, unsigned int item_index, dl_typeid_t* out_type_id, void** out_instance );
 
 #ifdef __cplusplus
 }

@@ -556,7 +556,7 @@ dl_error_t dl_instance_get_info( const unsigned char* packed_instance, size_t pa
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_get_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int* count )
+dl_error_t dl_get_metadata_count( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int* count )
 {
 	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
 	if( type )
@@ -573,7 +573,7 @@ dl_error_t dl_get_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned i
 	return DL_ERROR_TYPE_NOT_FOUND;
 }
 
-dl_error_t dl_get_member_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int item_index, unsigned int* count )
+dl_error_t dl_get_member_metadata_count( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int item_index, unsigned int* count )
 {
 	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
 	if( type )
@@ -598,7 +598,7 @@ dl_error_t dl_get_member_metadata_cnt( dl_ctx_t dl_ctx, dl_typeid_t type_id, uns
 	return DL_ERROR_TYPE_NOT_FOUND;
 }
 
-static dl_error_t get_metadata( const dl_ctx_t dl_ctx, uint32_t metadata_index, dl_typeid_t* out_type_id, unsigned int* out_instance_size, void** out_instance )
+static dl_error_t dl_private_get_metadata( const dl_ctx_t dl_ctx, uint32_t metadata_index, dl_typeid_t* out_type_id, void** out_instance )
 {
 	void* instance         = dl_ctx->metadatas[metadata_index];
 	dl_data_header* header = (dl_data_header*)instance;
@@ -607,27 +607,26 @@ static dl_error_t get_metadata( const dl_ctx_t dl_ctx, uint32_t metadata_index, 
 	if( header->version != DL_INSTANCE_VERSION && header->version != DL_INSTANCE_VERSION_SWAPED )
 		return DL_ERROR_VERSION_MISMATCH;
 	*out_type_id       = header->id == DL_INSTANCE_ID ? header->root_instance_type : dl_swap_endian_uint32( header->root_instance_type );
-	*out_instance_size = header->instance_size;
 	*out_instance      = (void*)( sizeof( dl_data_header ) + (char*)instance );
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_get_metadata( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int metadata_index, dl_typeid_t* out_type_id, unsigned int* out_instance_size, void** out_instance )
+dl_error_t dl_get_metadata( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int metadata_index, dl_typeid_t* out_type_id, void** out_instance )
 {
 	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
 	if( type && metadata_index < type->metadata_count )
 	{
-		return get_metadata( dl_ctx, type->metadata_start + metadata_index, out_type_id, out_instance_size, out_instance );
+		return dl_private_get_metadata( dl_ctx, type->metadata_start + metadata_index, out_type_id, out_instance );
 	}
 	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );
 	if( e && metadata_index < e->metadata_count )
 	{
-		return get_metadata( dl_ctx, e->metadata_start + metadata_index, out_type_id, out_instance_size, out_instance );
+		return dl_private_get_metadata( dl_ctx, e->metadata_start + metadata_index, out_type_id, out_instance );
 	}
 	return DL_ERROR_TYPE_NOT_FOUND;
 }
 
-dl_error_t dl_get_member_metadata( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int item_index, unsigned int metadata_index, dl_typeid_t* out_type_id, unsigned int* out_instance_size, void** out_instance )
+dl_error_t dl_get_member_metadata( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigned int item_index, unsigned int metadata_index, dl_typeid_t* out_type_id, void** out_instance )
 {
 	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
 	if( type )
@@ -635,7 +634,7 @@ dl_error_t dl_get_member_metadata( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigne
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, item_index );
 		if( member && metadata_index < member->metadata_count )
 		{
-			return get_metadata( dl_ctx, member->metadata_start + metadata_index, out_type_id, out_instance_size, out_instance );
+			return dl_private_get_metadata( dl_ctx, member->metadata_start + metadata_index, out_type_id, out_instance );
 		}
 	}
 	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type_id );
@@ -644,7 +643,7 @@ dl_error_t dl_get_member_metadata( dl_ctx_t dl_ctx, dl_typeid_t type_id, unsigne
 		const dl_enum_value_desc* value = dl_get_enum_value( dl_ctx, e, item_index );
 		if( value && metadata_index < value->metadata_count )
 		{
-			return get_metadata( dl_ctx, value->metadata_start + metadata_index, out_type_id, out_instance_size, out_instance );
+			return dl_private_get_metadata( dl_ctx, value->metadata_start + metadata_index, out_type_id, out_instance );
 		}
 	}
 	return DL_ERROR_TYPE_NOT_FOUND;

@@ -328,9 +328,9 @@ struct dl_substr
 };
 
 #ifdef _MSC_VER
-#  define FORCEINLINE __forceinline
+#  define DL_FORCEINLINE __forceinline
 #else
-#  define FORCEINLINE inline __attribute__( ( always_inline ) )
+#  define DL_FORCEINLINE inline __attribute__( ( always_inline ) )
 #endif
 
 // A growable array using a stack buffer while small. Use it to avoid dynamic allocations while the stack is big enough, but fall back to heap if it grows past the wanted stack size
@@ -399,12 +399,12 @@ public:
 		m_nElements++;
 	}
 
-	FORCEINLINE T& operator[]( size_t _iEl )
+	DL_FORCEINLINE T& operator[]( size_t _iEl )
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Ptr[_iEl];
 	}
-	FORCEINLINE const T& operator[]( size_t _iEl ) const
+	DL_FORCEINLINE const T& operator[]( size_t _iEl ) const
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Ptr[_iEl];
