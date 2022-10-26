@@ -390,7 +390,7 @@ static void dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, d
 
 	for( unsigned int j = 0; j < e_info->value_count; ++j )
 	{
-		dl_binary_writer_write_string_fmt( writer, "static constexpr const %s %s = ", e_info->name, values[j].name );
+		dl_binary_writer_write_string_fmt( writer, "static const %s %s = ", e_info->name, values[j].name );
 		dl_context_write_c_header_enum_value( writer, e_info->storage, &values[j] );
 		dl_binary_writer_write_string_fmt( writer, ";\n");
 	}
