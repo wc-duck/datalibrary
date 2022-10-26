@@ -56,7 +56,7 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	if( header->id != DL_INSTANCE_ID )                                   return DL_ERROR_MALFORMED_DATA;
 	if( header->version != DL_INSTANCE_VERSION && header->version != 1 ) return DL_ERROR_VERSION_MISMATCH;
 	if( header->root_instance_type != type_id )                          return DL_ERROR_TYPE_MISMATCH;
-	if( header->instance_size > instance_size )                          return DL_ERROR_BUFFER_TO_SMALL;
+	if( header->instance_size > instance_size )                          return DL_ERROR_BUFFER_TOO_SMALL;
 
 	const dl_type_desc* root_type = dl_internal_find_type( dl_ctx, header->root_instance_type );
 	if( root_type == 0x0 )
@@ -493,7 +493,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 							  unsigned char* out_buffer, size_t      out_buffer_size, size_t*     produced_bytes )
 {
 	if( out_buffer_size > 0 && out_buffer_size <= sizeof(dl_data_header) )
-		return DL_ERROR_BUFFER_TO_SMALL;
+		return DL_ERROR_BUFFER_TOO_SMALL;
 
 	const dl_type_desc* type = dl_internal_find_type( dl_ctx, type_id );
 	if( type == 0x0 )
@@ -552,7 +552,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 		*produced_bytes = (uint32_t)dl_binary_writer_tell( &store_context.writer );
 
 	if( out_buffer_size > 0 && dl_binary_writer_tell( &store_context.writer ) > out_buffer_size )
-		return DL_ERROR_BUFFER_TO_SMALL;
+		return DL_ERROR_BUFFER_TOO_SMALL;
 
 	return err;
 }
@@ -576,7 +576,7 @@ const char* dl_error_to_string( dl_error_t error )
 		DL_ERR_TO_STR(DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS);
 		DL_ERR_TO_STR(DL_ERROR_TYPE_MISMATCH);
 		DL_ERR_TO_STR(DL_ERROR_TYPE_NOT_FOUND);
-		DL_ERR_TO_STR(DL_ERROR_BUFFER_TO_SMALL);
+		DL_ERR_TO_STR(DL_ERROR_BUFFER_TOO_SMALL);
 		DL_ERR_TO_STR(DL_ERROR_ENDIAN_MISMATCH);
 		DL_ERR_TO_STR(DL_ERROR_BAD_ALIGNMENT);
 		DL_ERR_TO_STR(DL_ERROR_INVALID_PARAMETER);

@@ -663,7 +663,7 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 			*comment = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values', 'type' and 'extern'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values', 'type', 'comment and 'extern'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 	dl_txt_eat_char( ctx, read_state, '}' );
@@ -1029,7 +1029,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 			verify = dl_txt_eat_bool( read_state ) == 1;
 		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'name', 'type', 'default', 'comment' or 'verify'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'name', 'type', 'default', 'comment', 'const' or 'verify'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 

@@ -16,7 +16,7 @@ dl_error_t dl_reflect_context_info( dl_ctx_t dl_ctx, dl_type_context_info_t* inf
 dl_error_t dl_reflect_loaded_typeids( dl_ctx_t dl_ctx, dl_typeid_t* out_types, unsigned int out_types_size )
 {
 	if( dl_ctx->type_count > out_types_size )
-		return DL_ERROR_BUFFER_TO_SMALL;
+		return DL_ERROR_BUFFER_TOO_SMALL;
 
 	memcpy( out_types, dl_ctx->type_ids, sizeof( dl_typeid_t ) * dl_ctx->type_count );
 	return DL_ERROR_OK;
@@ -25,7 +25,7 @@ dl_error_t dl_reflect_loaded_typeids( dl_ctx_t dl_ctx, dl_typeid_t* out_types, u
 dl_error_t dl_reflect_loaded_enumids( dl_ctx_t dl_ctx, dl_typeid_t* out_enums, unsigned int out_enums_size )
 {
 	if( dl_ctx->enum_count > out_enums_size )
-		return DL_ERROR_BUFFER_TO_SMALL;
+		return DL_ERROR_BUFFER_TOO_SMALL;
 
 	memcpy( out_enums, dl_ctx->enum_ids, sizeof( dl_typeid_t ) * dl_ctx->enum_count );
 	return DL_ERROR_OK;
@@ -57,7 +57,7 @@ static void dl_reflect_copy_enum_info( dl_ctx_t ctx, dl_enum_info_t* enuminfo, c
 dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_type_info_t* out_types, unsigned int out_types_size )
 {
 	if( dl_ctx->type_count > out_types_size )
-		return DL_ERROR_BUFFER_TO_SMALL;
+		return DL_ERROR_BUFFER_TOO_SMALL;
 
 	for( uint32_t i = 0; i < dl_ctx->type_count; ++i )
 		dl_reflect_copy_type_info( dl_ctx, out_types + i, dl_ctx->type_descs + i );
@@ -68,7 +68,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_loaded_types( dl_ctx_t dl_ctx, dl_type_info_
 dl_error_t dl_reflect_loaded_enums( dl_ctx_t dl_ctx, dl_enum_info_t* out_enums, unsigned int out_enums_size )
 {
 	if( dl_ctx->enum_count > out_enums_size )
-		return DL_ERROR_BUFFER_TO_SMALL;
+		return DL_ERROR_BUFFER_TOO_SMALL;
 
 	for( uint32_t i = 0; i < dl_ctx->enum_count; ++i )
 		dl_reflect_copy_enum_info( dl_ctx, out_enums + i, dl_ctx->enum_descs + i );
@@ -114,7 +114,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	if(members_size < type->member_count)
-		return DL_ERROR_BUFFER_TO_SMALL;
+		return DL_ERROR_BUFFER_TOO_SMALL;
 
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
@@ -153,7 +153,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_
 {
 	const dl_enum_desc* e = dl_internal_find_enum( dl_ctx, type );
 	if( e == 0x0 ) return DL_ERROR_TYPE_NOT_FOUND;
-	if( out_values_size < e->value_count ) return DL_ERROR_BUFFER_TO_SMALL;
+	if( out_values_size < e->value_count ) return DL_ERROR_BUFFER_TOO_SMALL;
 
 	for( uint32_t value = 0; value < e->value_count; ++value )
 	{
