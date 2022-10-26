@@ -433,7 +433,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 				break;
 		};
 
-		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(sizeof(enum %s) == %u, \"size of external enum %s do not match what was specified in tld.\");\n", enum_->name, enum_size, enum_->name );
+		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(sizeof(%s) == %u, \"size of external enum %s do not match what was specified in tld.\");\n", enum_->name, enum_size, enum_->name );
 
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof( dl_enum_value_info_t ) );
 		dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
