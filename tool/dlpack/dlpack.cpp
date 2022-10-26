@@ -225,8 +225,8 @@ int main( int argc, const char** argv )
 	{
 		dl_typeid_t type;
 		void* instance = 0;
-
-		dl_error_t err = dl_util_load_from_stream( dl_ctx, 0, in_file, DL_UTIL_FILE_TYPE_AUTO, &instance, &type, 0x0, 0x0 );
+		void* allocated_mem;
+		dl_error_t err = dl_util_load_from_stream( dl_ctx, 0, in_file, DL_UTIL_FILE_TYPE_AUTO, &instance, &type, &allocated_mem, 0x0, 0x0, 0x0, 0x0, 0x0 );
 		if( err != DL_ERROR_OK )
 			M_ERROR_AND_QUIT( "DL error reading stream: %s", dl_error_to_string( err ) );
 
@@ -237,7 +237,9 @@ int main( int argc, const char** argv )
 									   out_endian,
 									   out_ptr_size,
 									   instance,
-									   0x0 );
+									   0x0,
+		                               0x0,
+		                               0x0 );
 
 		if( err != DL_ERROR_OK )
 			M_ERROR_AND_QUIT( "DL error writing stream: %s", dl_error_to_string( err ) );
