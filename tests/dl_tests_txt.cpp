@@ -201,12 +201,27 @@ TEST_F(DLText, default_value_ptr)
 	const char* text_data = STRINGIFY( { "DefaultPtr" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultPtr P1 = { 0 }; // this is so ugly!
+	DefaultPtr P1;
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultPtr::TYPE_ID, &P1, sizeof(DefaultPtr), out_data_text, sizeof(out_data_text), 0x0));
 
 	EXPECT_EQ(0x0, P1.Ptr);
+}
+
+TEST_F(DLText, default_value_anyptr)
+{
+	// default-values should be set correctly!
+
+	const char* text_data = STRINGIFY( { "DefaultAnyPtr" : {} } );
+
+	unsigned char out_data_text[1024];
+	DefaultAnyPtr P1;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultAnyPtr::TYPE_ID, &P1, sizeof(DefaultAnyPtr), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(0x0, P1.Ptr.ptr);
 }
 
 TEST_F(DLText, zero_as_ptr_fail)
@@ -223,7 +238,7 @@ TEST_F(DLText, default_value_struct)
 	const char* text_data = STRINGIFY( { "DefaultStruct" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultStruct loaded; // this is so ugly!
+	DefaultStruct loaded;
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStruct::TYPE_ID, &loaded, sizeof(DefaultStruct), out_data_text, sizeof(out_data_text), 0x0));
@@ -299,6 +314,22 @@ TEST_F(DLText, default_value_inline_array_pod)
 	EXPECT_EQ(7u, loaded.Arr[3]);
 }
 
+TEST_F(DLText, default_value_inline_array_anyptr)
+{
+	// default-values should be set correctly!
+
+	const char* text_data = STRINGIFY( { "DefaultInlArrayAnyPtr" : {} } );
+
+	unsigned char out_data_text[1024];
+	DefaultInlArrayAnyPtr loaded;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayAnyPtr::TYPE_ID, &loaded, sizeof(DefaultInlArrayAnyPtr), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(nullptr, loaded.Arr[0].ptr);
+	EXPECT_EQ(nullptr, loaded.Arr[1].ptr);
+}
+
 TEST_F(DLText, default_value_inline_array_enum)
 {
 	// default-values should be set correctly!
@@ -348,7 +379,7 @@ TEST_F(DLText, default_value_inline_array_array)
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 
-	DefaultInlArrayArray loaded[10];
+	DefaultInlArrayArray loaded[10]; // this is so ugly!
 
 	// load binary
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayArray::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));
@@ -367,7 +398,7 @@ TEST_F(DLText, default_value_array_pod)
 	const char* text_data = STRINGIFY( { "DefaultArrayPod" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultArrayPod loaded[10];
+	DefaultArrayPod loaded[10]; // this is so ugly!
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayPod::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));
@@ -385,7 +416,7 @@ TEST_F(DLText, default_value_array_enum)
 	const char* text_data = STRINGIFY( { "DefaultArrayEnum" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultArrayEnum loaded[10];
+	DefaultArrayEnum loaded[10]; // this is so ugly!
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayEnum::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));

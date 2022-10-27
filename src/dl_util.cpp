@@ -127,7 +127,7 @@ static dl_error_t dl_util_load_from_buffer( dl_ctx_t            dl_ctx,     dl_t
 
 			if( type == 0 ) // autodetect type
 			{
-			    error = dl_instance_get_info( load_instance, packed_size, &info );
+				error = dl_instance_get_info( load_instance, packed_size, &info );
 				if(error != DL_ERROR_OK) { free_func( load_instance, alloc_ctx ); return error; }
 				type = info.root_type;
 			}
@@ -274,7 +274,7 @@ dl_error_t dl_util_store_to_stream( dl_ctx_t        dl_ctx,    dl_typeid_t      
 		case DL_UTIL_FILE_TYPE_TEXT:
 		{
 			// calculate pack-size
-		    error = dl_txt_unpack_calc_size( dl_ctx, type, packed_instance, packed_size, &out_size );
+			error = dl_txt_unpack_calc_size( dl_ctx, type, packed_instance, packed_size, &out_size );
 			if( error != DL_ERROR_OK ) { free_func( packed_instance, alloc_ctx ); return error; }
 
 			// alloc data

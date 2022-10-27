@@ -6,7 +6,7 @@ struct dl_patched_ptrs
 	CArrayStatic<const uint8_t*, 128> addresses;
 
 	explicit dl_patched_ptrs(dl_allocator alloc)
-	    : addresses(alloc)
+		: addresses(alloc)
 	{}
 
 	void add( const uint8_t* addr )
@@ -43,7 +43,7 @@ void dl_internal_patch_struct( dl_ctx_t            ctx,
 							   dl_patched_ptrs*    patched_ptrs );
 
 static void dl_internal_patch_ptr_instance( dl_ctx_t            ctx,
-		   	   	   	   	   	   	   	   	    const dl_type_desc* sub_type,
+		   	   	   	   	   	   	   	   		const dl_type_desc* sub_type,
 											uint8_t*            ptr_data,
 											uintptr_t           base_address,
 											uintptr_t           patch_distance,
@@ -68,7 +68,7 @@ static void dl_internal_patch_str_array( uint8_t* array_data, uint32_t count, ui
 }
 
 static void dl_internal_patch_ptr_array( dl_ctx_t            ctx,
-								  	  	 uint8_t*            array_data,
+										 uint8_t*            array_data,
 										 uint32_t            count,
 										 const dl_type_desc* sub_type,
 										 uintptr_t           base_address,
@@ -77,6 +77,42 @@ static void dl_internal_patch_ptr_array( dl_ctx_t            ctx,
 {
 	for( uint32_t index = 0; index < count; ++index )
 		dl_internal_patch_ptr_instance( ctx, sub_type, array_data + index * sizeof(void*), base_address, patch_distance, patched_ptrs );
+}
+
+static void dl_internal_patch_anyptr_array( dl_ctx_t            ctx,
+											uint8_t*            array_data,
+											uint32_t            count,
+											uintptr_t           base_address,
+											uintptr_t           patch_distance,
+											dl_patched_ptrs*    patched_payloads )
+{
+	for( uint32_t index = 0; index < count; ++index )
+	{
+		const dl_type_desc* sub_type = dl_internal_find_type( ctx, *reinterpret_cast<const dl_typeid_t*>( array_data + ( index * 2 + 1 ) * sizeof(void*) ) );
+		dl_internal_patch_ptr_instance( ctx, sub_type, array_data + index * 2 * sizeof(void*), base_address, patch_distance, patched_payloads );
+	}
+}
+
+static void dl_internal_patch_anyarray_array( dl_ctx_t            ctx,
+											  uint8_t*            array_data,
+											  uint32_t            count,
+											  uintptr_t           base_address,
+											  uintptr_t           patch_distance,
+											  dl_patched_ptrs*    patched_payloads )
+{
+	for( uint32_t index = 0; index < count; ++index )
+	{
+		uintptr_t offset = dl_internal_patch_ptr( array_data + ( index * 3 ) * sizeof(void*), patch_distance );
+		uint8_t* inner_array = (uint8_t*)base_address + offset;
+		uint32_t inner_count = *reinterpret_cast<const uint32_t*>( array_data + ( index * 3 + 1 ) * sizeof(void*) );
+		const dl_type_desc* sub_type = dl_internal_find_type( ctx, *reinterpret_cast<const dl_typeid_t*>( array_data + ( index * 3 + 2 ) * sizeof(void*) ) );
+		uint32_t size                = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
+		for( uint32_t j = 0; j < inner_count; ++j )
+		{
+			uint8_t* struct_data = inner_array + j * size;
+			dl_internal_patch_struct( ctx, sub_type, struct_data, base_address, patch_distance, patched_payloads );
+		}
+	}
 }
 
 static void dl_internal_patch_struct_array( dl_ctx_t            ctx,
@@ -96,11 +132,11 @@ static void dl_internal_patch_struct_array( dl_ctx_t            ctx,
 }
 
 static void dl_internal_patch_member( dl_ctx_t              ctx,
-								      const dl_member_desc* member,
-								      uint8_t*              member_data,
-								      uintptr_t             base_address,
-								      uintptr_t             patch_distance,
-								      dl_patched_ptrs*      patched_ptrs )
+									  const dl_member_desc* member,
+									  uint8_t*              member_data,
+									  uintptr_t             base_address,
+									  uintptr_t             patch_distance,
+									  dl_patched_ptrs*      patched_ptrs )
 {
 	dl_type_atom_t    atom_type    = member->AtomType();
 	dl_type_storage_t storage_type = member->StorageType();
@@ -113,6 +149,22 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 			{
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_patch_ptr( member_data, patch_distance );
+				break;
+				case DL_TYPE_STORAGE_ANYPTR:
+					dl_internal_patch_ptr_instance( ctx,
+													dl_internal_find_type( ctx, *reinterpret_cast<const dl_typeid_t*>(member_data + sizeof(void*)) ),
+													member_data,
+													base_address,
+													patch_distance,
+													patched_ptrs );
+				break;
+				case DL_TYPE_STORAGE_ANYARRAY:
+					dl_internal_patch_anyarray_array( ctx,
+													  member_data,
+													  1,
+													  base_address,
+													  patch_distance,
+													  patched_ptrs  );
 				break;
 				case DL_TYPE_STORAGE_PTR:
 					dl_internal_patch_ptr_instance( ctx,
@@ -142,6 +194,22 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 			{
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_patch_str_array( member_data, member->inline_array_cnt(), patch_distance );
+				break;
+				case DL_TYPE_STORAGE_ANYPTR:
+					dl_internal_patch_anyptr_array( ctx,
+													member_data,
+													member->inline_array_cnt(),
+													base_address,
+													patch_distance,
+													patched_ptrs  );
+				break;
+				case DL_TYPE_STORAGE_ANYARRAY:
+					dl_internal_patch_anyarray_array( ctx,
+													  member_data,
+													  member->inline_array_cnt(),
+													  base_address,
+													  patch_distance,
+													  patched_ptrs  );
 				break;
 				case DL_TYPE_STORAGE_PTR:
 					dl_internal_patch_ptr_array( ctx,
@@ -182,6 +250,22 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 				{
 					case DL_TYPE_STORAGE_STR:
 						dl_internal_patch_str_array( array_data, count, patch_distance );
+					break;
+					case DL_TYPE_STORAGE_ANYPTR:
+						dl_internal_patch_anyptr_array( ctx,
+														array_data,
+														count,
+														base_address,
+														patch_distance,
+														patched_ptrs  );
+					break;
+					case DL_TYPE_STORAGE_ANYARRAY:
+						dl_internal_patch_anyarray_array( ctx,
+														  array_data,
+														  count,
+														  base_address,
+														  patch_distance,
+														  patched_ptrs  );
 					break;
 					case DL_TYPE_STORAGE_PTR:
 						dl_internal_patch_ptr_array( ctx,

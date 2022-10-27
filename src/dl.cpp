@@ -43,9 +43,9 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 }
 
 dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  type_id,
-                             void*                instance,        size_t instance_size,
-                             const unsigned char* packed_instance, size_t packed_instance_size,
-                             size_t*              consumed )
+							 void*                instance,        size_t instance_size,
+							 const unsigned char* packed_instance, size_t packed_instance_size,
+							 size_t*              consumed )
 {
 	dl_data_header* header = (dl_data_header*)packed_instance;
 
@@ -106,13 +106,13 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 struct CDLBinStoreContext
 {
 	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy, dl_allocator alloc )
-	    : written_ptrs(alloc)
+		: written_ptrs(alloc)
 		, strings(alloc)
 	{
 		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
 	}
 
-	uintptr_t FindWrittenPtr( void* ptr )
+	uintptr_t FindWrittenPtr( const uint8_t* ptr )
 	{
 		for (size_t i = 0; i < written_ptrs.Len(); ++i)
 			if( written_ptrs[i].ptr == ptr )
@@ -121,7 +121,7 @@ struct CDLBinStoreContext
 		return (uintptr_t)-1;
 	}
 
-	void AddWrittenPtr( const void* ptr, uintptr_t pos )
+	void AddWrittenPtr( const uint8_t* ptr, uintptr_t pos )
 	{
 		written_ptrs.Add( { pos, ptr } );
 	}
@@ -139,8 +139,8 @@ struct CDLBinStoreContext
 
 	struct SWrittenPtr
 	{
-		uintptr_t   pos;
-		const void* ptr;
+		uintptr_t      pos;
+		const uint8_t* ptr;
 	};
 	CArrayStatic<SWrittenPtr, 128> written_ptrs;
 
@@ -177,11 +177,11 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx );
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, const uint8_t* instance, CDLBinStoreContext* store_ctx );
 
-static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, const uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
 {
-	uint8_t* data = *(uint8_t**)instance;
+	const uint8_t* data = *(const uint8_t* const*)instance;
 	uintptr_t offset = store_ctx->FindWrittenPtr( data );
 
 	if( data == 0x0 ) // Null-pointer, store pint(-1) to signal to patching!
@@ -215,7 +215,7 @@ static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, con
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, const uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
 {
 	switch( storage_type )
 	{
@@ -243,6 +243,19 @@ static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t st
 			for( uint32_t elem = 0; elem < count; ++elem )
 				dl_internal_store_ptr( dl_ctx, instance + (elem * sizeof(void*)), sub_type, store_ctx );
 			break;
+		case DL_TYPE_STORAGE_ANYPTR:
+			for( uint32_t elem = 0; elem < count; ++elem )
+			{
+				dl_typeid_t tid = *reinterpret_cast<const dl_typeid_t*>( instance + ( ( elem * 2 + 1 ) * sizeof( void* ) ) );
+				sub_type = dl_internal_find_type( dl_ctx, tid );
+				dl_error_t err = dl_internal_store_ptr( dl_ctx, instance + ( elem * sizeof( void* ) * 2 ), sub_type, store_ctx );
+				if( DL_ERROR_OK != err )
+					return err;
+				dl_binary_writer_write_uint32( &store_ctx->writer, tid );
+				if (sizeof(uintptr_t) == 8)
+					dl_binary_writer_write_zero( &store_ctx->writer, 4 );
+			}
+			break;
 		default: // default is a standard pod-type
 			dl_binary_writer_write( &store_ctx->writer, instance, count * size );
 			break;
@@ -250,11 +263,58 @@ static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t st
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_anyarray( dl_ctx_t dl_ctx, const uint8_t* data_ptr, uint32_t count, CDLBinStoreContext* store_ctx )
+{
+	for (uint32_t i = 0; i < count; ++i)
+	{
+		uintptr_t sub_pos = dl_binary_writer_tell( &store_ctx->writer );
+		dl_binary_writer_seek_end( &store_ctx->writer );
+
+		const uint8_t* sub_data_ptr = data_ptr + i * 3 * sizeof(void*);
+		const uint8_t* sub_data = *(const uint8_t* const*)sub_data_ptr;
+		uint32_t sub_count  = *(const uint32_t*)( sub_data_ptr + sizeof(void*) );
+		dl_typeid_t sub_type_id = *(const dl_typeid_t*)( sub_data_ptr + 2 * sizeof(void*) );
+		const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, sub_type_id );
+		size_t sub_size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
+		dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
+
+		uintptr_t sub_offset = dl_binary_writer_tell( &store_ctx->writer );
+
+		// write data!
+		dl_binary_writer_reserve( &store_ctx->writer, sub_count * sub_size ); // reserve space for array so subdata is placed correctly
+
+		dl_error_t err = dl_internal_store_array(dl_ctx, DL_TYPE_STORAGE_STRUCT, sub_type, sub_data, sub_count, sub_size, store_ctx);
+		if (DL_ERROR_OK != err)
+			return err;
+		dl_binary_writer_seek_set( &store_ctx->writer, sub_pos );
+								
+		// use when fast_loading is merged 
+		//if( !store_ctx->writer.dummy )
+		//	store_ctx->ptrs.Add( dl_binary_writer_tell( &store_ctx->writer ) );
+
+		// make room for ptr
+		dl_binary_writer_write( &store_ctx->writer, &sub_offset, sizeof(uintptr_t) );
+
+		// write count
+		dl_binary_writer_write( &store_ctx->writer, &sub_count, sizeof(uint32_t) );
+		if (sizeof(uintptr_t) == 8)
+			dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
+
+		// write type id
+		dl_binary_writer_write( &store_ctx->writer, &sub_type_id, sizeof(uint32_t) );
+		if (sizeof(uintptr_t) == 8)
+			dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
+	}
+	return DL_ERROR_OK;
+}
+
+dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, const uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	dl_type_atom_t    atom_type    = member->AtomType();
 	dl_type_storage_t storage_type = member->StorageType();
 
+	if (storage_type == DL_TYPE_STORAGE_ANYARRAY)
+		atom_type = DL_TYPE_ATOM_ARRAY; // To avoid code duplification and simplify implementation
 	switch ( atom_type )
 	{
 		case DL_TYPE_ATOM_POD:
@@ -266,7 +326,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
 					if( sub_type == 0x0 )
 					{
-						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
+						dl_log_error( dl_ctx, "Could not find struct subtype %X for member %s", member->type_id, dl_internal_member_name( dl_ctx, member ) );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
 					dl_error_t err = dl_internal_instance_store(dl_ctx, sub_type, instance, store_ctx);
@@ -277,12 +337,31 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_store_string( instance, store_ctx );
 					break;
+				case DL_TYPE_STORAGE_ANYPTR:
+				{
+					dl_typeid_t tid = *reinterpret_cast<const dl_typeid_t*>( instance + sizeof( void* ) );
+					const dl_type_desc* sub_type = nullptr;
+					if( *reinterpret_cast<const void* const*>( instance ) )
+					{
+						sub_type = dl_internal_find_type( dl_ctx, tid );
+						if( sub_type == 0x0 )
+						{
+							dl_log_error( dl_ctx, "Could not find anyptr subtype %X for member %s", tid, dl_internal_member_name( dl_ctx, member ) );
+							return DL_ERROR_TYPE_NOT_FOUND;
+						}
+					}
+					dl_error_t err = dl_internal_store_ptr( dl_ctx, instance, sub_type, store_ctx );
+					if( DL_ERROR_OK != err )
+						return err;
+					dl_binary_writer_write( &store_ctx->writer, &tid, sizeof(dl_typeid_t) );
+				}
+				break;
 				case DL_TYPE_STORAGE_PTR:
 				{
 					const dl_type_desc* sub_type = dl_internal_find_type( dl_ctx, member->type_id );
 					if( sub_type == 0x0 )
 					{
-						dl_log_error( dl_ctx, "Could not find subtype for member %s", dl_internal_member_name( dl_ctx, member ) );
+						dl_log_error( dl_ctx, "Could not find pointer subtype %X for member %s", member->type_id, dl_internal_member_name( dl_ctx, member ) );
 						return DL_ERROR_TYPE_NOT_FOUND;
 					}
 					dl_error_t err = dl_internal_store_ptr( dl_ctx, instance, sub_type, store_ctx );
@@ -312,7 +391,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 					return DL_ERROR_TYPE_NOT_FOUND;
 				}
 			}
-			else if( storage_type != DL_TYPE_STORAGE_STR )
+			else if( storage_type != DL_TYPE_STORAGE_STR && storage_type != DL_TYPE_STORAGE_ANYPTR)
 				count = member->size[DL_PTR_SIZE_HOST];
 
 			dl_internal_store_array( dl_ctx, storage_type, sub_type, instance, count, 1, store_ctx );
@@ -324,7 +403,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 			uintptr_t size = 0;
 			const dl_type_desc* sub_type = 0x0;
 
-			uint8_t* data_ptr = instance;
+			const uint8_t* data_ptr = instance;
 			uint32_t count    = *(uint32_t*)( data_ptr + sizeof(void*) );
 
 			uintptr_t offset = 0;
@@ -342,6 +421,46 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 						sub_type = dl_internal_find_type( dl_ctx, member->type_id );
 						size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 						dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
+						break;
+					case DL_TYPE_STORAGE_ANYARRAY:
+						storage_type = DL_TYPE_STORAGE_STRUCT;
+						if (member->AtomType() == DL_TYPE_ATOM_POD)
+						{
+							dl_typeid_t type_id = *(dl_typeid_t*)( data_ptr + 2 * sizeof(void*) );
+							sub_type = dl_internal_find_type( dl_ctx, type_id );
+							size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
+							dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
+						}
+						else if( member->AtomType() == DL_TYPE_ATOM_INLINE_ARRAY )
+						{
+							dl_binary_writer_seek_set( &store_ctx->writer, pos );
+							return dl_internal_store_anyarray( dl_ctx, data_ptr, member->inline_array_cnt(), store_ctx );
+						}
+						else if( member->AtomType() == DL_TYPE_ATOM_ARRAY )
+						{
+							dl_binary_writer_align( &store_ctx->writer, sizeof(void*) );
+							offset = dl_binary_writer_tell( &store_ctx->writer );
+							dl_binary_writer_reserve( &store_ctx->writer, count * 3 * sizeof(void*) ); // reserve space for array so subdata is placed correctly
+							dl_error_t err = dl_internal_store_anyarray( dl_ctx, *(const uint8_t* const*)data_ptr, count, store_ctx );
+							if (DL_ERROR_OK != err) return err;
+						
+							dl_binary_writer_seek_set( &store_ctx->writer, pos );
+
+							// use when fast_loading is merged 
+							//if( !store_ctx->writer.dummy )
+							//	store_ctx->ptrs.Add( dl_binary_writer_tell( &store_ctx->writer ) );
+
+							// make room for ptr
+							dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
+
+							// write count
+							dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32_t) );
+							if (sizeof(uintptr_t) == 8)
+								dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
+							return DL_ERROR_OK;
+						}
+						else
+							DL_ASSERT(false && "Invalid ATOM-type!");
 						break;
 					case DL_TYPE_STORAGE_PTR:
 						sub_type = dl_internal_find_type( dl_ctx, member->type_id );
@@ -369,6 +488,16 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 
 			// write count
 			dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32_t) );
+			if (sizeof(uintptr_t) == 8)
+				dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
+
+			if (member->StorageType() == DL_TYPE_STORAGE_ANYARRAY)
+			{
+				// write type id
+				dl_binary_writer_write( &store_ctx->writer, (data_ptr + 2 * sizeof(void*)), sizeof(uint32_t) );
+				if (sizeof(uintptr_t) == 8)
+					dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
+			}
 		}
 		return DL_ERROR_OK;
 
@@ -384,7 +513,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, const uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	bool last_was_bitfield = false;
 
@@ -465,9 +594,9 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	CDLBinStoreContext store_context( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy, dl_ctx->alloc );
 
 	dl_binary_writer_reserve( &store_context.writer, type->size[DL_PTR_SIZE_HOST] );
-	store_context.AddWrittenPtr(instance, 0); // if pointer refere to root-node, it can be found at offset 0
+	store_context.AddWrittenPtr((const uint8_t*)instance, 0); // if pointer refere to root-node, it can be found at offset 0
 
-	dl_error_t err = dl_internal_instance_store( dl_ctx, type, (uint8_t*)instance, &store_context );
+	dl_error_t err = dl_internal_instance_store( dl_ctx, type, (const uint8_t*)instance, &store_context );
 
 	// write instance size!
 	dl_data_header* out_header = (dl_data_header*)out_buffer;

@@ -158,8 +158,10 @@ struct dl_member_desc
 	bool              IsSimplePod()     const
 	{
 		return StorageType() != DL_TYPE_STORAGE_STR &&
-	           StorageType() != DL_TYPE_STORAGE_PTR &&
-	           StorageType() != DL_TYPE_STORAGE_STRUCT;
+			   StorageType() != DL_TYPE_STORAGE_PTR &&
+			   StorageType() != DL_TYPE_STORAGE_ANYPTR &&
+			   StorageType() != DL_TYPE_STORAGE_ANYARRAY &&
+			   StorageType() != DL_TYPE_STORAGE_STRUCT;
 	}
 
 	void set_size( uint32_t bit32, uint32_t bit64 )
@@ -314,6 +316,11 @@ struct dl_substr
 	const char* str;
 	int len;
 };
+
+static inline dl_substr dl_string_to_substr( const char* str )
+{
+	return dl_substr{ str, int(strlen(str)) };
+}
 
 // A growable array using a stack buffer while small. Use it to avoid dynamic allocations while the stack is big enough, but fall back to heap if it grows past the wanted stack size
 template <typename T, int SIZE>
@@ -502,6 +509,12 @@ static inline size_t dl_pod_size( dl_type_storage_t storage )
 		case DL_TYPE_STORAGE_STR:
 		case DL_TYPE_STORAGE_PTR:
 			return sizeof(void*);
+
+		case DL_TYPE_STORAGE_ANYPTR:
+			return 2 * sizeof(void*);
+
+		case DL_TYPE_STORAGE_ANYARRAY:
+			return 3 * sizeof(void*);
 
 		default:
 			DL_ASSERT(false && "This should not happen!");

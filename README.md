@@ -60,16 +60,18 @@ tool\
 
 ## Supported POD-Types in Defined Structs
 
-| name           | tld-type                     | C-storage                             | comment                                                         |
-|----------------|------------------------------|---------------------------------------|-----------------------------------------------------------------|
-| signed int     | int8, int16, int32, int64    | int8_t, int16_t, int32_t, int64_t     |                                                                 |
-| unsigned int   | int8, uint16, uint32, uint64 | uint8_t, uint16_t, uint32_t, uint64_t |                                                                 |
-| floating point | fp32, fp64                   | float/double                          |                                                                 |
-| bitfield       | bitfield:<bits>              | uint32_t bf : 3                       | unsigned integer with specified amount of bits                  |
-| string         | string                       | const char*                           | utf8 encoded, null-terminated                                   |
-| inline_array   | int8[20], some_type[20]      | type[20]                              | fixed length, type can be any POD-type or user defined struct   |
-| array          | int8[], some_type[]          | struct { type* data; uint32_t count } | dynamic length, type can be any POD-type or user defined struct |
-| pointer        | some_type*                   | type*                                 | pointer to any user-defined type                                |
+| name           | tld-type                     | C-storage                                   | comment                                                              |
+|----------------|------------------------------|---------------------------------------------|----------------------------------------------------------------------|
+| signed int     | int8, int16, int32, int64    | int8_t, int16_t, int32_t, int64_t           |                                                                      |
+| unsigned int   | int8, uint16, uint32, uint64 | uint8_t, uint16_t, uint32_t, uint64_t       |                                                                      |
+| floating point | fp32, fp64                   | float/double                                |                                                                      |
+| bitfield       | bitfield:<bits>              | uint32_t bf : 3                             | unsigned integer with specified amount of bits                       |
+| string         | string                       | const char*                                 | utf8 encoded, null-terminated                                        |
+| inline_array   | int8[20], some_type[20]      | type[20]                                    | fixed length, type can be any POD-type or user defined struct        |
+| array          | int8[], some_type[]          | struct { type* data; uint32_t count }       | dynamic length, type can be any POD-type or user defined struct      |
+| pointer        | some_type*                   | type*                                       | pointer to any user-defined type                                     |
+| anyptr         | anyptr                       | struct { void* ptr; dl_typeid_t tid; }      | pointer to any struct type, where the type is decided on assignment  |
+| anyarray       | anyarray                     | struct { dl_array array; dl_typeid_t tid; } | all elements are of the same type, the type is decided on assignment |
 
 ## DL-JSON
 
@@ -103,6 +105,10 @@ and DL will always error out if the value do not fit the type.
 * normal floats, such as 1.0, -2.0, 123.456
 * scientific float notation, such as 3.2e+12, 1.2e-5
 * constants `inf`, `infinity` and `nan` ( ignoring case! )
+
+### Any types
+
+These types are based on un-typed pointers and the actual type is set when assigning the data.
 
 ## TLD (Type Library Definition) Format
 
@@ -273,6 +279,22 @@ left untouched!",
 
         // inline arrays are just arrays with the correct type ...
         "inline_array_member1"  : [1, 2, 3],
+		
+		// an anyptr can be null, and then it is typeless
+		"anyptr_member1": null,
+		// but when it has a value then that will be stored in the "__subdata" section, and there will be a "__any_type_" entry right after the member.
+		"anyptr_member2": "ptr1234"
+		"__any_type_anyptr_member2" : "my_struct",
+
+		// anyarray members will also have the "__any_type_" entry right after the member
+		"anyarray_member": [
+		    {
+                "x" : 1,
+                "y" : 2
+            },
+	    ]
+		"__any_type_anyarray_member" : "my_struct",
+
 
         // ... it could be a struct with x and y members.
         "inline_array_member2"  : [
@@ -316,7 +338,12 @@ left untouched!",
 
         "another_sub_data" : {
             "some_float" : 1.23
-        }
+        },
+		
+		"ptr1234" : {
+            "x" : 1,
+            "y" : 2
+        },
     }
 }
 ```

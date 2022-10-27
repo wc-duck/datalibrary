@@ -134,29 +134,29 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "	  {\n"
 									   "		   inline const T& operator[](size_t i) const\n"
 									   "		   {\n"
-									   "		       DL_DATA_ASSERT(i < count);\n"
-									   "		       return data[i];\n"
+									   "			   DL_DATA_ASSERT(i < count);\n"
+									   "			   return data[i];\n"
 									   "		   }\n"
 									   "		   inline T& operator[](size_t i)\n"
 									   "		   {\n"
-									   "		       DL_DATA_ASSERT(i < count);\n"
-									   "		       return data[i];\n"
+									   "			   DL_DATA_ASSERT(i < count);\n"
+									   "			   return data[i];\n"
 									   "		   }\n"
 									   "		   inline const T* begin() const\n"
 									   "		   {\n"
-									   "		       return data;\n"
+									   "			   return data;\n"
 									   "		   }\n"
 									   "		   inline const T* end() const\n"
 									   "		   {\n"
-									   "		       return data + count;\n"
+									   "			   return data + count;\n"
 									   "		   }\n"
 									   "		   inline T* begin()\n"
 									   "		   {\n"
-									   "		       return data;\n"
+									   "			   return data;\n"
 									   "		   }\n"
 									   "		   inline T* end()\n"
 									   "		   {\n"
-									   "		       return data + count;\n"
+									   "			   return data + count;\n"
 									   "		   }\n"
 									   "		   T* data;\n"
 									   "		   uint32_t count;\n"
@@ -165,31 +165,53 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "	   struct dl_array<const char*> {\n"
 									   "		   inline const char*& operator[](size_t i) const\n"
 									   "		   {\n"
-									   "		       DL_DATA_ASSERT(i < count);\n"
-									   "		       return data[i];\n"
+									   "			   DL_DATA_ASSERT(i < count);\n"
+									   "			   return data[i];\n"
 									   "		   }\n"
 									   "		   inline const char*& operator[](size_t i)\n"
 									   "		   {\n"
-									   "		       DL_DATA_ASSERT(i < count);\n"
-									   "		       return data[i];\n"
+									   "			   DL_DATA_ASSERT(i < count);\n"
+									   "			   return data[i];\n"
 									   "		   }\n"
 									   "		   inline const char* const* begin() const\n"
 									   "		   {\n"
-									   "		       return data;\n"
+									   "			   return data;\n"
 									   "		   }\n"
 									   "		   inline const char* const* end() const\n"
 									   "		   {\n"
-									   "		       return data + count;\n"
+									   "			   return data + count;\n"
 									   "		   }\n"
 									   "		   inline const char** begin()\n"
 									   "		   {\n"
-									   "		       return data;\n"
+									   "			   return data;\n"
 									   "		   }\n"
 									   "		   inline const char** end()\n"
 									   "		   {\n"
-									   "		       return data + count;\n"
+									   "			   return data + count;\n"
 									   "		   }\n"
 									   "		   const char** data;\n"
+									   "		   uint32_t count;\n"
+									   "	   };\n"
+									   "	   template <>\n"
+									   "	   struct dl_array<void> {\n"
+									   "		   template <typename T>\n"
+									   "		   inline const T& operator[](size_t i) const\n"
+									   "		   {\n"
+									   "			   DL_DATA_ASSERT(i < count);\n"
+									   "			   return reinterpret_cast<const T*>(data)[i];\n"
+									   "		   }\n"
+									   "		   template <typename T>\n"
+									   "		   inline T& operator[](size_t i)\n"
+									   "		   {\n"
+									   "			   DL_DATA_ASSERT(i < count);\n"
+									   "			   return reinterpret_cast<T*>(data)[i];\n"
+									   "		   }\n"
+									   "		   template <typename T>\n"
+									   "		   inline explicit operator dl_array<T>&()\n"
+									   "		   {\n"
+									   "			   return *reinterpret_cast<dl_array<T>*>(this);\n"
+									   "		   }\n"
+									   "		   void* data;\n"
 									   "		   uint32_t count;\n"
 									   "	   };\n"
 									   "#	 define DL_DECLARE_ARRAY(type) dl_array<type>\n"
@@ -201,6 +223,35 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "           uint32_t count; \\\n"
 									   "       }\n"
 									   "#  endif\n"
+									   "\n"
+									   "   // ... DL_DECLARE_ANY ...\n"
+									   "	   typedef uint32_t dl_typeid_t;\n"
+									   "\n"
+									   "	   struct dl_anyptr {\n"
+									   "#  if defined(__cplusplus)\n"
+									   "		   template <typename T>\n"
+									   "		   inline explicit operator T*()\n"
+									   "		   {\n"
+									   "			   DL_DATA_ASSERT(T::TYPE_ID == tid);\n"
+									   "			   return reinterpret_cast<T*>(ptr);\n"
+									   "		   }\n"
+									   "#  endif\n"
+									   "		   void* ptr;\n"
+									   "		   dl_typeid_t tid;\n"
+									   "	   };\n"
+									   "\n"
+									   "	   struct dl_anyarray {\n"
+									   "#  if defined(__cplusplus)\n"
+									   "		   template <typename T>\n"
+									   "		   inline explicit operator dl_array<T>&()\n"
+									   "		   {\n"
+									   "			   DL_DATA_ASSERT(T::TYPE_ID == tid);\n"
+									   "			   return static_cast<dl_array<T>&>(array);\n"
+									   "		   }\n"
+									   "#  endif\n"
+									   "		   DL_DECLARE_ARRAY(void) array;\n"
+									   "		   dl_typeid_t tid;\n"
+									   "	   };\n"
 									   "#endif // __DL_AUTOGEN_HEADER_DL_ALIGN_DEFINED\n\n" );
 }
 
@@ -481,7 +532,7 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 	free( enum_infos );
 }
 
-static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
+static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
 {
 	switch( storage )
 	{
@@ -490,7 +541,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 			dl_type_info_t sub_type;
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
 			dl_binary_writer_write_string_fmt(writer, "struct %s", sub_type.name);
-			return;
+			return DL_ERROR_OK;
 		}
 		case DL_TYPE_STORAGE_ENUM_INT8:
 		case DL_TYPE_STORAGE_ENUM_INT16:
@@ -502,7 +553,7 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 			dl_enum_info_t enum_info;
 			dl_reflect_get_enum_info( ctx, tid, &enum_info );
 			dl_binary_writer_write_string_fmt(writer, "%s", enum_info.name);
-			return;
+			return DL_ERROR_OK;
 		}
 		case DL_TYPE_STORAGE_ENUM_INT64:
 		case DL_TYPE_STORAGE_ENUM_UINT64:
@@ -510,29 +561,31 @@ static void dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_t
 			dl_enum_info_t enum_info;
 			dl_reflect_get_enum_info( ctx, tid, &enum_info );
 			dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) %s", enum_info.name);
-			return;
+			return DL_ERROR_OK;
 		}
-		case DL_TYPE_STORAGE_INT8:   dl_binary_writer_write_string_fmt(writer, "int8_t"); return;
-		case DL_TYPE_STORAGE_UINT8:  dl_binary_writer_write_string_fmt(writer, "uint8_t"); return;
-		case DL_TYPE_STORAGE_INT16:  dl_binary_writer_write_string_fmt(writer, "int16_t"); return;
-		case DL_TYPE_STORAGE_UINT16: dl_binary_writer_write_string_fmt(writer, "uint16_t"); return;
-		case DL_TYPE_STORAGE_INT32:  dl_binary_writer_write_string_fmt(writer, "int32_t"); return;
-		case DL_TYPE_STORAGE_UINT32: dl_binary_writer_write_string_fmt(writer, "uint32_t"); return;
-		case DL_TYPE_STORAGE_INT64:  dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) int64_t"); return;
-		case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) uint64_t"); return;
-		case DL_TYPE_STORAGE_FP32:   dl_binary_writer_write_string_fmt(writer, "float"); return;
-		case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) double"); return;
-		case DL_TYPE_STORAGE_STR:    dl_binary_writer_write_string_fmt(writer, "const char*"); return;
+		case DL_TYPE_STORAGE_INT8:     dl_binary_writer_write_string_fmt(writer, "int8_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_UINT8:    dl_binary_writer_write_string_fmt(writer, "uint8_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_INT16:    dl_binary_writer_write_string_fmt(writer, "int16_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_UINT16:   dl_binary_writer_write_string_fmt(writer, "uint16_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_INT32:    dl_binary_writer_write_string_fmt(writer, "int32_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_UINT32:   dl_binary_writer_write_string_fmt(writer, "uint32_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_INT64:    dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) int64_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_UINT64:   dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) uint64_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_FP32:     dl_binary_writer_write_string_fmt(writer, "float"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_FP64:     dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) double"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_STR:      dl_binary_writer_write_string_fmt(writer, "const char*"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_ANYPTR:   dl_binary_writer_write_string_fmt(writer, "struct dl_anyptr"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_ANYARRAY: dl_binary_writer_write_string_fmt(writer, "struct dl_anyarray"); return DL_ERROR_OK;
 		case DL_TYPE_STORAGE_PTR:
 		{
 			dl_type_info_t sub_type;
 			dl_reflect_get_type_info( ctx, tid, &sub_type );
 			dl_binary_writer_write_string_fmt(writer, "struct %s*", sub_type.name);
-			return;
+			return DL_ERROR_OK;
 		}
 		default:
 			dl_binary_writer_write_string_fmt(writer, "UNKNOWN");
-			return;
+			return DL_ERROR_TYPE_NOT_FOUND;
 	}
 }
 
@@ -624,9 +677,9 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 		{
-		    dl_binary_writer_write_string_fmt(writer, "    DL_DECLARE_ARRAY(");
-		    dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
-		    dl_binary_writer_write_string_fmt(writer, ") %s;\n ", member->name);
+			dl_binary_writer_write_string_fmt(writer, "    DL_DECLARE_ARRAY(");
+			dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
+			dl_binary_writer_write_string_fmt(writer, ") %s;\n ", member->name);
 		}
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:

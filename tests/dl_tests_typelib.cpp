@@ -143,6 +143,20 @@ TEST_F( DLTypeLibTxt, missing_comma )
 	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1 ) );
 }
 
+TEST_F( DLTypeLibTxt, ptr_to_anyptr )
+{
+	const char ptr_to_anyptr_typelib[] = STRINGIFY({
+		"types" : {
+			"ptr_to_anyptr" : { "members" : [
+			                   { "name" : "member1", "type" : "anyptr*" }
+			                 ] }
+		}
+	});
+
+	// ... load typelib ...
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, ptr_to_anyptr_typelib, sizeof(ptr_to_anyptr_typelib)-1 ) );
+}
+
 TEST_F( DLTypeLibTxt, crash1 )
 {
 	const char single_member_typelib[] = STRINGIFY({
