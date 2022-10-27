@@ -2,6 +2,7 @@
 #include <dl/dl_reflect.h>
 
 #include "dl_binary_writer.h"
+#include "dl_internal_util.h"
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -281,31 +282,38 @@ static void dl_context_write_c_header_end( dl_binary_writer* writer, const char*
 	dl_binary_writer_write_string_fmt( writer, "#endif // __DL_AUTOGEN_HEADER_%s_INCLUDED\n\n", module_name_uppercase );
 }
 
-static void dl_context_write_c_header_typeids( dl_binary_writer* writer, dl_ctx_t ctx )
+static dl_error_t dl_context_write_c_header_typeids( dl_binary_writer* writer, dl_ctx_t ctx )
 {
 	dl_binary_writer_write_string_fmt( writer, "//----------------------------------------------\n"
 											   "//                   TYPEID:s                   \n"
 											   "//----------------------------------------------\n\n" );
 
 	dl_type_context_info_t ctx_info;
-	dl_reflect_context_info( ctx, &ctx_info );
+	dl_error_t err = dl_reflect_context_info( ctx, &ctx_info );
+	if( err != DL_ERROR_OK )
+		return err;
 
 	if(ctx_info.num_enums != 0)
 	{
-		dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof( dl_enum_info_t ) );
-		dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
+		dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof(dl_enum_info_t) );
+		DL_DEFER( { free( enum_infos ); } );
+		err = dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
+		if( err != DL_ERROR_OK )
+			return err;
 
 		dl_binary_writer_write_string_fmt( writer, "// ENUMS\n");
 
 		for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 			dl_binary_writer_write_string_fmt( writer, "#define %s_TYPE_ID (0x%08X)\n", enum_infos[enum_index].name, enum_infos[enum_index].tid );
-		free(enum_infos);
 	}
 
 	if(ctx_info.num_types != 0)
 	{
-		dl_type_info_t* type_info = (dl_type_info_t*)malloc( ctx_info.num_types * sizeof( dl_type_info_t ) );
-		dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
+		dl_type_info_t* type_info = (dl_type_info_t*)malloc( ctx_info.num_types * sizeof(dl_type_info_t) );
+		DL_DEFER( { free( type_info ); } );
+		err = dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
+		if( err != DL_ERROR_OK )
+			return err;
 
 		if(ctx_info.num_enums != 0)
 			dl_binary_writer_write_string_fmt( writer, "\n");
@@ -313,11 +321,10 @@ static void dl_context_write_c_header_typeids( dl_binary_writer* writer, dl_ctx_
 
 		for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
 			dl_binary_writer_write_string_fmt( writer, "#define %s_TYPE_ID (0x%08X)\n", type_info[type_index].name, type_info[type_index].tid );
-
-		free(type_info);
 	}
 
 	dl_binary_writer_write_string_fmt( writer, "\n\n");
+	return DL_ERROR_OK;
 }
 
 static void dl_context_write_c_header_enum_value(dl_binary_writer* writer, dl_type_storage_t storage, const dl_enum_value_info_t* value)
@@ -385,18 +392,20 @@ static const char* dl_context_enum_storage_decl(dl_type_storage_t storage)
 	}
 }
 
-static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t ctx, dl_enum_info_t* e_info )
+static dl_error_t dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t ctx, dl_enum_info_t* e_info )
 {
 	if( e_info->is_extern )
-		return;
+		return DL_ERROR_OK;
 
 	if( e_info->comment )
 		dl_binary_writer_write_string_fmt( writer, "//%s\n",  e_info->comment );
 
 	dl_binary_writer_write_string_fmt( writer, "typedef enum %s%s\n{\n", e_info->name, dl_context_enum_storage_decl(e_info->storage) );
 
-	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof( dl_enum_value_info_t ) );
-	dl_reflect_get_enum_values( ctx, e_info->tid, values, e_info->value_count );
+	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof(dl_enum_value_info_t) );
+	DL_DEFER( { free( values ); } );
+	dl_error_t err = dl_reflect_get_enum_values( ctx, e_info->tid, values, e_info->value_count );
+	if (DL_ERROR_OK != err) return err;
 
 	for( unsigned int j = 0; j < e_info->value_count; ++j )
 	{
@@ -410,16 +419,16 @@ static void dl_context_write_c_header_enum( dl_binary_writer* writer, dl_ctx_t c
 	}
 
 	dl_binary_writer_write_string_fmt( writer, "\n} %s;\n\n", e_info->name );
-	free( values );
+	return DL_ERROR_OK;
 }
 
 /**
  * Writes a fallback for sized enums based on typedef and constants.
  */
-static void dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, dl_ctx_t ctx, dl_enum_info_t* e_info )
+static dl_error_t dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, dl_ctx_t ctx, dl_enum_info_t* e_info )
 {
 	if( e_info->is_extern )
-		return;
+		return DL_ERROR_OK;
 
     switch(e_info->storage)
 	{
@@ -435,9 +444,11 @@ static void dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, d
 			/*ignore*/
 			break;
 	}
-
-	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof( dl_enum_value_info_t ) );
-	dl_reflect_get_enum_values( ctx, e_info->tid, values, e_info->value_count );
+	
+	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( e_info->value_count * sizeof(dl_enum_value_info_t) );
+	DL_DEFER( { free( values ); } );
+	dl_error_t err = dl_reflect_get_enum_values( ctx, e_info->tid, values, e_info->value_count );
+	if (DL_ERROR_OK != err) return err;
 
 	for( unsigned int j = 0; j < e_info->value_count; ++j )
 	{
@@ -445,32 +456,35 @@ static void dl_context_write_c_header_enum_fallback( dl_binary_writer* writer, d
 		dl_context_write_c_header_enum_value( writer, e_info->storage, &values[j] );
 		dl_binary_writer_write_string_fmt( writer, ";\n");
 	}
-	free( values );
 
-	dl_binary_writer_write_string_fmt( writer, "\n");
+	dl_binary_writer_write_string_fmt( writer, "\n" );
+	return DL_ERROR_OK;
 }
 
-static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t ctx )
+static dl_error_t dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t ctx )
 {
 	dl_type_context_info_t ctx_info;
-	dl_reflect_context_info( ctx, &ctx_info );
+	dl_error_t err = dl_reflect_context_info( ctx, &ctx_info );
+	if (DL_ERROR_OK != err) return err;
 
 	if(ctx_info.num_enums == 0)
-		return;
+		return DL_ERROR_OK;
 
 	dl_binary_writer_write_string_fmt( writer, "//----------------------------------------------\n"
 											   "//                   ENUMS:s                    \n"
 											   "//----------------------------------------------\n\n" );
-
-	dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof( dl_enum_info_t ) );
-	dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
+	
+	dl_enum_info_t* enum_infos = (dl_enum_info_t*)malloc( ctx_info.num_enums * sizeof(dl_enum_info_t) );
+	DL_DEFER( { free( enum_infos ); } );
+	err = dl_reflect_loaded_enums(ctx, enum_infos, ctx_info.num_enums);
+	if (DL_ERROR_OK != err) return err;
 
 	unsigned int extern_cnt = 0;
 
 	// generate static checks for extern enums
 	for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 	{
-		dl_enum_info_t* enum_ = enum_infos + enum_index;
+		const dl_enum_info_t* enum_ = &enum_infos[enum_index];
 		if(!enum_->is_extern)
 			continue;
 
@@ -493,9 +507,11 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		};
 
 		dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT(sizeof(DL_C_ENUM %s) == %u, \"size of external enum %s do not match what was specified in tld.\");\n", enum_->name, enum_size, enum_->name );
-
-		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof( dl_enum_value_info_t ) );
-		dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
+		
+		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof(dl_enum_value_info_t) );
+		DL_DEFER( { free( values ); } );
+		err = dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
+		if (DL_ERROR_OK != err) return err;
 
 		for( unsigned int j = 0; j < enum_->value_count; ++j )
 		{
@@ -503,8 +519,6 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 			dl_context_write_c_header_enum_value( writer, enum_->storage, &values[j]);
 			dl_binary_writer_write_string_fmt( writer, ", \"value of enum-value do not match what was specified in tld.\");\n" );
 		}
-
-		free(values);
 
 		dl_binary_writer_write_string_fmt( writer, "\n" );
 	}
@@ -514,22 +528,26 @@ static void dl_context_write_c_header_enums( dl_binary_writer* writer, dl_ctx_t 
 		dl_binary_writer_write_string_fmt( writer, "#if DL_SIZED_ENUM_SUPPORTED\n\n" );
 
 		for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
-			dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
+		{
+			err = dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
+			if (DL_ERROR_OK != err) return err;
+		}
 
 		dl_binary_writer_write_string_fmt( writer, "#else // DL_SIZED_ENUM_SUPPORTED\n\n");
 
 		for( unsigned int enum_index = 0; enum_index < ctx_info.num_enums; ++enum_index )
 		{
 			if(enum_infos[enum_index].storage == DL_TYPE_STORAGE_ENUM_UINT32)
-				dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
+				err = dl_context_write_c_header_enum( writer, ctx, &enum_infos[enum_index] );
 			else
-				dl_context_write_c_header_enum_fallback( writer, ctx, &enum_infos[enum_index] );
+				err = dl_context_write_c_header_enum_fallback( writer, ctx, &enum_infos[enum_index] );
+			if (DL_ERROR_OK != err) return err;
 		}
 
 		dl_binary_writer_write_string_fmt( writer, "#endif // DL_SIZED_ENUM_SUPPORTED\n\n");
 	}
 
-	free( enum_infos );
+	return DL_ERROR_OK;
 }
 
 static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
@@ -539,7 +557,8 @@ static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage
 		case DL_TYPE_STORAGE_STRUCT:
 		{
 			dl_type_info_t sub_type;
-			dl_reflect_get_type_info( ctx, tid, &sub_type );
+			dl_error_t err = dl_reflect_get_type_info( ctx, tid, &sub_type );
+			if (DL_ERROR_OK != err) return err;
 			dl_binary_writer_write_string_fmt(writer, "struct %s", sub_type.name);
 			return DL_ERROR_OK;
 		}
@@ -551,7 +570,8 @@ static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage
 		case DL_TYPE_STORAGE_ENUM_UINT32:
 		{
 			dl_enum_info_t enum_info;
-			dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			dl_error_t err = dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			if (DL_ERROR_OK != err) return err;
 			dl_binary_writer_write_string_fmt(writer, "%s", enum_info.name);
 			return DL_ERROR_OK;
 		}
@@ -559,7 +579,8 @@ static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage
 		case DL_TYPE_STORAGE_ENUM_UINT64:
 		{
 			dl_enum_info_t enum_info;
-			dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			dl_error_t err = dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			if (DL_ERROR_OK != err) return err;
 			dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) %s", enum_info.name);
 			return DL_ERROR_OK;
 		}
@@ -579,7 +600,8 @@ static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage
 		case DL_TYPE_STORAGE_PTR:
 		{
 			dl_type_info_t sub_type;
-			dl_reflect_get_type_info( ctx, tid, &sub_type );
+			dl_error_t err = dl_reflect_get_type_info( ctx, tid, &sub_type );
+			if (DL_ERROR_OK != err) return err;
 			dl_binary_writer_write_string_fmt(writer, "struct %s*", sub_type.name);
 			return DL_ERROR_OK;
 		}
@@ -589,28 +611,28 @@ static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage
 	}
 }
 
-static void dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
+static dl_error_t dl_context_write_operator_array_access_type( dl_ctx_t ctx, dl_type_storage_t storage, dl_typeid_t tid, dl_binary_writer* writer )
 {
 	switch( storage )
 	{
-		case DL_TYPE_STORAGE_INT64:  dl_binary_writer_write_string_fmt(writer, "int64_t");  return;
-		case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_string_fmt(writer, "uint64_t"); return;
-		case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_string_fmt(writer, "double");   return;
+		case DL_TYPE_STORAGE_INT64:  dl_binary_writer_write_string_fmt(writer, "int64_t");  return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_UINT64: dl_binary_writer_write_string_fmt(writer, "uint64_t"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_FP64:   dl_binary_writer_write_string_fmt(writer, "double");   return DL_ERROR_OK;
 		case DL_TYPE_STORAGE_ENUM_INT64:
 		case DL_TYPE_STORAGE_ENUM_UINT64:
 		{
 			dl_enum_info_t enum_info;
-			dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			dl_error_t err = dl_reflect_get_enum_info( ctx, tid, &enum_info );
+			if (DL_ERROR_OK != err) return err;
 			dl_binary_writer_write_string_fmt(writer, "%s", enum_info.name);
-			return;
+			return DL_ERROR_OK;
 		}
 		default:
-			dl_context_write_type( ctx, storage, tid, writer );
-			return;
+			return dl_context_write_type( ctx, storage, tid, writer );
 	}
 }
 
-static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member, bool* last_was_bf )
+static dl_error_t dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t ctx, dl_member_info_t* member, bool* last_was_bf )
 {
 	if( member->comment )
 		dl_binary_writer_write_string_fmt( writer, "    //%s\n", member->comment);
@@ -623,14 +645,16 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				case DL_TYPE_STORAGE_STRUCT:
 				{
 					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
+					dl_error_t err = dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
+					if (DL_ERROR_OK != err) return err;
 					dl_binary_writer_write_string_fmt( writer, "    DL_C_STRUCT %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				case DL_TYPE_STORAGE_PTR:
 				{
 					dl_type_info_t sub_type;
-					dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
+					dl_error_t err = dl_reflect_get_type_info( ctx, member->type_id, &sub_type );
+					if (DL_ERROR_OK != err) return err;
 					if(member->is_const)
 						dl_binary_writer_write_string_fmt( writer, "    const struct %s* %s;\n", sub_type.name, member->name );
 					else
@@ -645,7 +669,8 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				case DL_TYPE_STORAGE_ENUM_UINT32:
 				{
 					dl_enum_info_t sub_type;
-					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
+					dl_error_t err = dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
+					if (DL_ERROR_OK != err) return err;
 					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", sub_type.name, member->name );
 				}
 				break;
@@ -653,13 +678,15 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 				case DL_TYPE_STORAGE_ENUM_UINT64:
 				{
 					dl_enum_info_t sub_type;
-					dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
+					dl_error_t err = dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
+					if (DL_ERROR_OK != err) return err;
 					dl_binary_writer_write_string_fmt( writer, "    DL_ALIGN(8) %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				default:
 					dl_binary_writer_write_string_fmt(writer, "    ");
-					dl_context_write_type(ctx, member->storage, member->type_id, writer);
+					dl_error_t err = dl_context_write_type(ctx, member->storage, member->type_id, writer);
+					if (DL_ERROR_OK != err) return err;
 					dl_binary_writer_write_string_fmt(writer, " %s; \n", member->name );
 					break;
 			}
@@ -671,21 +698,24 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 			else
 			{
 				dl_binary_writer_write_string_fmt(writer, "    ");
-				dl_context_write_type(ctx, member->storage, member->type_id, writer);
+				dl_error_t err = dl_context_write_type(ctx, member->storage, member->type_id, writer);
+				if (DL_ERROR_OK != err) return err;
 				dl_binary_writer_write_string_fmt(writer, " %s : %u;\n", member->name, member->bits);
 			}
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 		{
 			dl_binary_writer_write_string_fmt(writer, "    DL_DECLARE_ARRAY(");
-			dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
+			dl_error_t err = dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
+			if (DL_ERROR_OK != err) return err;
 			dl_binary_writer_write_string_fmt(writer, ") %s;\n ", member->name);
 		}
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 		{
 			dl_binary_writer_write_string_fmt(writer, "    ");
-			dl_context_write_type(ctx, member->storage, member->type_id, writer);
+			dl_error_t err = dl_context_write_type(ctx, member->storage, member->type_id, writer);
+			if (DL_ERROR_OK != err) return err;
 			dl_binary_writer_write_string_fmt( writer, " %s[%u];\n", member->name, member->array_count );
 		}
 		break;
@@ -694,27 +724,31 @@ static void dl_context_write_c_header_member( dl_binary_writer* writer, dl_ctx_t
 	}
 
 	*last_was_bf = member->atom == DL_TYPE_ATOM_BITFIELD;
+	return DL_ERROR_OK;
 }
 
-static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t ctx )
+static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t ctx )
 {
 	dl_type_context_info_t ctx_info;
-	dl_reflect_context_info( ctx, &ctx_info );
+	dl_error_t err = dl_reflect_context_info( ctx, &ctx_info );
+	if (DL_ERROR_OK != err) return err;
 
 	if(ctx_info.num_types == 0)
-		return;
+		return DL_ERROR_OK;
 
 	dl_binary_writer_write_string_fmt( writer, "//----------------------------------------------\n"
 											   "//                   TYPES:s                    \n"
 											   "//----------------------------------------------\n\n" );
-
-	dl_type_info_t* type_info = (dl_type_info_t*)malloc( ctx_info.num_types * sizeof( dl_type_info_t ) );
-	dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
+	
+	dl_type_info_t* type_info = (dl_type_info_t*)malloc( ctx_info.num_types * sizeof(dl_type_info_t) );
+	DL_DEFER( { free( type_info ); } );
+	err = dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
+	if (DL_ERROR_OK != err) return err;
 
 	// ... write checks for extern types ...
 	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
 	{
-		dl_type_info_t* type = &type_info[type_index];
+		const dl_type_info_t* type = &type_info[type_index];
 		if( !type->is_extern )
 			continue;
 
@@ -728,12 +762,14 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		{
 			dl_binary_writer_write_string_fmt( writer, "// '%s' is marked as 'verify : false' so size and align will not be verified\n", type->name );
 		}
-
-		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof( dl_member_info_t ) );
-		dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
+		
+		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof(dl_member_info_t) );
+		DL_DEFER( { free( members ); } );
+		err = dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
+		if (DL_ERROR_OK != err) return err;
 		for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
 		{
-			dl_member_info_t* member = members + member_index;
+			const dl_member_info_t* member = &members[member_index];
 			if(member->should_verify)
 			{
 				dl_binary_writer_write_string_fmt( writer, "DL_STATIC_ASSERT( sizeof(((struct %s*) 0)->%s) == %u, \"sizeof of member %s::%s in external type do not match what was specified in tld.\" );\n",
@@ -756,19 +792,20 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 															member->name );
 			}
 		}
-		free( members );
 	}
 
 	for( unsigned int type_index = 0; type_index < ctx_info.num_types; ++type_index )
 	{
-		dl_type_info_t* type = &type_info[type_index];
+		const dl_type_info_t* type = &type_info[type_index];
 
 		// if the type is "extern" no header struct should be generated for it.
 		if( type->is_extern )
 			continue;
-
-		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof( dl_member_info_t ) );
-		dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
+		
+		dl_member_info_t* members = (dl_member_info_t*)malloc( type->member_count * sizeof(dl_member_info_t) );
+		DL_DEFER( { free( members ); } );
+		err = dl_reflect_get_type_members( ctx, type->tid, members, type->member_count );
+		if (DL_ERROR_OK != err) return err;
 
 		if( type->is_union )
 		{
@@ -793,9 +830,8 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 			dl_binary_writer_write_string_fmt( writer, "};\n\n" );
 		}
 
-		if( type->comment ) {
+		if( type->comment )
 			dl_binary_writer_write_string_fmt( writer, "//%s\n", type->comment );
-		}
 
 		// ... the struct need manual align if the struct has higher align than any of its members ...
 		unsigned int max_align = 0;
@@ -820,7 +856,10 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 			// TODO: better indent here!
 			bool last_was_bf = false;
 			for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
-				dl_context_write_c_header_member( writer, ctx, members + member_index, &last_was_bf );
+			{
+				err = dl_context_write_c_header_member( writer, ctx, &members[member_index], &last_was_bf );
+				if (DL_ERROR_OK != err) return err;
+			}
 			dl_binary_writer_write_string_fmt( writer, "    } value;\n" );
 
 			dl_binary_writer_write_string_fmt( writer, "    enum %s_type type;\n", type->name );
@@ -829,14 +868,16 @@ static void dl_context_write_c_header_types( dl_binary_writer* writer, dl_ctx_t 
 		{
 			bool last_was_bf = false;
 			for( unsigned int member_index = 0; member_index < type->member_count; ++member_index )
-				dl_context_write_c_header_member( writer, ctx, members + member_index, &last_was_bf );
+			{
+				err = dl_context_write_c_header_member( writer, ctx, &members[member_index], &last_was_bf );
+				if (DL_ERROR_OK != err) return err;
+			}
 		}
 
-		free( members );
 		dl_binary_writer_write_string_fmt( writer, "};\n\n" );
 	}
 
-	free( type_info );
+	return DL_ERROR_OK;
 }
 
 dl_error_t dl_context_write_type_library_c_header( dl_ctx_t dl_ctx, const char* module_name, char* out_header, size_t out_header_size, size_t* produced_bytes )
@@ -861,11 +902,14 @@ dl_error_t dl_context_write_type_library_c_header( dl_ctx_t dl_ctx, const char* 
 
 	dl_context_write_c_header_includes( &writer, dl_ctx );
 
-	dl_context_write_c_header_typeids( &writer, dl_ctx );
+	dl_error_t err = dl_context_write_c_header_typeids( &writer, dl_ctx );
+	if (DL_ERROR_OK != err) return err;
 
-	dl_context_write_c_header_enums( &writer, dl_ctx );
+	err = dl_context_write_c_header_enums( &writer, dl_ctx );
+	if (DL_ERROR_OK != err) return err;
 
-	dl_context_write_c_header_types( &writer, dl_ctx );
+	err = dl_context_write_c_header_types( &writer, dl_ctx );
+	if (DL_ERROR_OK != err) return err;
 
 	dl_context_write_c_header_end( &writer, MODULE_NAME );
 

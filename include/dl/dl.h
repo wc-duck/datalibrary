@@ -59,7 +59,7 @@ static const int DL_INLINE_ARRAY_LENGTH_MAX = 0xFFFF;
 
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
 */
-typedef enum
+typedef enum DL_NODISCARD
 {
 	DL_ERROR_OK,
 	DL_ERROR_MALFORMED_DATA,

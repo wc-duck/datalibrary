@@ -214,7 +214,9 @@ static int write_tl_as_binary( dl_ctx_t ctx, FILE* out )
 static void show_tl_members( dl_ctx_t ctx, const char* member_fmt, dl_typeid_t tid, unsigned int member_count )
 {
 	dl_member_info_t* member_info = (dl_member_info_t*)malloc( member_count * sizeof( dl_member_info_t ) );
-	dl_reflect_get_type_members( ctx, tid, member_info, member_count );
+	dl_error_t err = dl_reflect_get_type_members( ctx, tid, member_info, member_count );
+	if( err != DL_ERROR_OK )
+		fprintf( stderr, "failed to get members for type %X, error: \"%s\"\n", tid, dl_error_to_string( err ) );
 	for( unsigned int j = 0; j < member_count; ++j )
 	{
 //		const char* atom = "whoo";
@@ -235,7 +237,9 @@ static void show_tl_members( dl_ctx_t ctx, const char* member_fmt, dl_typeid_t t
 static void show_tl_info( dl_ctx_t ctx )
 {
 	dl_type_context_info_t ctx_info;
-	dl_reflect_context_info( ctx, &ctx_info );
+	dl_error_t err = dl_reflect_context_info( ctx, &ctx_info );
+	if( err != DL_ERROR_OK )
+		fprintf( stderr, "failed to get context info, error: \"%s\"\n", dl_error_to_string( err ) );
 
 	// show info here :)
 	printf("module name: %s\n", "<fetch the real name :)>" );
@@ -247,7 +251,9 @@ static void show_tl_info( dl_ctx_t ctx )
 	void* info_buffer = malloc( type_size > enum_size ? type_size : enum_size );
 
 	dl_type_info_t* type_info = (dl_type_info_t*)info_buffer;
-	dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
+	err = dl_reflect_loaded_types( ctx, type_info, ctx_info.num_types );
+	if( err != DL_ERROR_OK )
+		fprintf( stderr, "failed to get loaded types, error: \"%s\"\n", dl_error_to_string( err ) );
 
 	size_t max_name_len = 0;
 	for( unsigned int i = 0; i < ctx_info.num_types; ++i )
@@ -284,7 +290,9 @@ static void show_tl_info( dl_ctx_t ctx )
 	printf( "\n" );
 
 	dl_enum_info_t* enum_info = (dl_enum_info_t*)info_buffer;
-	dl_reflect_loaded_enums( ctx, enum_info, ctx_info.num_enums );
+	err = dl_reflect_loaded_enums( ctx, enum_info, ctx_info.num_enums );
+	if( err != DL_ERROR_OK )
+		fprintf( stderr, "failed to get loaded enums, error: \"%s\"\n", dl_error_to_string( err ) );
 
 	max_name_len = 0;
 	for( unsigned int i = 0; i < ctx_info.num_enums; ++i )
@@ -294,7 +302,9 @@ static void show_tl_info( dl_ctx_t ctx )
 		printf("%s\n", enum_->name);
 
 		dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_->value_count * sizeof( dl_enum_value_info_t ) );
-		dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
+		err = dl_reflect_get_enum_values( ctx, enum_->tid, values, enum_->value_count );
+		if( err != DL_ERROR_OK )
+			fprintf( stderr, "failed to get enum values for '%s', error: \"%s\"\n", enum_->name, dl_error_to_string( err ) );
 
 		for( unsigned int j = 0; j < enum_->value_count; ++j )
 			printf("    %s = %u\n", values[j].name, values[j].value.u32); // TODO: fix me.
@@ -317,7 +327,9 @@ int main( int argc, const char** argv )
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
 	p.error_msg_func = error_report_function;
 
-	dl_context_create( &ctx, &p );
+	dl_error_t err = dl_context_create( &ctx, &p );
+	if( err != DL_ERROR_OK )
+		fprintf( stderr, "failed to create data library context, error \"%s\"\n", dl_error_to_string( err ) );
 
 	if( inputs.size() == 0 )
 	{
@@ -386,7 +398,7 @@ int main( int argc, const char** argv )
 	if( output != stdout )
 		fclose( output );
 
-	dl_context_destroy( ctx );
+	(void) dl_context_destroy( ctx );
 
 	return res;
 }

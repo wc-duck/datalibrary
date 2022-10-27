@@ -119,7 +119,7 @@ void convert_test_do_it( dl_ctx_t       dl_ctx,        dl_typeid_t type,
 
 void convert_inplace_test_do_it( dl_ctx_t       dl_ctx,        dl_typeid_t type,
         						 unsigned char* store_buffer,  size_t      store_size,
-								 unsigned char** out_buffer,    size_t*     out_size,
+								 unsigned char** out_buffer,   size_t*     out_size,
 								 unsigned int   conv_ptr_size, dl_endian_t conv_endian )
 {
 	/*

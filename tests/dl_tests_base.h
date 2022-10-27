@@ -66,7 +66,7 @@ struct DLBase : public DL
 {
 	size_t calculate_unpack_size(dl_typeid_t type, void *pack_me) {
 		size_t unpack_me_size = 0;
-		dl_instance_calc_size(this->Ctx, type, pack_me, &unpack_me_size);
+		EXPECT_DL_ERR_OK(dl_instance_calc_size(this->Ctx, type, pack_me, &unpack_me_size));
 		return unpack_me_size;
 	}
 

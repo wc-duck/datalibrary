@@ -319,7 +319,7 @@ static bool dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 static const dl_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx );
 static const char* dl_txt_skip_array( const char* iter, const char* end );
 static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_type_storage_t storage_type );
-static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
+static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
 static dl_error_t dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_type_storage_t storage_type, dl_typeid_t type_id, const char* member_name, uint32_t array_length );
 
 static void dl_txt_pack_eat_and_write_anyptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr name_to_look_for )
@@ -578,11 +578,13 @@ static dl_error_t dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_
 			for( uint32_t i = 0; i < array_length -1; ++i )
 			{
 				dl_binary_writer_seek_set( packctx->writer, array_pos + i * type->size[DL_PTR_SIZE_HOST] );
-				dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+				dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+				if( DL_ERROR_OK != err ) return err;
 				dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ',' );
 			}
 			dl_binary_writer_seek_set( packctx->writer, array_pos + (array_length - 1) * type->size[DL_PTR_SIZE_HOST] );
-			dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+			dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+			if( DL_ERROR_OK != err ) return err;
 		}
 		break;
 		case DL_TYPE_STORAGE_ENUM_INT8:
@@ -973,7 +975,7 @@ static dl_error_t dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 	return DL_ERROR_OK;
 }
 
-static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
+static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
 {
 	size_t member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
 	dl_binary_writer_seek_set( packctx->writer, member_pos );
@@ -998,7 +1000,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_PTR:      dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
 				case DL_TYPE_STORAGE_ANYPTR:   dl_txt_pack_eat_and_write_anyptr( dl_ctx, packctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ) ); break;
 				case DL_TYPE_STORAGE_ANYARRAY: dl_txt_pack_eat_and_write_anyarray( dl_ctx, packctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ) ); break;
-				case DL_TYPE_STORAGE_STRUCT:   dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) ); break;
+				case DL_TYPE_STORAGE_STRUCT:   return dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) );
 				case DL_TYPE_STORAGE_ENUM_INT8:
 				case DL_TYPE_STORAGE_ENUM_INT16:
 				case DL_TYPE_STORAGE_ENUM_INT32:
@@ -1041,7 +1043,8 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				dl_binary_writer_seek_end( packctx->writer );
 				dl_binary_writer_align( packctx->writer, element_align );
 				dl_binary_writer_reserve( packctx->writer, array_length * element_size );
-				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member->StorageType(), member->type_id, dl_internal_member_name( dl_ctx, member ), array_length );
+				dl_error_t err = dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member->StorageType(), member->type_id, dl_internal_member_name( dl_ctx, member ), array_length );
+				if( DL_ERROR_OK != err ) return err;
 			}
 			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 		}
@@ -1059,7 +1062,10 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 			}
 
 			if(array_length > 0)
-				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member->StorageType(), member->type_id, dl_internal_member_name( dl_ctx, member ), array_length );
+			{
+				dl_error_t err = dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member->StorageType(), member->type_id, dl_internal_member_name( dl_ctx, member ), array_length );
+				if( DL_ERROR_OK != err ) return err;
+			}
 
 			switch(member->StorageType())
 			{
@@ -1078,9 +1084,10 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 						for(uint32_t sub_member_i = 0; sub_member_i < sub_type->member_count; ++sub_member_i)
 						{
 							const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
-							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
+							dl_error_t err = dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
+							if (DL_ERROR_OK != err) return err;
 						}
-							current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
+						current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
 					}
 					break;
 				}
@@ -1136,9 +1143,10 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		default:
 			DL_ASSERT(false);
 	}
+	return DL_ERROR_OK;
 }
 
-static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
+static dl_error_t dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
 
@@ -1149,7 +1157,9 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	// ... pack all members in order ...
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		dl_error_t err = dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		if( err != DL_ERROR_OK )
+			return err;
 
 		dl_txt_eat_white( &packctx->read_ctx );
 
@@ -1167,6 +1177,7 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	}
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
+	return DL_ERROR_OK;
 }
 
 static const dl_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
@@ -1197,7 +1208,7 @@ static const dl_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
 	return res;
 }
 
-static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
+static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	uint64_t members_set[DL_MEMBERS_IN_TYPE_MAX / 64] = {0};
 	uint32_t member_index = 0xFFFFFFFF;
@@ -1206,8 +1217,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 	if( *packctx->read_ctx.iter == '[' )
 	{
-		dl_txt_pack_eat_and_write_array_struct( dl_ctx, packctx, type );
-		return;
+		return dl_txt_pack_eat_and_write_array_struct( dl_ctx, packctx, type );
 	}
 
 	// ... find open {
@@ -1273,7 +1283,8 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
 		// ... read member ...
-		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		dl_error_t err = dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		if( DL_ERROR_OK != err ) return err;
 	}
 
 	// ... find close }
@@ -1299,10 +1310,12 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			if( member->default_value_offset == UINT32_MAX )
 				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MISSING_MEMBER, "member %s.%s is not set and has no default value", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
 
-			size_t   member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
-			dl_txt_pack_write_default_value(dl_ctx, packctx, member, member_pos);
+			size_t member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
+			dl_error_t err = dl_txt_pack_write_default_value(dl_ctx, packctx, member, member_pos);
+			if (DL_ERROR_OK != err) return err;
 		}
 	}
+	return DL_ERROR_OK;
 }
 
 struct SSubInstance
@@ -1378,7 +1391,8 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		size_t inst_pos = dl_binary_writer_tell( packctx->writer );
 
 		size_t used_subdatas = packctx->subdata.Len();
-		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+		dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+		if( DL_ERROR_OK != err ) return err;
 		if( packctx->subdata.Len() != used_subdatas )
 		{
 			std::sort( packctx->subdata.m_Ptr + used_subdatas, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
@@ -1450,10 +1464,13 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		}
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
-		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
+ 		dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
+		if( DL_ERROR_OK != err ) return 0x0;
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
-		dl_txt_pack_finalize_subdata( dl_ctx, packctx );
+		err = dl_txt_pack_finalize_subdata( dl_ctx, packctx );
+		if( DL_ERROR_OK != err ) return 0x0;
+
 		return root_type;
 	}
 	return 0x0;

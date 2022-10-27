@@ -11,12 +11,15 @@
 	#error No supported compiler
 #endif
 
-// remove me!
-#if defined(_MSC_VER)
-	typedef unsigned __int32 dl_typeid_t;
-#elif defined(__GNUC__)
-	#include <stdint.h>
-	typedef uint32_t dl_typeid_t;
+#ifndef DL_NODISCARD
+	#if( _MSVC_LANG >= 201703L ) || ( __cplusplus >= 201703L )
+		#define DL_NODISCARD [[nodiscard]]
+	#else
+		#define DL_NODISCARD
+	#endif
 #endif
+
+#include <stdint.h>
+typedef uint32_t dl_typeid_t;
 
 #endif // DL_DL_DEFINES_H_INCLUDED
