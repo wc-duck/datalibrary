@@ -23,6 +23,11 @@ struct dlbench
 	dl_ctx_t ctx;
 };
 
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4834) // discarding return value of function with 'nodiscard' attribute
+#endif
+
 UBENCH_F_SETUP(dlbench)
 {
 	dl_create_params_t p;
@@ -201,3 +206,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_str_null)
 }
 
 UBENCH_MAIN();
+
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif

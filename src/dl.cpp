@@ -244,7 +244,11 @@ static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t st
 			break;
 		case DL_TYPE_STORAGE_PTR:
 			for( uint32_t elem = 0; elem < count; ++elem )
-				dl_internal_store_ptr( dl_ctx, instance + (elem * sizeof(void*)), sub_type, store_ctx );
+			{
+				dl_error_t err = dl_internal_store_ptr( dl_ctx, instance + ( elem * sizeof( void* ) ), sub_type, store_ctx );
+				if( DL_ERROR_OK != err )
+					return err;
+			}
 			break;
 		default: // default is a standard pod-type
 			dl_binary_writer_write( &store_ctx->writer, instance, count * size );
@@ -318,9 +322,8 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 			else if( storage_type != DL_TYPE_STORAGE_STR )
 				count = member->size[DL_PTR_SIZE_HOST];
 
-			dl_internal_store_array( dl_ctx, storage_type, sub_type, instance, count, 1, store_ctx );
+			return dl_internal_store_array( dl_ctx, storage_type, sub_type, instance, count, 1, store_ctx );
 		}
-		return DL_ERROR_OK;
 
 		case DL_TYPE_ATOM_ARRAY:
 		{

@@ -86,8 +86,7 @@ static dl_error_t dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* wri
 	dl_binary_writer_write_fmt( writer, "      }" );
 
 	uint32_t metadata_count = 0;
-	err = dl_get_metadata_count( ctx, tid, &metadata_count );
-	if( DL_ERROR_OK != err ) return err;
+	dl_get_metadata_count( ctx, tid, &metadata_count );
 	if( metadata_count )
 	{
 		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
@@ -97,23 +96,18 @@ static dl_error_t dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* wri
 
 			dl_typeid_t metadata_type_id;
 			void* metadata_instance;
-			err = dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_instance );
-			if( DL_ERROR_OK != err ) return err;
+			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_instance );
 
 			// jumping through hoops, pack the data and write it as json with wrong indent
 			size_t packed_size;
-			err = dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
-			if( DL_ERROR_OK != err ) return err;
+			dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
 			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
-			err = dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
-			if( DL_ERROR_OK != err ) return err;
+			dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
 
 			size_t txt_instance_size;
-			err = dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
-			if( DL_ERROR_OK != err ) return err;
+			dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
 			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
-			err = dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
-			if( DL_ERROR_OK != err ) return err;
+			dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
 			dl_free( &ctx->alloc, packed_instance );
 
 			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
@@ -189,8 +183,7 @@ static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* w
 	}
 
 	uint32_t metadata_count = 0;
-	dl_error_t err = dl_get_member_metadata_count( ctx, tid, member_index, &metadata_count );
-	if( DL_ERROR_OK != err ) return err;
+	dl_get_member_metadata_count( ctx, tid, member_index, &metadata_count );
 	if( metadata_count )
 	{
 		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
@@ -200,23 +193,18 @@ static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* w
 
 			dl_typeid_t metadata_type_id;
 			void* metadata_instance;
-			err = dl_get_member_metadata( ctx, tid, member_index, i, &metadata_type_id, &metadata_instance );
-			if( DL_ERROR_OK != err ) return err;
+			dl_get_member_metadata( ctx, tid, member_index, i, &metadata_type_id, &metadata_instance );
 
 			// jumping through hoops, pack the data and write it as json with wrong indent
 			size_t packed_size;
-			err = dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
-			if( DL_ERROR_OK != err ) return err;
+			dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
 			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
-			err = dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
-			if( DL_ERROR_OK != err ) return err;
+			dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
 
 			size_t txt_instance_size;
-			err = dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
-			if( DL_ERROR_OK != err ) return err;
+			dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
 			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
-			err = dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
-			if( DL_ERROR_OK != err ) return err;
+			dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
 			dl_free( &ctx->alloc, packed_instance );
 
 			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
@@ -257,8 +245,7 @@ static dl_error_t dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* wri
 	dl_binary_writer_write_fmt( writer, "      ]" );
 
 	uint32_t metadata_count = 0;
-	err = dl_get_metadata_count( ctx, tid, &metadata_count );
-	if( DL_ERROR_OK != err ) return err;
+	dl_get_metadata_count( ctx, tid, &metadata_count );
 	if( metadata_count )
 	{
 		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
@@ -268,23 +255,18 @@ static dl_error_t dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* wri
 
 			dl_typeid_t metadata_type_id;
 			void* metadata_instance;
-			err = dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_instance );
-			if( DL_ERROR_OK != err ) return err;
+			dl_get_metadata( ctx, tid, i, &metadata_type_id, &metadata_instance );
 
 			// jumping through hoops, pack the data and write it as json with wrong indent
 			size_t packed_size;
-			err = dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
-			if( DL_ERROR_OK != err ) return err;
+			dl_instance_calc_size( ctx, metadata_type_id, metadata_instance, &packed_size );
 			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
-			err = dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
-			if( DL_ERROR_OK != err ) return err;
+			dl_instance_store( ctx, metadata_type_id, metadata_instance, packed_instance, packed_size, &produced_bytes );
 
 			size_t txt_instance_size;
-			err = dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
-			if( DL_ERROR_OK != err ) return err;
+			dl_txt_unpack_calc_size( ctx, metadata_type_id, packed_instance, packed_size, &txt_instance_size );
 			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
-			err = dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
-			if( DL_ERROR_OK != err ) return err;
+			dl_txt_unpack( ctx, metadata_type_id, packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
 			dl_free( &ctx->alloc, packed_instance );
 
 			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
