@@ -178,15 +178,15 @@ static dl_error_t dl_internal_convert_collect_instances( dl_ctx_t            dl_
 														 SConvertContext&    convert_ctx );
 
 static void dl_internal_convert_collect_instances_from_str( const uint8_t*        member_data,
-																  const uint8_t*        base_data,
-																  SConvertContext&      convert_ctx )
+															const uint8_t*        base_data,
+															SConvertContext&      convert_ctx )
 {
 	uintptr_t offset = dl_internal_read_ptr_data( member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size );
 	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
 		convert_ctx.instances.Add(SInstance(base_data + offset, 0x0, 1337, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STR)));
 }
 
-static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t              ctx,
+static dl_error_t dl_internal_convert_collect_instances_from_ptr( dl_ctx_t ctx,
 															const dl_type_desc*   sub_type,
 															const uint8_t*        member_data,
 															const uint8_t*        base_data,
@@ -194,27 +194,34 @@ static void dl_internal_convert_collect_instances_from_ptr( dl_ctx_t            
 {
 	uintptr_t offset = dl_internal_read_ptr_data(member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size);
 
+	dl_error_t err = DL_ERROR_OK;
 	if(offset != DL_NULL_PTR_OFFSET[convert_ctx.src_ptr_size])
 	{
 		const uint8_t* ptr_data = base_data + offset;
 		if(!convert_ctx.IsSwapped(ptr_data))
 		{
 			convert_ctx.instances.Add(SInstance(ptr_data, sub_type, 0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_PTR)));
-			dl_internal_convert_collect_instances(ctx, sub_type, base_data + offset, base_data, convert_ctx);
+			err = dl_internal_convert_collect_instances( ctx, sub_type, base_data + offset, base_data, convert_ctx );
 		}
 	}
+	return err;
 }
 
-static void dl_internal_convert_collect_instances_from_struct_array( dl_ctx_t            ctx,
-																	 const uint8_t*      array_data,
-																	 uintptr_t           array_count,
-																	 const dl_type_desc* sub_type,
-																	 const uint8_t*      base_data,
-																	 SConvertContext&    convert_ctx )
+static dl_error_t dl_internal_convert_collect_instances_from_struct_array( dl_ctx_t            ctx,
+																		   const uint8_t*      array_data,
+																		   uintptr_t           array_count,
+																		   const dl_type_desc* sub_type,
+																		   const uint8_t*      base_data,
+																		   SConvertContext&    convert_ctx )
 {
 	uint32_t elem_size = sub_type->size[convert_ctx.src_ptr_size];
 	for( uint32_t elem = 0; elem < array_count; ++elem )
-		dl_internal_convert_collect_instances(ctx, sub_type, array_data + (elem * elem_size), base_data, convert_ctx);
+	{
+		dl_error_t err = dl_internal_convert_collect_instances(ctx, sub_type, array_data + (elem * elem_size), base_data, convert_ctx);
+		if( err != DL_ERROR_OK )
+			return err;
+	}
+	return DL_ERROR_OK;
 }
 
 static void dl_internal_convert_collect_instances_from_str_array( const uint8_t*   array_data,
@@ -231,16 +238,21 @@ static void dl_internal_convert_collect_instances_from_str_array( const uint8_t*
 		dl_internal_convert_collect_instances_from_str( array_data + (elem * ptr_size), base_data, convert_ctx );
 }
 
-static void dl_internal_convert_collect_instances_from_ptr_array( dl_ctx_t            ctx,
-																  const uint8_t*      array_data,
-																  uintptr_t           array_count,
-																  const dl_type_desc* sub_type,
-																  const uint8_t*      base_data,
-																  SConvertContext&    convert_ctx )
+static dl_error_t dl_internal_convert_collect_instances_from_ptr_array( dl_ctx_t            ctx,
+																		const uint8_t*      array_data,
+																		uintptr_t           array_count,
+																		const dl_type_desc* sub_type,
+																		const uint8_t*      base_data,
+																		SConvertContext&    convert_ctx )
 {
 	uint32_t ptr_size = (uint32_t)dl_internal_ptr_size(convert_ctx.src_ptr_size);
 	for( uintptr_t elem = 0; elem < array_count; ++elem )
-		dl_internal_convert_collect_instances_from_ptr( ctx, sub_type, array_data + (elem * ptr_size), base_data, convert_ctx );
+	{
+		dl_error_t err = dl_internal_convert_collect_instances_from_ptr( ctx, sub_type, array_data + (elem * ptr_size), base_data, convert_ctx );
+		if( err != DL_ERROR_OK )
+			return err;
+	}
+	return DL_ERROR_OK;
 }
 
 static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t              ctx,
@@ -262,10 +274,9 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 					dl_internal_convert_collect_instances_from_str( member_data, base_data, convert_ctx );
 				break;
 				case DL_TYPE_STORAGE_PTR:
-					dl_internal_convert_collect_instances_from_ptr( ctx, dl_internal_find_type(ctx, member->type_id), member_data, base_data, convert_ctx );
-				break;
+					return dl_internal_convert_collect_instances_from_ptr( ctx, dl_internal_find_type(ctx, member->type_id), member_data, base_data, convert_ctx );
 				case DL_TYPE_STORAGE_STRUCT:
-					dl_internal_convert_collect_instances(ctx, dl_internal_find_type(ctx, member->type_id), member_data, base_data, convert_ctx);
+					return dl_internal_convert_collect_instances(ctx, dl_internal_find_type(ctx, member->type_id), member_data, base_data, convert_ctx);
 				break;
 				default:
 					break;
@@ -277,7 +288,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 			switch(storage_type)
 			{
 				case DL_TYPE_STORAGE_STRUCT:
-					dl_internal_convert_collect_instances_from_struct_array( ctx,
+					return dl_internal_convert_collect_instances_from_struct_array( ctx,
 																			 member_data,
 																			 member->inline_array_cnt(),
 																			 dl_internal_find_type(ctx, member->type_id),
@@ -291,7 +302,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																		  convert_ctx );
 					break;
 				case DL_TYPE_STORAGE_PTR:
-					dl_internal_convert_collect_instances_from_ptr_array( ctx,
+					return dl_internal_convert_collect_instances_from_ptr_array( ctx,
 																		  member_data,
 																		  member->inline_array_cnt(),
 																		  dl_internal_find_type(ctx, member->type_id),
@@ -319,6 +330,7 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 			const uint8_t* array_data = base_data + offset;
 			const dl_type_desc* sub_type = 0x0;
 
+			dl_error_t err;
 			switch(storage_type)
 			{
 				case DL_TYPE_STORAGE_STR:
@@ -326,24 +338,24 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 					break;
 				case DL_TYPE_STORAGE_PTR:
 					sub_type = dl_internal_find_type(ctx, member->type_id);
-					dl_internal_convert_collect_instances_from_ptr_array( ctx,
-																		  array_data,
-																		  array_count,
-																		  sub_type,
-																		  base_data,
-																		  convert_ctx );
+					err = dl_internal_convert_collect_instances_from_ptr_array( ctx,
+																				array_data,
+																				array_count,
+																				sub_type,
+																				base_data,
+																				convert_ctx );
+					if( DL_ERROR_OK != err ) return err;
 					break;
 				case DL_TYPE_STORAGE_STRUCT:
-				{
 					sub_type = dl_internal_find_type(ctx, member->type_id);
-					dl_internal_convert_collect_instances_from_struct_array( ctx,
-																			 array_data,
-																			 array_count,
-																			 sub_type,
-																			 base_data,
-																			 convert_ctx );
-				}
-				break;
+					err = dl_internal_convert_collect_instances_from_struct_array( ctx,
+																				   array_data,
+																				   array_count,
+																				   sub_type,
+																				   base_data,
+																				   convert_ctx );
+					if( DL_ERROR_OK != err ) return err;
+					break;
 				default:
 					DL_ASSERT(member->IsSimplePod());
 					break;
@@ -493,7 +505,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 					const dl_type_desc* sub_type = dl_internal_find_type(ctx, member->type_id);
 					if(sub_type == 0x0)
 						return DL_ERROR_TYPE_NOT_FOUND;
-					dl_internal_convert_write_struct( ctx, member_data, sub_type, conv_ctx, writer );
+					return dl_internal_convert_write_struct( ctx, member_data, sub_type, conv_ctx, writer );
 				}
 				break;
 				case DL_TYPE_STORAGE_STR:
@@ -522,7 +534,10 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 
 					uintptr_t SubtypeSize = sub_type->size[conv_ctx.src_ptr_size];
 					for( uint32_t i = 0; i < member->inline_array_cnt(); ++i )
-						dl_internal_convert_write_struct( ctx, member_data + i * SubtypeSize, sub_type, conv_ctx, writer );
+			        {
+						dl_error_t err = dl_internal_convert_write_struct( ctx, member_data + i * SubtypeSize, sub_type, conv_ctx, writer );
+						if( DL_ERROR_OK != err ) return err;
+					}
 				}
 				break;
 				case DL_TYPE_STORAGE_STR:
