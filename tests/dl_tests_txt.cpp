@@ -379,7 +379,7 @@ TEST_F(DLText, default_value_inline_array_array)
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 
-	DefaultInlArrayArray loaded[10]; // this is so ugly!
+	DefaultInlArrayArray loaded[10];
 
 	// load binary
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayArray::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));
@@ -398,7 +398,7 @@ TEST_F(DLText, default_value_array_pod)
 	const char* text_data = STRINGIFY( { "DefaultArrayPod" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultArrayPod loaded[10]; // this is so ugly!
+	DefaultArrayPod loaded[10];
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayPod::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));
@@ -416,7 +416,7 @@ TEST_F(DLText, default_value_array_enum)
 	const char* text_data = STRINGIFY( { "DefaultArrayEnum" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultArrayEnum loaded[10]; // this is so ugly!
+	DefaultArrayEnum loaded[10];
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayEnum::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));

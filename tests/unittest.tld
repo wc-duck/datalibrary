@@ -61,7 +61,7 @@
         "strArray"  : { "members" : [ { "name" : "arr",  "type" : "string[]" } ] },
         "ptrArray"  : { "members" : [ { "name" : "arr",  "type" : "Pods*[]"  } ] },
         "enumArray" : { "members" : [ { "name" : "arr",  "type" : "TestEnum1[]" } ] },
-		"anyptrArray"  : { "members" : [ { "name" : "arr",  "type" : "anyptr[]" } ] },
+        "anyptrArray"  : { "members" : [ { "name" : "arr",  "type" : "anyptr[]" } ] },
         "anyArrayArray" : { "members" : [ { "name" : "arr",  "type" : "anyarray[]" } ] },
         "anyArray"  : { "members" : [ { "name" : "arr",  "type" : "anyarray" } ] },
         "default_empty_type" : { "members" : [ { "name" : "empty", "type" : "uint32", "default" : 0 } ] }
