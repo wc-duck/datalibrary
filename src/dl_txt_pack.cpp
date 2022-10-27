@@ -7,6 +7,7 @@
 #include "dl_txt_read.h"
 
 #include <stdlib.h>
+#include <algorithm>
 #include <limits.h>
 #include <float.h>
 #include <limits>
@@ -142,6 +143,7 @@ struct dl_txt_pack_ctx
 	struct SSubData
 	{
 		dl_substr name;
+		uint32_t name_hash;
 		const dl_type_desc* type;
 		size_t patch_pos;
 	}; 
@@ -309,7 +311,7 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	if( ptr.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
 
-	packctx->subdata.Add({ ptr, type, patch_pos });
+	packctx->subdata.Add({ ptr, dl_internal_hash_buffer((const uint8_t*)ptr.str, ptr.len), type, patch_pos });
 }
 
 static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr symbol )
@@ -1123,6 +1125,33 @@ static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	return DL_ERROR_OK;
 }
 
+struct SSubInstance
+{
+	dl_substr name;
+	size_t pos;
+	uint32_t name_hash;
+};
+
+struct dl_internal_sort_pred
+{
+	inline bool operator()(const SSubInstance& i1, const SSubInstance& i2)
+	{
+		return i1.name_hash < i2.name_hash;
+	}
+	inline bool operator()(const dl_txt_pack_ctx::SSubData& i1, const dl_txt_pack_ctx::SSubData& i2)
+	{
+		return i1.name_hash < i2.name_hash;
+	}
+	inline bool operator()(const SSubInstance& i1, uint32_t i2)
+	{
+		return i1.name_hash < i2;
+	}
+	inline bool operator()(const dl_txt_pack_ctx::SSubData& i1, uint32_t i2)
+	{
+		return i1.name_hash < i2;
+	}
+};
+
 static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {
 	if( packctx->subdata.Len() == 0 )
@@ -1132,16 +1161,12 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	packctx->read_ctx.iter = packctx->subdata_pos;
 
-	struct SSubInstance
-	{
-		dl_substr name;
-		size_t pos;
-	};
 	CArrayStatic<SSubInstance, 256> subinstances(dl_ctx->alloc);
-	subinstances.Add({ { "__root" , 6}, 0 });
+	subinstances.Add({ { "__root", 6 }, 0, dl_internal_hash_string("__root") });
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
 
+	std::sort( packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
 	while( true )
 	{
 		dl_txt_eat_white( &packctx->read_ctx );
@@ -1152,33 +1177,40 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		if( subdata_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing subdata instance-name." );
 
+		uint32_t name_hash = dl_internal_hash_buffer((const uint8_t*)subdata_name.str, subdata_name.len);
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
-		size_t subdata_item = std::numeric_limits<size_t>::max();
-		for (size_t i = 0; i < packctx->subdata.Len(); ++i)
+		const dl_txt_pack_ctx::SSubData* results = std::lower_bound(packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + packctx->subdata.Len(), name_hash, dl_internal_sort_pred());
+		while (results != packctx->subdata.m_Ptr + packctx->subdata.Len())
 		{
-			if( packctx->subdata[i].name.len != subdata_name.len )
-				continue;
-
-			if( strncmp( packctx->subdata[i].name.str, subdata_name.str, (size_t)subdata_name.len ) == 0 )
+			if( results->name_hash != name_hash )
 			{
-				subdata_item = i;
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata '%.*s'", subdata_name.len, subdata_name.str );
+			}
+
+			if( results->name.len == subdata_name.len && strncmp(results->name.str, subdata_name.str, (size_t)subdata_name.len) == 0 )
+			{
 				break;
 			}
+			++results;
 		}
 
-		if (subdata_item == std::numeric_limits<size_t>::max())
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata." );
-		const dl_type_desc* type = packctx->subdata[subdata_item].type;
+		const dl_type_desc* type = results->type;
 
 		dl_binary_writer_seek_end( packctx->writer );
 		dl_binary_writer_align( packctx->writer, type->alignment[DL_PTR_SIZE_HOST] );
 		size_t inst_pos = dl_binary_writer_tell( packctx->writer );
 
+		size_t used_subdatas = packctx->subdata.Len();
 		dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
 		if( DL_ERROR_OK != err ) return err;
+		if( packctx->subdata.Len() != used_subdatas )
+		{
+			std::sort( packctx->subdata.m_Ptr + used_subdatas, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
+			std::inplace_merge( packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + used_subdatas, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
+		}
 
-		subinstances.Add({ subdata_name, inst_pos });
+		subinstances.Add( { subdata_name, inst_pos, dl_internal_hash_buffer((const uint8_t*)subdata_name.str, subdata_name.len) } );
 
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( packctx->read_ctx.iter[0] == ',' )
@@ -1189,22 +1221,25 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
+	std::sort( subinstances.m_Ptr, subinstances.m_Ptr + subinstances.Len(), dl_internal_sort_pred() );
 	for( size_t i = 0; i < packctx->subdata.Len(); ++i )
 	{
 		bool found = false;
-		for( size_t j = 0; j < subinstances.Len(); ++j )
+		uint32_t name_hash = dl_internal_hash_buffer((const uint8_t*)packctx->subdata[i].name.str, packctx->subdata[i].name.len);
+		const SSubInstance* results = std::lower_bound(subinstances.m_Ptr, subinstances.m_Ptr + subinstances.Len(), name_hash, dl_internal_sort_pred());
+		while (results != subinstances.m_Ptr + subinstances.Len())
 		{
-			if( packctx->subdata[i].name.len != subinstances[j].name.len )
-				continue;
+			if( results->name_hash != name_hash )
+				break;
 
-			if( strncmp( packctx->subdata[i].name.str, subinstances[j].name.str, (size_t)subinstances[j].name.len ) == 0 )
+			if( results->name.len == packctx->subdata[i].name.len && strncmp(results->name.str, packctx->subdata[i].name.str, (size_t)packctx->subdata[i].name.len) == 0 )
 			{
 				found = true;
 				dl_binary_writer_seek_set( packctx->writer, packctx->subdata[i].patch_pos );
-				dl_binary_writer_write_ptr( packctx->writer, subinstances[j].pos );
+				dl_binary_writer_write_ptr( packctx->writer, results->pos );
 			}
+			++results;
 		}
-
 		if( !found )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "referenced subdata \"%.*s\"", packctx->subdata[i].name.len, packctx->subdata[i].name.str );
 	}
