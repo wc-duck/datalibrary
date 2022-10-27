@@ -8,7 +8,7 @@
 struct dl_txt_unpack_ctx
 {
 	explicit dl_txt_unpack_ctx(dl_allocator alloc)
-	    : ptrs(alloc)
+		: ptrs(alloc)
 	{
 	}
 
@@ -168,16 +168,17 @@ static void dl_txt_unpack_ptr( dl_binary_writer* writer, dl_txt_unpack_ctx* unpa
 	}
 }
 
-static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data );
+static dl_error_t dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data );
 
-static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
-								 dl_txt_unpack_ctx* unpack_ctx,
-								 dl_binary_writer*  writer,
-								 dl_type_storage_t  storage,
-								 const uint8_t*     array_data,
-								 uint32_t           array_count,
-								 dl_typeid_t        tid )
+static dl_error_t dl_txt_unpack_array( dl_ctx_t dl_ctx,
+									   dl_txt_unpack_ctx* unpack_ctx,
+									   dl_binary_writer*  writer,
+									   dl_type_storage_t  storage,
+									   const uint8_t*     array_data,
+									   uint32_t           array_count,
+									   dl_typeid_t        tid )
 {
+	dl_error_t err;
 	dl_binary_writer_write_uint8( writer, '[' );
 	switch( storage )
 	{
@@ -322,11 +323,12 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 			const dl_type_desc* type = dl_internal_find_type( dl_ctx, tid );
 			for( uint32_t i = 0; i < array_count - 1; ++i )
 			{
-				dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, array_data + i * type->size[DL_PTR_SIZE_HOST] );
+				err = dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, array_data + i * type->size[DL_PTR_SIZE_HOST] );
+				if( DL_ERROR_OK != err ) return err;
 				dl_binary_writer_write( writer, ", ", 2 );
-
 			}
-			dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, array_data + (array_count - 1) * type->size[DL_PTR_SIZE_HOST] );
+			err = dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, array_data + (array_count - 1) * type->size[DL_PTR_SIZE_HOST] );
+			if( DL_ERROR_OK != err ) return err;
 			unpack_ctx->indent -= 2;
 			break;
 		}
@@ -340,7 +342,6 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 			{
 				dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[i] );
 				dl_binary_writer_write( writer, ", ", 2 );
-
 			}
 			dl_txt_unpack_enum( dl_ctx, writer, e, (uint64_t)mem[array_count - 1] );
 		}
@@ -454,9 +455,10 @@ static void dl_txt_unpack_array( dl_ctx_t dl_ctx,
 			DL_ASSERT( false );
 	}
 	dl_binary_writer_write_uint8( writer, ']' );
+	return DL_ERROR_OK;
 }
 
-static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_member_desc* member, const uint8_t* member_data )
+static dl_error_t dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_member_desc* member, const uint8_t* member_data )
 {
 	dl_txt_unpack_write_indent( writer, unpack_ctx );
 	dl_txt_unpack_write_string( writer, dl_internal_member_name( dl_ctx, member ) );
@@ -493,7 +495,7 @@ static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 					unpack_ctx->has_ptrs = true;
 				}
 				break;
-				case DL_TYPE_STORAGE_STRUCT: dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, dl_internal_find_type( dl_ctx, member->type_id ), member_data ); break;
+				case DL_TYPE_STORAGE_STRUCT: return dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, dl_internal_find_type( dl_ctx, member->type_id ), member_data );
 				default:
 					DL_ASSERT(false);
 			}
@@ -506,12 +508,11 @@ static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 			if( array_count == 0 )
 				dl_binary_writer_write( writer, "[]", 2 );
 			else
-				dl_txt_unpack_array( dl_ctx, unpack_ctx, writer, member->StorageType(), array, array_count, member->type_id );
+				return dl_txt_unpack_array( dl_ctx, unpack_ctx, writer, member->StorageType(), array, array_count, member->type_id );
 		}
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
-			dl_txt_unpack_array( dl_ctx, unpack_ctx, writer, member->StorageType(), member_data, member->inline_array_cnt(), member->type_id );
-		break;
+			return dl_txt_unpack_array( dl_ctx, unpack_ctx, writer, member->StorageType(), member_data, member->inline_array_cnt(), member->type_id );
 		case DL_TYPE_ATOM_BITFIELD:
 		{
 			uint64_t write_me  = 0;
@@ -534,23 +535,24 @@ static void dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 		default:
 			DL_ASSERT( false );
 	}
+	return DL_ERROR_OK;
 }
 
-static void dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data );
+static dl_error_t dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data );
 
-static void dl_txt_unpack_write_subdata_ptr( dl_ctx_t            dl_ctx,
-											 dl_txt_unpack_ctx*  unpack_ctx,
-											 dl_binary_writer*   writer,
-											 const uint8_t*      ptrptr,
-											 const dl_type_desc* sub_type )
+static dl_error_t dl_txt_unpack_write_subdata_ptr( dl_ctx_t            dl_ctx,
+												   dl_txt_unpack_ctx*  unpack_ctx,
+												   dl_binary_writer*   writer,
+												   const uint8_t*      ptrptr,
+												   const dl_type_desc* sub_type )
 {
 	const uint8_t* ptr = *(const uint8_t**)( ptrptr );
 	if( ptr == 0 )
-		return;
+		return DL_ERROR_OK;
 
 	for (size_t i = 0; i < unpack_ctx->ptrs.Len(); ++i)
 		if( unpack_ctx->ptrs[i].ptr == ptr )
-			return;
+			return DL_ERROR_OK;
 
 	unpack_ctx->ptrs.Add( { ptr, 0 } );
 
@@ -558,30 +560,35 @@ static void dl_txt_unpack_write_subdata_ptr( dl_ctx_t            dl_ctx,
 	dl_txt_unpack_ptr( writer, unpack_ctx, ptr );
 	dl_binary_writer_write( writer, " : ", 3 );
 
-	dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, sub_type, ptr );
+	dl_error_t err = dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, sub_type, ptr );
+	if( DL_ERROR_OK != err ) return err;
 
 	// TODO: extra , at last elem =/
 	dl_binary_writer_write( writer, ",\n", 2 );
 
-	dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, sub_type, ptr );
+	return dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, sub_type, ptr );
 }
 
-static void dl_txt_unpack_write_subdata_ptr_array( dl_ctx_t            dl_ctx,
-											 	   dl_txt_unpack_ctx*  unpack_ctx,
-												   dl_binary_writer*   writer,
-												   const uint8_t*      array,
-												   uint32_t            array_count,
-												   const dl_type_desc* sub_type )
+static dl_error_t dl_txt_unpack_write_subdata_ptr_array( dl_ctx_t            dl_ctx,
+											 			 dl_txt_unpack_ctx*  unpack_ctx,
+														 dl_binary_writer*   writer,
+														 const uint8_t*      array,
+														 uint32_t            array_count,
+														 const dl_type_desc* sub_type )
 {
 	for( uint32_t element = 0; element < array_count; ++element )
-		dl_txt_unpack_write_subdata_ptr( dl_ctx,
-										 unpack_ctx,
-										 writer,
-										 array + sizeof(void*) * element,
-										 sub_type );
+	{
+		dl_error_t err = dl_txt_unpack_write_subdata_ptr( dl_ctx,
+														  unpack_ctx,
+														  writer,
+														  array + sizeof(void*) * element,
+														  sub_type );
+		if( DL_ERROR_OK != err ) return err;
+	}
+	return DL_ERROR_OK;
 }
 
-static void dl_txt_unpack_write_member_subdata(dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_member_desc* member, const uint8_t* member_data)
+static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_member_desc* member, const uint8_t* member_data )
 {
 	switch( member->AtomType() )
 	{
@@ -590,22 +597,22 @@ static void dl_txt_unpack_write_member_subdata(dl_ctx_t dl_ctx, dl_txt_unpack_ct
 			switch( member->StorageType() )
 			{
 				case DL_TYPE_STORAGE_PTR:
-					dl_txt_unpack_write_subdata_ptr( dl_ctx,
-													 unpack_ctx,
-													 writer,
-													 member_data,
-													 dl_internal_find_type( dl_ctx, member->type_id ) );
+					return dl_txt_unpack_write_subdata_ptr( dl_ctx,
+															unpack_ctx,
+															writer,
+															member_data,
+															dl_internal_find_type( dl_ctx, member->type_id ) );
 				break;
 
 				case DL_TYPE_STORAGE_STRUCT:
 				{
 					const dl_type_desc* subtype = dl_internal_find_type( dl_ctx, member->type_id );
 					if( subtype->flags & DL_TYPE_FLAG_HAS_SUBDATA )
-						dl_txt_unpack_write_subdata( dl_ctx,
-													 unpack_ctx,
-													 writer,
-													 subtype,
-													 member_data );
+						return dl_txt_unpack_write_subdata( dl_ctx,
+															unpack_ctx,
+															writer,
+															subtype,
+															member_data );
 				}
 				break;
 				default:
@@ -619,12 +626,12 @@ static void dl_txt_unpack_write_member_subdata(dl_ctx_t dl_ctx, dl_txt_unpack_ct
 			switch( member->StorageType() )
 			{
 				case DL_TYPE_STORAGE_PTR:
-					dl_txt_unpack_write_subdata_ptr_array( dl_ctx,
-														   unpack_ctx,
-														   writer,
-														   member_data,
-														   member->inline_array_cnt(),
-														   dl_internal_find_type( dl_ctx, member->type_id ) );
+					return dl_txt_unpack_write_subdata_ptr_array( dl_ctx,
+																  unpack_ctx,
+																  writer,
+																  member_data,
+																  member->inline_array_cnt(),
+																  dl_internal_find_type( dl_ctx, member->type_id ) );
 				break;
 				case DL_TYPE_STORAGE_STRUCT:
 				{
@@ -632,13 +639,16 @@ static void dl_txt_unpack_write_member_subdata(dl_ctx_t dl_ctx, dl_txt_unpack_ct
 					if( subtype->flags & DL_TYPE_FLAG_HAS_SUBDATA )
 					{
 						for( uint32_t i = 0; i < member->inline_array_cnt(); ++i )
-							dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, member_data + i * subtype->size[DL_PTR_SIZE_HOST] );
+						{
+							dl_error_t err = dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, member_data + i * subtype->size[DL_PTR_SIZE_HOST] );
+							if( DL_ERROR_OK != err ) return err;
+						}
 					}
 				}
 				break;
 				default:
 					// ignore ...
-			    break;
+				break;
 			}
 		}
 		break;
@@ -654,7 +664,10 @@ static void dl_txt_unpack_write_member_subdata(dl_ctx_t dl_ctx, dl_txt_unpack_ct
 						const uint8_t* array = *(const uint8_t**) member_data;
 						uint32_t array_count = *(uint32_t*)(member_data + sizeof(uintptr_t));
 						for( uint32_t i = 0; i < array_count; ++i )
-							dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, array + i * subtype->size[DL_PTR_SIZE_HOST] );
+						{
+							dl_error_t err = dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, subtype, array + i * subtype->size[DL_PTR_SIZE_HOST] );
+							if( DL_ERROR_OK != err ) return err;
+						}
 					}
 				}
 				break;
@@ -662,27 +675,28 @@ static void dl_txt_unpack_write_member_subdata(dl_ctx_t dl_ctx, dl_txt_unpack_ct
 				{
 					const uint8_t* array = *(const uint8_t**)member_data;
 					uint32_t array_count = *(uint32_t*)(member_data + sizeof(uintptr_t) );
-					dl_txt_unpack_write_subdata_ptr_array( dl_ctx,
-														   unpack_ctx,
-														   writer,
-														   array,
-														   array_count,
-														   dl_internal_find_type( dl_ctx, member->type_id ) );
+					return dl_txt_unpack_write_subdata_ptr_array( dl_ctx,
+																  unpack_ctx,
+																  writer,
+																  array,
+																  array_count,
+																  dl_internal_find_type( dl_ctx, member->type_id ) );
 				}
 				break;
 				default:
 					// ignore ...
-			    break;
+				break;
 			}
-	    }
+		}
 		break;
 		default:
 			// ignore ...
-		    break;
+			break;
 	}
+	return DL_ERROR_OK;
 }
 
-static void dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data )
+static dl_error_t dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data )
 {
 	if (type->flags & DL_TYPE_FLAG_IS_UNION)
 	{
@@ -692,19 +706,19 @@ static void dl_txt_unpack_write_subdata( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unp
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(struct_data + type_offset));
 		const dl_member_desc* member = dl_internal_union_type_to_member(dl_ctx, type, union_type);
-		dl_txt_unpack_write_member_subdata(dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST]);
+		return dl_txt_unpack_write_member_subdata(dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST]);
 	}
-	else
+
+	for (uint32_t member_index = 0; member_index < type->member_count; ++member_index)
 	{
-		for (uint32_t member_index = 0; member_index < type->member_count; ++member_index)
-		{
-			const dl_member_desc* member = dl_get_type_member(dl_ctx, type, member_index);
-			dl_txt_unpack_write_member_subdata(dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST]);
-		}
+		const dl_member_desc* member = dl_get_type_member(dl_ctx, type, member_index);
+		dl_error_t err = dl_txt_unpack_write_member_subdata(dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST]);
+		if( DL_ERROR_OK != err ) return err;
 	}
+	return DL_ERROR_OK;
 }
 
-static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data )
+static dl_error_t dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, const dl_type_desc* type, const uint8_t* struct_data )
 {
 	dl_binary_writer_write( writer, "{\n", 2 );
 
@@ -717,7 +731,8 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 		// find member index from union type ...
 		uint32_t union_type = *((uint32_t*)(struct_data + type_offset));
 		const dl_member_desc* member = dl_internal_union_type_to_member(dl_ctx, type, union_type);
-		dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
+		dl_error_t err = dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
+		if( DL_ERROR_OK != err ) return err;
 		dl_binary_writer_write( writer, "\n", 1 );
 	}
 	else
@@ -725,7 +740,8 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 		for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 		{
 			const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
-			dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
+			dl_error_t err = dl_txt_unpack_member( dl_ctx, unpack_ctx, writer, member, struct_data + member->offset[DL_PTR_SIZE_HOST] );
+			if( DL_ERROR_OK != err ) return err;
 			if( member_index < type->member_count - 1 )
 				dl_binary_writer_write( writer, ",\n", 2 );
 			else
@@ -743,7 +759,8 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 			dl_binary_writer_write( writer, ", \"__subdata\" : {\n", 18 );
 
 			unpack_ctx->indent += 2;
-			dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, type, struct_data );
+			dl_error_t err = dl_txt_unpack_write_subdata( dl_ctx, unpack_ctx, writer, type, struct_data );
+			if( DL_ERROR_OK != err ) return err;
 			unpack_ctx->indent -= 2;
 
 			dl_txt_unpack_write_indent( writer, unpack_ctx );
@@ -757,6 +774,7 @@ static void dl_txt_unpack_struct( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx
 
 	dl_txt_unpack_write_indent( writer, unpack_ctx );
 	dl_binary_writer_write_uint8( writer, '}' );
+	return DL_ERROR_OK;
 }
 
 static dl_error_t dl_txt_unpack_root( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack_ctx, dl_binary_writer* writer, dl_typeid_t root_type )
@@ -772,7 +790,8 @@ static dl_error_t dl_txt_unpack_root( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack
 	dl_txt_unpack_write_indent( writer, unpack_ctx );
 	dl_txt_unpack_write_string( writer, dl_internal_type_name( dl_ctx, type ) );
 	dl_binary_writer_write( writer, " : ", 3 );
-	dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, unpack_ctx->packed_instance );
+	dl_error_t err = dl_txt_unpack_struct( dl_ctx, unpack_ctx, writer, type, unpack_ctx->packed_instance );
+	if( DL_ERROR_OK != err ) return err;
 	unpack_ctx->indent -= 2;
 
 	dl_binary_writer_write( writer, "\n}\0", 3 );
@@ -800,11 +819,11 @@ dl_error_t dl_txt_unpack_loaded( dl_ctx_t dl_ctx,        dl_typeid_t type,
 
 	unpackctx.ptrs.Add( { unpackctx.packed_instance, type } );
 
-	dl_txt_unpack_root( dl_ctx, &unpackctx, &writer, type );
+	dl_error_t err = dl_txt_unpack_root( dl_ctx, &unpackctx, &writer, type );
 	if( produced_bytes )
 		*produced_bytes = writer.needed_size;
 
-	return DL_ERROR_OK;
+	return err;
 }
 
 dl_error_t dl_txt_unpack_loaded_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned char* packed_instance, size_t* out_txt_instance_size )

@@ -362,7 +362,7 @@ TEST_F( DLTypeLibUnpackTxt, round_about )
 	EXPECT_EQ( 2u, info.num_types );
 	EXPECT_EQ( 2u, info.num_enums );
 
-	dl_context_destroy( ctx2 );
+	EXPECT_DL_ERR_OK(dl_context_destroy( ctx2 ));
 }
 
 TEST_F( DLTypeLibUnpackTxt, round_about_big )
@@ -388,7 +388,7 @@ TEST_F( DLTypeLibUnpackTxt, round_about_big )
 
 	free((void*)testlib_txt_buffer);
 
-	dl_context_destroy( ctx2 );
+	EXPECT_DL_ERR_OK(dl_context_destroy( ctx2 ));
 }
 
 
@@ -405,7 +405,7 @@ static uint8_t* test_pack_txt_type_lib( const char* lib_txt, size_t lib_txt_size
 	uint8_t* packed = (uint8_t*)malloc(*out_size);
 	EXPECT_DL_ERR_OK( dl_context_write_type_library( ctx, packed, *out_size, 0x0 ) );
 
-	dl_context_destroy( ctx );
+	EXPECT_DL_ERR_OK(dl_context_destroy( ctx ));
 	return packed;
 }
 
