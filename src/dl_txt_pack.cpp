@@ -1161,7 +1161,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	packctx->read_ctx.iter = packctx->subdata_pos;
 
 	CArrayStatic<SSubInstance, 256> subinstances(dl_ctx->alloc);
-	subinstances.Add({ { "__root", 6 }, 0, dl_internal_hash_string("__root") });
+	subinstances.Add({ { "__root", 6 }, sizeof(dl_data_header), dl_internal_hash_string("__root") });
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
 
