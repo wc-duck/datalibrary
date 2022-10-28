@@ -2,21 +2,16 @@
 #include "dl_internal_util.h"
 #include "dl_types.h"
 
-static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
+static void dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 														  const uint8_t* default_data,
 														  unsigned int   default_data_size )
 {
-	if( default_data_size == 0 ) return DL_ERROR_OK;
+	if( default_data_size == 0 )
+		return;
 
-	if( dl_ctx->default_data != 0x0 )
-		return DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS;
-
-	dl_ctx->default_data = (uint8_t*)dl_alloc( &dl_ctx->alloc, default_data_size );
-	dl_ctx->default_data_size = default_data_size;
-
-	memcpy( dl_ctx->default_data, default_data, default_data_size );
-
-	return DL_ERROR_OK;
+	dl_ctx->default_data = (uint8_t*)dl_realloc( &dl_ctx->alloc, dl_ctx->default_data, default_data_size + dl_ctx->default_data_size, dl_ctx->default_data_size );
+	memcpy( dl_ctx->default_data + dl_ctx->default_data_size, default_data, default_data_size );
+	dl_ctx->default_data_size += default_data_size;
 }
 
 static void dl_internal_read_typelibrary_header( dl_typelib_header* header, const uint8_t* data )
@@ -141,7 +136,12 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	}
 
 	for( unsigned int i = 0; i < header.member_count; ++i )
+	{
 		dl_ctx->member_descs[ dl_ctx->member_count + i ].name += td_str_offset;
+
+		if( dl_ctx->member_descs[dl_ctx->member_count + i].default_value_offset != UINT32_MAX )
+			dl_ctx->member_descs[dl_ctx->member_count + i].default_value_offset += (uint32_t)dl_ctx->default_data_size;
+	}
 
 	for( unsigned int i = 0; i < header.enum_count; ++i )
 	{
@@ -181,5 +181,6 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->enum_alias_capacity   = dl_ctx->enum_alias_count;
 	dl_ctx->typedata_strings_cap  = dl_ctx->typedata_strings_size;
 
-	return dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
+	dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
+	return DL_ERROR_OK;
 }
