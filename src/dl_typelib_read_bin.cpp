@@ -123,12 +123,14 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		dl_ctx->c_includes   = dl_realloc_array( &dl_ctx->alloc, dl_ctx->c_includes,       dl_ctx->c_includes_size + header.c_includes_size,             dl_ctx->c_includes_size );
 	if(header.metadatas_count)
 	{
-		dl_ctx->metadatas    = dl_realloc_array( &dl_ctx->alloc, dl_ctx->metadatas,        dl_ctx->metadatas_count + header.metadatas_count,               dl_ctx->metadatas_count );
+		dl_ctx->metadatas    = dl_realloc_array( &dl_ctx->alloc, dl_ctx->metadatas,        dl_ctx->metadatas_count + header.metadatas_count,             dl_ctx->metadatas_count );
+		dl_ctx->metadata_infos = dl_realloc_array( &dl_ctx->alloc, dl_ctx->metadata_infos, dl_ctx->metadatas_count + header.metadatas_count,             dl_ctx->metadatas_count );
+		dl_ctx->metadata_typeinfos = dl_realloc_array( &dl_ctx->alloc, dl_ctx->metadata_typeinfos, dl_ctx->metadatas_count + header.metadatas_count,     dl_ctx->metadatas_count );
 		for( unsigned int i = 0; i < header.metadatas_count; ++i )
 		{
 			uint32_t metadata_offset              = *reinterpret_cast<const uint32_t*>( lib_data + metadatas_offset + i * sizeof( uint32_t ) );
 			metadata_offset                       = ( DL_ENDIAN_HOST == DL_ENDIAN_BIG ) ? dl_swap_endian_uint32( metadata_offset ) : metadata_offset;
-			const dl_data_header* metadata_header          = reinterpret_cast<const dl_data_header*>( lib_data + metadatas_offset + header.metadatas_count * sizeof( uint32_t ) + metadata_offset );
+			const dl_data_header* metadata_header = reinterpret_cast<const dl_data_header*>( lib_data + metadatas_offset + header.metadatas_count * sizeof( uint32_t ) + metadata_offset );
 			size_t instance_size                  = ( DL_ENDIAN_HOST == DL_ENDIAN_BIG ) ? dl_swap_endian_uint32( metadata_header->instance_size ) : metadata_header->instance_size;
 			dl_ctx->metadatas[dl_ctx->metadatas_count + i] = dl_alloc( &dl_ctx->alloc, instance_size + sizeof( dl_data_header ) );
 		}
@@ -231,6 +233,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		dl_error_t err = dl_instance_load_inplace( dl_ctx, type_id, (uint8_t*)dl_ctx->metadatas[dl_ctx->metadatas_count + i], instance_size + sizeof( dl_data_header ), &loaded_instance, &consumed );
 		DL_ASSERT( DL_ERROR_OK == err ); (void)err;
 		DL_ASSERT( instance_size + sizeof( dl_data_header ) == consumed );
+		dl_ctx->metadata_infos[dl_ctx->metadatas_count + i] = loaded_instance;
+		dl_ctx->metadata_typeinfos[dl_ctx->metadatas_count + i] = type_id;
 	}
 
 	dl_ctx->metadatas_count       += header.metadatas_count;

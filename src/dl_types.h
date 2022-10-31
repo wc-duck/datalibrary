@@ -316,6 +316,8 @@ struct dl_context
 
 	void** metadatas;
 	size_t metadatas_cap;
+	const void** metadata_infos;
+	dl_typeid_t* metadata_typeinfos;
 
 	uint8_t* default_data;
 	size_t   default_data_size;

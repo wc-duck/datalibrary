@@ -138,7 +138,13 @@ static dl_enum_alias_desc* dl_alloc_enum_alias( dl_ctx_t ctx, dl_substr* name )
 static void** dl_alloc_metadata( dl_ctx_t ctx )
 {
 	if( ctx->metadatas_cap <= ctx->metadatas_count )
+	{
+		size_t temp_cap = ctx->metadatas_cap;
+		ctx->metadata_typeinfos = dl_grow_array( &ctx->alloc, ctx->metadata_typeinfos, &temp_cap, 0 );
+		temp_cap = ctx->metadatas_cap;
+		ctx->metadata_infos = dl_grow_array( &ctx->alloc, ctx->metadata_infos, &temp_cap, 0 );
 		ctx->metadatas = dl_grow_array( &ctx->alloc, ctx->metadatas, &ctx->metadatas_cap, 0 );
+	}
 
 	return ctx->metadatas + ctx->metadatas_count++;
 }
@@ -545,6 +551,11 @@ static void dl_context_create_metadata( dl_ctx_t ctx, dl_txt_read_ctx* read_stat
 	if( err != DL_ERROR_OK )
 		dl_txt_read_failed( ctx, read_state, err, "Failed to pack metadata" );
 	DL_ASSERT( instance_size == consumed );
+
+	size_t meta_index = metadata - ctx->metadatas;
+	DL_ASSERT( meta_index < ctx->metadatas_count );
+	ctx->metadata_infos[meta_index] = loaded_instance;
+	ctx->metadata_typeinfos[meta_index] = metadata_header->root_instance_type;
 
 	*start_end[1] = last_char;
 	dl_free( &ctx->alloc, *metadata );
