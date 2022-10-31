@@ -94,6 +94,11 @@
 			"members" : [
 				{ "name" : "members", "type" : "complex_member[]" }
 			]
+		},
+		"int_default" : {
+			"members" : [
+				{ "name" : "member", "type" : "int32", "default" : 1 }
+			]
 		}
 	}
 }

@@ -1,6 +1,7 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
 #include "dl_types.h"
+#include "dl_patch_ptr.h"
 
 #include <dl/dl_reflect.h>
 
@@ -116,12 +117,27 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 	if(members_size < type->member_count)
 		return DL_ERROR_BUFFER_TOO_SMALL;
 
+	if (!dl_ctx->default_data_patched)
+	{
+		for( unsigned int i = 0; i < dl_ctx->member_count; ++i )
+		{
+			dl_member_desc& member_desc = dl_ctx->member_descs[ i ];
+			if( member_desc.default_value_size && member_desc.default_value_size != member_desc.size[DL_PTR_SIZE_HOST] )
+			{
+				uint8_t* default_data = dl_ctx->default_data + member_desc.default_value_offset;
+				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, (uintptr_t)default_data );
+			}
+		}
+		dl_ctx->default_data_patched = true; // This is not thread safe. It would be better to avoid moving around default data and keep it patched like meta data
+	}
+
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
 		const dl_member_desc* member = dl_get_type_member( dl_ctx, type, member_index );
 
 		out_members[member_index].name          = dl_internal_member_name( dl_ctx, member );
 		out_members[member_index].comment       = dl_internal_member_comment( dl_ctx, member );
+		out_members[member_index].default_data  = reinterpret_cast<void*>(dl_ctx->default_data + member->default_value_offset);
 		out_members[member_index].atom          = member->AtomType();
 		out_members[member_index].storage       = member->StorageType();
 		out_members[member_index].type_id       = member->type_id;

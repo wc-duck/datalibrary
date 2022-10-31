@@ -4,6 +4,7 @@
 #include "dl_types.h"
 #include "dl_alloc.h"
 #include "dl_txt_read.h"
+#include "dl_patch_ptr.h"
 
 #include <stdlib.h> // strtoul
 #include <ctype.h>
@@ -1187,6 +1188,20 @@ static const dl_type_desc* dl_internal_member_owner( dl_ctx_t ctx, const dl_memb
 
 static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
 {
+	if (ctx->default_data_patched)
+	{
+		for( unsigned int i = 0; i < ctx->member_count; ++i )
+		{
+			dl_member_desc& member_desc = ctx->member_descs[ i ];
+			if( member_desc.default_value_size && member_desc.default_value_size != member_desc.size[DL_PTR_SIZE_HOST] )
+			{
+				uint8_t* default_data = ctx->default_data + member_desc.default_value_offset;
+				dl_internal_patch_member( ctx, &member_desc, default_data, 0, static_cast<uintptr_t>(-(ptrdiff_t)default_data) );
+			}
+		}
+		ctx->default_data_patched = false; // This is not thread safe. It would be better to avoid moving around default data and keep it patched like meta data
+	}
+
 #if defined(_MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4611)

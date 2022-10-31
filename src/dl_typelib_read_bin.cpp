@@ -1,10 +1,11 @@
 #include <dl/dl_typelib.h>
 #include "dl_internal_util.h"
 #include "dl_types.h"
+#include "dl_patch_ptr.h"
 
 static void dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
-														  const uint8_t* default_data,
-														  unsigned int   default_data_size )
+													const uint8_t* default_data,
+													unsigned int   default_data_size )
 {
 	if( default_data_size == 0 )
 		return;
@@ -76,6 +77,20 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 {
 	if(lib_data_size < sizeof(dl_typelib_header))
 		return DL_ERROR_MALFORMED_DATA;
+	
+	if (dl_ctx->default_data_patched)
+	{
+		for( unsigned int i = 0; i < dl_ctx->member_count; ++i )
+		{
+			dl_member_desc& member_desc = dl_ctx->member_descs[ i ];
+			if( member_desc.default_value_size && member_desc.default_value_size != member_desc.size[DL_PTR_SIZE_HOST] )
+			{
+				uint8_t* default_data = dl_ctx->default_data + member_desc.default_value_offset;
+				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, static_cast<uintptr_t>(-(ptrdiff_t)default_data) );
+			}
+		}
+		dl_ctx->default_data_patched = false; // This is not thread safe. It would be better to avoid moving around default data and keep it patched like meta data
+	}
 
 	dl_typelib_header header;
 	dl_internal_read_typelibrary_header(&header, lib_data);
@@ -182,5 +197,6 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->typedata_strings_cap  = dl_ctx->typedata_strings_size;
 
 	dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
+
 	return DL_ERROR_OK;
 }

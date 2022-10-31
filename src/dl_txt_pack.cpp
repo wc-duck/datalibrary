@@ -782,7 +782,7 @@ static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 
 		uint8_t* member_data = packctx->writer->data + member_pos;
 		if( !packctx->writer->dummy )
-			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size );
+			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size - (dl_ctx->default_data_patched ? (uintptr_t)member_default_value : 0) );
 	}
 }
 

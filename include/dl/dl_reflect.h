@@ -48,6 +48,7 @@ typedef struct dl_member_info
 {
 	const char*       name;
 	const char*       comment;
+	const void*       default_data;
 	dl_type_atom_t    atom;
 	dl_type_storage_t storage;
 	dl_typeid_t       type_id;
