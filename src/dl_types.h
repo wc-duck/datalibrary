@@ -307,6 +307,7 @@ struct dl_context
 
 	uint8_t* default_data;
 	size_t   default_data_size;
+	bool     performing_include;
 };
 
 struct dl_substr

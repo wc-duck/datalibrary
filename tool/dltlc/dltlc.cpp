@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <algorithm>
+#include <string>
 #include <vector>
 
 #ifdef _MSC_VER
@@ -26,6 +28,7 @@ struct dltlc_args
 
 static int verbose = 0;
 std::vector<const char*> inputs;
+std::vector<const char*> include_dirs;
 
 #define VERBOSE_OUTPUT(fmt, ...) if( verbose ) { fprintf(stderr, fmt "\n", ##__VA_ARGS__); }
 
@@ -36,12 +39,13 @@ static int parse_args( int argc, const char** argv, dltlc_args* args )
 
 	const getopt_option_t option_list[] =
 	{
-		{ "help",     'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,            'h', "displays this help-message", 0x0 },
-		{ "output",   'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,            'o', "output to file", "file" },
-		{ "unpack",   'u', GETOPT_OPTION_TYPE_FLAG_SET, &args->unpack,    1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
-		{ "info",     'i', GETOPT_OPTION_TYPE_FLAG_SET, &args->show_info, 1, "make dl_pack show info about a packed instance.", 0x0 },
-		{ "verbose",  'v', GETOPT_OPTION_TYPE_FLAG_SET, &verbose,         1, "verbose output", 0x0 },
-		{ "c-header", 'c', GETOPT_OPTION_TYPE_FLAG_SET, &args->c_header,  1, "output c header instead of tld binary", 0x0 },
+		{ "help",      'h', GETOPT_OPTION_TYPE_NO_ARG,   0x0,            'h', "displays this help-message", 0x0 },
+		{ "output",    'o', GETOPT_OPTION_TYPE_REQUIRED, 0x0,            'o', "output to file", "file" },
+		{ "search-dir",'s', GETOPT_OPTION_TYPE_REQUIRED, 0x0,            's', "directory where included .tld files should be searched for.", 0x0 },
+		{ "unpack",    'u', GETOPT_OPTION_TYPE_FLAG_SET, &args->unpack,    1, "force dl_pack to treat input data as a packed instance that should be unpacked.", 0x0 },
+		{ "info",      'i', GETOPT_OPTION_TYPE_FLAG_SET, &args->show_info, 1, "make dl_pack show info about a packed instance.", 0x0 },
+		{ "verbose",   'v', GETOPT_OPTION_TYPE_FLAG_SET, &verbose,         1, "verbose output", 0x0 },
+		{ "c-header",  'c', GETOPT_OPTION_TYPE_FLAG_SET, &args->c_header,  1, "output c header instead of tld binary", 0x0 },
 		GETOPT_OPTIONS_END
 	};
 
@@ -76,6 +80,10 @@ static int parse_args( int argc, const char** argv, dltlc_args* args )
 				args->output = go_ctx.current_opt_arg;
 				break;
 
+			case 's':
+				include_dirs.push_back(go_ctx.current_opt_arg);
+				break;
+
 			case '!':
 				fprintf( stderr, "incorrect usage of flag \"%s\"\n", go_ctx.current_opt_arg );
 				return 1;
@@ -89,6 +97,8 @@ static int parse_args( int argc, const char** argv, dltlc_args* args )
 				break;
 		}
 	}
+	// The "current local include dir" will be stored last and this vector will be searched backwards so reverse it
+	std::reverse(include_dirs.begin(), include_dirs.end());
 
 	if( args->show_info + args->c_header + args->unpack > 1 )
 	{
@@ -123,20 +133,61 @@ static unsigned char* read_entire_stream( FILE* file, size_t* out_size )
 	return out_buffer;
 }
 
-static bool load_typelib( dl_ctx_t ctx, FILE* f )
+static dl_error_t load_typelib( dl_ctx_t ctx, unsigned char* lib_data, size_t lib_data_siz, std::vector<const char*>* include_dirs );
+
+static dl_error_t include_handler( void* callback_context, dl_ctx_t ctx, const char* file_to_include )
 {
+	std::vector<const char*>* include_directories = (std::vector<const char*>*)callback_context;
+	char path[512];
+	FILE* f = nullptr;
+	for( auto include_dir : *include_directories )
+	{
+		snprintf( path, sizeof( path ), "%s/%s", include_dir, file_to_include );
+		f = fopen( path, "rb" );
+		if( f != nullptr )
+		{
+			break;
+		}
+	}
+	if( f == 0x0 )
+	{
+		fprintf( stderr, "failed to open \"%s\"\n", file_to_include );
+		return DL_ERROR_UTIL_FILE_NOT_FOUND;
+	}
+
 	size_t size = 0;
 	unsigned char* data = read_entire_stream( f, &size );
+	fclose( f );
 
-	dl_error_t err = dl_context_load_type_library( ctx, data, size );
-	if( err != DL_ERROR_OK )
-		err = dl_context_load_txt_type_library( ctx, (const char*)data, size ); // ... try text ...
+	const char* prev_local_include_folder = include_directories->back();
+	include_directories->pop_back();
 
+	std::string input  = path;
+	size_t slash       = input.find_last_of( "/\\" );
+	std::string folder = input.substr( 0, slash );
+	if( input.npos == slash )
+		include_directories->push_back( "." );
+	else
+		include_directories->push_back( folder.c_str() );
+
+	dl_error_t err = load_typelib( ctx, data, size, include_directories );
 	free( data );
+
+	include_directories->pop_back();
+	include_directories->push_back( prev_local_include_folder );
+
+	return err;
+}
+
+static dl_error_t load_typelib( dl_ctx_t ctx, unsigned char* lib_data, size_t lib_data_size, std::vector<const char*>* include_directories )
+{
+	dl_error_t err = dl_context_load_type_library( ctx, lib_data, lib_data_size );
+	if( err != DL_ERROR_OK )
+		err = dl_context_load_txt_type_library( ctx, (const char*)lib_data, lib_data_size, include_handler, (void*)include_directories ); // ... try text ...
 
 	if( err != DL_ERROR_OK )
 		VERBOSE_OUTPUT( "failed to load typelib with error %s", dl_error_to_string( err ) );
-	return err == DL_ERROR_OK;
+	return err;
 }
 
 static int write_tl_as_text( dl_ctx_t ctx, FILE* out )
@@ -334,8 +385,13 @@ int main( int argc, const char** argv )
 	if( inputs.size() == 0 )
 	{
 		VERBOSE_OUTPUT( "loading typelib from stdin" );
-
-		if( !load_typelib( ctx, stdin ) )
+		include_dirs.push_back( "." );
+		
+		size_t size = 0;
+		unsigned char* data = read_entire_stream( stdin, &size );
+		err = load_typelib( ctx, data, size, &include_dirs );
+		free( data );
+		if( err != DL_ERROR_OK )
 		{
 			return 1;
 		}
@@ -344,21 +400,31 @@ int main( int argc, const char** argv )
 	{
 		for( size_t i = 0; i < inputs.size(); ++i )
 		{
+			std::string input = inputs[i];
+			size_t slash = input.find_last_of( "/\\" );
+			std::string folder = input.substr( 0, slash );
+			if( input.npos == slash )
+				include_dirs.push_back( "." );
+			else
+				include_dirs.push_back( folder.c_str() );
 			FILE* f = fopen( inputs[i], "rb" );
 			if( f == 0x0 )
 			{
 				fprintf( stderr, "failed to open \"%s\"\n", inputs[i] );
 				return 1;
 			}
+			
+			size_t size = 0;
+			unsigned char* data = read_entire_stream( f, &size );
+			fclose( f );
 
-			if( !load_typelib( ctx, f ) )
+			err = load_typelib( ctx, data, size, &include_dirs );
+			free( data );
+			if( err != DL_ERROR_OK )
 			{
 				fprintf( stderr, "failed to load typelib from \"%s\"\n", inputs[i] );
-				fclose( f );
 				return 1;
 			}
-
-			fclose( f );
 		}
 	}
 

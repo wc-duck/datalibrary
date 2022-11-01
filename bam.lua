@@ -3,13 +3,14 @@ BUILD_PATH = "local"
 EXTERNALS_PATH = 'external'
 GTEST_PATH = PathJoin( EXTERNALS_PATH, 'gtest' )
 
-function dl_type_lib( tlc_file, dltlc, dl_tests )
+function dl_type_lib( tlc_file, dltlc, dl_tests, dependency )
 	local output_path = PathJoin( BUILD_PATH, 'generated' )
 	local out_file = PathJoin( output_path, PathFilename( PathBase( tlc_file ) ) )
-	local out_header    = out_file .. ".h"
-	local out_lib       = out_file .. ".bin"
-	local out_lib_h     = out_file .. ".bin.h"
-	local out_lib_txt_h = out_file .. ".txt.h"
+	local type_lib_outputs = {}
+	type_lib_outputs.out_header    = out_file .. ".h"
+	type_lib_outputs.out_lib       = out_file .. ".bin"
+	type_lib_outputs.out_lib_h     = out_file .. ".bin.h"
+	type_lib_outputs.out_lib_txt_h = out_file .. ".txt.h"
 
 	local BIN2HEX  = _bam_exe .. " -e tool/bin2hex.lua"
 
@@ -17,13 +18,20 @@ function dl_type_lib( tlc_file, dltlc, dl_tests )
 		dltlc = string.gsub( dltlc, "/", "\\" )
 	end
 
-	AddJob( out_lib,       "tlc " .. out_lib,    dltlc   .. " -o "    .. out_lib    .. " "     .. tlc_file,  tlc_file )
-	AddJob( out_lib_h,     "tlc " .. out_lib_h,  BIN2HEX .. " dst="   .. out_lib_h  .. " src=" .. out_lib,   out_lib )
-	AddJob( out_lib_txt_h, "tlc " .. out_lib_h,  BIN2HEX .. " dst="   .. out_lib_txt_h  .. " src=" .. tlc_file, tlc_file )
-	AddJob( out_header,    "tlc " .. out_header, dltlc   .. " -c -o " .. out_header .. " "     .. tlc_file,  tlc_file )
+	AddJob( type_lib_outputs.out_lib,       "tlc " .. type_lib_outputs.out_lib,    dltlc   .. " -o "    .. type_lib_outputs.out_lib        .. " "     .. tlc_file, tlc_file )
+	AddJob( type_lib_outputs.out_lib_h,     "tlc " .. type_lib_outputs.out_lib_h,  BIN2HEX .. " dst="   .. type_lib_outputs.out_lib_h      .. " src=" .. type_lib_outputs.out_lib, type_lib_outputs.out_lib )
+	AddJob( type_lib_outputs.out_lib_txt_h, "tlc " .. type_lib_outputs.out_lib_h,  BIN2HEX .. " dst="   .. type_lib_outputs.out_lib_txt_h  .. " src=" .. tlc_file, tlc_file )
+	AddJob( type_lib_outputs.out_header,    "tlc " .. type_lib_outputs.out_header, dltlc   .. " -c -o " .. type_lib_outputs.out_header     .. " "     .. tlc_file, tlc_file )
 
 	AddDependency( tlc_file, dltlc )
-	AddDependency( dl_tests, out_lib_h )
+	if dependency then
+		AddDependency( tlc_file, dependency )
+    end
+	AddDependency( dl_tests, type_lib_outputs.out_lib_h )
+	AddDependency( dl_tests, type_lib_outputs.out_header )
+	AddDependency( dl_tests, type_lib_outputs.out_lib_txt_h )
+
+	return type_lib_outputs
 end
 
 function DefaultSettings( platform, config, compiler )
@@ -274,12 +282,13 @@ dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("te
 dlbench  = Link( test_settings,  "dlbench",  Compile( test_settings, Collect("benchmark/*.cpp") ), dl_lib )
 
 tl1 = dl_type_lib( "tests/sized_enums.tld", dltlc, dl_tests )
-tl2 = dl_type_lib( "tests/unittest.tld",    dltlc, dl_tests )
-tl3 = dl_type_lib( "tests/unittest2.tld",   dltlc, dl_tests )
-tl4 = dl_type_lib( "tests/small.tld",       dltlc, dl_tests )
+tl2 = dl_type_lib( "tests/to_include.tld",  dltlc, dl_tests )
+tl3 = dl_type_lib( "tests/unittest.tld",    dltlc, dl_tests, tl2.out_lib )
+tl4 = dl_type_lib( "tests/unittest2.tld",   dltlc, dl_tests, "tests/to_include.tld" )
+tl5 = dl_type_lib( "tests/small.tld",       dltlc, dl_tests )
 tlbench = dl_type_lib( "benchmark/dlbench.tld", dltlc, dl_tests )
 
-dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ), tl1, tl2, tl3, tl4, tlbench )
+dl_test_valid_c = Compile( dl_settings, Collect( "tests/*.c" ) )
 
 local    test_args = ""
 local py_test_args = ""

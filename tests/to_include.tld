@@ -1,0 +1,5 @@
+{
+	"types" : {
+		"included_type" : { "members" : [ { "name" : "name", "type" : "string" } ] }
+	}
+}

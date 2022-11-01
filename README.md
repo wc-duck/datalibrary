@@ -119,6 +119,13 @@ Type-libs in text-format follows this format.
     "c_includes" : ["../../tests/dl_test_included.h", 
                     "<some/system/header.h>"],
 
+	// "includes" is a list of other type libraries which this type library uses types from. If the types only are used as
+	// metadata then including the type library is enough, but if the types are used for members then the type lib c header
+    // also needs to be added to c_includes above. These includes can be either binary or text files.
+	"includes" : [
+		"to_include.bin",
+	],
+
     // A typelibrary can have any number of "enums" sections. In each of these sections enum-types are specified.
     // An enum is just the same thing as in c/c++ a collection of integer-values.
     "enums" : {

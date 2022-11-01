@@ -1,7 +1,12 @@
 {
 	"module" : "unit_test_2",
 
-	"c_includes" : [ "../../tests/dl_test_included.h" ],
+	"c_includes" : [
+		"../../tests/dl_test_included.h",
+		"to_include.h"
+	],
+
+	"includes" : [ "to_include.tld" ],
 
 	"enums" : {
 		"extern_enum" : {
@@ -16,6 +21,12 @@
 	},
 
 	"types" : {
+		"use_included_type2" : {
+			"members" : [
+				{ "name" : "member",  "type" : "included_type" }
+			]
+		},
+
 		"BugTest1_InArray" : { "members" : [ { "name" : "u64_1", "type" : "uint64" },
 											 { "name" : "u64_2", "type" : "uint64" },
 											 { "name" : "u16",   "type" : "uint16" } ] },

@@ -138,10 +138,24 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		if(dl_ctx->type_descs[ dl_ctx->type_count + i ].comment != UINT32_MAX)
 			dl_ctx->type_descs[ dl_ctx->type_count + i ].comment += td_str_offset;
 		dl_ctx->type_descs[ dl_ctx->type_count + i ].member_start += dl_ctx->member_count;
+		if( dl_ctx->performing_include )
+		{
+			dl_ctx->type_descs[ dl_ctx->type_count + i ].flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
+			dl_ctx->type_descs[ dl_ctx->type_count + i ].flags &= ~(uint32_t)DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN;
+		}
 	}
 
 	for( unsigned int i = 0; i < header.member_count; ++i )
+{
 		dl_ctx->member_descs[ dl_ctx->member_count + i ].name += td_str_offset;
+		if( dl_ctx->member_descs[ dl_ctx->member_count + i ].default_value_offset != UINT32_MAX )
+			dl_ctx->member_descs[ dl_ctx->member_count + i ].default_value_offset += (uint32_t)dl_ctx->default_data_size;
+
+		if( dl_ctx->performing_include )
+		{
+			dl_ctx->member_descs[ dl_ctx->member_count + i ].flags &= ~(uint32_t)DL_MEMBER_FLAG_VERIFY_EXTERNAL_SIZE_OFFSET;
+		}
+	}
 
 	for( unsigned int i = 0; i < header.enum_count; ++i )
 	{
@@ -150,6 +164,11 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			dl_ctx->enum_descs[ dl_ctx->enum_count+ i ].comment += td_str_offset;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].value_start += dl_ctx->enum_value_count;
 		dl_ctx->enum_descs[ dl_ctx->enum_count + i ].alias_start += dl_ctx->enum_alias_count;
+		if( dl_ctx->performing_include )
+		{
+			dl_ctx->enum_descs[ dl_ctx->enum_count + i ].flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
+			dl_ctx->enum_descs[ dl_ctx->enum_count + i ].flags &= ~(uint32_t)DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN;
+		}
 	}
 
 	for( unsigned int i = 0; i < header.enum_alias_count; ++i )

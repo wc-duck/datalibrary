@@ -20,18 +20,32 @@ extern "C" {
 #include <dl/dl.h>
 
 /*
+	Function pointer type: dl_include_handler
+	    Is responsible for locating and loading a type-library into dl_ctx.
+
+	Parameters:
+	    handler_ctx     - context passed in to dl_context_load_txt_type_library_with_includes()
+	    dl_ctx          - dl-context to load typelib into.
+	    file_to_include - the path to the file to include
+ */
+typedef dl_error_t ( *dl_include_handler )( void* handler_ctx, dl_ctx_t dl_ctx, const char* file_to_include );
+
+/*
  	Function: dl_context_load_txt_type_library
 		Load type-library from text representation into dl_ctx.
 
 	Parameters:
-		dl_ctx        - dl-context to load typelib into..
-		lib_data      - pointer to loaded txt-type library to load.
-		lib_data_size - size of string pointed to by lib_data.
+		dl_ctx          - dl-context to load typelib into..
+		lib_data        - pointer to loaded txt-type library to load.
+		lib_data_size   - size of string pointed to by lib_data.
+		include_handler - a callback function which tries to load the given type library, can be nullptr
+		handler_ctx     - this will be passed straight down to the handler callback
+
 
 	Note:
 		This function do not have the same rules of memory allocation and might allocate memory behind the scenes.
  */
-dl_error_t DL_DLL_EXPORT dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size );
+dl_error_t DL_DLL_EXPORT dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size, dl_include_handler include_handler, void* handler_ctx );
 
 /*
 	Function: dl_context_write_type_library
