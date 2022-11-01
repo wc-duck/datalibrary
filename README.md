@@ -121,7 +121,7 @@ Type-libs in text-format follows this format.
 
 	// "includes" is a list of other type libraries which this type library uses types from. If the types only are used as
 	// metadata then including the type library is enough, but if the types are used for members then the type lib c header
-    // also needs to be added to c_includes above. These includes can be either binary or text files.
+	// also needs to be added to c_includes above. These includes can be either binary or text files.
 	"includes" : [
 		"to_include.bin",
 	],

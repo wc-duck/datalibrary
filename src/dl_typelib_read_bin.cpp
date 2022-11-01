@@ -146,7 +146,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	}
 
 	for( unsigned int i = 0; i < header.member_count; ++i )
-{
+	{
 		dl_ctx->member_descs[ dl_ctx->member_count + i ].name += td_str_offset;
 		if( dl_ctx->member_descs[ dl_ctx->member_count + i ].default_value_offset != UINT32_MAX )
 			dl_ctx->member_descs[ dl_ctx->member_count + i ].default_value_offset += (uint32_t)dl_ctx->default_data_size;
