@@ -1264,7 +1264,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			{
 				dl_context_load_txt_type_library_read_c_includes( ctx, read_state );
 			}
-			else if( dl_streq( "includes", key.str ) )
+			else if( dl_streq( "tld_includes", key.str ) )
 			{
 				dl_context_load_txt_type_library_read_includes( ctx, read_state );
 			}

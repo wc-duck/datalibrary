@@ -6,7 +6,8 @@
 		"to_include.h"
 	],
 
-	"includes" : [ "to_include.tld" ],
+	// Testing an include of a text based type library definition, used as a member type and thus also added in c_includes above
+	"tld_includes" : [ "to_include.tld" ],
 
 	"enums" : {
 		"extern_enum" : {

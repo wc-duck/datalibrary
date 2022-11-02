@@ -3,7 +3,8 @@
 
 	"c_includes" : [ "<stdio.h>" ], // just testing... not actually needed!
 
-	"includes" : [ "../local/generated/to_include.bin" ],
+	// Testing an include of a binary type library definition, used only as a metadata type and thus not added to c_includes
+	"tld_includes" : [ "../local/generated/to_include.bin" ],
 
 	"enums" : {
 		"TestEnum1" : {

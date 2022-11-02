@@ -119,10 +119,10 @@ Type-libs in text-format follows this format.
     "c_includes" : ["../../tests/dl_test_included.h", 
                     "<some/system/header.h>"],
 
-	// "includes" is a list of other type libraries which this type library uses types from. If the types only are used as
+	// "tld_includes" is a list of other type libraries which this type library uses types from. If the types only are used as
 	// metadata then including the type library is enough, but if the types are used for members then the type lib c header
-	// also needs to be added to c_includes above. These includes can be either binary or text files.
-	"includes" : [
+    // also needs to be added to c_includes above. These tld_includes can be either binary or text files.
+	"tld_includes" : [
 		"to_include.bin",
 	],
 
@@ -132,7 +132,7 @@ Type-libs in text-format follows this format.
         // each key in "enums" declare an enum with that name, in this case an enum called "my_enum"
         "my_enum" : {
             // an enum can be declared "extern", declaring a type extern will make it NOT be generated in .h-files and
-            // the actual definition is expected to be found in "other ways" ( from other includes most likely ).
+            // the actual definition is expected to be found in "other ways" ( from other c_includes most likely ).
             // dl will however generate static_assert():s to check that all values are set correctly and exist.
             // Defaults to `false` if not set
             "extern" : true,
