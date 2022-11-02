@@ -70,8 +70,8 @@ tool\
 | inline_array   | int8[20], some_type[20]      | type[20]                                    | fixed length, type can be any POD-type or user defined struct        |
 | array          | int8[], some_type[]          | struct { type* data; uint32_t count }       | dynamic length, type can be any POD-type or user defined struct      |
 | pointer        | some_type*                   | type*                                       | pointer to any user-defined type                                     |
-| anyptr         | anyptr                       | struct { void* ptr; dl_typeid_t tid; }      | pointer to any struct type, where the type is decided on assignment  |
-| anyarray       | anyarray                     | struct { dl_array array; dl_typeid_t tid; } | all elements are of the same type, the type is decided on assignment |
+| any_pointer    | any_pointer                  | struct { void* ptr; dl_typeid_t tid; }      | pointer to any struct type, where the type is decided on assignment  |
+| any_array      | any_array                    | struct { dl_array array; dl_typeid_t tid; } | all elements are of the same type, the type is decided on assignment |
 
 ## DL-JSON
 
@@ -292,20 +292,20 @@ left untouched!",
         // inline arrays are just arrays with the correct type ...
         "inline_array_member1"  : [1, 2, 3],
 		
-		// an anyptr can be null, and then it is typeless
-		"anyptr_member1": null,
+		// an any_pointer can be null, and then it is typeless
+		"any_pointer_member1": null,
 		// but when it has a value then that will be stored in the "__subdata" section, and there will be a "__any_type_" entry right after the member.
-		"anyptr_member2": "ptr1234"
-		"__any_type_anyptr_member2" : "my_struct",
+		"any_pointer_member2": "ptr1234"
+		"__any_type_any_pointer_member2" : "my_struct",
 
-		// anyarray members will also have the "__any_type_" entry right after the member
-		"anyarray_member": [
+		// any_array members will also have the "__any_type_" entry right after the member
+		"any_array_member": [
 		    {
                 "x" : 1,
                 "y" : 2
             },
 	    ]
-		"__any_type_anyarray_member" : "my_struct",
+		"__any_type_any_array_member" : "my_struct",
 
 
         // ... it could be a struct with x and y members.
