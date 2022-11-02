@@ -162,8 +162,8 @@ struct dl_member_desc
 	{
 		return StorageType() != DL_TYPE_STORAGE_STR &&
 			   StorageType() != DL_TYPE_STORAGE_PTR &&
-			   StorageType() != DL_TYPE_STORAGE_ANYPTR &&
-			   StorageType() != DL_TYPE_STORAGE_ANYARRAY &&
+			   StorageType() != DL_TYPE_STORAGE_ANY_POINTER &&
+			   StorageType() != DL_TYPE_STORAGE_ANY_ARRAY &&
 			   StorageType() != DL_TYPE_STORAGE_STRUCT;
 	}
 
@@ -531,10 +531,10 @@ static inline size_t dl_pod_size( dl_type_storage_t storage )
 		case DL_TYPE_STORAGE_PTR:
 			return sizeof(void*);
 
-		case DL_TYPE_STORAGE_ANYPTR:
+		case DL_TYPE_STORAGE_ANY_POINTER:
 			return 2 * sizeof(void*);
 
-		case DL_TYPE_STORAGE_ANYARRAY:
+		case DL_TYPE_STORAGE_ANY_ARRAY:
 			return 3 * sizeof(void*);
 
 		default:

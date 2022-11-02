@@ -159,7 +159,7 @@ TYPED_TEST(DLBase, anyptr_array)
 {
 	Pods2 p1 = { 1, 2 };
 	Pods2 p2 = { 3, 4 };
-	dl_anyptr arr[] = { { &p1, Pods2::TYPE_ID }, { &p2, Pods2::TYPE_ID }, { nullptr, 0 }, { &p1, Pods2::TYPE_ID } };
+	dl_any_pointer arr[] = { { &p1, Pods2::TYPE_ID }, { &p2, Pods2::TYPE_ID }, { nullptr, 0 }, { &p1, Pods2::TYPE_ID } };
 	anyptrArray original;
 	original.arr.data  = arr;
 	original.arr.count = DL_ARRAY_LENGTH(arr);

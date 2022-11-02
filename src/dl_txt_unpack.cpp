@@ -355,7 +355,7 @@ static dl_error_t dl_txt_unpack_array( dl_ctx_t dl_ctx,
 			unpack_ctx->has_ptrs = true;
 			break;
 		}
-		case DL_TYPE_STORAGE_ANYPTR:
+		case DL_TYPE_STORAGE_ANY_POINTER:
 		{
 			dl_binary_writer_write( writer, "\n", 1 );
 			unpack_ctx->indent += 2;
@@ -374,7 +374,7 @@ static dl_error_t dl_txt_unpack_array( dl_ctx_t dl_ctx,
 			unpack_ctx->indent -= 2;
 			break;
 		}
-		case DL_TYPE_STORAGE_ANYARRAY:
+		case DL_TYPE_STORAGE_ANY_ARRAY:
 		{
 			dl_binary_writer_write( writer, "\n", 1 );
 			unpack_ctx->indent += 2;
@@ -569,8 +569,8 @@ static dl_error_t dl_txt_unpack_member( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpa
 				case DL_TYPE_STORAGE_ENUM_INT64:  dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*( int64_t*) member_data ); break;
 				case DL_TYPE_STORAGE_ENUM_UINT64: dl_txt_unpack_enum  ( dl_ctx, writer, dl_internal_find_enum( dl_ctx, member->type_id ), (uint64_t)*(uint64_t*) member_data ); break;
 				case DL_TYPE_STORAGE_STR:         dl_txt_unpack_write_string_or_null( writer, unpack_ctx, *(uintptr_t*)member_data ); break;
-				case DL_TYPE_STORAGE_ANYPTR:      dl_txt_unpack_anyptr( dl_ctx, writer, unpack_ctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ), member_data ); break;
-				case DL_TYPE_STORAGE_ANYARRAY:    return dl_txt_unpack_anyarray( dl_ctx, writer, unpack_ctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ), member_data ); break;
+				case DL_TYPE_STORAGE_ANY_POINTER:      dl_txt_unpack_anyptr( dl_ctx, writer, unpack_ctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ), member_data ); break;
+				case DL_TYPE_STORAGE_ANY_ARRAY:    return dl_txt_unpack_anyarray( dl_ctx, writer, unpack_ctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ), member_data ); break;
 				case DL_TYPE_STORAGE_PTR:
 				{
 					dl_txt_unpack_ptr( writer, *(uintptr_t*)member_data );
@@ -729,14 +729,14 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 		{
 			switch( member->StorageType() )
 			{
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 				case DL_TYPE_STORAGE_PTR:
 					return dl_txt_unpack_write_subdata_ptr( dl_ctx,
 															unpack_ctx,
 															writer,
 															member_data,
-															dl_internal_find_type( dl_ctx, member->StorageType() == DL_TYPE_STORAGE_ANYPTR ? *(dl_typeid_t*)(member_data + sizeof(void*)) : member->type_id ) );
-				case DL_TYPE_STORAGE_ANYARRAY:
+															dl_internal_find_type( dl_ctx, member->StorageType() == DL_TYPE_STORAGE_ANY_POINTER ? *(dl_typeid_t*)(member_data + sizeof(void*)) : member->type_id ) );
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 					return dl_txt_unpack_write_subdata_anyarray_array( dl_ctx,
 																	   unpack_ctx,
 																	   writer,
@@ -763,13 +763,13 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 		{
 			switch( member->StorageType() )
 			{
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 					return dl_txt_unpack_write_subdata_anyptr_array( dl_ctx,
 																	 unpack_ctx,
 																	 writer,
 																	 member_data,
 																	 member->inline_array_cnt() );
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 					return dl_txt_unpack_write_subdata_anyarray_array( dl_ctx,
 																	   unpack_ctx,
 																	   writer,
@@ -821,7 +821,7 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 					}
 				}
 				break;
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 				{
 					uintptr_t array_offset = *(uintptr_t*)(member_data);
 					uint32_t array_count = *(uint32_t*)(member_data + sizeof(uintptr_t) );
@@ -832,7 +832,7 @@ static dl_error_t dl_txt_unpack_write_member_subdata( dl_ctx_t dl_ctx, dl_txt_un
 																	 array,
 																	 array_count );
 				}
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 				{
 					uintptr_t array_offset = *(uintptr_t*)(member_data);
 					uint32_t array_count = *(uint32_t*)(member_data + sizeof(uintptr_t) );

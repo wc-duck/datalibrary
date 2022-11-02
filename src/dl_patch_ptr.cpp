@@ -150,7 +150,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_patch_ptr( member_data, patch_distance );
 				break;
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 					dl_internal_patch_ptr_instance( ctx,
 													dl_internal_find_type( ctx, *reinterpret_cast<const dl_typeid_t*>(member_data + sizeof(void*)) ),
 													member_data,
@@ -158,7 +158,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 													patch_distance,
 													patched_ptrs );
 				break;
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 					dl_internal_patch_anyarray_array( ctx,
 													  member_data,
 													  1,
@@ -195,7 +195,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_patch_str_array( member_data, member->inline_array_cnt(), patch_distance );
 				break;
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 					dl_internal_patch_anyptr_array( ctx,
 													member_data,
 													member->inline_array_cnt(),
@@ -203,7 +203,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 													patch_distance,
 													patched_ptrs  );
 				break;
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 					dl_internal_patch_anyarray_array( ctx,
 													  member_data,
 													  member->inline_array_cnt(),
@@ -251,7 +251,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 					case DL_TYPE_STORAGE_STR:
 						dl_internal_patch_str_array( array_data, count, patch_distance );
 					break;
-					case DL_TYPE_STORAGE_ANYPTR:
+					case DL_TYPE_STORAGE_ANY_POINTER:
 						dl_internal_patch_anyptr_array( ctx,
 														array_data,
 														count,
@@ -259,7 +259,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 														patch_distance,
 														patched_ptrs  );
 					break;
-					case DL_TYPE_STORAGE_ANYARRAY:
+					case DL_TYPE_STORAGE_ANY_ARRAY:
 						dl_internal_patch_anyarray_array( ctx,
 														  array_data,
 														  count,

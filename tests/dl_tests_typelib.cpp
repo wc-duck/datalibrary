@@ -148,7 +148,7 @@ TEST_F( DLTypeLibTxt, ptr_to_anyptr )
 	const char ptr_to_anyptr_typelib[] = STRINGIFY({
 		"types" : {
 			"ptr_to_anyptr" : { "members" : [
-			                   { "name" : "member1", "type" : "anyptr*" }
+			                   { "name" : "member1", "type" : "any_pointer*" }
 			                 ] }
 		}
 	});

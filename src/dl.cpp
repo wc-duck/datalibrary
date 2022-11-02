@@ -252,7 +252,7 @@ static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t st
 					return err;
 			}
 			break;
-		case DL_TYPE_STORAGE_ANYPTR:
+		case DL_TYPE_STORAGE_ANY_POINTER:
 			for( uint32_t elem = 0; elem < count; ++elem )
 			{
 				dl_typeid_t tid = *reinterpret_cast<const dl_typeid_t*>( instance + ( ( elem * 2 + 1 ) * sizeof( void* ) ) );
@@ -322,7 +322,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 	dl_type_atom_t    atom_type    = member->AtomType();
 	dl_type_storage_t storage_type = member->StorageType();
 
-	if (storage_type == DL_TYPE_STORAGE_ANYARRAY)
+	if (storage_type == DL_TYPE_STORAGE_ANY_ARRAY)
 		atom_type = DL_TYPE_ATOM_ARRAY; // To avoid code duplification and simplify implementation
 	switch ( atom_type )
 	{
@@ -346,7 +346,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_store_string( instance, store_ctx );
 					break;
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 				{
 					dl_typeid_t tid = *reinterpret_cast<const dl_typeid_t*>( instance + sizeof( void* ) );
 					const dl_type_desc* sub_type = nullptr;
@@ -355,7 +355,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 						sub_type = dl_internal_find_type( dl_ctx, tid );
 						if( sub_type == 0x0 )
 						{
-							dl_log_error( dl_ctx, "Could not find anyptr subtype %X for member %s", tid, dl_internal_member_name( dl_ctx, member ) );
+							dl_log_error( dl_ctx, "Could not find any_pointer subtype %X for member %s", tid, dl_internal_member_name( dl_ctx, member ) );
 							return DL_ERROR_TYPE_NOT_FOUND;
 						}
 					}
@@ -400,7 +400,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 					return DL_ERROR_TYPE_NOT_FOUND;
 				}
 			}
-			else if( storage_type != DL_TYPE_STORAGE_STR && storage_type != DL_TYPE_STORAGE_ANYPTR)
+			else if( storage_type != DL_TYPE_STORAGE_STR && storage_type != DL_TYPE_STORAGE_ANY_POINTER)
 				count = member->size[DL_PTR_SIZE_HOST];
 
 			return dl_internal_store_array( dl_ctx, storage_type, sub_type, instance, count, 1, store_ctx );
@@ -430,7 +430,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 						size = dl_internal_align_up( sub_type->size[DL_PTR_SIZE_HOST], sub_type->alignment[DL_PTR_SIZE_HOST] );
 						dl_binary_writer_align( &store_ctx->writer, sub_type->alignment[DL_PTR_SIZE_HOST] );
 						break;
-					case DL_TYPE_STORAGE_ANYARRAY:
+					case DL_TYPE_STORAGE_ANY_ARRAY:
 						storage_type = DL_TYPE_STORAGE_STRUCT;
 						if (member->AtomType() == DL_TYPE_ATOM_POD)
 						{
@@ -499,7 +499,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 			if (sizeof(uintptr_t) == 8)
 				dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 
-			if (member->StorageType() == DL_TYPE_STORAGE_ANYARRAY)
+			if (member->StorageType() == DL_TYPE_STORAGE_ANY_ARRAY)
 			{
 				// write type id
 				dl_binary_writer_write( &store_ctx->writer, (data_ptr + 2 * sizeof(void*)), sizeof(uint32_t) );

@@ -228,7 +228,7 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "   // ... DL_DECLARE_ANY ...\n"
 									   "	   typedef uint32_t dl_typeid_t;\n"
 									   "\n"
-									   "	   struct dl_anyptr {\n"
+									   "	   struct dl_any_pointer {\n"
 									   "#  if defined(__cplusplus)\n"
 									   "		   template <typename T>\n"
 									   "		   inline explicit operator T*()\n"
@@ -241,7 +241,7 @@ static void dl_context_write_c_header_begin( dl_binary_writer* writer, const cha
 									   "		   dl_typeid_t tid;\n"
 									   "	   };\n"
 									   "\n"
-									   "	   struct dl_anyarray {\n"
+									   "	   struct dl_any_array {\n"
 									   "#  if defined(__cplusplus)\n"
 									   "		   template <typename T>\n"
 									   "		   inline explicit operator dl_array<T>&()\n"
@@ -595,8 +595,8 @@ static dl_error_t dl_context_write_type( dl_ctx_t ctx, dl_type_storage_t storage
 		case DL_TYPE_STORAGE_FP32:     dl_binary_writer_write_string_fmt(writer, "float"); return DL_ERROR_OK;
 		case DL_TYPE_STORAGE_FP64:     dl_binary_writer_write_string_fmt(writer, "DL_ALIGN(8) double"); return DL_ERROR_OK;
 		case DL_TYPE_STORAGE_STR:      dl_binary_writer_write_string_fmt(writer, "const char*"); return DL_ERROR_OK;
-		case DL_TYPE_STORAGE_ANYPTR:   dl_binary_writer_write_string_fmt(writer, "struct dl_anyptr"); return DL_ERROR_OK;
-		case DL_TYPE_STORAGE_ANYARRAY: dl_binary_writer_write_string_fmt(writer, "struct dl_anyarray"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_ANY_POINTER:   dl_binary_writer_write_string_fmt(writer, "struct dl_any_pointer"); return DL_ERROR_OK;
+		case DL_TYPE_STORAGE_ANY_ARRAY: dl_binary_writer_write_string_fmt(writer, "struct dl_any_array"); return DL_ERROR_OK;
 		case DL_TYPE_STORAGE_PTR:
 		{
 			dl_type_info_t sub_type;

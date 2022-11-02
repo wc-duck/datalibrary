@@ -158,11 +158,11 @@ static void dl_set_member_size_and_align_from_builtin( dl_type_storage_t storage
 			member->set_size( 4, 8 );
 			member->set_align( 4, 8 );
 			break;
-		case DL_TYPE_STORAGE_ANYPTR:
+		case DL_TYPE_STORAGE_ANY_POINTER:
 			member->set_size( 8, 16 );
 			member->set_align( 4, 8 );
 			break;
-		case DL_TYPE_STORAGE_ANYARRAY:
+		case DL_TYPE_STORAGE_ANY_ARRAY:
 			member->set_size( 12, 24 );
 			member->set_align( 4, 8 );
 			break;
@@ -182,19 +182,19 @@ struct dl_builtin_type
 };
 
 static const dl_builtin_type BUILTIN_TYPES[] = {
-	{ "int8",     DL_TYPE_STORAGE_INT8 },
-	{ "uint8",    DL_TYPE_STORAGE_UINT8 },
-	{ "int16",    DL_TYPE_STORAGE_INT16 },
-	{ "uint16",   DL_TYPE_STORAGE_UINT16 },
-	{ "int32",    DL_TYPE_STORAGE_INT32 },
-	{ "uint32",   DL_TYPE_STORAGE_UINT32 },
-	{ "int64",    DL_TYPE_STORAGE_INT64 },
-	{ "uint64",   DL_TYPE_STORAGE_UINT64 },
-	{ "fp32",     DL_TYPE_STORAGE_FP32 },
-	{ "fp64",     DL_TYPE_STORAGE_FP64 },
-	{ "string",   DL_TYPE_STORAGE_STR },
-	{ "anyptr",   DL_TYPE_STORAGE_ANYPTR },
-	{ "anyarray", DL_TYPE_STORAGE_ANYARRAY },
+	{ "int8",        DL_TYPE_STORAGE_INT8 },
+	{ "uint8",       DL_TYPE_STORAGE_UINT8 },
+	{ "int16",       DL_TYPE_STORAGE_INT16 },
+	{ "uint16",      DL_TYPE_STORAGE_UINT16 },
+	{ "int32",       DL_TYPE_STORAGE_INT32 },
+	{ "uint32",      DL_TYPE_STORAGE_UINT32 },
+	{ "int64",       DL_TYPE_STORAGE_INT64 },
+	{ "uint64",      DL_TYPE_STORAGE_UINT64 },
+	{ "fp32",        DL_TYPE_STORAGE_FP32 },
+	{ "fp64",        DL_TYPE_STORAGE_FP64 },
+	{ "string",      DL_TYPE_STORAGE_STR },
+	{ "any_pointer", DL_TYPE_STORAGE_ANY_POINTER },
+	{ "any_array",   DL_TYPE_STORAGE_ANY_ARRAY },
 };
 
 static const dl_builtin_type* dl_find_builtin_type( const char* name )
@@ -511,7 +511,7 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_txt_read_ctx*
 		{
 			case DL_TYPE_STORAGE_STR:
 			case DL_TYPE_STORAGE_PTR:
-			case DL_TYPE_STORAGE_ANYPTR:
+			case DL_TYPE_STORAGE_ANY_POINTER:
 				return true;
 			case DL_TYPE_STORAGE_STRUCT:
 			{

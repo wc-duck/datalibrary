@@ -368,7 +368,7 @@ static void dl_txt_pack_eat_and_write_anyarray( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, DL_TYPE_STORAGE_STRUCT );
 	if( array_length == 0 )
 	{
-		dl_binary_writer_write_zero( packctx->writer, dl_pod_size( DL_TYPE_STORAGE_ANYARRAY ) );
+		dl_binary_writer_write_zero( packctx->writer, dl_pod_size( DL_TYPE_STORAGE_ANY_ARRAY ) );
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 	}
 	else
@@ -542,7 +542,7 @@ static dl_error_t dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_
 			dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, type, array_pos + ( array_length - 1 ) * sizeof(void*) );
 		}
 		break;
-		case DL_TYPE_STORAGE_ANYPTR:
+		case DL_TYPE_STORAGE_ANY_POINTER:
 		{
 			char number[16];
 			for( uint32_t i = 0; i < array_length - 1; ++i )
@@ -555,7 +555,7 @@ static dl_error_t dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_
 			dl_txt_pack_eat_and_write_anyptr( dl_ctx, packctx, name );
 		}
 		break;
-		case DL_TYPE_STORAGE_ANYARRAY:
+		case DL_TYPE_STORAGE_ANY_ARRAY:
 		{
 			size_t array_pos = dl_binary_writer_tell( packctx->writer );
 			char number[16];
@@ -765,7 +765,7 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 			}
 		}
 		break;
-		case DL_TYPE_STORAGE_ANYPTR:
+		case DL_TYPE_STORAGE_ANY_POINTER:
 		 // TODO: bug, but in typelib build, there can't be any , in an enum-string.
 		{
             bool last_was_comma = false;
@@ -854,7 +854,7 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 			}
 		}
 		break;
-		case DL_TYPE_STORAGE_ANYARRAY:
+		case DL_TYPE_STORAGE_ANY_ARRAY:
 		{
 			bool last_was_comma = false;
 			uint32_t array_length = 1;
@@ -998,8 +998,8 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 				case DL_TYPE_STORAGE_FP64:     dl_txt_pack_eat_and_write_fp64( dl_ctx, packctx );   break;
 				case DL_TYPE_STORAGE_STR:      dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
 				case DL_TYPE_STORAGE_PTR:      dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
-				case DL_TYPE_STORAGE_ANYPTR:   dl_txt_pack_eat_and_write_anyptr( dl_ctx, packctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ) ); break;
-				case DL_TYPE_STORAGE_ANYARRAY: dl_txt_pack_eat_and_write_anyarray( dl_ctx, packctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ) ); break;
+				case DL_TYPE_STORAGE_ANY_POINTER:   dl_txt_pack_eat_and_write_anyptr( dl_ctx, packctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ) ); break;
+				case DL_TYPE_STORAGE_ANY_ARRAY: dl_txt_pack_eat_and_write_anyarray( dl_ctx, packctx, dl_string_to_substr( dl_internal_member_name( dl_ctx, member ) ) ); break;
 				case DL_TYPE_STORAGE_STRUCT:   return dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) );
 				case DL_TYPE_STORAGE_ENUM_INT8:
 				case DL_TYPE_STORAGE_ENUM_INT16:

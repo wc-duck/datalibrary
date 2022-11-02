@@ -322,13 +322,13 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 				break;
 				case DL_TYPE_STORAGE_PTR:
 					return dl_internal_convert_collect_instances_from_ptr( ctx, dl_internal_find_type( ctx, member->type_id ), member_data, base_data, convert_ctx );
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 				{
 					dl_typeid_t tid = *reinterpret_cast<const dl_typeid_t*>( member_data + dl_internal_ptr_size( convert_ctx.src_ptr_size ) );
 					if( convert_ctx.src_endian != DL_ENDIAN_HOST ) tid = dl_swap_endian_uint32( tid );
 					return dl_internal_convert_collect_instances_from_ptr( ctx, dl_internal_find_type( ctx, tid ), member_data, base_data, convert_ctx );
 				}
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 				{
 					uintptr_t offset = dl_internal_read_ptr_data( member_data, convert_ctx.src_endian, convert_ctx.src_ptr_size );
 					uint32_t array_count = *reinterpret_cast<const dl_typeid_t*>( member_data + dl_internal_ptr_size( convert_ctx.src_ptr_size ) );
@@ -380,13 +380,13 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																				 dl_internal_find_type( ctx, member->type_id ),
 																				 base_data,
 																				 convert_ctx );
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 					return dl_internal_convert_collect_instances_from_anyptr_array( ctx,
 																					member_data,
 																					member->inline_array_cnt(),
 																					base_data,
 																					convert_ctx );
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 					return dl_internal_convert_collect_instances_from_anyarray_array( ctx,
 																					  member_data,
 																					  member->inline_array_cnt(),
@@ -419,14 +419,14 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_convert_collect_instances_from_str_array(array_data, array_count, base_data, convert_ctx);
 					break;
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 					err = dl_internal_convert_collect_instances_from_anyptr_array( ctx,
 																				   array_data,
 																				   array_count,
 																				   base_data,
 																				   convert_ctx );
 					break;
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 					err = dl_internal_convert_collect_instances_from_anyarray_array( ctx,
 																					 array_data,
 																					 array_count,
@@ -603,7 +603,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 					return dl_internal_convert_write_struct( ctx, member_data, sub_type, conv_ctx, writer );
 				}
 				break;
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 				{
 					uintptr_t offset = dl_internal_read_ptr_data( member_data, conv_ctx.src_endian, conv_ctx.src_ptr_size );
 					dl_internal_convert_save_patch_pos( &conv_ctx, writer, dl_binary_writer_tell( writer ), offset );
@@ -612,7 +612,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 						dl_binary_writer_write_zero( writer, 4 );
 				}
 				break;
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 				{
 					uintptr_t offset = 0; uint32_t count = 0;
 					dl_internal_read_array_data( member_data, &offset, &count, conv_ctx.src_endian, conv_ctx.src_ptr_size );
@@ -671,7 +671,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 					}
 				}
 				break;
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 				{
 					uintptr_t src_ptr_size = dl_internal_ptr_size(conv_ctx.src_ptr_size);
 					for( uintptr_t elem = 0; elem < member->inline_array_cnt(); ++elem )
@@ -685,7 +685,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 					}
 				}
 				break;
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 				{
 					uintptr_t src_ptr_size = dl_internal_ptr_size(conv_ctx.src_ptr_size);
 					for( uintptr_t elem = 0; elem < member->inline_array_cnt(); ++elem )
@@ -853,8 +853,8 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 		{
 			case DL_TYPE_STORAGE_STR:
 			case DL_TYPE_STORAGE_PTR:
-			case DL_TYPE_STORAGE_ANYPTR:
-			case DL_TYPE_STORAGE_ANYARRAY:
+			case DL_TYPE_STORAGE_ANY_POINTER:
+			case DL_TYPE_STORAGE_ANY_ARRAY:
 				dl_binary_writer_align( writer, conv_ctx.target_ptr_size == DL_PTR_SIZE_32BIT ? 4 : 8 );
 				break;
 			default:
@@ -904,7 +904,7 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 				}
 				break;
 
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 				{
 					uintptr_t src_ptr_size = dl_internal_ptr_size(conv_ctx.src_ptr_size);
 					for( uintptr_t elem = 0; elem < inst.array_count; ++elem )
@@ -919,7 +919,7 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 				}
 				break;
 
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 				{
 					uintptr_t src_ptr_size = dl_internal_ptr_size(conv_ctx.src_ptr_size);
 					for( uintptr_t elem = 0; elem < inst.array_count; ++elem )
@@ -975,9 +975,9 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 					return DL_ERROR_OK;
 				case DL_TYPE_STORAGE_STRUCT:
 				case DL_TYPE_STORAGE_PTR:
-				case DL_TYPE_STORAGE_ANYPTR:
+				case DL_TYPE_STORAGE_ANY_POINTER:
 					return dl_internal_convert_write_struct( dl_ctx, u8, inst.type, conv_ctx, writer );
-				case DL_TYPE_STORAGE_ANYARRAY:
+				case DL_TYPE_STORAGE_ANY_ARRAY:
 				{
 					uintptr_t type_size = inst.type->size[conv_ctx.src_ptr_size];
 					for( uintptr_t elem = 0; elem < inst.array_count; ++elem )

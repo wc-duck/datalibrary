@@ -24,19 +24,19 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t st
 			    return nullptr;
 			return sub_type.name;
 		}
-		case DL_TYPE_STORAGE_INT8:     return "int8";
-		case DL_TYPE_STORAGE_UINT8:    return "uint8";
-		case DL_TYPE_STORAGE_INT16:    return "int16";
-		case DL_TYPE_STORAGE_UINT16:   return "uint16";
-		case DL_TYPE_STORAGE_INT32:    return "int32";
-		case DL_TYPE_STORAGE_UINT32:   return "uint32";
-		case DL_TYPE_STORAGE_INT64:    return "int64";
-		case DL_TYPE_STORAGE_UINT64:   return "uint64";
-		case DL_TYPE_STORAGE_FP32:     return "fp32";
-		case DL_TYPE_STORAGE_FP64:     return "fp64";
-		case DL_TYPE_STORAGE_STR:      return "string";
-		case DL_TYPE_STORAGE_ANYPTR:   return "anyptr";
-		case DL_TYPE_STORAGE_ANYARRAY: return "anyarray";
+		case DL_TYPE_STORAGE_INT8:        return "int8";
+		case DL_TYPE_STORAGE_UINT8:       return "uint8";
+		case DL_TYPE_STORAGE_INT16:       return "int16";
+		case DL_TYPE_STORAGE_UINT16:      return "uint16";
+		case DL_TYPE_STORAGE_INT32:       return "int32";
+		case DL_TYPE_STORAGE_UINT32:      return "uint32";
+		case DL_TYPE_STORAGE_INT64:       return "int64";
+		case DL_TYPE_STORAGE_UINT64:      return "uint64";
+		case DL_TYPE_STORAGE_FP32:        return "fp32";
+		case DL_TYPE_STORAGE_FP64:        return "fp64";
+		case DL_TYPE_STORAGE_STR:         return "string";
+		case DL_TYPE_STORAGE_ANY_POINTER: return "any_pointer";
+		case DL_TYPE_STORAGE_ANY_ARRAY:   return "any_array";
 		default:
 			DL_ASSERT(false);
 			return 0x0;
@@ -169,7 +169,7 @@ static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* w
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 			dl_binary_writer_write_fmt( writer,
-										member->storage == DL_TYPE_STORAGE_ANYARRAY
+										member->storage == DL_TYPE_STORAGE_ANY_ARRAY
 											? "\"type\" : \"%s\""
 											: "\"type\" : \"%s[]\"",
 										dl_context_type_to_string( ctx, member->storage, member->type_id ) );

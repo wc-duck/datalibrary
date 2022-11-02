@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "dl_tests_base.h"
 
-TYPED_TEST(DLBase, anyarray)
+TYPED_TEST(DLBase, AnyArray)
 {
 	Pods2 ps[] = { { 1, 2 }, { 3, 4 } };
 	anyArray original = { { { ps, DL_ARRAY_LENGTH(ps) }, Pods2::TYPE_ID } };
@@ -18,11 +18,11 @@ TYPED_TEST(DLBase, anyarray)
 	EXPECT_EQ( ps[1].Int2, loaded_array[1].Int2 );
 }
 
-TYPED_TEST(DLBase, ArrayOfAnyarray)
+TYPED_TEST(DLBase, ArrayOfAnyArray)
 {
 	Pods2 ps1[] = { { 1, 2 }, { 3, 4 }, { 5, 6 } };
 	PodPtr ps2[] = { { &ps1[2] }, { &ps1[1] }, { &ps1[0] } };
-	dl_anyarray arr[] = { { { ps1, DL_ARRAY_LENGTH(ps1) }, ps1[0].TYPE_ID }, { { ps2, DL_ARRAY_LENGTH(ps2) }, ps2[0].TYPE_ID } };
+	dl_any_array arr[] = { { { ps1, DL_ARRAY_LENGTH(ps1) }, ps1[0].TYPE_ID }, { { ps2, DL_ARRAY_LENGTH(ps2) }, ps2[0].TYPE_ID } };
 	anyArrayArray original = { { arr, DL_ARRAY_LENGTH(arr) } };
 	anyArrayArray loaded[64];
 
@@ -49,7 +49,7 @@ TYPED_TEST(DLBase, ArrayOfAnyarray)
 	EXPECT_EQ( ps1[2].Int2, loaded_podptr[0].PodPtr1->Int2 );
 }
 
-TYPED_TEST(DLBase, InlineArrayOfAnyarray)
+TYPED_TEST(DLBase, InlineArrayOfAnyArray)
 {
 	Pods2 ps1[] = { { 1, 2 }, { 3, 4 }, { 5, 6 } };
 	PodPtr ps2[] = { { &ps1[2] }, { &ps1[1] }, { &ps1[0] } };
