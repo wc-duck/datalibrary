@@ -27,6 +27,23 @@
 				"MULTI_ALIAS1" : { "value" : 7, "aliases" : [ "alias1", "alias2", "alias3" ] },
 				"MULTI_ALIAS2" : { "value" : 8, "aliases" : [ "alias4" ] }
 			}
+		},
+
+		"EnumWithMeta" : {
+			"values" : {
+				"TESTENUMWITHMETA" : {
+					"value" : 1337,
+					"comment" : "whoppa!",
+					"metadata" : [
+						{ "SubString" : { "Str": "apa" } },
+						{ "SubString" : { "Str": "banan" } }
+					]
+				}
+			},
+			"metadata" : [
+				{ "SubString" : { "Str": "apa" } },
+				{ "SubString" : { "Str": "banan" } }
+			]
 		}
 	},
 
@@ -61,7 +78,23 @@
         "strArray"  : { "members" : [ { "name" : "arr",  "type" : "string[]" } ] },
         "ptrArray"  : { "members" : [ { "name" : "arr",  "type" : "Pods*[]"  } ] },
         "enumArray" : { "members" : [ { "name" : "arr",  "type" : "TestEnum1[]" } ] },
-        "default_empty_type" : { "members" : [ { "name" : "empty", "type" : "uint32", "default" : 0 } ] }
+        "default_empty_type" : { "members" : [ { "name" : "empty", "type" : "uint32", "default" : 0 } ] },
+		"type_with_meta" : {
+			"members" : [
+				{
+					"name" : "i8",
+					"type" : "int8",
+					"metadata" : [
+						{ "SubString" : { "Str": "apa" } },
+						{ "SubString" : { "Str": "banan" } }
+					]
+				}
+			],
+			"metadata" : [
+				{ "SubString" : { "Str": "apa" } },
+				{ "SubString" : { "Str": "banan" } }
+			]
+		}
 	},
 
 	"unions" : {
@@ -69,7 +102,11 @@
 			"members" : [
 				{ "name" : "item1", "type" : "int32" },
 				{ "name" : "item2", "type" : "fp32"  },
-				{ "name" : "item3", "type" : "Pods"  }
+				{ "name" : "item3", "type" : "Pods", "metadata" : [ { "SubString" : { "Str": "item3" } } ] }
+			],
+			"metadata" : [
+				{ "SubString" : { "Str": "apa" } },
+				{ "SubString" : { "Str": "banan" } }
 			]
 		}
 	},
