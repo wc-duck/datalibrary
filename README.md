@@ -291,21 +291,21 @@ left untouched!",
 
         // inline arrays are just arrays with the correct type ...
         "inline_array_member1"  : [1, 2, 3],
-		
-		// an any_pointer can be null, and then it is typeless
-		"any_pointer_member1": null,
-		// but when it has a value then that will be stored in the "__subdata" section, and there will be a "__any_type_" entry right after the member.
-		"any_pointer_member2": "ptr1234"
-		"__any_type_any_pointer_member2" : "my_struct",
 
-		// any_array members will also have the "__any_type_" entry right after the member
-		"any_array_member": [
-		    {
+        // an any_pointer can be null, and then it is typeless
+        "any_pointer_member1": null,
+        // but when it has a value then that will be stored in the "__subdata" section, and there will be a "__any_type_" entry right after the member.
+        "any_pointer_member2": "ptr1234"
+        "__any_type_any_pointer_member2" : "my_struct",
+
+        // any_array members will also have the "__any_type_" entry right after the member
+        "any_array_member": [
+            {
                 "x" : 1,
                 "y" : 2
             },
-	    ]
-		"__any_type_any_array_member" : "my_struct",
+        ]
+        "__any_type_any_array_member" : "my_struct",
 
 
         // ... it could be a struct with x and y members.
@@ -351,8 +351,8 @@ left untouched!",
         "another_sub_data" : {
             "some_float" : 1.23
         },
-		
-		"ptr1234" : {
+
+        "ptr1234" : {
             "x" : 1,
             "y" : 2
         },
