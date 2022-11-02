@@ -845,9 +845,9 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t            dl_ctx,           
 		uintptr_t offset_shift     = ( conv_ctx.target_ptr_size == DL_PTR_SIZE_32BIT ? 4 : 8 ) * 4;
 
 		if( *needed_size >= ( 1ULL << offset_shift ) )
-			new_header->need_slow_patching = 1;
+			new_header->not_using_ptr_chain_patching = 1;
 		else
-			new_header->need_slow_patching = 0;
+			new_header->not_using_ptr_chain_patching = 0;
 		new_header->instance_size = uint32_t( *needed_size - sizeof( dl_data_header ) );
 
 		if( conv_ctx.m_lPatchOffset.Len() )
@@ -858,7 +858,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t            dl_ctx,           
 			{
 				SConvertContext::PatchPos& pp = conv_ctx.m_lPatchOffset[i];
 
-				if( i == 0 && !new_header->need_slow_patching )
+				if( i == 0 && !new_header->not_using_ptr_chain_patching )
 					new_header->first_pointer_to_patch = conv_ctx.tgt_endian != DL_ENDIAN_HOST ? dl_swap_endian_uint32( (uint32_t)pp.pos ) : (uint32_t)pp.pos;
 
 				// find new offset
@@ -873,7 +873,7 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t            dl_ctx,           
 
 				DL_ASSERT_MSG( new_offset != (uintptr_t)0, "We should have found the instance!" );
 				dl_binary_writer_seek_set( writer, pp.pos );
-				if( !new_header->need_slow_patching )
+				if( !new_header->not_using_ptr_chain_patching )
 					new_offset = new_offset | ( ( (uint64_t)( conv_ctx.m_lPatchOffset[i + 1].pos - conv_ctx.m_lPatchOffset[i].pos ) ) << offset_shift );
 
 				dl_binary_writer_write_ptr( writer, new_offset );
@@ -946,6 +946,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 	if(out_instance != 0x0)
 	{
 		dl_data_header* new_header = (dl_data_header*)out_instance;
+		memset(new_header, 0, sizeof(dl_data_header));
 		new_header->id                 = DL_INSTANCE_ID;
 		new_header->version            = DL_INSTANCE_VERSION;
 		new_header->root_instance_type = type;
@@ -954,7 +955,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 
 		uintptr_t offset_shift = out_ptr_size * 4;
 		if( out_instance_size >= ( 1ULL << offset_shift ) )
-			new_header->need_slow_patching = 1;
+			new_header->not_using_ptr_chain_patching = 1;
 
 		if( DL_ENDIAN_HOST != out_endian )
 			dl_swap_header( new_header );
@@ -962,7 +963,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 	
 	SConvertContext conv_ctx( src_endian, out_endian, src_ptr_size, dst_ptr_size, dl_ctx->alloc );
 	// While converting we always do slow patching, so neutralize the patch offsets
-	if( header.version == DL_INSTANCE_VERSION && !header.need_slow_patching )
+	if( header.version == DL_INSTANCE_VERSION && !header.not_using_ptr_chain_patching )
 	{
 		uint32_t offset_to_next_pointer_to_patch = header.first_pointer_to_patch;
 		uint8_t* patch_mem = packed_instance;
@@ -972,11 +973,13 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 			while( offset_to_next_pointer_to_patch != 0 ) // 0 is the patch terminator
 			{
 				patch_mem += offset_to_next_pointer_to_patch;
+				if( patch_mem > packed_instance + sizeof(header) + header.instance_size )
+					return DL_ERROR_MALFORMED_DATA;
 				uint64_t offsets = *(uint64_t*)patch_mem;
 				if( src_endian != DL_ENDIAN_HOST )
 					offsets = dl_swap_endian_uint64( offsets );
 				offset_to_next_pointer_to_patch = uint32_t(offsets >> 32);
-				*(uint64_t*)patch_mem  = *(uint64_t*)patch_mem & patch_mask;
+				*(uint64_t*)patch_mem = *(uint64_t*)patch_mem & patch_mask;
 			}
 		}
 		else
@@ -985,6 +988,8 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 			while( offset_to_next_pointer_to_patch != 0 ) // 0 is the patch terminator
 			{
 				patch_mem += offset_to_next_pointer_to_patch;
+				if (patch_mem > packed_instance + sizeof(header) + header.instance_size)
+					return DL_ERROR_MALFORMED_DATA;
 				uint32_t offsets = *(uint32_t*)patch_mem;
 				if( src_endian != DL_ENDIAN_HOST )
 					offsets = dl_swap_endian_uint32( offsets );
@@ -994,7 +999,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 		}
 
 		dl_data_header* packed_header = (dl_data_header*)packed_instance;
-		packed_header->need_slow_patching = 1;
+		packed_header->not_using_ptr_chain_patching = 1;
 		packed_header->first_pointer_to_patch = 0;
 	}
 	return dl_internal_convert_no_header( dl_ctx,

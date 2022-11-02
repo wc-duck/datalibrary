@@ -40,7 +40,33 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 	dl_free( &dl_ctx->alloc, dl_ctx->typedata_strings );
 	dl_free( &dl_ctx->alloc, dl_ctx->default_data );
 	dl_free( &dl_ctx->alloc, dl_ctx->c_includes );
+	for( size_t i = 0; i < dl_ctx->metadatas_count; ++i)
+		dl_free( &dl_ctx->alloc, dl_ctx->metadatas[i] );
+	dl_free( &dl_ctx->alloc, dl_ctx->metadatas );
+	dl_free( &dl_ctx->alloc, dl_ctx->metadata_infos );
+	dl_free( &dl_ctx->alloc, dl_ctx->metadata_typeinfos );
 	dl_free( &dl_ctx->alloc, dl_ctx );
+	return DL_ERROR_OK;
+}
+
+static dl_error_t dl_ptr_chain_patching( const dl_data_header* header, uint8_t* instance )
+{
+	uintptr_t offset_shift = sizeof(uintptr_t) * 4;
+	uintptr_t offset_mask = (1ULL << offset_shift) - 1;
+	uint8_t* base_ptr = (uint8_t*)instance - sizeof(dl_data_header);
+	uint8_t* patch_mem = base_ptr;
+	uintptr_t offset_to_pointer = header->first_pointer_to_patch; // 0 is the patch terminator
+	while( offset_to_pointer != 0 )
+	{
+		patch_mem += offset_to_pointer;
+		if( patch_mem > instance + header->instance_size )
+			return DL_ERROR_MALFORMED_DATA;
+		uintptr_t offsets = *(uintptr_t*)patch_mem;
+		if( (offsets & offset_mask) > (header->instance_size + sizeof(*header)) )
+			return DL_ERROR_MALFORMED_DATA;
+		offset_to_pointer = offsets >> offset_shift;
+		*(uint8_t**)patch_mem = (offsets & offset_mask) + base_ptr;
+	}
 	return DL_ERROR_OK;
 }
 
@@ -51,12 +77,12 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 {
 	dl_data_header* header = (dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(dl_data_header) )                  return DL_ERROR_MALFORMED_DATA;
-	if( header->id == DL_INSTANCE_ID_SWAPED )                            return DL_ERROR_ENDIAN_MISMATCH;
-	if( header->id != DL_INSTANCE_ID )                                   return DL_ERROR_MALFORMED_DATA;
-	if( header->version != DL_INSTANCE_VERSION && header->version != 1 ) return DL_ERROR_VERSION_MISMATCH;
-	if( header->root_instance_type != type_id )                          return DL_ERROR_TYPE_MISMATCH;
-	if( header->instance_size > instance_size )                          return DL_ERROR_BUFFER_TOO_SMALL;
+	if( packed_instance_size < sizeof(dl_data_header) ) return DL_ERROR_MALFORMED_DATA;
+	if( header->id == DL_INSTANCE_ID_SWAPED )           return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->id != DL_INSTANCE_ID )                  return DL_ERROR_MALFORMED_DATA;
+	if( header->version != DL_INSTANCE_VERSION )        return DL_ERROR_VERSION_MISMATCH;
+	if( header->root_instance_type != type_id )         return DL_ERROR_TYPE_MISMATCH;
+	if( header->instance_size > instance_size )         return DL_ERROR_BUFFER_TOO_SMALL;
 
 	const dl_type_desc* root_type = dl_internal_find_type( dl_ctx, header->root_instance_type );
 	if( root_type == 0x0 )
@@ -70,28 +96,13 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	DL_ASSERT( (uint8_t*)instance + header->instance_size > packed_instance || (uint8_t*)instance < packed_instance + header->instance_size );
 	memcpy( instance, packed_instance + sizeof(dl_data_header), header->instance_size );
 
-	if( header->version == 1 )
-		dl_internal_patch_instance( dl_ctx, root_type, (uint8_t*)instance, 0x0, (uintptr_t)instance );
-	else if( header->need_slow_patching )
+	if (consumed)
+		*consumed = (size_t)header->instance_size + sizeof(dl_data_header);
+
+	if( header->not_using_ptr_chain_patching )
 		dl_internal_patch_instance( dl_ctx, root_type, (uint8_t*)instance, 0x0, (uintptr_t)instance - sizeof( dl_data_header ) );
 	else
-	{
-		uintptr_t offset_shift      = sizeof( uintptr_t ) * 4;
-		uintptr_t offset_mask       = ( 1ULL << offset_shift ) - 1;
-		uintptr_t base_ptr          = (uintptr_t)instance - sizeof(dl_data_header);
-		uint8_t* patch_mem          = (uint8_t*)base_ptr;
-		uintptr_t offset_to_pointer = header->first_pointer_to_patch; // 0 is the patch terminator
-		while( offset_to_pointer != 0 )
-		{
-			patch_mem += offset_to_pointer;
-			uintptr_t offsets      = *(uintptr_t*)patch_mem;
-			offset_to_pointer      = offsets >> offset_shift;
-			*(uintptr_t*)patch_mem = ( offsets & offset_mask ) + base_ptr;
-		}
-	}
-
-	if( consumed )
-		*consumed = (size_t)header->instance_size + sizeof(dl_data_header);
+		return dl_ptr_chain_patching( header, (uint8_t*)instance );
 
 	return DL_ERROR_OK;
 }
@@ -102,27 +113,22 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 {
 	dl_data_header* header = (dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(dl_data_header) )                  return DL_ERROR_MALFORMED_DATA;
-	if( header->id == DL_INSTANCE_ID_SWAPED )                            return DL_ERROR_ENDIAN_MISMATCH;
-	if( header->id != DL_INSTANCE_ID )                                   return DL_ERROR_MALFORMED_DATA;
-	if( header->version != DL_INSTANCE_VERSION && header->version != 1 ) return DL_ERROR_VERSION_MISMATCH;
-	if( header->root_instance_type != type_id )                          return DL_ERROR_TYPE_MISMATCH;
+	if( packed_instance_size < sizeof(dl_data_header) ) return DL_ERROR_MALFORMED_DATA;
+	if( header->id == DL_INSTANCE_ID_SWAPED )           return DL_ERROR_ENDIAN_MISMATCH;
+	if( header->id != DL_INSTANCE_ID )                  return DL_ERROR_MALFORMED_DATA;
+	if( header->version != DL_INSTANCE_VERSION )        return DL_ERROR_VERSION_MISMATCH;
+	if( header->root_instance_type != type_id )         return DL_ERROR_TYPE_MISMATCH;
 
-	if( header->version == DL_INSTANCE_VERSION && !header->need_slow_patching )
+	*loaded_instance = packed_instance + sizeof(dl_data_header);
+
+	if (consumed)
+		*consumed = header->instance_size + sizeof(dl_data_header);
+
+	if( header->version == DL_INSTANCE_VERSION && !header->not_using_ptr_chain_patching )
 	{
-		uintptr_t offset_shift     = sizeof( uintptr_t ) * 4;
-		uintptr_t offset_mask      = ( 1ULL << offset_shift ) - 1;
-		uint8_t* patch_mem         = (uint8_t*)packed_instance;
-		uintptr_t offset_to_pointer = header->first_pointer_to_patch; // 0 is the patch terminator
-		while( offset_to_pointer != 0 )
-		{
-			patch_mem += offset_to_pointer;
-			uintptr_t offsets      = *(uintptr_t*)patch_mem;
-			offset_to_pointer      = offsets >> offset_shift;
-			*(uintptr_t*)patch_mem = ( offsets & offset_mask ) + (uintptr_t)packed_instance;
-		}
+		return dl_ptr_chain_patching( header, (uint8_t*)*loaded_instance );
 	}
-	else if( header->need_slow_patching )
+	else if( header->not_using_ptr_chain_patching )
 	{
 		const dl_type_desc* type = dl_internal_find_type( dl_ctx, header->root_instance_type );
 		if( type == 0x0 )
@@ -130,19 +136,6 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 
 		dl_internal_patch_instance( dl_ctx, type, packed_instance + sizeof( dl_data_header ), 0x0, (uintptr_t)packed_instance );
 	}
-	else if( header->version == 1 )
-	{
-		const dl_type_desc* type = dl_internal_find_type( dl_ctx, header->root_instance_type );
-		if( type == 0x0 )
-			return DL_ERROR_TYPE_NOT_FOUND;
-
-		dl_internal_patch_instance( dl_ctx, type, packed_instance + sizeof( dl_data_header ), 0x0, (uintptr_t)packed_instance + sizeof( dl_data_header ) );
-	}
-	*loaded_instance = packed_instance + sizeof( dl_data_header );
-
-	if( consumed )
-		*consumed = header->instance_size + sizeof(dl_data_header);
-
 	return DL_ERROR_OK;
 }
 
@@ -505,14 +498,14 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	bool store_ctx_is_dummy = out_buffer_size == 0;
 	CDLBinStoreContext store_context( out_buffer, out_buffer_size, store_ctx_is_dummy, dl_ctx->alloc );
 
-	// write header
 	dl_data_header* header = (dl_data_header*)out_buffer;
-	if( header )
+	if( out_buffer_size > 0 )
 	{
-		if( instance == out_buffer + sizeof( dl_data_header ) )
+		if( instance == out_buffer + sizeof(dl_data_header) )
 			memset( out_buffer, 0, sizeof(dl_data_header) );
 		else
 			memset( out_buffer, 0, out_buffer_size );
+
 		header->id                 = DL_INSTANCE_ID;
 		header->version            = DL_INSTANCE_VERSION;
 		header->root_instance_type = type_id;
@@ -534,7 +527,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 
 		uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
 		if( dl_binary_writer_tell( &store_context.writer ) >= ( 1ULL << offset_shift ) )
-			header->need_slow_patching = 1;
+			header->not_using_ptr_chain_patching = 1;
 		else
 		{
 			std::sort( store_context.ptrs.m_Ptr, store_context.ptrs.m_Ptr + store_context.ptrs.m_nElements );
@@ -560,7 +553,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	return err;
 }
 
-dl_error_t dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, size_t* out_size )
+dl_error_t dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, const void* instance, size_t* out_size )
 {
 	return dl_instance_store( dl_ctx, type, instance, 0x0, 0, out_size );
 }
@@ -613,7 +606,7 @@ dl_error_t dl_instance_get_info( const unsigned char* packed_instance, size_t pa
 
 	if( packed_instance_size < sizeof(dl_data_header) && header->id != DL_INSTANCE_ID_SWAPED && header->id != DL_INSTANCE_ID )
 		return DL_ERROR_MALFORMED_DATA;
-	if(header->version != DL_INSTANCE_VERSION && header->version != DL_INSTANCE_VERSION_SWAPED && header->version != 1 && header->version != dl_swap_endian_uint32(1))
+	if( header->version != DL_INSTANCE_VERSION && header->version != DL_INSTANCE_VERSION_SWAPED )
 		return DL_ERROR_VERSION_MISMATCH;
 
 	out_info->ptrsize   = header->is_64_bit_ptr ? 8 : 4;

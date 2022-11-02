@@ -1335,7 +1335,7 @@ dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsi
 
 			uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
 			if( dl_binary_writer_needed_size( &writer ) >= ( 1ULL << offset_shift ) || !use_fast_ptr_patch )
-				header.need_slow_patching = 1;
+				header.not_using_ptr_chain_patching = 1;
 			else
 			{
 				std::sort( pointers.m_Ptr, pointers.m_Ptr + pointers.m_nElements );
