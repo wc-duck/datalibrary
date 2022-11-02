@@ -242,8 +242,8 @@ int main( int argc, const char** argv )
 									   out_ptr_size,
 									   instance,
 									   0x0,
-		                               0x0,
-		                               0x0 );
+									   0x0,
+									   0x0 );
 
 		if( err != DL_ERROR_OK )
 			M_ERROR_AND_QUIT( "DL error writing stream: %s", dl_error_to_string( err ) );

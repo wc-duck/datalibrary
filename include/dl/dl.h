@@ -350,7 +350,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 		instance - Ptr to instance to calculate size of.
 		out_size - Ptr where to store the amount of bytes needed to store the instances.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, size_t* out_size);
+dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, const void* instance, size_t* out_size);
 
 /*
 	Function: dl_instace_store
