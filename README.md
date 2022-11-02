@@ -141,7 +141,10 @@ Type-libs in text-format follows this format.
             // Defaults to `uint32` if not set.
             "type"   : "int64",
 
-            "comment": "my_enum is an externally declared enumeration and have 7 values",
+            "comment": "my_enum is an externally declared enumeration and have 7 values",,
+
+            // "metadata" has a list of dl instances which are attached to the enumeration
+            "metadata": [ { "my_type" : { "member": 1 } } ]
 
             // "values" are the actual values of the enum-type as a dict.
             "values" : {
@@ -167,8 +170,11 @@ Type-libs in text-format follows this format.
                     // it was added as to shorten the text-format and still keep more descriptive names
                     // in the generated headers.
                     "aliases" : ["apa", "kossa"],
+                    
+                    "comment": "This enumerator has aliases",
 
-                    "comment": "This enumerator has aliases"
+                    // "metadata" has a list of dl instances which are attached to the enumerator
+                    "metadata": [ { "my_type" : { "member": 1 } } ]
                 }
             }
         }
@@ -200,6 +206,9 @@ Type-libs in text-format follows this format.
             // If not set, no comment will be written to .h
             "comment" : "this type is a nice type!",
 
+            // "metadata" has a list of dl instances which are attached to the type
+            "metadata": [ { "my_type" : { "member": 1 } } ],
+
             // "members" is a list of all members of this type.
             "members" : [
                 // one {} per member and the members will be ordered as they are in this list.
@@ -225,7 +234,10 @@ Type-libs in text-format follows this format.
                     "comment" : "only used in unittests to check for errors",
 
                     // "const" adds the const type modifier to this member in the generated header file
-                    "const" : true
+                    "const" : true,
+
+                    // "metadata" has a list of dl instances which are attached to the member
+                    "metadata": [ { "my_type" : { "member": 1 } } ]
                 }
             ]
         }

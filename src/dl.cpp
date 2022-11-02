@@ -38,6 +38,11 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 	dl_free( &dl_ctx->alloc, dl_ctx->typedata_strings );
 	dl_free( &dl_ctx->alloc, dl_ctx->default_data );
 	dl_free( &dl_ctx->alloc, dl_ctx->c_includes );
+	for( size_t i = 0; i < dl_ctx->metadatas_count; ++i)
+		dl_free( &dl_ctx->alloc, dl_ctx->metadatas[i] );
+	dl_free( &dl_ctx->alloc, dl_ctx->metadatas );
+	dl_free( &dl_ctx->alloc, dl_ctx->metadata_infos );
+	dl_free( &dl_ctx->alloc, dl_ctx->metadata_typeinfos );
 	dl_free( &dl_ctx->alloc, dl_ctx );
 	return DL_ERROR_OK;
 }
@@ -574,27 +579,22 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	if( type == 0x0 )
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	// write header
-	dl_data_header header;
-	header.id = DL_INSTANCE_ID;
-	header.version = DL_INSTANCE_VERSION;
-	header.root_instance_type = type_id;
-	header.instance_size = 0;
-	header.is_64_bit_ptr = sizeof(void*) == 8 ? 1 : 0;
-	header.pad[0] = header.pad[1] = header.pad[2] = 0;
-
-	unsigned char* store_ctx_buffer      = 0x0;
-	size_t         store_ctx_buffer_size = 0;
-	bool           store_ctx_is_dummy    = out_buffer_size == 0;
+	bool store_ctx_is_dummy = out_buffer_size == 0;
+	CDLBinStoreContext store_context(out_buffer + sizeof(dl_data_header), out_buffer_size - sizeof(dl_data_header), store_ctx_is_dummy, dl_ctx->alloc);
 
 	if( out_buffer_size > 0 )
 	{
-		memcpy(out_buffer, &header, sizeof(dl_data_header));
-		store_ctx_buffer      = out_buffer + sizeof(dl_data_header);
-		store_ctx_buffer_size = out_buffer_size - sizeof(dl_data_header);
-	}
+		if( instance == out_buffer + sizeof(dl_data_header) )
+			memset( out_buffer, 0, sizeof(dl_data_header) );
+		else
+			memset( out_buffer, 0, out_buffer_size );
 
-	CDLBinStoreContext store_context( store_ctx_buffer, store_ctx_buffer_size, store_ctx_is_dummy, dl_ctx->alloc );
+		dl_data_header* header = (dl_data_header*)out_buffer;
+		header->id                 = DL_INSTANCE_ID;
+		header->version            = DL_INSTANCE_VERSION;
+		header->root_instance_type = type_id;
+		header->is_64_bit_ptr      = sizeof( void* ) == 8 ? 1 : 0;
+	}
 
 	dl_binary_writer_reserve( &store_context.writer, type->size[DL_PTR_SIZE_HOST] );
 	store_context.AddWrittenPtr((const uint8_t*)instance, 0); // if pointer refere to root-node, it can be found at offset 0
@@ -616,7 +616,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	return err;
 }
 
-dl_error_t dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, size_t* out_size )
+dl_error_t dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, const void* instance, size_t* out_size )
 {
 	return dl_instance_store( dl_ctx, type, instance, 0x0, 0, out_size );
 }

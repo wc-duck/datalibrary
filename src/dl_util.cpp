@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void patch_alloc_funcs( dl_alloc_func& alloc_func, dl_realloc_func& realloc_func, dl_free_func& free_func )
+static void dl_patch_alloc_funcs( dl_alloc_func& alloc_func, dl_realloc_func& realloc_func, dl_free_func& free_func )
 {
 	if (alloc_func == nullptr)
 		alloc_func = [](size_t size, void*) -> void* { return malloc(size); };
@@ -159,7 +159,7 @@ dl_error_t dl_util_load_from_file( dl_ctx_t     dl_ctx,        dl_typeid_t      
 	if( in_file != 0x0 )
 	{
 		dl_realloc_func realloc_func = 0;
-		patch_alloc_funcs( alloc_func, realloc_func, free_func );
+		dl_patch_alloc_funcs( alloc_func, realloc_func, free_func );
 
 		fseek(in_file, 0, SEEK_END);
 		size_t size = static_cast<size_t>(ftell(in_file));
@@ -183,7 +183,7 @@ dl_error_t dl_util_load_from_stream( dl_ctx_t      dl_ctx,        dl_typeid_t   
 									 dl_alloc_func alloc_func,    dl_realloc_func     realloc_func,
 									 dl_free_func  free_func,     void*               alloc_ctx )
 {
-	patch_alloc_funcs( alloc_func, realloc_func, free_func );
+	dl_patch_alloc_funcs( alloc_func, realloc_func, free_func );
 	unsigned char* file_content = dl_read_entire_stream( realloc_func, alloc_ctx, stream, consumed_bytes );
 	file_content[*consumed_bytes] = '\0';
 
@@ -227,7 +227,7 @@ dl_error_t dl_util_store_to_stream( dl_ctx_t        dl_ctx,    dl_typeid_t      
 		return error;
 	
 	dl_realloc_func realloc_func = 0;
-	patch_alloc_funcs( alloc_func, realloc_func, free_func );
+	dl_patch_alloc_funcs( alloc_func, realloc_func, free_func );
 
 	// alloc memory
 	unsigned char* packed_instance = (unsigned char*)alloc_func( packed_size, alloc_ctx );

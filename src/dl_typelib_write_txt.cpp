@@ -1,4 +1,5 @@
 #include <dl/dl_typelib.h>
+#include <dl/dl_txt.h>
 #include "dl_binary_writer.h"
 #include <dl/dl_reflect.h>
 
@@ -42,7 +43,14 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t st
 	}
 }
 
-static void dl_binary_writer_write_fmt( dl_binary_writer* writer, const char* fmt, ... ) // add check of fmt string
+#if defined( __GNUC__ ) || defined( __clang__ )
+#  ifndef _Printf_format_string_
+#	 define _Printf_format_string_
+#  endif
+static void dl_binary_writer_write_fmt( dl_binary_writer* writer, const char* fmt, ... ) __attribute__( ( __format__( __printf__, 2, 3 ) ) );
+#endif
+
+static void dl_binary_writer_write_fmt( dl_binary_writer* writer, _Printf_format_string_ const char* fmt, ... )
 {
 	char buffer[2048];
 	va_list args;
@@ -68,7 +76,7 @@ static dl_error_t dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* wri
 
 	for( unsigned int j = 0; j < enum_info.value_count; ++j )
 	{
-		dl_binary_writer_write_fmt( writer, "        \"%s\" : %u", values[j].name, values[j].value );
+		dl_binary_writer_write_fmt( writer, "        \"%s\" : %lu", values[j].name, values[j].value.u64 );
 		if( j < enum_info.value_count - 1 )
 			dl_binary_writer_write( writer, ",\n", 2 );
 		else
@@ -77,7 +85,42 @@ static dl_error_t dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* wri
 
 	free( values );
 
-	dl_binary_writer_write_fmt( writer, "      }\n    }", 1 );
+	dl_binary_writer_write_fmt( writer, "      }" );
+
+	if( enum_info.metadata_count )
+	{
+		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
+		for( uint32_t i = 0; i < enum_info.metadata_count; ++i )
+		{
+			size_t produced_bytes = 0;
+
+			// jumping through hoops, pack the data and write it as json with wrong indent
+			size_t packed_size;
+			err = dl_instance_calc_size( ctx, enum_info.metadata_type_ids[i], enum_info.metadata_instances[i], &packed_size );
+			if( DL_ERROR_OK != err ) return err;
+			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
+			err = dl_instance_store( ctx, enum_info.metadata_type_ids[i], enum_info.metadata_instances[i], packed_instance, packed_size, &produced_bytes );
+			if( DL_ERROR_OK != err ) return err;
+
+			size_t txt_instance_size;
+			err = dl_txt_unpack_calc_size( ctx, enum_info.metadata_type_ids[i], packed_instance, packed_size, &txt_instance_size );
+			if( DL_ERROR_OK != err ) return err;
+			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
+			err = dl_txt_unpack( ctx, enum_info.metadata_type_ids[i], packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
+			if( DL_ERROR_OK != err ) return err;
+			dl_free( &ctx->alloc, packed_instance );
+
+			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
+			dl_free( &ctx->alloc, text_instance );
+			if( i < enum_info.metadata_count - 1 )
+				dl_binary_writer_write( writer, ",\n", 2 );
+			else
+				dl_binary_writer_write( writer, "\n", 1 );
+		}
+		dl_binary_writer_write_fmt( writer, "      ]" );
+	}
+
+	dl_binary_writer_write_fmt( writer, "\n    }" );
 	return DL_ERROR_OK;
 }
 
@@ -108,7 +151,7 @@ static dl_error_t dl_context_write_txt_enums( dl_ctx_t ctx, dl_binary_writer* wr
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer, dl_member_info_t* member )
+static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* writer, const dl_member_info_t* member )
 {
 	dl_binary_writer_write_fmt( writer, "        { \"name\" : \"%s\", ", member->name );
 
@@ -139,8 +182,41 @@ static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* w
 										dl_context_type_to_string( ctx, member->storage, member->type_id ),
 										member->array_count );
 		break;
-		default:
-			DL_ASSERT( false );
+	default:
+		DL_ASSERT( false );
+	}
+
+	if( member->metadata_count )
+	{
+		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
+		for( uint32_t i = 0; i < member->metadata_count; ++i )
+		{
+			size_t produced_bytes = 0;
+
+			// jumping through hoops, pack the data and write it as json with wrong indent
+			size_t packed_size;
+			dl_error_t err = dl_instance_calc_size( ctx, member->metadata_type_ids[i], member->metadata_instances[i], &packed_size );
+			if( DL_ERROR_OK != err ) return err;
+			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
+			err = dl_instance_store( ctx, member->metadata_type_ids[i], member->metadata_instances[i], packed_instance, packed_size, &produced_bytes );
+			if( DL_ERROR_OK != err ) return err;
+
+			size_t txt_instance_size;
+			err = dl_txt_unpack_calc_size( ctx, member->metadata_type_ids[i], packed_instance, packed_size, &txt_instance_size );
+			if( DL_ERROR_OK != err ) return err;
+			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
+			err = dl_txt_unpack( ctx, member->metadata_type_ids[i], packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
+			if( DL_ERROR_OK != err ) return err;
+			dl_free( &ctx->alloc, packed_instance );
+
+			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
+			dl_free( &ctx->alloc, text_instance );
+			if( i < member->metadata_count - 1 )
+				dl_binary_writer_write( writer, ",\n", 2 );
+			else
+				dl_binary_writer_write( writer, "\n", 1 );
+		}
+		dl_binary_writer_write_fmt( writer, "      ]" );
 	}
 	dl_binary_writer_write( writer, " }", 2 );
 	return DL_ERROR_OK;
@@ -168,8 +244,41 @@ static dl_error_t dl_context_write_txt_type( dl_ctx_t ctx, dl_binary_writer* wri
 		else
 			dl_binary_writer_write( writer, "\n", 1 );
 	}
+	dl_binary_writer_write_fmt( writer, "      ]" );
 
-	dl_binary_writer_write_fmt( writer, "      ]\n    }" );
+	if( type_info.metadata_count )
+	{
+		dl_binary_writer_write_fmt( writer, ",\n      \"metadata\" : [\n" );
+		for( uint32_t i = 0; i < type_info.metadata_count; ++i )
+		{
+			size_t produced_bytes = 0;
+
+			// jumping through hoops, pack the data and write it as json with wrong indent
+			size_t packed_size;
+			err = dl_instance_calc_size( ctx, type_info.metadata_type_ids[i], type_info.metadata_instances[i], &packed_size );
+			if( DL_ERROR_OK != err ) return err;
+			uint8_t* packed_instance = (uint8_t*)dl_alloc( &ctx->alloc, packed_size );
+			err = dl_instance_store( ctx, type_info.metadata_type_ids[i], type_info.metadata_instances[i], packed_instance, packed_size, &produced_bytes );
+			if( DL_ERROR_OK != err ) return err;
+
+			size_t txt_instance_size;
+			err = dl_txt_unpack_calc_size( ctx, type_info.metadata_type_ids[i], packed_instance, packed_size, &txt_instance_size );
+			if( DL_ERROR_OK != err ) return err;
+			char* text_instance = (char*)dl_alloc( &ctx->alloc, txt_instance_size );
+			err = dl_txt_unpack( ctx, type_info.metadata_type_ids[i], packed_instance, packed_size, text_instance, txt_instance_size, &produced_bytes );
+			if( DL_ERROR_OK != err ) return err;
+			dl_free( &ctx->alloc, packed_instance );
+
+			dl_binary_writer_write( writer, text_instance, txt_instance_size - 1 );
+			dl_free( &ctx->alloc, text_instance );
+			if( i < type_info.metadata_count - 1 )
+				dl_binary_writer_write( writer, ",\n", 2 );
+			else
+				dl_binary_writer_write( writer, "\n", 1 );
+		}
+		dl_binary_writer_write_fmt( writer, "      ]" );
+	}
+	dl_binary_writer_write_fmt( writer, "\n    }" );
 	free( members );
 	return DL_ERROR_OK;
 }

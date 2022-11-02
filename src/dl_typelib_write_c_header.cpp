@@ -845,7 +845,7 @@ static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_
 			dl_binary_writer_write_string_fmt( writer, "struct %s\n{\n", type->name );
 
 		dl_binary_writer_write_string_fmt( writer, "#if defined( __cplusplus )\n"
-												   "    static const uint32_t TYPE_ID = 0x%08X;\n"
+												   "    static constexpr const uint32_t TYPE_ID = 0x%08X;\n"
 												   "#endif // defined( __cplusplus )\n\n", type->tid );
 
 		if( type->is_union )
