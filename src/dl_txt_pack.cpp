@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <limits.h>
+#include <algorithm>
 #include <float.h>
 #include <limits>
 
@@ -59,14 +60,14 @@ inline double dl_strtod(const char* str, char** endptr)
 		}
 #endif
 			if( tolower(str[1]) == 'a' &&
-			    tolower(str[2]) == 'x' &&
+				tolower(str[2]) == 'x' &&
 			   !isalnum(str[3]) )
 			{
 				*endptr = (char*)str + 3;
 				return DBL_MAX * sign;
 			}
 			if( tolower(str[1]) == 'i' &&
-			    tolower(str[2]) == 'n' &&
+				tolower(str[2]) == 'n' &&
 			   !isalnum(str[3]))
 			{
 				*endptr = (char*)str + 3;
@@ -113,14 +114,14 @@ inline float dl_strtof(const char* str, char** endptr)
 		}
 #endif
 			if( tolower(str[1]) == 'a' &&
-			    tolower(str[2]) == 'x' &&
+				tolower(str[2]) == 'x' &&
 			   !isalnum(str[3]) )
 			{
 				*endptr = (char*)str + 3;
 				return FLT_MAX * sign;
 			}
 			if( tolower(str[1]) == 'i' &&
-			    tolower(str[2]) == 'n' &&
+				tolower(str[2]) == 'n' &&
 			   !isalnum(str[3]))
 			{
 				*endptr = (char*)str + 3;
@@ -133,21 +134,48 @@ inline float dl_strtof(const char* str, char** endptr)
 struct dl_txt_pack_ctx
 {
 	explicit dl_txt_pack_ctx(dl_allocator alloc)
-	    : subdata(alloc)
+		: subdata(alloc)
+		, strings(alloc)
+		, ptrs(alloc)
 	{
+	}
+
+	uint32_t GetStringOffset( dl_substr str, uint32_t hash )
+	{
+		for( size_t i = 0; i < strings.Len(); ++i )
+			if( strings[i].hash == hash && strings[i].str.len == str.len && memcmp( strings[i].str.str, str.str, str.len ) == 0 )
+				return strings[i].offset;
+
+		return 0;
 	}
 
 	dl_txt_read_ctx read_ctx;
 	dl_binary_writer* writer;
+
+	// Where the "__subdata" section starts
 	const char* subdata_pos;
+
+	// Used to know where all pointer payloads are, so two identical pointers will refer to the same offset
 	struct SSubData
 	{
 		dl_substr name;
 		uint32_t name_hash;
 		const dl_type_desc* type;
 		size_t patch_pos;
-	}; 
+	};
 	CArrayStatic<SSubData, 256> subdata;
+
+	// Used to merge identical strings
+	struct SString
+	{
+		dl_substr name;
+		uint32_t name_hash;
+		uint32_t offset;
+	};
+	CArrayStatic<::CDLBinStoreContext::SString, 128> strings;
+
+	// Used to know where all pointers are, to speed up pointer patching
+	CArrayStatic<uintptr_t, 256> ptrs;
 };
 
 static void dl_txt_pack_eat_and_write_int8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
@@ -225,7 +253,7 @@ static bool dl_txt_pack_eat_and_write_null(dl_txt_pack_ctx* packctx)
 	dl_txt_eat_white( &packctx->read_ctx );
 	if( strncmp( packctx->read_ctx.iter, "null", 4 ) == 0 )
 	{
-		dl_binary_writer_write_ptr( packctx->writer, (uintptr_t)-1 );
+		dl_binary_writer_write_ptr( packctx->writer, (uintptr_t) 0 );
 		packctx->read_ctx.iter += 4;
 		return true;
 	}
@@ -242,16 +270,20 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	if( str.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'string' or 'null'" );
 
-	size_t curr = dl_binary_writer_tell( packctx->writer );
-	dl_binary_writer_seek_end( packctx->writer );
-	size_t strpos = dl_binary_writer_tell( packctx->writer );
-	for( int i = 0; i < str.len; ++i )
+	uint32_t hash = dl_internal_hash_buffer( (const uint8_t*)str.str, str.len );
+	size_t strpos = packctx->GetStringOffset( str, hash );
+	if( strpos == 0 )
 	{
-		if( str.str[i] == '\\' )
+		size_t curr = dl_binary_writer_tell( packctx->writer );
+		dl_binary_writer_seek_end( packctx->writer );
+		strpos = dl_binary_writer_tell( packctx->writer );
+		for( int i = 0; i < str.len; ++i )
 		{
-			++i;
-			switch( str.str[i] )
+			if( str.str[i] == '\\' )
 			{
+				++i;
+				switch( str.str[i] )
+				{
 				case '\'':
 				case '\"':
 				case '\\':
@@ -265,14 +297,18 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 					break;
 				default:
 					DL_ASSERT( false && "unhandled escape!" );
+				}
 			}
+			else
+				dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
 		}
-		else
-			dl_binary_writer_write_uint8( packctx->writer, (uint8_t)str.str[i] );
+		dl_binary_writer_write_uint8( packctx->writer, '\0' );
+		dl_binary_writer_seek_set( packctx->writer, curr );
+		packctx->strings.Add( { str, hash, (uint32_t) strpos } );
 	}
-	dl_binary_writer_write_uint8( packctx->writer, '\0' );
-	dl_binary_writer_seek_set( packctx->writer, curr );
-	dl_binary_writer_write( packctx->writer, &strpos, sizeof(size_t) );
+	if( !packctx->writer->dummy )
+		packctx->ptrs.Add( dl_binary_writer_tell( packctx->writer ) );
+	dl_binary_writer_write( packctx->writer, &strpos, sizeof( size_t ) );
 }
 
 static void dl_txt_pack_eat_and_write_enum( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_enum_desc* edesc )
@@ -302,16 +338,20 @@ static void dl_txt_pack_eat_and_write_enum( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pa
 	packctx->read_ctx.iter = ename.str + ename.len + 1;
 }
 
-static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, size_t patch_pos )
+static bool dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type, size_t patch_pos )
 {
 	if( dl_txt_pack_eat_and_write_null(packctx) )
-		return;
+		return false;
 
 	dl_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
 	if( ptr.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
 
+	if( !packctx->writer->dummy )
+		packctx->ptrs.Add( patch_pos );
+
 	packctx->subdata.Add({ ptr, dl_internal_hash_buffer((const uint8_t*)ptr.str, ptr.len), type, patch_pos });
+	return true;
 }
 
 static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr symbol )
@@ -523,7 +563,7 @@ static void dl_txt_pack_array_item_size_align( dl_ctx_t dl_ctx,
 	}
 }
 
-const char* dl_txt_skip_array( const char* iter, const char* end )
+static const char* dl_txt_skip_array( const char* iter, const char* end )
 {
 	iter = dl_txt_skip_white( iter, end );
 	if( *iter != '[' )
@@ -708,15 +748,16 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 	return (uint32_t)-1;
 }
 
-static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
-											 dl_txt_pack_ctx*      packctx,
-											 const dl_member_desc* member,
-											 size_t                member_pos )
+static dl_error_t dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
+												   dl_txt_pack_ctx*      packctx,
+												   const dl_member_desc* member,
+												   size_t                member_pos )
 {
 	uint8_t* member_default_value = dl_ctx->default_data + member->default_value_offset;
 
 	uint32_t member_size = member->size[DL_PTR_SIZE_HOST];
 
+	dl_error_t err = DL_ERROR_OK;
 	// ... handle bitfields differently since they take up sub-parts of bytes.
 	if(member->AtomType() == DL_TYPE_ATOM_BITFIELD)
 	{
@@ -768,22 +809,19 @@ static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 	else
 	{
 		dl_binary_writer_seek_set( packctx->writer, member_pos );
-		dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+		if( member_size == member->default_value_size )
+			dl_binary_writer_write( packctx->writer, member_default_value, member->size[DL_PTR_SIZE_HOST] );
+		else
+		{
+			CDLBinStoreContext store_ctx( *packctx->writer, dl_ctx->alloc, packctx->ptrs, packctx->strings );
+			uint8_t* default_data = (uint8_t*)dl_alloc( &dl_ctx->alloc, member->default_value_size );
+			memcpy( default_data, member_default_value, member->default_value_size );
+			dl_internal_patch_member( dl_ctx, member, default_data, (uintptr_t)0, (uintptr_t)default_data - sizeof( dl_data_header ) );
+			err = dl_internal_store_member( dl_ctx, member, default_data, &store_ctx );
+			dl_free( &dl_ctx->alloc, default_data );
+		}
 	}
-
-	if( member_size != member->default_value_size )
-	{
-		uint8_t* subdata = member_default_value + member_size;
-		// ... sub ptrs, copy and patch ...
-		dl_binary_writer_seek_end( packctx->writer );
-		uintptr_t subdata_pos = dl_binary_writer_tell( packctx->writer );
-
-		dl_binary_writer_write( packctx->writer, subdata, member->default_value_size - member_size );
-
-		uint8_t* member_data = packctx->writer->data + member_pos;
-		if( !packctx->writer->dummy )
-			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size - (dl_ctx->default_data_patched ? (uintptr_t)member_default_value : 0) );
-	}
+	return err;
 }
 
 static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
@@ -837,7 +875,7 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 			uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, member );
 			if( array_length == 0 )
 			{
-				dl_binary_writer_write_pint( packctx->writer, (size_t)-1 );
+				dl_binary_writer_write_pint( packctx->writer, (size_t)0 );
 				dl_binary_writer_write_uint32( packctx->writer, 0 );
 			}
 			else
@@ -846,6 +884,9 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 				dl_txt_pack_array_item_size_align( dl_ctx, member, &element_size, &element_align );
 				size_t array_pos = dl_binary_writer_needed_size( packctx->writer );
 				array_pos = dl_internal_align_up( array_pos, element_align );
+
+				if( !packctx->writer->dummy )
+					packctx->ptrs.Add( dl_binary_writer_tell( packctx->writer ) );
 
 				dl_binary_writer_write_pint( packctx->writer, array_pos );
 				dl_binary_writer_write_uint32( packctx->writer, array_length );
@@ -893,7 +934,9 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 						for(uint32_t sub_member_i = 0; sub_member_i < sub_type->member_count; ++sub_member_i)
 						{
 							const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
-							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
+							dl_error_t err = dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
+							if( err != DL_ERROR_OK )
+								return err;
 						}
 						current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
 					}
@@ -1119,7 +1162,8 @@ static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack
 				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MISSING_MEMBER, "member %s.%s is not set and has no default value", dl_internal_type_name( dl_ctx, type ), dl_internal_member_name( dl_ctx, member ) );
 
 			size_t   member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
-			dl_txt_pack_write_default_value(dl_ctx, packctx, member, member_pos);
+			dl_error_t err = dl_txt_pack_write_default_value(dl_ctx, packctx, member, member_pos);
+			if( DL_ERROR_OK != err ) return err;
 		}
 	}
 	return DL_ERROR_OK;
@@ -1162,7 +1206,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	packctx->read_ctx.iter = packctx->subdata_pos;
 
 	CArrayStatic<SSubInstance, 256> subinstances(dl_ctx->alloc);
-	subinstances.Add({ { "__root", 6 }, 0, dl_internal_hash_string("__root") });
+	subinstances.Add({ { "__root", 6 }, sizeof(dl_data_header), dl_internal_hash_string("__root") });
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
 
@@ -1287,12 +1331,12 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	return 0x0;
 }
 
-dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes )
+dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, bool use_fast_ptr_patch )
 {
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer,
-						   out_buffer + sizeof(dl_data_header),
-						   out_buffer_size - sizeof(dl_data_header),
+						   out_buffer,
+						   out_buffer_size,
 						   out_buffer_size == 0,
 						   DL_ENDIAN_HOST,
 						   DL_ENDIAN_HOST,
@@ -1305,30 +1349,55 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	packctx.subdata_pos = 0x0;
 	packctx.read_ctx.err = DL_ERROR_OK;
 
+	dl_binary_writer_write_zero( &writer, sizeof( dl_data_header ) );
 	const dl_type_desc* root_type = dl_txt_pack_inner( dl_ctx, &packctx );
 	if( packctx.read_ctx.err == DL_ERROR_OK )
 	{
 		// write header
 		if( out_buffer_size > 0 )
 		{
-			dl_data_header header;
-			memset(&header, 0x0, sizeof(dl_data_header));
-			header.id                 = DL_INSTANCE_ID;
-			header.version            = DL_INSTANCE_VERSION;
-			header.root_instance_type = dl_internal_typeid_of( dl_ctx, root_type );
-			header.instance_size      = (uint32_t)dl_binary_writer_needed_size( &writer );
-			header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
-			memcpy( out_buffer, &header, sizeof(dl_data_header) );
+			CArrayStatic<uintptr_t, 256>& pointers = packctx.ptrs;
+
+			dl_data_header& header        = *(dl_data_header*)writer.data;
+			header.id                     = DL_INSTANCE_ID;
+			header.version                = DL_INSTANCE_VERSION;
+			header.root_instance_type     = dl_internal_typeid_of( dl_ctx, root_type );
+			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header ));
+			header.is_64_bit_ptr          = sizeof( void* ) == 8 ? 1 : 0;
+			header.first_pointer_to_patch = pointers.Len() ? (uint32_t)pointers[0] : 0;
+
+			uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
+			if( dl_binary_writer_needed_size( &writer ) >= ( 1ULL << offset_shift ) || !use_fast_ptr_patch )
+				header.not_using_ptr_chain_patching = 1;
+			else
+			{
+				std::sort( pointers.m_Ptr, pointers.m_Ptr + pointers.m_nElements );
+				if( !packctx.writer->dummy && pointers.Len() )
+				{
+					pointers.Add( pointers[pointers.Len() - 1] ); // Adding last pointer again so the offset to next pointer becomes 0 which terminates patching
+					for( size_t i = 0; i < pointers.Len() - 1; ++i )
+					{
+						uintptr_t offset                                = *(uintptr_t*)&packctx.writer->data[pointers[i]];
+						*(uintptr_t*)&packctx.writer->data[pointers[i]] = offset | ( ( (uintptr_t)( pointers[i + 1] - pointers[i] ) ) << offset_shift );
+					}
+				}
+			}
 		}
 
 		if( produced_bytes )
-			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);
+			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer );
 	}
 	else
 	{
 		dl_report_error_location( dl_ctx, packctx.read_ctx.start, packctx.read_ctx.end, packctx.read_ctx.iter );
 	}
 	return packctx.read_ctx.err;
+}
+
+dl_error_t dl_txt_pack(dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes)
+{
+	bool use_fast_ptr_patch = true;
+	return dl_txt_pack_internal( dl_ctx, txt_instance, out_buffer, out_buffer_size, produced_bytes, use_fast_ptr_patch );
 }
 
 dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size )

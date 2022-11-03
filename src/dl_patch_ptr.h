@@ -27,10 +27,10 @@ void dl_internal_patch_instance( dl_ctx_t            ctx,
  * @param base_address base address to patch the pointers against.
  * @param patch_distance distance in bytes to patch all pointers.
  */
-void dl_internal_patch_member( dl_ctx_t                ctx,
-								 const dl_member_desc* member,
-								 uint8_t*              member_data,
-								 uintptr_t             base_address,
-								 uintptr_t             patch_distance );
+void dl_internal_patch_member( dl_ctx_t              ctx,
+							   const dl_member_desc* member,
+							   uint8_t*              member_data,
+							   uintptr_t             base_address,
+							   uintptr_t             patch_distance );
 
 #endif // DL_PATCH_PTR_H_INCLUDED
