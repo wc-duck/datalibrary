@@ -313,6 +313,18 @@
 			]
 		},
 
+        "issue_40_1" : {
+            "members" : [
+                { "name" : "submember1", "type" : "string[]" },
+                { "name" : "submember2", "type" : "uint32" }
+            ]
+        },
+        "issue_40_2" : {
+            "members" : [
+                { "name" : "member1", "type" : "issue_40_1", "default" : { "submember1" : [ "apa" ], "submember2": 1337 } }
+            ]
+        },
+
 		"with_alias_enum" : {
 			"members" : [
 				{ "name" : "e1", "type" : "multi_alias_enum" },

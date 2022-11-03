@@ -73,10 +73,11 @@ public:
 
 static inline void dl_swap_header( dl_data_header* header )
 {
-	header->id                 = dl_swap_endian_uint32( header->id );
-	header->version            = dl_swap_endian_uint32( header->version );
-	header->root_instance_type = dl_swap_endian_uint32( header->root_instance_type );
-	header->instance_size      = dl_swap_endian_uint32( header->instance_size );
+	header->id                     = dl_swap_endian_uint32( header->id );
+	header->version                = dl_swap_endian_uint32( header->version );
+	header->root_instance_type     = dl_swap_endian_uint32( header->root_instance_type );
+	header->instance_size          = dl_swap_endian_uint32( header->instance_size );
+	header->first_pointer_to_patch = dl_swap_endian_uint32( header->first_pointer_to_patch );
 }
 
 static uintptr_t dl_internal_read_ptr_data( const uint8_t* data,
@@ -1004,20 +1005,14 @@ static dl_error_t dl_internal_convert_write_instance( dl_ctx_t          dl_ctx,
 #include <algorithm>
 
 bool dl_internal_sort_pred( const SInstance& i1, const SInstance& i2 ) { return i1.address < i2.address; }
+bool dl_internal_search_pred( const SInstance& i1, uintptr_t address ) { return i1.address < (const uint8_t*)address; }
+bool dl_internal_sort_patchpos_pred( const SConvertContext::PatchPos& i1, const SConvertContext::PatchPos& i2 ) { return i1.pos < i2.pos; }
 
-dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
-                                          unsigned char* packed_instance, unsigned char* packed_instance_base,
-                                          unsigned char* out_instance,    size_t         out_instance_size,
-                                          size_t*        needed_size,
-                                          dl_endian_t    src_endian,      dl_endian_t    out_endian,
-                                          dl_ptr_size_t  src_ptr_size,    dl_ptr_size_t  out_ptr_size,
-                                          const dl_type_desc* root_type,  size_t         base_offset )
+dl_error_t dl_internal_convert_no_header( dl_ctx_t            dl_ctx,               unsigned char*   packed_instance,
+                                          unsigned char*      packed_instance_base, SConvertContext& conv_ctx,
+                                          dl_binary_writer*   writer,               size_t*          needed_size,
+                                          const dl_type_desc* root_type )
 {
-	dl_binary_writer writer;
-	dl_binary_writer_init( &writer, out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, out_ptr_size );
-
-	SConvertContext conv_ctx( src_endian, out_endian, src_ptr_size, out_ptr_size, dl_ctx->alloc );
-
 	conv_ctx.instances.Add(SInstance(packed_instance, root_type, 0x0, dl_make_type(DL_TYPE_ATOM_POD, DL_TYPE_STORAGE_STRUCT)));
 	dl_error_t err = dl_internal_convert_collect_instances(dl_ctx, root_type, packed_instance, packed_instance_base, conv_ctx);
 
@@ -1032,40 +1027,55 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t       dl_ctx,
 		if (dl_type_storage_t((conv_ctx.instances[i].type_id & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT) == DL_TYPE_STORAGE_STR && last_address == conv_ctx.instances[i].address)
 			continue; // Merge identical strings
 		last_address = conv_ctx.instances[i].address;
-		err = dl_internal_convert_write_instance( dl_ctx, conv_ctx.instances[i], &conv_ctx.instances[i].offset_after_patch, conv_ctx, &writer );
+		err = dl_internal_convert_write_instance( dl_ctx, conv_ctx.instances[i], &conv_ctx.instances[i].offset_after_patch, conv_ctx, writer );
 		if(err != DL_ERROR_OK)
 			return err;
 	}
 
-	if(out_instance != 0x0) // no need to patch data if we are only calculating size
+	dl_binary_writer_seek_end( writer );
+	*needed_size = (unsigned int)dl_binary_writer_tell( writer );
+
+	if( !writer->dummy ) // no need to patch data if we are only calculating size
 	{
-		for(unsigned int i = 0; i < conv_ctx.m_lPatchOffset.Len(); ++i)
+		dl_data_header* new_header = (dl_data_header*)writer->data;
+		uintptr_t offset_shift     = ( conv_ctx.target_ptr_size == DL_PTR_SIZE_32BIT ? 4 : 8 ) * 4;
+
+		if( *needed_size >= ( 1ULL << offset_shift ) )
+			new_header->not_using_ptr_chain_patching = 1;
+		else
+			new_header->not_using_ptr_chain_patching = 0;
+		new_header->instance_size = uint32_t( *needed_size - sizeof( dl_data_header ) );
+
+		if( conv_ctx.m_lPatchOffset.Len() )
 		{
-			SConvertContext::PatchPos& pp = conv_ctx.m_lPatchOffset[i];
-
-			// find new offset
-			uintptr_t new_offset = (uintptr_t)-1;
-
-			for( size_t j = 0; j < conv_ctx.instances.Len(); ++j )
+			std::sort( conv_ctx.m_lPatchOffset.m_Ptr, conv_ctx.m_lPatchOffset.m_Ptr + conv_ctx.m_lPatchOffset.Len(), dl_internal_sort_patchpos_pred );
+			conv_ctx.m_lPatchOffset.Add( conv_ctx.m_lPatchOffset[conv_ctx.m_lPatchOffset.Len() - 1] ); // Adding last pointer again so the offset to next pointer becomes 0 which terminates patching
+			for( unsigned int i = 0; i < conv_ctx.m_lPatchOffset.Len() - 1; ++i )
 			{
-				uintptr_t old_offset = (uintptr_t)(conv_ctx.instances[j].address - packed_instance_base);
+				SConvertContext::PatchPos& pp = conv_ctx.m_lPatchOffset[i];
 
-				if(old_offset == pp.old_offset)
+				if( i == 0 && !new_header->not_using_ptr_chain_patching )
+					new_header->first_pointer_to_patch = conv_ctx.tgt_endian != DL_ENDIAN_HOST ? dl_swap_endian_uint32( (uint32_t)pp.pos ) : (uint32_t)pp.pos;
+
+				// find new offset
+				uint64_t new_offset = 0;
+				const SInstance* instance = std::lower_bound( conv_ctx.instances.m_Ptr, conv_ctx.instances.m_Ptr + conv_ctx.instances.Len(), pp.old_offset + (uintptr_t)packed_instance_base, dl_internal_search_pred );
+				if( instance != conv_ctx.instances.m_Ptr + conv_ctx.instances.Len() )
 				{
-					new_offset = conv_ctx.instances[j].offset_after_patch;
-					break;
+					uintptr_t old_offset = (uintptr_t)( instance->address - packed_instance_base );
+					if( old_offset == pp.old_offset )
+						new_offset = instance->offset_after_patch;
 				}
+
+				DL_ASSERT_MSG( new_offset != (uintptr_t)0, "We should have found the instance!" );
+				dl_binary_writer_seek_set( writer, pp.pos );
+				if( !new_header->not_using_ptr_chain_patching )
+					new_offset = new_offset | ( ( (uint64_t)( conv_ctx.m_lPatchOffset[i + 1].pos - conv_ctx.m_lPatchOffset[i].pos ) ) << offset_shift );
+
+				dl_binary_writer_write_ptr( writer, new_offset );
 			}
-
-			DL_ASSERT(new_offset != (uintptr_t)-1 && "We should have found the instance!");
-
-			dl_binary_writer_seek_set( &writer, pp.pos );
-			dl_binary_writer_write_ptr( &writer, new_offset + base_offset );
 		}
 	}
-
-	dl_binary_writer_seek_end( &writer );
-	*needed_size = (unsigned int)dl_binary_writer_tell( &writer );
 
 	return err;
 }
@@ -1076,18 +1086,20 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
                                                 dl_endian_t    out_endian,      size_t      out_ptr_size,
                                                 size_t*        out_size )
 {
-	dl_data_header* header = (dl_data_header*)packed_instance;
+	dl_data_header header = *(dl_data_header*)packed_instance;
 
-	if( packed_instance_size < sizeof(dl_data_header) )             return DL_ERROR_MALFORMED_DATA;
-	if( header->id != DL_INSTANCE_ID &&
-		header->id != DL_INSTANCE_ID_SWAPED )                       return DL_ERROR_MALFORMED_DATA;
-	if( header->version != DL_INSTANCE_VERSION &&
-		header->version != DL_INSTANCE_VERSION_SWAPED )             return DL_ERROR_VERSION_MISMATCH;
-	if( header->root_instance_type != type &&
-		header->root_instance_type != dl_swap_endian_uint32(type) ) return DL_ERROR_TYPE_MISMATCH;
-	if( out_ptr_size != 4 && out_ptr_size != 8 )                    return DL_ERROR_INVALID_PARAMETER;
+	if( packed_instance_size < sizeof(dl_data_header) )            return DL_ERROR_MALFORMED_DATA;
+	if( header.id != DL_INSTANCE_ID &&
+		header.id != DL_INSTANCE_ID_SWAPED )                       return DL_ERROR_MALFORMED_DATA;
+	if( header.version != DL_INSTANCE_VERSION &&
+		header.version != DL_INSTANCE_VERSION_SWAPED &&
+		header.version != 1 &&
+		header.version != dl_swap_endian_uint32(1) )               return DL_ERROR_VERSION_MISMATCH;
+	if( header.root_instance_type != type &&
+		header.root_instance_type != dl_swap_endian_uint32(type) ) return DL_ERROR_TYPE_MISMATCH;
+	if( out_ptr_size != 4 && out_ptr_size != 8 )                   return DL_ERROR_INVALID_PARAMETER;
 
-	dl_ptr_size_t src_ptr_size = header->is_64_bit_ptr != 0 ? DL_PTR_SIZE_64BIT : DL_PTR_SIZE_32BIT;
+	dl_ptr_size_t src_ptr_size = header.is_64_bit_ptr != 0 ? DL_PTR_SIZE_64BIT : DL_PTR_SIZE_32BIT;
 	dl_ptr_size_t dst_ptr_size;
 
 	switch(out_ptr_size)
@@ -1101,7 +1113,10 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 	if( dst_ptr_size > src_ptr_size && packed_instance == out_instance )
 		return DL_ERROR_UNSUPPORTED_OPERATION;
 
-	dl_endian_t src_endian = header->id == DL_INSTANCE_ID ? DL_ENDIAN_HOST : dl_other_endian( DL_ENDIAN_HOST );
+	dl_endian_t src_endian = header.id == DL_INSTANCE_ID ? DL_ENDIAN_HOST : dl_other_endian( DL_ENDIAN_HOST );
+
+	if (src_endian != DL_ENDIAN_HOST)
+		dl_swap_header(&header);
 
 	if(src_endian == out_endian && src_ptr_size == dst_ptr_size)
 	{
@@ -1111,25 +1126,18 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 		*out_size = packed_instance_size; // TODO: This is a bug! data_size is only the size of buffer, not the size of the packed instance!
 		return DL_ERROR_OK;
 	}
-	
-	dl_typeid_t root_type_id = src_endian != DL_ENDIAN_HOST ? dl_swap_endian_uint32( header->root_instance_type ) : header->root_instance_type;
 
-	const dl_type_desc* root_type = dl_internal_find_type(dl_ctx, root_type_id);
+	const dl_type_desc* root_type = dl_internal_find_type(dl_ctx, header.root_instance_type);
 	if(root_type == 0x0)
 		return DL_ERROR_TYPE_NOT_FOUND;
 
-	dl_error_t err = dl_internal_convert_no_header( dl_ctx,
-													packed_instance + sizeof(dl_data_header),
-													packed_instance + sizeof(dl_data_header),
-													out_instance == 0x0 ? 0x0 : out_instance + sizeof(dl_data_header),
-													out_instance_size - sizeof(dl_data_header),
-													out_size,
-													src_endian,
-													out_endian,
-													src_ptr_size,
-													dst_ptr_size,
-													root_type,
-													0u );
+	dl_binary_writer writer;
+	dl_binary_writer_init( &writer, out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, dst_ptr_size );
+
+	if( packed_instance == out_instance )
+		dl_binary_writer_reserve( &writer, sizeof( dl_data_header ) );
+	else
+		dl_binary_writer_write_zero( &writer, sizeof( dl_data_header ) );
 
 	if(out_instance != 0x0)
 	{
@@ -1138,15 +1146,65 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 		new_header->id                 = DL_INSTANCE_ID;
 		new_header->version            = DL_INSTANCE_VERSION;
 		new_header->root_instance_type = type;
-		new_header->instance_size      = uint32_t(*out_size);
+		new_header->instance_size      = uint32_t( out_instance_size - sizeof( dl_data_header ) );
 		new_header->is_64_bit_ptr      = out_ptr_size == 4 ? 0 : 1;
 
-		if(DL_ENDIAN_HOST != out_endian)
-			dl_swap_header(new_header);
-	}
+		uintptr_t offset_shift = out_ptr_size * 4;
+		if( out_instance_size >= ( 1ULL << offset_shift ) )
+			new_header->not_using_ptr_chain_patching = 1;
 
-	*out_size += sizeof(dl_data_header);
-	return err;
+		if( DL_ENDIAN_HOST != out_endian )
+			dl_swap_header( new_header );
+	}
+	
+	SConvertContext conv_ctx( src_endian, out_endian, src_ptr_size, dst_ptr_size, dl_ctx->alloc );
+	// While converting we always do slow patching, so neutralize the patch offsets
+	if( header.version == DL_INSTANCE_VERSION && !header.not_using_ptr_chain_patching )
+	{
+		uint32_t offset_to_next_pointer_to_patch = header.first_pointer_to_patch;
+		uint8_t* patch_mem = packed_instance;
+		if( header.is_64_bit_ptr )
+		{
+			uint64_t patch_mask = src_endian == DL_ENDIAN_HOST ? 0xFFFFFFFFULL : 0xFFFFFFFF00000000ULL;
+			while( offset_to_next_pointer_to_patch != 0 ) // 0 is the patch terminator
+			{
+				patch_mem += offset_to_next_pointer_to_patch;
+				if( patch_mem > packed_instance + sizeof(header) + header.instance_size )
+					return DL_ERROR_MALFORMED_DATA;
+				uint64_t offsets = *(uint64_t*)patch_mem;
+				if( src_endian != DL_ENDIAN_HOST )
+					offsets = dl_swap_endian_uint64( offsets );
+				offset_to_next_pointer_to_patch = uint32_t(offsets >> 32);
+				*(uint64_t*)patch_mem = *(uint64_t*)patch_mem & patch_mask;
+			}
+		}
+		else
+		{
+			uint32_t patch_mask = src_endian == DL_ENDIAN_HOST ? 0xFFFFU : 0xFFFF0000U;
+			while( offset_to_next_pointer_to_patch != 0 ) // 0 is the patch terminator
+			{
+				patch_mem += offset_to_next_pointer_to_patch;
+				if (patch_mem > packed_instance + sizeof(header) + header.instance_size)
+					return DL_ERROR_MALFORMED_DATA;
+				uint32_t offsets = *(uint32_t*)patch_mem;
+				if( src_endian != DL_ENDIAN_HOST )
+					offsets = dl_swap_endian_uint32( offsets );
+				offset_to_next_pointer_to_patch = offsets >> 16;
+				*(uint32_t*)patch_mem  = *(uint32_t*)patch_mem & patch_mask;
+			}
+		}
+
+		dl_data_header* packed_header = (dl_data_header*)packed_instance;
+		packed_header->not_using_ptr_chain_patching = 1;
+		packed_header->first_pointer_to_patch = 0;
+	}
+	return dl_internal_convert_no_header( dl_ctx,
+										  packed_instance + sizeof(dl_data_header),
+										  packed_instance + (header.version == DL_INSTANCE_VERSION ? 0 : sizeof(dl_data_header)),
+										  conv_ctx,
+										  &writer,
+										  out_size,
+										  root_type );
 }
 
 #ifdef __cplusplus

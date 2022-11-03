@@ -209,6 +209,7 @@ static const dl_builtin_type* dl_find_builtin_type( const char* name )
 }
 
 dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage );
+dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, bool use_fast_ptr_patch );
 
 static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_state, unsigned int member_index )
 {
@@ -251,7 +252,8 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 
 	uint8_t* pack_buffer = (uint8_t*)dl_alloc( &ctx->alloc, prod_bytes );
 
-	err = dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0 );
+	bool use_fast_ptr_patch = false;
+	err = dl_txt_pack_internal( ctx, def_buffer, pack_buffer, prod_bytes, 0x0, use_fast_ptr_patch );
 	if( err != DL_ERROR_OK )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_INVALID_DEFAULT_VALUE, "failed to pack default-value for member \"%s\" with error \"%s\"",
 															dl_internal_member_name( ctx, member ),

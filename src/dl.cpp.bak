@@ -531,7 +531,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 				dl_binary_writer_seek_set( &store_ctx->writer, pos );
 
 				if( !store_ctx->writer.dummy )
-					store_ctx->ptrs.Add( dl_binary_writer_tell( &store_ctx->writer ) );
+				    store_ctx->ptrs.Add( dl_binary_writer_tell( &store_ctx->writer ) );
 			}
 
 			// make room for ptr
