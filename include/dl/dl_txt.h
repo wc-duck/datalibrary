@@ -83,10 +83,9 @@ dl_error_t DL_DLL_EXPORT dl_txt_unpack( dl_ctx_t       dl_ctx,           dl_type
 	Note:
 	    A loaded instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_unpack_loaded( dl_ctx_t dl_ctx,        dl_typeid_t type,
-                                               const unsigned char* loaded_instance,
-                                               char* out_txt_instance, size_t out_txt_instance_size,
-                                               size_t* produced_bytes );
+dl_error_t DL_DLL_EXPORT dl_txt_unpack_loaded( dl_ctx_t dl_ctx,              dl_typeid_t type,
+                                               const void* loaded_instance,  char* out_txt_instance,
+	                                           size_t out_txt_instance_size, size_t* produced_bytes );
 
 /*
 	Function: dl_txt_unpack_calc_size
@@ -103,7 +102,7 @@ dl_error_t DL_DLL_EXPORT dl_txt_unpack_loaded( dl_ctx_t dl_ctx,        dl_typeid
 		Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
 dl_error_t DL_DLL_EXPORT dl_txt_unpack_calc_size( dl_ctx_t             dl_ctx,               dl_typeid_t type,
-                                                  unsigned char* packed_instance,            size_t      packed_instance_size,
+                                                  unsigned char*       packed_instance,      size_t      packed_instance_size,
                                                   size_t*              out_txt_instance_size );
 
 /*
@@ -119,8 +118,8 @@ dl_error_t DL_DLL_EXPORT dl_txt_unpack_calc_size( dl_ctx_t             dl_ctx,  
 	Note:
 	    Packed instance to unpack is required to be in current platform endian, if not DL_ERROR_ENDIAN_ERROR will be returned.
 */
-dl_error_t DL_DLL_EXPORT dl_txt_unpack_loaded_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type,
-                                                         unsigned char* loaded_instance, size_t* out_txt_instance_size );
+dl_error_t DL_DLL_EXPORT dl_txt_unpack_loaded_calc_size( dl_ctx_t dl_ctx,             dl_typeid_t type,
+                                                         const void* loaded_instance, size_t* out_txt_instance_size );
 
 #ifdef __cplusplus
 }

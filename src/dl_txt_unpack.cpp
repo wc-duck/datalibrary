@@ -798,10 +798,9 @@ static dl_error_t dl_txt_unpack_root( dl_ctx_t dl_ctx, dl_txt_unpack_ctx* unpack
 	return DL_ERROR_OK;
 }
 
-dl_error_t dl_txt_unpack_loaded( dl_ctx_t dl_ctx,        dl_typeid_t type,
-                                 const unsigned char* loaded_packed_instance,
-                                 char* out_txt_instance, size_t out_txt_instance_size,
-                                 size_t* produced_bytes )
+dl_error_t dl_txt_unpack_loaded( dl_ctx_t    dl_ctx,                 dl_typeid_t type,
+                                 const void* loaded_packed_instance, char*       out_txt_instance,
+	                             size_t      out_txt_instance_size,  size_t*     produced_bytes )
 {
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer,
@@ -813,7 +812,7 @@ dl_error_t dl_txt_unpack_loaded( dl_ctx_t dl_ctx,        dl_typeid_t type,
 						   DL_PTR_SIZE_HOST );
 
 	dl_txt_unpack_ctx unpackctx( dl_ctx->alloc );
-	unpackctx.packed_instance      = loaded_packed_instance;
+	unpackctx.packed_instance      = reinterpret_cast<const uint8_t*>(loaded_packed_instance);
 	unpackctx.indent               = 0;
 	unpackctx.has_ptrs             = false;
 
@@ -826,7 +825,7 @@ dl_error_t dl_txt_unpack_loaded( dl_ctx_t dl_ctx,        dl_typeid_t type,
 	return err;
 }
 
-dl_error_t dl_txt_unpack_loaded_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, unsigned char* packed_instance, size_t* out_txt_instance_size )
+dl_error_t dl_txt_unpack_loaded_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, const void* packed_instance, size_t* out_txt_instance_size )
 {
 	return dl_txt_unpack_loaded( dl_ctx, type, packed_instance, 0x0, 0, out_txt_instance_size );
 }
@@ -838,13 +837,13 @@ dl_error_t dl_txt_unpack( dl_ctx_t       dl_ctx,           dl_typeid_t type,
 {
 	void* loaded_instance;
 	size_t consumed;
-	dl_error_t err = dl_instance_load_inplace( dl_ctx, type, packed_instance, packed_instance_size, &loaded_instance, &consumed );
+	dl_error_t err = dl_instance_load_inplace( dl_ctx, type, (uint8_t*)packed_instance, packed_instance_size, &loaded_instance, &consumed );
 	if( err != DL_ERROR_OK )
 		return err;
-	err = dl_txt_unpack_loaded( dl_ctx, type, (const uint8_t*)loaded_instance, out_txt_instance, out_txt_instance_size, produced_bytes );
+	err = dl_txt_unpack_loaded( dl_ctx, type, (const void*)loaded_instance, out_txt_instance, out_txt_instance_size, produced_bytes );
 	if( err != DL_ERROR_OK )
 		return err;
-	err = dl_instance_store( dl_ctx, type, loaded_instance, packed_instance, packed_instance_size, &consumed );
+	err = dl_instance_store( dl_ctx, type, loaded_instance, (uint8_t*)packed_instance, packed_instance_size, &consumed );
 	return err;
 }
 
