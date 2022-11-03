@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <limits.h>
+#include <algorithm>
 #include <float.h>
 #include <limits>
 
@@ -134,6 +135,7 @@ struct dl_txt_pack_ctx
 {
 	explicit dl_txt_pack_ctx(dl_allocator alloc)
 	    : subdata(alloc)
+	    , ptrs(alloc)
 	{
 	}
 
@@ -148,6 +150,7 @@ struct dl_txt_pack_ctx
 		size_t patch_pos;
 	}; 
 	CArrayStatic<SSubData, 256> subdata;
+	dl_patched_ptrs ptrs;
 };
 
 static void dl_txt_pack_eat_and_write_int8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
@@ -225,7 +228,7 @@ static bool dl_txt_pack_eat_and_write_null(dl_txt_pack_ctx* packctx)
 	dl_txt_eat_white( &packctx->read_ctx );
 	if( strncmp( packctx->read_ctx.iter, "null", 4 ) == 0 )
 	{
-		dl_binary_writer_write_ptr( packctx->writer, (uintptr_t)-1 );
+		dl_binary_writer_write_ptr( packctx->writer, (uintptr_t) 0 );
 		packctx->read_ctx.iter += 4;
 		return true;
 	}
@@ -272,6 +275,8 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	}
 	dl_binary_writer_write_uint8( packctx->writer, '\0' );
 	dl_binary_writer_seek_set( packctx->writer, curr );
+	if( !packctx->writer->dummy )
+		packctx->ptrs.add( dl_binary_writer_tell( packctx->writer ) );
 	dl_binary_writer_write( packctx->writer, &strpos, sizeof(size_t) );
 }
 
@@ -310,6 +315,9 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	dl_substr ptr = dl_txt_eat_string( &packctx->read_ctx );
 	if( ptr.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
+
+	if( !packctx->writer->dummy )
+		packctx->ptrs.add( patch_pos );
 
 	packctx->subdata.Add({ ptr, dl_internal_hash_buffer((const uint8_t*)ptr.str, ptr.len), type, patch_pos });
 }
@@ -782,7 +790,7 @@ static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 
 		uint8_t* member_data = packctx->writer->data + member_pos;
 		if( !packctx->writer->dummy )
-			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size );
+			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size - sizeof( dl_data_header ), &packctx->ptrs );
 	}
 }
 
@@ -837,7 +845,7 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 			uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, member );
 			if( array_length == 0 )
 			{
-				dl_binary_writer_write_pint( packctx->writer, (size_t)-1 );
+				dl_binary_writer_write_pint( packctx->writer, (size_t)0 );
 				dl_binary_writer_write_uint32( packctx->writer, 0 );
 			}
 			else
@@ -846,6 +854,9 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 				dl_txt_pack_array_item_size_align( dl_ctx, member, &element_size, &element_align );
 				size_t array_pos = dl_binary_writer_needed_size( packctx->writer );
 				array_pos = dl_internal_align_up( array_pos, element_align );
+
+	            if( !packctx->writer->dummy )
+				    packctx->ptrs.add( dl_binary_writer_tell( packctx->writer ) );
 
 				dl_binary_writer_write_pint( packctx->writer, array_pos );
 				dl_binary_writer_write_uint32( packctx->writer, array_length );
@@ -1162,7 +1173,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	packctx->read_ctx.iter = packctx->subdata_pos;
 
 	CArrayStatic<SSubInstance, 256> subinstances(dl_ctx->alloc);
-	subinstances.Add({ { "__root", 6 }, 0, dl_internal_hash_string("__root") });
+	subinstances.Add({ { "__root", 6 }, sizeof(dl_data_header), dl_internal_hash_string("__root") });
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
 
@@ -1287,12 +1298,12 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	return 0x0;
 }
 
-dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes )
+dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, bool use_fast_ptr_patch )
 {
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer,
-						   out_buffer + sizeof(dl_data_header),
-						   out_buffer_size - sizeof(dl_data_header),
+						   out_buffer,
+						   out_buffer_size,
 						   out_buffer_size == 0,
 						   DL_ENDIAN_HOST,
 						   DL_ENDIAN_HOST,
@@ -1305,30 +1316,55 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	packctx.subdata_pos = 0x0;
 	packctx.read_ctx.err = DL_ERROR_OK;
 
+	dl_binary_writer_write_zero( &writer, sizeof( dl_data_header ) );
 	const dl_type_desc* root_type = dl_txt_pack_inner( dl_ctx, &packctx );
 	if( packctx.read_ctx.err == DL_ERROR_OK )
 	{
 		// write header
 		if( out_buffer_size > 0 )
 		{
-			dl_data_header header;
-			memset(&header, 0x0, sizeof(dl_data_header));
-			header.id                 = DL_INSTANCE_ID;
-			header.version            = DL_INSTANCE_VERSION;
-			header.root_instance_type = dl_internal_typeid_of( dl_ctx, root_type );
-			header.instance_size      = (uint32_t)dl_binary_writer_needed_size( &writer );
-			header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
-			memcpy( out_buffer, &header, sizeof(dl_data_header) );
+			CArrayStatic<uintptr_t, 256>& pointers = packctx.ptrs.addresses;
+
+			dl_data_header& header        = *(dl_data_header*)writer.data;
+			header.id                     = DL_INSTANCE_ID;
+			header.version                = DL_INSTANCE_VERSION;
+			header.root_instance_type     = dl_internal_typeid_of( dl_ctx, root_type );
+			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header ));
+			header.is_64_bit_ptr          = sizeof( void* ) == 8 ? 1 : 0;
+			header.first_pointer_to_patch = pointers.Len() ? (uint32_t)pointers[0] : 0;
+
+			uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
+			if( dl_binary_writer_needed_size( &writer ) >= ( 1ULL << offset_shift ) || !use_fast_ptr_patch )
+				header.not_using_ptr_chain_patching = 1;
+			else
+			{
+				std::sort( pointers.m_Ptr, pointers.m_Ptr + pointers.m_nElements );
+				if( !packctx.writer->dummy && pointers.Len() )
+				{
+					pointers.Add( pointers[pointers.Len() - 1] ); // Adding last pointer again so the offset to next pointer becomes 0 which terminates patching
+					for( size_t i = 0; i < pointers.Len() - 1; ++i )
+					{
+						uintptr_t offset                                = *(uintptr_t*)&packctx.writer->data[pointers[i]];
+						*(uintptr_t*)&packctx.writer->data[pointers[i]] = offset | ( ( (uintptr_t)( pointers[i + 1] - pointers[i] ) ) << offset_shift );
+					}
+				}
+			}
 		}
 
 		if( produced_bytes )
-			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);
+			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer );
 	}
 	else
 	{
 		dl_report_error_location( dl_ctx, packctx.read_ctx.start, packctx.read_ctx.end, packctx.read_ctx.iter );
 	}
 	return packctx.read_ctx.err;
+}
+
+dl_error_t dl_txt_pack(dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes)
+{
+	bool use_fast_ptr_patch = true;
+	return dl_txt_pack_internal( dl_ctx, txt_instance, out_buffer, out_buffer_size, produced_bytes, use_fast_ptr_patch );
 }
 
 dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size )
