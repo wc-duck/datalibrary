@@ -215,7 +215,7 @@ TYPED_TEST(DLBase, ptr_chain_long)
 		ptrs[i] = { (uint32_t) i, &ptrs[i + 1] };
 	ptrs[DL_ARRAY_LENGTH(ptrs) - 1] = { DL_ARRAY_LENGTH(ptrs) - 1, &ptrs[0] };
 
-	PtrChain loaded[1024];
+	PtrChain loaded[1030];
 
 	this->do_the_round_about(PtrChain::TYPE_ID, &ptrs, &loaded, sizeof(loaded));
 
