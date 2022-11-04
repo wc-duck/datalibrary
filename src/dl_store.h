@@ -3,8 +3,6 @@
 #ifndef DL_DL_STORE_H_INCLUDED
 #define DL_DL_STORE_H_INCLUDED
 
-#pragma pack(push, 1)
-
 struct CDLBinStoreContext
 {
 	struct SString;
@@ -68,7 +66,5 @@ struct CDLBinStoreContext
 };
 
 dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, const uint8_t* instance, CDLBinStoreContext* store_ctx );
-
-#pragma pack( pop )
 
 #endif // DL_DL_STORE_H_INCLUDED
