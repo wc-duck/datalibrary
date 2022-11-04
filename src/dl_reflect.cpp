@@ -131,7 +131,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 			if( member_desc.default_value_size && member_desc.default_value_size != member_desc.size[DL_PTR_SIZE_HOST] )
 			{
 				uint8_t* default_data = dl_ctx->default_data + member_desc.default_value_offset;
-				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, (uintptr_t)default_data );
+				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, (uintptr_t)default_data - sizeof(dl_data_header) );
 			}
 		}
 		dl_ctx->default_data_patched = true; // This is not thread safe. It would be better to avoid moving around default data and keep it patched like meta data

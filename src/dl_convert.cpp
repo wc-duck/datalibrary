@@ -295,7 +295,6 @@ static dl_error_t dl_internal_convert_collect_instances_from_member( dl_ctx_t   
 																			 dl_internal_find_type(ctx, member->type_id),
 																			 base_data,
 																			 convert_ctx );
-					break;
 				case DL_TYPE_STORAGE_STR:
 					dl_internal_convert_collect_instances_from_str_array( member_data,
 																		  member->inline_array_cnt(),
@@ -513,7 +512,7 @@ static dl_error_t dl_internal_convert_write_member( dl_ctx_t              ctx,
 				case DL_TYPE_STORAGE_PTR:
 				{
 					uintptr_t offset = dl_internal_read_ptr_data(member_data, conv_ctx.src_endian, conv_ctx.src_ptr_size);
-					dl_internal_convert_save_patch_pos( &conv_ctx, writer, dl_binary_writer_tell( writer), offset );
+					dl_internal_convert_save_patch_pos( &conv_ctx, writer, dl_binary_writer_tell(writer), offset );
 				}
 				break;
 				default:

@@ -1,6 +1,7 @@
 /* copyright (c) 2010 Fredrik Kihlander, see LICENSE for more info */
 
 #include "dl_types.h"
+#include "dl_store.h"
 #include <dl/dl_txt.h>
 #include "dl_binary_writer.h"
 #include "dl_patch_ptr.h"
@@ -9,7 +10,6 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <limits.h>
-#include <algorithm>
 #include <float.h>
 #include <limits>
 
@@ -1364,7 +1364,6 @@ dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsi
 			header.root_instance_type     = dl_internal_typeid_of( dl_ctx, root_type );
 			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header ));
 			header.is_64_bit_ptr          = sizeof( void* ) == 8 ? 1 : 0;
-			header.first_pointer_to_patch = pointers.Len() ? (uint32_t)pointers[0] : 0;
 
 			uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
 			if( dl_binary_writer_needed_size( &writer ) >= ( 1ULL << offset_shift ) || !use_fast_ptr_patch )
@@ -1380,6 +1379,7 @@ dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsi
 						uintptr_t offset                                = *(uintptr_t*)&packctx.writer->data[pointers[i]];
 						*(uintptr_t*)&packctx.writer->data[pointers[i]] = offset | ( ( (uintptr_t)( pointers[i + 1] - pointers[i] ) ) << offset_shift );
 					}
+					header.first_pointer_to_patch = (uint32_t)pointers[0];
 				}
 			}
 		}

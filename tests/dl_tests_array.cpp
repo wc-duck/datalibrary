@@ -76,6 +76,13 @@ TYPED_TEST(DLBase, array_string_merge)
 
 	this->do_the_round_about(StringArray::TYPE_ID, &original, &loaded[0], sizeof(loaded) / 2);
 
+	size_t merged_from_txt_size = 0; // Two long but identical strings, should be merged
+	EXPECT_DL_ERR_OK(dl_txt_unpack_loaded_calc_size(this->Ctx, original.TYPE_ID, (unsigned char*)&original, &merged_from_txt_size));
+	char* txt_buffer = (char*)malloc( merged_from_txt_size );
+	EXPECT_DL_ERR_OK(dl_txt_unpack_loaded(this->Ctx, original.TYPE_ID, (unsigned char*)&original, txt_buffer, merged_from_txt_size, &merged_from_txt_size));
+	EXPECT_DL_ERR_OK(dl_txt_pack_calc_size(this->Ctx, txt_buffer, &merged_from_txt_size));
+	free( txt_buffer );
+
 	EXPECT_STREQ(original.Strings[0], loaded[0].Strings[0]);
 	EXPECT_STREQ(original.Strings[1], loaded[0].Strings[1]);
 
@@ -83,6 +90,13 @@ TYPED_TEST(DLBase, array_string_merge)
 	original = { { array_data_2, DL_ARRAY_LENGTH(array_data_2) } };
 
 	this->do_the_round_about(StringArray::TYPE_ID, &original, &loaded[10], sizeof(loaded) / 2);
+
+	size_t unique_from_txt_size = 0; // Two shorter and different strings, should not be merged
+	EXPECT_DL_ERR_OK(dl_txt_unpack_loaded_calc_size(this->Ctx, original.TYPE_ID, (unsigned char*)&original, &unique_from_txt_size));
+	txt_buffer = (char*)malloc( unique_from_txt_size );
+	EXPECT_DL_ERR_OK(dl_txt_unpack_loaded(this->Ctx, original.TYPE_ID, (unsigned char*)&original, txt_buffer, unique_from_txt_size, &unique_from_txt_size));
+	EXPECT_DL_ERR_OK(dl_txt_pack_calc_size(this->Ctx, txt_buffer, &unique_from_txt_size));
+	free( txt_buffer );
 
 	EXPECT_STREQ(original.Strings[0], loaded[10].Strings[0]);
 	EXPECT_STREQ(original.Strings[1], loaded[10].Strings[1]);
@@ -92,6 +106,7 @@ TYPED_TEST(DLBase, array_string_merge)
 	size_t unique_store_size = 0; // Two shorter and different strings, should not be merged
 	EXPECT_DL_ERR_OK(dl_instance_calc_size(this->Ctx, loaded[10].TYPE_ID, &loaded[10], &unique_store_size));
 	EXPECT_LT(merged_store_size, unique_store_size); // Check that long merged strings take less memory than short unique strings
+	EXPECT_LT(merged_from_txt_size, unique_from_txt_size); // Check that long merged strings take less memory than short unique strings
 }
 
 TYPED_TEST(DLBase, array_string_null)

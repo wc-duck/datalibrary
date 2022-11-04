@@ -3,7 +3,7 @@
 
 struct dl_patched_ptrs
 {
-	CArrayStatic<uintptr_t, 256> addresses;
+	CArrayStatic<const uint8_t*, 256> addresses;
 
 	explicit dl_patched_ptrs( dl_allocator alloc )
 		: addresses( alloc )
@@ -37,14 +37,14 @@ static uintptr_t dl_internal_patch_ptr( uint8_t* ptrptr, uintptr_t patch_distanc
 static void dl_internal_patch_struct( dl_ctx_t            ctx,
 									  const dl_type_desc* type,
 									  uint8_t*            struct_data,
-									  uintptr_t           base_address,
+									  uint8_t*            base_address,
 									  uintptr_t           patch_distance,
 									  dl_patched_ptrs*    patched_payloads );
 
 static void dl_internal_patch_ptr_instance( dl_ctx_t            ctx,
 		   	   	   	   	   	   	   	   		const dl_type_desc* sub_type,
 											uint8_t*            ptr_data,
-											uintptr_t           base_address,
+											uint8_t*            base_address,
 											uintptr_t           patch_distance,
 											dl_patched_ptrs*    patched_payloads )
 {
@@ -52,12 +52,12 @@ static void dl_internal_patch_ptr_instance( dl_ctx_t            ctx,
 	if( offset == 0x0 )
 		return;
 
-	uintptr_t ptr = (uintptr_t)base_address + offset;
+	uint8_t* ptr = base_address + offset;
 	if( patched_payloads->patched( ptr ) )
 		return;
 
 	patched_payloads->add( ptr );
-	dl_internal_patch_struct( ctx, sub_type, (uint8_t*)ptr, base_address, patch_distance, patched_payloads );
+	dl_internal_patch_struct( ctx, sub_type, ptr, base_address, patch_distance, patched_payloads );
 }
 
 static void dl_internal_patch_str_array( uint8_t* array_data, uint32_t count, uintptr_t patch_distance )
@@ -70,7 +70,7 @@ static void dl_internal_patch_ptr_array( dl_ctx_t            ctx,
 										 uint8_t*            array_data,
 										 uint32_t            count,
 										 const dl_type_desc* sub_type,
-										 uintptr_t           base_address,
+										 uint8_t*            base_address,
 										 uintptr_t           patch_distance,
 										 dl_patched_ptrs*    patched_payloads )
 {
@@ -82,7 +82,7 @@ static void dl_internal_patch_struct_array( dl_ctx_t            ctx,
 									 	 	const dl_type_desc* type,
 											uint8_t*            array_data,
 											uint32_t            count,
-											uintptr_t           base_address,
+											uint8_t*            base_address,
 											uintptr_t           patch_distance,
 											dl_patched_ptrs*    patched_payloads )
 {
@@ -97,7 +97,7 @@ static void dl_internal_patch_struct_array( dl_ctx_t            ctx,
 static void dl_internal_patch_member( dl_ctx_t              ctx,
 									  const dl_member_desc* member,
 									  uint8_t*              member_data,
-									  uintptr_t             base_address,
+									  uint8_t*              base_address,
 									  uintptr_t             patch_distance,
 									  dl_patched_ptrs*      patched_payloads )
 {
@@ -213,7 +213,7 @@ static void dl_internal_patch_member( dl_ctx_t              ctx,
 static void dl_internal_patch_union( dl_ctx_t            ctx,
 									 const dl_type_desc* type,
 									 uint8_t*            union_data,
-									 uintptr_t           base_address,
+									 uint8_t*            base_address,
 									 uintptr_t           patch_distance,
 									 dl_patched_ptrs*    patched_payloads )
 {
@@ -230,7 +230,7 @@ static void dl_internal_patch_union( dl_ctx_t            ctx,
 static void dl_internal_patch_struct( dl_ctx_t            ctx,
 									  const dl_type_desc* type,
 									  uint8_t*            struct_data,
-									  uintptr_t           base_address,
+									  uint8_t*            base_address,
 									  uintptr_t           patch_distance,
 									  dl_patched_ptrs*    patched_payloads )
 {
@@ -254,7 +254,7 @@ static void dl_internal_patch_struct( dl_ctx_t            ctx,
 void dl_internal_patch_member( dl_ctx_t              ctx,
 							   const dl_member_desc* member,
 							   uint8_t*              member_data,
-							   uintptr_t             base_address,
+							   uint8_t*              base_address,
 							   uintptr_t             patch_distance)
 {
 	dl_patched_ptrs patched(ctx->alloc);
@@ -264,11 +264,11 @@ void dl_internal_patch_member( dl_ctx_t              ctx,
 void dl_internal_patch_instance( dl_ctx_t            ctx,
 								 const dl_type_desc* type,
 								 uint8_t*            instance,
-								 uintptr_t           base_address,
+								 uint8_t*            base_address,
 								 uintptr_t           patch_distance )
 {
 	dl_patched_ptrs patched(ctx->alloc);
-	patched.add( (uintptr_t)instance );
+	patched.add( instance );
 
 	if( type->flags & DL_TYPE_FLAG_IS_UNION )
 	{

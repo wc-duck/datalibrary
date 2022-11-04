@@ -15,7 +15,7 @@
 void dl_internal_patch_instance( dl_ctx_t            ctx,
 								 const dl_type_desc* type,
 								 uint8_t*            instance,
-								 uintptr_t           base_address,
+								 uint8_t*            base_address,
 								 uintptr_t           patch_distance );
 
 /**
@@ -30,7 +30,7 @@ void dl_internal_patch_instance( dl_ctx_t            ctx,
 void dl_internal_patch_member( dl_ctx_t              ctx,
 							   const dl_member_desc* member,
 							   uint8_t*              member_data,
-							   uintptr_t             base_address,
+							   uint8_t*              base_address,
 							   uintptr_t             patch_distance );
 
 #endif // DL_PATCH_PTR_H_INCLUDED
