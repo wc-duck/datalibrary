@@ -385,7 +385,7 @@ public:
 		}
 	}
 
-	inline size_t Len()
+	inline size_t Len() const
 	{
 		return m_nElements;
 	}
