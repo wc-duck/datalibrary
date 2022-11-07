@@ -26,7 +26,7 @@ function dl_type_lib( tlc_file, dltlc, dl_tests, dependency )
 	AddDependency( tlc_file, dltlc )
 	if dependency then
 		AddDependency( tlc_file, dependency )
-    end
+	end
 	AddDependency( dl_tests, type_lib_outputs.out_lib_h )
 	AddDependency( dl_tests, type_lib_outputs.out_header )
 	AddDependency( dl_tests, type_lib_outputs.out_lib_txt_h )
@@ -281,9 +281,9 @@ dltlc    = Link( build_settings, "dltlc",    Compile( dl_settings, CollectRecurs
 dl_tests = Link( test_settings,  "dl_tests", Compile( test_settings, Collect("tests/*.cpp") ), dl_lib, gtest_lib )
 dlbench  = Link( test_settings,  "dlbench",  Compile( test_settings, Collect("benchmark/*.cpp") ), dl_lib )
 
-tl1 = dl_type_lib( "tests/sized_enums.tld", dltlc, dl_tests )
-tl2 = dl_type_lib( "tests/to_include.tld",  dltlc, dl_tests )
-tl3 = dl_type_lib( "tests/unittest.tld",    dltlc, dl_tests, tl2.out_lib )
+tl1 = dl_type_lib( "tests/to_include.tld",  dltlc, dl_tests )
+tl2 = dl_type_lib( "tests/sized_enums.tld", dltlc, dl_tests )
+tl3 = dl_type_lib( "tests/unittest.tld",    dltlc, dl_tests, tl1.out_lib )
 tl4 = dl_type_lib( "tests/unittest2.tld",   dltlc, dl_tests, "tests/to_include.tld" )
 tl5 = dl_type_lib( "tests/small.tld",       dltlc, dl_tests )
 tlbench = dl_type_lib( "benchmark/dlbench.tld", dltlc, dl_tests )
