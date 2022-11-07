@@ -122,6 +122,8 @@ Type-libs in text-format follows this format.
 	// "tld_includes" is a list of other type libraries which this type library uses types from. If the types only are used as
 	// metadata then including the type library is enough, but if the types are used for members then the type lib c header
     // also needs to be added to c_includes above. These tld_includes can be either binary or text files.
+	// Note that the mapping from "include path" to "what it means" is interpreted outside of DL's library, thus it doesn't
+	// have to be filesystem paths, it can be any string. By default the dltlc tool treats them as file paths.
 	"tld_includes" : [
 		"to_include.bin",
 	],
