@@ -2,21 +2,16 @@
 #include "dl_internal_util.h"
 #include "dl_types.h"
 
-static dl_error_t dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
+static void dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 														  const uint8_t* default_data,
 														  unsigned int   default_data_size )
 {
-	if( default_data_size == 0 ) return DL_ERROR_OK;
+	if( default_data_size == 0 )
+		return;
 
-	if( dl_ctx->default_data != 0x0 )
-		return DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS;
-
-	dl_ctx->default_data = (uint8_t*)dl_alloc( &dl_ctx->alloc, default_data_size );
-	dl_ctx->default_data_size = default_data_size;
-
-	memcpy( dl_ctx->default_data, default_data, default_data_size );
-
-	return DL_ERROR_OK;
+	dl_ctx->default_data = (uint8_t*)dl_realloc( &dl_ctx->alloc, dl_ctx->default_data, default_data_size + dl_ctx->default_data_size, dl_ctx->default_data_size );
+	memcpy( dl_ctx->default_data + dl_ctx->default_data_size, default_data, default_data_size );
+	dl_ctx->default_data_size += default_data_size;
 }
 
 static void dl_internal_read_typelibrary_header( dl_typelib_header* header, const uint8_t* data )
@@ -178,13 +173,12 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		dl_ctx->member_descs[ dl_ctx->member_count + i ].name += td_str_offset;
 		if( dl_ctx->member_descs[ dl_ctx->member_count + i ].metadata_start )
 			dl_ctx->member_descs[ dl_ctx->member_count + i ].metadata_start += dl_ctx->metadatas_count;
+
 		if( dl_ctx->member_descs[ dl_ctx->member_count + i ].default_value_offset != UINT32_MAX )
 			dl_ctx->member_descs[ dl_ctx->member_count + i ].default_value_offset += (uint32_t)dl_ctx->default_data_size;
 
 		if( dl_ctx->performing_include )
-		{
 			dl_ctx->member_descs[ dl_ctx->member_count + i ].flags &= ~(uint32_t)DL_MEMBER_FLAG_VERIFY_EXTERNAL_SIZE_OFFSET;
-		}
 	}
 
 	for( unsigned int i = 0; i < header.enum_count; ++i )
@@ -248,7 +242,10 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		void* loaded_instance;
 		size_t consumed;
 		dl_error_t err = dl_instance_load_inplace( dl_ctx, type_id, (uint8_t*)dl_ctx->metadatas[dl_ctx->metadatas_count + i], instance_size + sizeof( dl_data_header ), &loaded_instance, &consumed );
-		DL_ASSERT( DL_ERROR_OK == err ); (void)err;
+		if( err != DL_ERROR_OK )
+		{
+			return err;
+		}
 		DL_ASSERT( instance_size + sizeof( dl_data_header ) == consumed );
 		dl_ctx->metadata_infos[dl_ctx->metadatas_count + i] = loaded_instance;
 		dl_ctx->metadata_typeinfos[dl_ctx->metadatas_count + i] = type_id;
@@ -257,5 +254,6 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 	dl_ctx->metadatas_count       += header.metadatas_count;
 	dl_ctx->metadatas_cap         = dl_ctx->metadatas_count;
 
-	return dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
+	dl_internal_load_type_library_defaults( dl_ctx, lib_data + defaults_offset, header.default_value_size );
+	return DL_ERROR_OK;
 }
