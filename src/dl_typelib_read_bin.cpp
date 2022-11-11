@@ -159,8 +159,8 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		if(dl_ctx->type_descs[ dl_ctx->type_count + i ].comment != UINT32_MAX)
 			dl_ctx->type_descs[ dl_ctx->type_count + i ].comment += td_str_offset;
 		dl_ctx->type_descs[ dl_ctx->type_count + i ].member_start += dl_ctx->member_count;
-		if( dl_ctx->type_descs[ dl_ctx->type_count + i ].metadata_start )
-			dl_ctx->type_descs[ dl_ctx->type_count + i ].metadata_start += dl_ctx->metadatas_count;
+		dl_ctx->type_descs[ dl_ctx->type_count + i ].metadata_start += dl_ctx->metadatas_count;
+
 		if( dl_ctx->performing_include )
 		{
 			dl_ctx->type_descs[ dl_ctx->type_count + i ].flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
