@@ -1339,6 +1339,12 @@ static const dl_type_desc* dl_internal_member_owner( dl_ctx_t ctx, const dl_memb
 
 static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
 {
+	struct SMemberRange
+	{
+		uint32_t start;
+		uint32_t end;
+	};
+	CArrayStatic<SMemberRange, 16> member_ranges(ctx->alloc);
 #if defined(_MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4611)
@@ -1349,7 +1355,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 #endif
 	{
 		uint32_t type_start = ctx->type_count;
-		uint32_t member_start = ctx->member_count;
+		member_ranges.Add( { ctx->member_count, 0 } );
 		uint32_t metadata_start = (uint32_t) ctx->metadatas_count;
 
 		dl_txt_eat_char( ctx, read_state, '{' );
@@ -1370,7 +1376,9 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			}
 			else if( dl_streq( "tld_includes", key.str ) )
 			{
+				member_ranges[member_ranges.Len() - 1].end = ctx->member_count;
 				dl_context_load_txt_type_library_read_includes( ctx, read_state );
+				member_ranges.Add( { ctx->member_count, 0 } );
 			}
 			else if( dl_streq( "enums", key.str ) )
 			{
@@ -1390,39 +1398,48 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 		} while( dl_txt_try_eat_char( read_state, ',') );
 
 		dl_txt_eat_char( ctx, read_state, '}' );
+		member_ranges[member_ranges.Len() - 1].end = ctx->member_count;
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
 			dl_load_txt_calc_type_size_and_align( ctx, read_state, ctx->type_descs + i );
 
 		// fixup members
-		for( uint32_t member_index = member_start; member_index < ctx->member_count; ++member_index )
+		for( uint32_t member_range = 0; member_range < member_ranges.Len(); ++member_range )
 		{
-			dl_member_desc* member = ctx->member_descs + member_index;
-			if( member->type_id )
+			for( uint32_t member_index = member_ranges[member_range].start; member_index < member_ranges[member_range].end; ++member_index )
 			{
-				const dl_enum_desc* enum_sub_type = dl_internal_find_enum( ctx, member->type_id );
-				if( enum_sub_type )
+				dl_member_desc* member = ctx->member_descs + member_index;
+				if( member->type_id )
 				{
-					// ... type was really an enum ...
-					member->set_storage( enum_sub_type->storage );
-				}
-				else
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
-					if( sub_type == 0x0 )
-					{
-						const dl_type_desc* owner_type = dl_internal_member_owner( ctx, member );
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, 
-											"couldn't find type for member '%s::%s'", 
-											dl_internal_type_name( ctx, owner_type ),
-											dl_internal_member_name( ctx, member ) );
-					}
+					    const dl_enum_desc* enum_sub_type = dl_internal_find_enum( ctx, member->type_id );
+					    if( enum_sub_type )
+					    {
+						    // ... type was really an enum ...
+						    member->set_storage( enum_sub_type->storage );
+					    }
+					    else
+					    {
+						    const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+						    if( sub_type == 0x0 )
+						    {
+							    const dl_type_desc* owner_type = dl_internal_member_owner( ctx, member );
+							    dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND,
+							                        "couldn't find type for member '%s::%s'",
+							                        dl_internal_type_name( ctx, owner_type ),
+							                        dl_internal_member_name( ctx, member ) );
+						    }
+					    }
 				}
 			}
 		}
 
-		for( uint32_t member_index = member_start; member_index < ctx->member_count; ++member_index )
-			dl_load_txt_build_default_data( ctx, read_state, member_index );
+		for( uint32_t member_range = 0; member_range < member_ranges.Len(); ++member_range )
+		{
+			for( uint32_t member_index = member_ranges[member_range].start; member_index < member_ranges[member_range].end; ++member_index )
+			{
+				dl_load_txt_build_default_data( ctx, read_state, member_index );
+			}
+		}
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
 			dl_context_load_txt_type_set_flags( ctx, read_state, ctx->type_descs + i );
