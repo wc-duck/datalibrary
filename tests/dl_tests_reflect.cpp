@@ -263,10 +263,11 @@ TEST_F(DLReflect, is_bitfield_reflected)
 	CHECK_BITFIELD_MEMBER_CORRECT(TestBits_members[6], Bit6, 3, 3);
 
 	uint8_t value = 0b10101;
-	TestBits bits = { 0 };
+	TestBits bits;
+	memset(&bits, 0, sizeof(bits));
 	uint8_t* data = reinterpret_cast<uint8_t*>( &bits );
 
-	#define ASSIGN_BITFIELD( member ) data[member.offset] |= ( value & ( ( 1 << member.bitfield_bits ) - 1 ) ) << member.bitfield_offset
+	#define ASSIGN_BITFIELD( member ) data[member.offset] = uint8_t(data[member.offset] | ( value & ( ( 1 << member.bitfield_bits ) - 1 ) ) << member.bitfield_offset)
 
 	ASSIGN_BITFIELD( TestBits_members[0] );
 	ASSIGN_BITFIELD( TestBits_members[1] );
