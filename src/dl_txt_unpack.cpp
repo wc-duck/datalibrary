@@ -392,7 +392,6 @@ static dl_error_t dl_txt_unpack_array( dl_ctx_t dl_ctx,
 			dl_binary_writer_write( writer, "\n", 1 );
 			unpack_ctx->indent += 2;
 			dl_txt_unpack_write_indent( writer, unpack_ctx );
-			char number[16];
 			for( uint32_t i = 0; i < array_count - 1; ++i )
 			{
 				err = dl_txt_unpack_anyarray( dl_ctx, writer, unpack_ctx, array_data + sizeof(void*) * 3 * i );
