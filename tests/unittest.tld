@@ -272,7 +272,7 @@
 		"DefaultStruct" :   { "members" : [ { "name" : "Struct", "type" : "Pods2",       "default" : { "Int1" : 13, "Int2" : 37 } } ] },
 		"DefaultPtr"  :     { "members" : [ { "name" : "Ptr",    "type" : "Pods*",       "default" : null                         } ] },
 		"DefaultAnyPtr" :   { "members" : [ { "name" : "Ptr",    "type" : "any_pointer", "default" : null                         } ] },
-		"DefaultAnyArray" : { "members" : [ { "name" : "Arr",    "type" : "any_array",   "default" : []                           } ] },
+		"DefaultAnyArray" : { "members" : [ { "name" : "Arr",    "type" : "any_array",   "default" : {"data":[]}                  } ] },
 
 		/**
 			another comment

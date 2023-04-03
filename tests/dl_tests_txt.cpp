@@ -837,6 +837,40 @@ TEST_F( DLText, unquoted_object_keys )
 	}
 }
 
+TEST_F( DLText, any_pointers_missing_fields )
+{
+		//"DefaultAnyArray" : { "members" : [ { "name" : "Arr",    "type" : "any_array",   "default" : {"data":[]}                  } ] },
+	unsigned char out_text_data[1024];
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "type": "single_int", "data" : "ptr1" }, "__subdata" : { "ptr1": { "val": 1 } } } });
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "type": "single_int", "data" : null } } });
+		EXPECT_DL_ERR_OK( dl_txt_pack(Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "data" : null } } });
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "data" : "ptr1" }, "__subdata" : { "ptr1": { "val": 1 } } } });
+		EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "type": "single_int" } } });
+		EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { } } });
+		EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+}
 
 TEST_F( DLText, single_line_comments )
 {

@@ -75,7 +75,7 @@ struct DLBase : public DL
 		dl_ctx_t dl_ctx = this->Ctx;
 		// calc size of stored instance
 		size_t store_size = 0;
-		EXPECT_DL_ERR_OK(dl_instance_calc_size(dl_ctx, type, pack_me, &store_size));
+		ASSERT_DL_ERR_OK(dl_instance_calc_size(dl_ctx, type, pack_me, &store_size));
 		unsigned char* store_buffer = (unsigned char*)malloc(store_size+1);
 		for( unsigned int i = 0; i < TEST_REPS; ++i )
 		{

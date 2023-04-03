@@ -46,7 +46,7 @@ void pack_text_test::do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
 {
 	// unpack binary to txt
 	size_t text_size = 0;
-	EXPECT_DL_ERR_OK( dl_txt_unpack_calc_size( dl_ctx, type, store_buffer, store_size, &text_size ) );
+	ASSERT_DL_ERR_OK( dl_txt_unpack_calc_size( dl_ctx, type, store_buffer, store_size, &text_size ) );
 	char *text_buffer = (char*)malloc(text_size+1);
 	memset(text_buffer, 0xFE, text_size+1);
 
@@ -56,7 +56,7 @@ void pack_text_test::do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
 	// printf("%s\n", text_buffer);
 
 	// pack txt to binary
-	EXPECT_DL_ERR_OK( dl_txt_pack_calc_size( dl_ctx, text_buffer, out_size ) );
+	ASSERT_DL_ERR_OK( dl_txt_pack_calc_size( dl_ctx, text_buffer, out_size ) );
 	*out_buffer = (unsigned char*)malloc(*out_size+1);
 	memset(*out_buffer, 0xFE, *out_size+1);
 
