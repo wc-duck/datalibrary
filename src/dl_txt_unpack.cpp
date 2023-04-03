@@ -395,13 +395,11 @@ static dl_error_t dl_txt_unpack_array( dl_ctx_t dl_ctx,
 			char number[16];
 			for( uint32_t i = 0; i < array_count - 1; ++i )
 			{
-				dl_substr name = { number, dl_internal_str_format( number, sizeof(number), "%u", i ) };
 				err = dl_txt_unpack_anyarray( dl_ctx, writer, unpack_ctx, array_data + sizeof(void*) * 3 * i );
 				if( DL_ERROR_OK != err ) return err;
 				dl_binary_writer_write( writer, ",\n", 2 );
 				dl_txt_unpack_write_indent( writer, unpack_ctx );
 			}
-			dl_substr name = { number, dl_internal_str_format( number, sizeof(number), "%u", array_count - 1 ) };
 			err = dl_txt_unpack_anyarray( dl_ctx, writer, unpack_ctx, array_data + sizeof(void*) * 3 * (array_count - 1) );
 			if( DL_ERROR_OK != err ) return err;
 			unpack_ctx->indent -= 2;
