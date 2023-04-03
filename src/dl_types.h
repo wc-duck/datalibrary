@@ -403,13 +403,6 @@ public:
 		m_nElements++;
 	}
 
-	void Add(T&& _Element)
-	{
-		GrowIfNeeded();
-		new (&m_Ptr[m_nElements]) T(std::move(_Element));
-		m_nElements++;
-	}
-
 	DL_FORCEINLINE T& operator[]( size_t _iEl )
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");

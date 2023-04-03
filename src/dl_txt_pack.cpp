@@ -330,34 +330,74 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
 static dl_error_t dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_type_storage_t storage_type, dl_typeid_t type_id, const char* member_name, uint32_t array_length );
 
-static void dl_txt_pack_eat_and_write_anyptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr name_to_look_for )
+static void dl_txt_pack_eat_and_write_anyptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr member_name )
 {
 	size_t data_pos = dl_binary_writer_tell( packctx->writer );
-	if( dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, nullptr, data_pos ) )
+	if( dl_txt_pack_eat_and_write_null( packctx ) )
 	{
+		dl_binary_writer_write_zero(packctx->writer, sizeof(uintptr_t));
+		return;
+	}
+
+	dl_substr ptr{ };
+	const dl_type_desc* type{ };
+	// ... find open {
+	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
+	while (true)
+	{
+		// ... read keys, there should be one 'type' and one 'data' ...
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( *packctx->read_ctx.iter == ',' ) ++packctx->read_ctx.iter;
+		// We allow trailing commas, so consume whitespaces to see if we have a struct termination.
 		dl_txt_eat_white( &packctx->read_ctx );
-		dl_substr member_name = dl_txt_eat_object_key( &packctx->read_ctx );
-		if( member_name.str == 0x0 )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing member name." );
-		if( strncmp( member_name.str, "__any_type_", 11 ) != 0 || strncmp( member_name.str + 11, name_to_look_for.str, name_to_look_for.len ) != 0 )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected \"__any_type_%.*s\"", name_to_look_for.len, name_to_look_for.str );
-		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
+		if( *packctx->read_ctx.iter == '}' ) break;
+
 		dl_txt_eat_white( &packctx->read_ctx );
-		dl_substr type_name = dl_txt_eat_string( &packctx->read_ctx );
-		packctx->subdata[packctx->subdata.Len() - 1].type = dl_internal_find_type_by_name( dl_ctx, &type_name );
-		if( packctx->subdata[packctx->subdata.Len() - 1].type == 0 )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "the type '%.*s' isn't known", type_name.len, type_name.str );
-		dl_binary_writer_seek_set( packctx->writer, data_pos + sizeof(void*) );
-		dl_binary_writer_write_uint32( packctx->writer, dl_internal_typeid_of( dl_ctx, packctx->subdata[packctx->subdata.Len() - 1].type ) );
-		if( sizeof(uintptr_t) == 8 )
-			dl_binary_writer_write_zero( packctx->writer, sizeof(uint32_t) );
+		dl_substr key_name = dl_txt_eat_object_key( &packctx->read_ctx );
+		if( key_name.str == 0x0 )
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "When reading member \"%.*s\": expected map-key containing member name.", member_name.len, member_name.str );
+
+		if( strncmp( key_name.str, "type", 4 ) == 0 )
+		{
+			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
+			dl_txt_eat_white( &packctx->read_ctx );
+			dl_substr type_name = dl_txt_eat_string( &packctx->read_ctx );
+			type = dl_internal_find_type_by_name( dl_ctx, &type_name );
+			if( type == 0 )
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "When reading member \"%.*s\": the type '%.*s' isn't known", member_name.len, member_name.str, type_name.len, type_name.str );
+		}
+		else if( strncmp( key_name.str, "data", 4 ) == 0 )
+		{
+			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
+			dl_txt_eat_white( &packctx->read_ctx );
+			if (dl_txt_pack_eat_and_write_null(packctx))
+			{
+				dl_binary_writer_write_zero(packctx->writer, sizeof(uintptr_t));
+				dl_txt_eat_char(dl_ctx, &packctx->read_ctx, '}');
+				return;
+			}
+			ptr = dl_txt_eat_string( &packctx->read_ctx );
+			if( ptr.str == 0x0 )
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "When reading member \"%.*s\": expected pointer name as string", member_name.len, member_name.str );
+		}
+		else
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "When reading member \"%.*s\": expected \"type\" or \"data\" but got \"%.*s\"", member_name.len, member_name.str, key_name.len, key_name.str );
 	}
-	else
-	{
-		dl_binary_writer_write_zero( packctx->writer, sizeof(uintptr_t) );
-	}
+	if( type == nullptr || ptr.str == nullptr )
+		dl_txt_read_failed(dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "When reading member \"%.*s\": didn't provide both \"type\" and \"data\"", member_name.len, member_name.str );
+
+	dl_txt_eat_char(dl_ctx, &packctx->read_ctx, '}');
+
+	if( !packctx->writer->dummy )
+		packctx->ptrs.add( data_pos );
+
+	packctx->subdata.Add({ ptr, dl_internal_hash_buffer((const uint8_t*)ptr.str, ptr.len), type, data_pos });
+
+	packctx->subdata[packctx->subdata.Len() - 1].type = type;
+	dl_binary_writer_seek_set( packctx->writer, data_pos + sizeof(void*) );
+	dl_binary_writer_write_uint32( packctx->writer, dl_internal_typeid_of( dl_ctx, packctx->subdata[packctx->subdata.Len() - 1].type ) );
+	if( sizeof(uintptr_t) == 8 )
+		dl_binary_writer_write_zero( packctx->writer, sizeof(uint32_t) );
 }
 
 static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr symbol )
@@ -369,35 +409,69 @@ static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 	}
 }
 
-static void dl_txt_pack_eat_and_write_anyarray( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr name_to_look_for )
+static void dl_txt_pack_eat_and_write_anyarray( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr member_name )
 {
-	const char* start = packctx->read_ctx.iter;
-	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
-	uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, DL_TYPE_STORAGE_STRUCT );
-	if( array_length == 0 )
+	uint32_t array_length = 0;
+	const char* array = nullptr;
+	const dl_type_desc* type = nullptr;
+	// ... find open {
+	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
+	while( true )
+	{
+		// ... read keys, there should be one 'data' and if the data isn't an empty array there should be one 'type' ...
+		dl_txt_eat_white( &packctx->read_ctx );
+		if( *packctx->read_ctx.iter == ',' ) ++packctx->read_ctx.iter;
+		// We allow trailing commas, so consume whitespaces to see if we have a struct termination.
+		dl_txt_eat_white( &packctx->read_ctx );
+		if( *packctx->read_ctx.iter == '}' ) break;
+
+		dl_txt_eat_white( &packctx->read_ctx );
+		dl_substr key_name = dl_txt_eat_object_key( &packctx->read_ctx );
+		if( key_name.str == 0x0 )
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "When reading member \"%.*s\": expected map-key containing member name.", member_name.len, member_name.str );
+
+		if( strncmp( key_name.str, "type", 4 ) == 0 )
+		{
+			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
+			dl_txt_eat_white( &packctx->read_ctx );
+			dl_substr type_name = dl_txt_eat_string( &packctx->read_ctx );
+			type = dl_internal_find_type_by_name( dl_ctx, &type_name );
+			if( type == 0 )
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "When reading member \"%.*s\": the type '%.*s' isn't known", member_name.len, member_name.str, type_name.len, type_name.str );
+		}
+		else if( strncmp( key_name.str, "data", 4 ) == 0 )
+		{
+			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
+			dl_txt_eat_white( &packctx->read_ctx );
+			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
+			array = packctx->read_ctx.iter;
+			array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, DL_TYPE_STORAGE_STRUCT );
+			if( array_length == 0 )
+			{
+				dl_txt_eat_white( &packctx->read_ctx );
+				dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
+				array = nullptr;
+				break;
+			}
+			else
+			{
+				packctx->read_ctx.iter = dl_txt_skip_array( array - 1, packctx->read_ctx.end );
+			}
+		}
+		else
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "When reading member \"%.*s\": expected \"type\" or \"data\" but got \"%.*s\"", member_name.len, member_name.str, key_name.len, key_name.str );
+	}
+	if( array != nullptr && type == nullptr )
+		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "Member's \"%.*s\"'s any_array didn't provide a \"type\" though the \"data\" array wasn't empty", member_name.len, member_name.str );
+
+	dl_txt_eat_white( &packctx->read_ctx );
+	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
+	if( array == nullptr )
 	{
 		dl_binary_writer_write_zero( packctx->writer, dl_pod_size( DL_TYPE_STORAGE_ANY_ARRAY ) );
-		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 	}
 	else
 	{
-		dl_txt_read_ctx read_type_ctx;
-		memcpy(&read_type_ctx, &packctx->read_ctx, sizeof(dl_txt_read_ctx));
-		read_type_ctx.iter = dl_txt_skip_array( start, packctx->read_ctx.end );
-		dl_txt_eat_white( &read_type_ctx );
-		if( *read_type_ctx.iter == ',' ) ++read_type_ctx.iter;
-		dl_txt_eat_white( &read_type_ctx );
-		dl_substr member_name = dl_txt_eat_object_key( &read_type_ctx );
-		if( member_name.str == 0x0 )
-			dl_txt_read_failed( dl_ctx, &read_type_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing member name." );
-		if( strncmp( member_name.str, "__any_type_", 11 ) != 0 || strncmp( member_name.str + 11, name_to_look_for.str, name_to_look_for.len ) != 0 )
-			dl_txt_read_failed( dl_ctx, &read_type_ctx, DL_ERROR_MALFORMED_DATA, "expected \"__any_type_%.*s\"", name_to_look_for.len, name_to_look_for.str );
-		dl_txt_eat_char( dl_ctx, &read_type_ctx, ':' );
-		dl_txt_eat_white( &read_type_ctx );
-		dl_substr type_name = dl_txt_eat_string( &read_type_ctx );
-		const dl_type_desc* type = dl_internal_find_type_by_name( dl_ctx, &type_name );
-		if(type == 0x0)
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "the type '%.*s' isn't known", type_name.len, type_name.str );
 		dl_typeid_t type_id = dl_internal_typeid_of( dl_ctx, type );
 		size_t element_size = type->size[DL_PTR_SIZE_HOST];
 		size_t element_align = type->alignment[DL_PTR_SIZE_HOST];
@@ -409,17 +483,19 @@ static void dl_txt_pack_eat_and_write_anyarray( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 		dl_binary_writer_write_pint( packctx->writer, array_pos );
 		dl_binary_writer_write_uint32( packctx->writer, array_length );
-		if (sizeof(uintptr_t) == 8)
+		if( sizeof(uintptr_t) == 8 )
 			dl_binary_writer_write_zero( packctx->writer, sizeof(uint32_t) );
 		dl_binary_writer_write_uint32( packctx->writer, type_id );
-		if (sizeof(uintptr_t) == 8)
+		if( sizeof(uintptr_t) == 8 )
 			dl_binary_writer_write_zero( packctx->writer, sizeof(uint32_t) );
 		dl_binary_writer_seek_end( packctx->writer );
 		dl_binary_writer_reserve( packctx->writer, array_length * element_size );
+		const char* continuation = packctx->read_ctx.iter;
+		packctx->read_ctx.iter = array;
 		dl_error_t err = dl_txt_pack_eat_and_write_array( dl_ctx, packctx, DL_TYPE_STORAGE_STRUCT, type_id, nullptr, array_length );
 		if( DL_ERROR_OK != err )
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "error while packing array of member \"%.*s\"", name_to_look_for.len, name_to_look_for.str );
-		packctx->read_ctx.iter = read_type_ctx.iter;
+			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "error while packing array of member \"%.*s\"", member_name.len, member_name.str );
+		packctx->read_ctx.iter = continuation;
 	}
 }
 
@@ -773,7 +849,7 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 		}
 		break;
 		case DL_TYPE_STORAGE_ANY_POINTER:
-		 // TODO: bug, but in typelib build, there can't be any , in an enum-string.
+		case DL_TYPE_STORAGE_ANY_ARRAY:
 		{
             bool last_was_comma = false;
 			uint32_t array_length = 1;
@@ -786,13 +862,10 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 					case ',':
 						++array_length;
 						break;
-					case ':':
-						++iter;
-						++types;
-						break;
-					case '"':
-						iter = dl_txt_skip_string( ++iter, end );
-						break;
+					case '{':
+						last_was_comma = false;
+						iter = dl_txt_skip_map(iter, end);
+						continue;
 					case '\0':
 					case ']':
 						return types + (last_was_comma ? array_length - 1 : array_length) - 2 * types;
@@ -856,42 +929,6 @@ static uint32_t dl_txt_pack_find_array_length( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 					default:
 						dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_PARSE_ERROR,
 									"Invalid txt-format, are you missing an '}' or an ']'?");
-					// TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
-				}
-			}
-		}
-		break;
-		case DL_TYPE_STORAGE_ANY_ARRAY:
-		{
-			bool last_was_comma = false;
-			uint32_t array_length = 1;
-			while(true)
-			{
-				iter = dl_txt_skip_white(iter, end);
-				switch( *iter )
-				{
-					case ',':
-						++iter;
-						last_was_comma = true;
-						break;
-					case ':':
-						++iter;
-						break;
-					case '"':
-						iter = dl_txt_skip_string( ++iter, end );
-						++iter;
-						break;
-					case '[':
-						++array_length;
-						last_was_comma = false;
-						iter = dl_txt_skip_array(iter, end);
-						break;
-					case '\0':
-					case ']':
-						return last_was_comma ? array_length - 1 : array_length;
-					default:
-						dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_PARSE_ERROR,
-									"Invalid txt-format, are you missing an ']'?");
 					// TODO: I guess one can fool this parser by adding a ] or , in a comment at "the right place(tm)"
 				}
 			}
@@ -1068,7 +1105,7 @@ static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx,
 				dl_txt_read_failed( dl_ctx,
 									&packctx->read_ctx,
 									DL_ERROR_MALFORMED_DATA,
-									"to many elements in inline array, %u > %u", array_length, member->inline_array_cnt() );
+									"too many elements in inline array, %u > %u", array_length, member->inline_array_cnt() );
 			}
 
 			if(array_length > 0)
