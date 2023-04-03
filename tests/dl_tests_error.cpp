@@ -18,10 +18,10 @@ TEST_F(DLError, all_errors_defined_in_error_to_string)
 
 TEST_F(DLError, buffer_to_small_returned)
 {
-	Pods p;
+	Pods p{ };
 	unsigned char packed[1024];
 
-	EXPECT_DL_ERR_EQ( DL_ERROR_OK,              dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed,  0, 0x0 ) ); // pack to 0-size out_buffer is ok, calculating size
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK,               dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed,  0, 0x0 ) ); // pack to 0-size out_buffer is ok, calculating size
 	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TOO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 10, 0x0 ) ); // test buffer smaller than header
 	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TOO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 21, 0x0 ) ); // test buffer to small
 }
