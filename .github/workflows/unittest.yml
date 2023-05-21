@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      config: [debug, release]
-      compiler: [gcc, clang]
       matrix:
+        config: [debug, release]
+        compiler: [gcc, clang]
         include:
           - target: x86_64
 
