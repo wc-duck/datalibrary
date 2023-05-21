@@ -1,0 +1,43 @@
+name: Valgrind
+
+on:
+  push:
+    branches: [ "main", "**" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64
+          - config: [debug, release]
+          - compiler: [gcc, clang]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+        recursive: true
+
+    - name: Install Valgrind
+      run: |
+        sudo apt install valgrind
+        echo "Valgrind installed"
+
+    - name: Build project
+      run: |
+        ./script/bootstrap.sh
+        ./local/bam/bam config={{ matrix.config }} platform=linux_x86_64 compiler={{ matrix.compiler }}
+
+    - name: Run Testss
+      run: |
+        ./local/bam/bam config={{ matrix.config }} platform=linux_x86_64 compiler={{ matrix.compiler }} test
+
+    - name: Run Tests with Valgrind
+      run: |
+        ./local/bam/bam config={{ matrix.config }} platform=linux_x86_64 compiler={{ matrix.compiler }} test_valgrid
+
