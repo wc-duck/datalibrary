@@ -31,13 +31,13 @@ jobs:
     - name: Build project
       run: |
         ./script/bootstrap.sh
-        ./local/bam/bam config={{ matrix.config }} platform=linux_x86_64 compiler={{ matrix.compiler }}
+        ./local/bam/bam config=${{ matrix.config }} platform=linux_x86_64 compiler=${{ matrix.compiler }}
 
     - name: Run Testss
       run: |
-        ./local/bam/bam config={{ matrix.config }} platform=linux_x86_64 compiler={{ matrix.compiler }} test
+        ./local/bam/bam config=${{ matrix.config }} platform=linux_x86_64 compiler=${{ matrix.compiler }} test
 
     - name: Run Tests with Valgrind
       run: |
-        ./local/bam/bam config={{ matrix.config }} platform=linux_x86_64 compiler={{ matrix.compiler }} test_valgrid
+        ./local/bam/bam config=${{ matrix.config }} platform=linux_x86_64 compiler=${{ matrix.compiler }} test_valgrid
 
