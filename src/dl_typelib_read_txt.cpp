@@ -554,7 +554,7 @@ static void dl_context_create_metadata( dl_ctx_t ctx, dl_txt_read_ctx* read_stat
 		dl_txt_read_failed( ctx, read_state, err, "Failed to pack metadata" );
 	DL_ASSERT( instance_size == consumed );
 
-	size_t meta_index = metadata - ctx->metadatas;
+	size_t meta_index = (size_t)(metadata - ctx->metadatas);
 	DL_ASSERT( meta_index < ctx->metadatas_count );
 	ctx->metadata_infos[meta_index] = loaded_instance;
 	ctx->metadata_typeinfos[meta_index] = metadata_header->root_instance_type;
