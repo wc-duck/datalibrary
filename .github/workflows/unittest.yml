@@ -39,5 +39,5 @@ jobs:
 
     - name: Run Tests with Valgrind
       run: |
-        ./local/bam/bam config=${{ matrix.config }} platform=linux_x86_64 compiler=${{ matrix.compiler }} test_valgrid
+        ./local/bam/bam config=${{ matrix.config }} platform=linux_x86_64 compiler=${{ matrix.compiler }} test_valgrind
 
