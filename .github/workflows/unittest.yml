@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      config: [debug, release]
+      compiler: [gcc, clang]
       matrix:
         include:
           - target: x86_64
-          - config: [debug, release]
-          - compiler: [gcc, clang]
 
     steps:
     - uses: actions/checkout@v3
