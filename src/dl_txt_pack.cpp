@@ -1290,6 +1290,7 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "root type was set as \"%.*s\", but no such type was loaded.", root_type_name.len, root_type_name.str );
 		}
 
+		dl_binary_writer_align( packctx->writer, root_type->alignment[DL_PTR_SIZE_HOST] );
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
  		dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
 		if( DL_ERROR_OK != err ) return 0x0;
@@ -1334,7 +1335,7 @@ dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsi
 			header.id                     = DL_INSTANCE_ID;
 			header.version                = DL_INSTANCE_VERSION;
 			header.root_instance_type     = dl_internal_typeid_of( dl_ctx, root_type );
-			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header ));
+			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - dl_internal_align_up<uint32_t>( sizeof( dl_data_header ), root_type->alignment[DL_PTR_SIZE_HOST] ));
 			header.is_64_bit_ptr          = sizeof( void* ) == 8 ? 1 : 0;
 			header.first_pointer_to_patch = pointers.Len() ? (uint32_t)pointers[0] : 0;
 

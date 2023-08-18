@@ -357,6 +357,14 @@
 			]
 		},
 
+		"bug_alignment_struct" : {
+			"members" : [
+				{ "name" : "i32",     "type" : "uint32" },
+				{ "name" : "aligned", "type" : "A128BitAlignedType" },
+				{ "name" : "ptr",     "type" : "Pods2*" }
+			]
+		},
+
 		"bug_array_alignment" : {
 			"members" : [
 				{ "name" : "components", "type" : "bug_array_alignment_struct[]" }
