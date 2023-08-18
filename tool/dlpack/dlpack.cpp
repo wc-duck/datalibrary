@@ -209,10 +209,14 @@ int main( int argc, const char** argv )
 		unsigned char* data = read_file( in_file, &size );
 
 		dl_instance_info_t info;
-		dl_instance_get_info( data, size, &info );
+		dl_error_t err = dl_instance_get_info( data, size, &info );
+		if( err != DL_ERROR_OK )
+			M_ERROR_AND_QUIT( "DL error getting header info: %s", dl_error_to_string( err ) );
 
 		dl_type_info_t tinfo;
-		dl_reflect_get_type_info( dl_ctx, info.root_type, &tinfo );
+		err = dl_reflect_get_type_info( dl_ctx, info.root_type, &tinfo );
+		if( err != DL_ERROR_OK )
+			M_ERROR_AND_QUIT( "DL error looking up type info: %s", dl_error_to_string( err ) );
 
 		printf( "instance info:\n" );
 		printf( "ptr size: %u\n",         info.ptrsize );
@@ -225,8 +229,8 @@ int main( int argc, const char** argv )
 	{
 		dl_typeid_t type;
 		void* instance = 0;
-
-		dl_error_t err = dl_util_load_from_stream( dl_ctx, 0, in_file, DL_UTIL_FILE_TYPE_AUTO, &instance, &type, 0x0, 0x0 );
+		void* allocated_mem;
+		dl_error_t err = dl_util_load_from_stream( dl_ctx, 0, in_file, DL_UTIL_FILE_TYPE_AUTO, &instance, &type, &allocated_mem, 0x0, 0x0, 0x0, 0x0, 0x0 );
 		if( err != DL_ERROR_OK )
 			M_ERROR_AND_QUIT( "DL error reading stream: %s", dl_error_to_string( err ) );
 
@@ -237,6 +241,8 @@ int main( int argc, const char** argv )
 									   out_endian,
 									   out_ptr_size,
 									   instance,
+									   0x0,
+									   0x0,
 									   0x0 );
 
 		if( err != DL_ERROR_OK )
@@ -248,7 +254,7 @@ int main( int argc, const char** argv )
 	if( in_file_path[0]  != '\0' ) fclose( in_file );
 	if( out_file_path[0] != '\0' ) fclose( out_file );
 
-	dl_context_destroy( dl_ctx );
+	(void) dl_context_destroy( dl_ctx );
 
 	return 0;
 }

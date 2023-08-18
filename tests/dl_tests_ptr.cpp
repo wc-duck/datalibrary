@@ -215,7 +215,7 @@ TYPED_TEST(DLBase, ptr_chain_long)
 		ptrs[i] = { (uint32_t) i, &ptrs[i + 1] };
 	ptrs[DL_ARRAY_LENGTH(ptrs) - 1] = { DL_ARRAY_LENGTH(ptrs) - 1, &ptrs[0] };
 
-	PtrChain loaded[1024];
+	PtrChain loaded[1030];
 
 	this->do_the_round_about(PtrChain::TYPE_ID, &ptrs, &loaded, sizeof(loaded));
 
@@ -224,4 +224,58 @@ TYPED_TEST(DLBase, ptr_chain_long)
 		EXPECT_EQ(loaded[i].Next, &loaded[i + 1]);
 		EXPECT_EQ(loaded[i].Int, i);
 	}
+}
+
+TYPED_TEST( DLBase, ptr_inline_array )
+{
+	WithInlineArray wi  = { { 1, 2, 3 } };
+	ptr_inline_array p1 = { &wi };
+
+	size_t loaded_size = this->calculate_unpack_size(ptr_inline_array::TYPE_ID, &p1);
+	ptr_inline_array *loaded = (ptr_inline_array*)malloc(loaded_size);
+	this->do_the_round_about(ptr_inline_array::TYPE_ID, &p1, loaded, loaded_size);
+
+	EXPECT_EQ(1u, loaded->ptr->Array[0]);
+	EXPECT_EQ(2u, loaded->ptr->Array[1]);
+	EXPECT_EQ(3u, loaded->ptr->Array[2]);
+
+	free(loaded);
+}
+
+TYPED_TEST( DLBase, ptr_inline_array2 )
+{
+	WithInlineStructArray wi = { { { 1, 2 }, { 3, 4 }, { 5, 6 } } };
+	ptr_inline_array2 p1 = { &wi };
+
+	size_t loaded_size = this->calculate_unpack_size(ptr_inline_array2::TYPE_ID, &p1);
+	ptr_inline_array2 *loaded = (ptr_inline_array2*)malloc(loaded_size);
+	this->do_the_round_about(ptr_inline_array2::TYPE_ID, &p1, loaded, loaded_size);
+
+	EXPECT_EQ(1u, loaded->ptr->Array[0].Int1);
+	EXPECT_EQ(2u, loaded->ptr->Array[0].Int2);
+	EXPECT_EQ(3u, loaded->ptr->Array[1].Int1);
+	EXPECT_EQ(4u, loaded->ptr->Array[1].Int2);
+	EXPECT_EQ(5u, loaded->ptr->Array[2].Int1);
+	EXPECT_EQ(6u, loaded->ptr->Array[2].Int2);
+
+	free(loaded);
+}
+
+
+TYPED_TEST( DLBase, ptr_struct_inline_array_ptr )
+{
+	Pods2 p2 = { 1, 2 };
+	inline_array_pod_ptr ipr = { { { &p2 }, { &p2 } } };
+	ptr_struct_inline_array_ptr psiap = { &ipr };
+
+	size_t loaded_size = this->calculate_unpack_size(ptr_struct_inline_array_ptr::TYPE_ID, &psiap);
+	ptr_struct_inline_array_ptr *loaded = (ptr_struct_inline_array_ptr*)malloc(loaded_size);
+	this->do_the_round_about(ptr_struct_inline_array_ptr::TYPE_ID, &psiap, loaded, loaded_size);
+
+	EXPECT_EQ(1u, loaded->ptr->inlarr[0].PodPtr1->Int1);
+	EXPECT_EQ(2u, loaded->ptr->inlarr[0].PodPtr1->Int2);
+	EXPECT_EQ(1u, loaded->ptr->inlarr[1].PodPtr1->Int1);
+	EXPECT_EQ(2u, loaded->ptr->inlarr[1].PodPtr1->Int2);
+	
+	free(loaded);
 }

@@ -102,6 +102,8 @@ static dl_enum_desc* dl_alloc_enum( dl_ctx_t ctx, dl_substr* name )
 	e->value_count = 0;
 	e->alias_count = 0;
 	e->alias_start = ctx->enum_alias_count;
+	e->metadata_count = 0;
+	e->metadata_start = 0;
 	return e;
 }
 
@@ -131,6 +133,20 @@ static dl_enum_alias_desc* dl_alloc_enum_alias( dl_ctx_t ctx, dl_substr* name )
 	alias->value_index = 0xFFFFFFFF;
 	alias->name = dl_alloc_string( ctx, name );
 	return alias;
+}
+
+static void** dl_alloc_metadata( dl_ctx_t ctx )
+{
+	if( ctx->metadatas_cap <= ctx->metadatas_count )
+	{
+		size_t temp_cap = ctx->metadatas_cap;
+		ctx->metadata_typeinfos = dl_grow_array( &ctx->alloc, ctx->metadata_typeinfos, &temp_cap, 0 );
+		temp_cap = ctx->metadatas_cap;
+		ctx->metadata_infos = dl_grow_array( &ctx->alloc, ctx->metadata_infos, &temp_cap, 0 );
+		ctx->metadatas = dl_grow_array( &ctx->alloc, ctx->metadatas, &ctx->metadatas_cap, 0 );
+	}
+
+	return ctx->metadatas + ctx->metadatas_count++;
 }
 
 static void dl_set_member_size_and_align_from_builtin( dl_type_storage_t storage, dl_member_desc* member )
@@ -183,6 +199,7 @@ static const dl_builtin_type* dl_find_builtin_type( const char* name )
 }
 
 dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage );
+dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, bool use_fast_ptr_patch );
 
 static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_state, unsigned int member_index )
 {
@@ -225,7 +242,12 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 
 	uint8_t* pack_buffer = (uint8_t*)dl_alloc( &ctx->alloc, prod_bytes );
 
-	dl_txt_pack( ctx, def_buffer, pack_buffer, prod_bytes, 0x0 );
+	bool use_fast_ptr_patch = false;
+	err = dl_txt_pack_internal( ctx, def_buffer, pack_buffer, prod_bytes, 0x0, use_fast_ptr_patch );
+	if( err != DL_ERROR_OK )
+		dl_txt_read_failed( ctx, read_state, DL_ERROR_INVALID_DEFAULT_VALUE, "failed to pack default-value for member \"%s\" with error \"%s\"",
+															dl_internal_member_name( ctx, member ),
+															dl_error_to_string( err ) );
 
 	// TODO: convert packed instance to typelib endian/ptrsize here!
 
@@ -505,6 +527,43 @@ static void dl_context_load_txt_type_set_flags( dl_ctx_t ctx, dl_txt_read_ctx* r
 		type->flags |= (uint32_t)DL_TYPE_FLAG_HAS_SUBDATA;
 }
 
+static void dl_context_create_metadata( dl_ctx_t ctx, dl_txt_read_ctx* read_state, void** metadata )
+{
+	char** start_end = (char**)*metadata;
+	read_state->iter = start_end[0];
+	char last_char = *start_end[1];
+	*start_end[1] = '\0';
+
+	size_t instance_size;
+	dl_error_t err = dl_txt_pack_calc_size(ctx, read_state->iter, &instance_size);
+	if (err != DL_ERROR_OK)
+		dl_txt_read_failed(ctx, read_state, err, "Failed to parse metadata");
+	uint8_t* instance = (uint8_t*)dl_alloc(&ctx->alloc, instance_size);
+
+	size_t produced_bytes;
+	err = dl_txt_pack(ctx, read_state->iter, instance, instance_size, &produced_bytes);
+	if (err != DL_ERROR_OK)
+		dl_txt_read_failed(ctx, read_state, err, "Failed to parse metadata");
+	DL_ASSERT( instance_size == produced_bytes );
+
+	const dl_data_header* metadata_header = reinterpret_cast<const dl_data_header*>( instance );
+	void* loaded_instance;
+	size_t consumed;
+	err = dl_instance_load_inplace( ctx, metadata_header->root_instance_type, instance, instance_size, &loaded_instance, &consumed );
+	if( err != DL_ERROR_OK )
+		dl_txt_read_failed( ctx, read_state, err, "Failed to pack metadata" );
+	DL_ASSERT( instance_size == consumed );
+
+	size_t meta_index = (size_t)(metadata - ctx->metadatas);
+	DL_ASSERT( meta_index < ctx->metadatas_count );
+	ctx->metadata_infos[meta_index] = loaded_instance;
+	ctx->metadata_typeinfos[meta_index] = metadata_header->root_instance_type;
+
+	*start_end[1] = last_char;
+	dl_free( &ctx->alloc, *metadata );
+	*metadata = (void*)instance;
+}
+
 const char* dl_txt_skip_map( const char* iter, const char* end );
 const char* dl_txt_skip_string( const char* str, const char* end );
 
@@ -551,6 +610,25 @@ static uint64_t dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx,
 	}
 }
 
+static void dl_context_load_txt_type_library_read_metadata( dl_ctx_t ctx,
+                                                            dl_txt_read_ctx* read_state,
+                                                            uint32_t* meta_data_record )
+{
+	meta_data_record[1] = (uint32_t) ctx->metadatas_count;
+	dl_txt_eat_char( ctx, read_state, '[' );
+	do
+	{
+		void** metadata    = dl_alloc_metadata( ctx );
+		const char** range = (const char**)dl_alloc( &ctx->alloc, 2 * sizeof( const char* ) );
+		*metadata          = range;
+		range[0]           = read_state->iter;
+		read_state->iter   = dl_txt_skip_map( read_state->iter, read_state->end );
+		range[1]           = read_state->iter;
+	} while( dl_txt_try_eat_char( read_state, ',' ) );
+	dl_txt_eat_char( ctx, read_state, ']' );
+	meta_data_record[0] = (uint32_t) (ctx->metadatas_count - meta_data_record[1]);
+}
+
 static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 															   dl_type_storage_t   storage,
 															   dl_txt_read_ctx*    read_state,
@@ -563,6 +641,8 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 	alias->value_index = (uint32_t)(value - ctx->enum_value_descs);
 	value->main_alias  = (uint32_t)(alias - ctx->enum_alias_descs);
 	value->comment     = 0xFFFFFFFF;
+	value->metadata_start = 0;
+	value->metadata_count = 0;
 
 	if( *read_state->iter == '{' )
 	{
@@ -601,8 +681,12 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 
 				value->comment = dl_alloc_string(ctx, &comment);
 			}
+			else if( strncmp( "metadata", key.str, 8 ) == 0 )
+			{
+				dl_context_load_txt_type_library_read_metadata( ctx, read_state, &value->metadata_count );
+			}
 			else
-				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'value', 'aliases' or 'comment'", key.len, key.str );
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'value', 'aliases', 'metadata' or 'comment'", key.len, key.str );
 
 		} while( dl_txt_try_eat_char( read_state, ',' ) );
 
@@ -621,6 +705,7 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 															 dl_txt_read_ctx* read_state,
 															 dl_substr* name,
 															 dl_substr* comment,
+                                                             uint32_t* meta_data_record,
 															 const char** values_iter,
 															 const char** type_iter,
 															 const char** end_iter,
@@ -660,8 +745,12 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 		{
 			*comment = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
+		else if( strncmp( "metadata", key.str, 8 ) == 0 )
+		{
+			dl_context_load_txt_type_library_read_metadata( ctx, read_state, &meta_data_record[0] );
+		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values', 'type' and 'extern'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'values', 'type', 'comment, 'metadata' and 'extern'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 	dl_txt_eat_char( ctx, read_state, '}' );
@@ -682,7 +771,8 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	const char* end_iter;
 	dl_substr comment = { 0, 0 };
 	bool        is_extern;
-	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &comment, &values_iter, &type_iter, &end_iter, &is_extern);
+	uint32_t    meta_data_record[2] = {0,0};
+	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &comment, meta_data_record, &values_iter, &type_iter, &end_iter, &is_extern);
 
 	dl_type_storage_t storage = DL_TYPE_STORAGE_CNT;
 	if(type_iter)
@@ -748,13 +838,15 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	// TODO: add test for missing enum value ...
 
 	dl_enum_desc* edesc = dl_alloc_enum(ctx, name);
-	edesc->flags       = is_extern ? (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL : 0;
-	edesc->storage     = storage;
-	edesc->value_count = ctx->enum_value_count - value_start;
-	edesc->value_start = value_start;
-	edesc->alias_count = ctx->enum_alias_count - alias_start; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
-	edesc->alias_start = alias_start; /// offset into alias list where aliases for this enum-value start.
-	edesc->comment     = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
+	edesc->flags          = is_extern ? (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL : 0;
+	edesc->storage        = storage;
+	edesc->value_count    = ctx->enum_value_count - value_start;
+	edesc->value_start    = value_start;
+	edesc->alias_count    = ctx->enum_alias_count - alias_start; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
+	edesc->alias_start    = alias_start; /// offset into alias list where aliases for this enum-value start.
+	edesc->comment        = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
+	edesc->metadata_count = meta_data_record[0];
+	edesc->metadata_start = meta_data_record[1];
 }
 
 static void dl_context_load_txt_type_library_read_c_includes( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
@@ -972,6 +1064,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 	dl_substr type = {0,0};
 	dl_substr comment = {0,0};
 	dl_substr default_val = {0,0};
+	uint32_t meta_data_record[2] = {0,0};
 
 	bool is_const = true;
 	bool verify = true;
@@ -1026,8 +1119,12 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 		{
 			verify = dl_txt_eat_bool( read_state ) == 1;
 		}
+		else if( strncmp( "metadata", key.str, 8 ) == 0 )
+		{
+			dl_context_load_txt_type_library_read_metadata( ctx, read_state, &meta_data_record[0] );
+		}
 		else
-			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'name', 'type', 'default', 'comment' or 'verify'", key.len, key.str );
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "unexpected key '%.*s' in type, valid keys are 'name', 'type', 'default', 'comment', 'const', 'metadata' or 'verify'", key.len, key.str );
 
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
@@ -1036,6 +1133,8 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 		dl_txt_read_failed(ctx, read_state, DL_ERROR_MALFORMED_DATA, "No name on member in type.");
 	member->name = dl_alloc_string( ctx, &name );
 	member->comment = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
+	member->metadata_count = meta_data_record[0];
+	member->metadata_start = meta_data_record[1];
 	dl_parse_type( ctx, &type, member, read_state );
 
 	if(default_val.str)
@@ -1087,6 +1186,7 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	uint32_t member_count = 0;
 	uint32_t member_start = ctx->member_count;
 	dl_substr comment = {0,0};
+	uint32_t meta_data_record[2] = {0,0};
 
 	do
 	{
@@ -1116,9 +1216,13 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 		{
 			comment = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
+		else if( strncmp( "metadata", key.str, 8 ) == 0 )
+		{
+			dl_context_load_txt_type_library_read_metadata( ctx, read_state, &meta_data_record[0] );
+		}
 		else
 			dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA,
-								 "unexpected key '%.*s' in type, valid keys are 'members', 'align', 'comment', 'extern' or 'verify'",
+								 "unexpected key '%.*s' in type, valid keys are 'members', 'align', 'comment', 'extern', 'metadata' or 'verify'",
 								 key.len, key.str );
 	} while( dl_txt_try_eat_char( read_state, ',') );
 
@@ -1138,6 +1242,9 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	type->member_start = member_start;
 
 	type->comment = comment.len > 0 ? dl_alloc_string( ctx, &comment ) : UINT32_MAX;
+
+	type->metadata_count   = meta_data_record[0];
+	type->metadata_start = meta_data_record[1];
 
 	if( is_extern )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
@@ -1194,6 +1301,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 	{
 		uint32_t type_start = ctx->type_count;
 		uint32_t member_start = ctx->member_count;
+		uint32_t metadata_start = (uint32_t) ctx->metadatas_count;
 
 		dl_txt_eat_char( ctx, read_state, '{' );
 
@@ -1265,6 +1373,9 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
 			dl_context_load_txt_type_set_flags( ctx, read_state, ctx->type_descs + i );
+
+		for( unsigned int i = metadata_start; i < ctx->metadatas_count; ++i )
+			dl_context_create_metadata(ctx, read_state, ctx->metadatas + i);
 	}
 	else
 	{

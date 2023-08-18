@@ -18,19 +18,19 @@ TEST_F(DLError, all_errors_defined_in_error_to_string)
 
 TEST_F(DLError, buffer_to_small_returned)
 {
-	Pods p;
+	Pods p{};
 	unsigned char packed[1024];
 
-	EXPECT_DL_ERR_EQ( DL_ERROR_OK,              dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed,  0, 0x0 ) ); // pack to 0-size out_buffer is ok, calculating size
-	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 10, 0x0 ) ); // test buffer smaller than header
-	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 21, 0x0 ) ); // test buffer to small
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK,               dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed,  0, 0x0 ) ); // pack to 0-size out_buffer is ok, calculating size
+	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TOO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 10, 0x0 ) ); // test buffer smaller than header
+	EXPECT_DL_ERR_EQ( DL_ERROR_BUFFER_TOO_SMALL, dl_instance_store( Ctx, Pods::TYPE_ID, &p, packed, 21, 0x0 ) ); // test buffer to small
 }
 
 TEST_F(DLError, type_mismatch_returned)
 {
 	// testing that DL_ERROR_TYPE_MISMATCH is returned if provided type is not matching type stored in instance
 
-	unused u;
+	unused u{};
 	size_t dummy;
 	unsigned char packed[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char swaped[sizeof(unused) * 10]; // large enough buffer!
@@ -78,7 +78,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 	// testing that errors are returned correctly by modding data.
 	uint32_t* lib_version = modded_type_lib + 1;
 
-	EXPECT_EQ(4u, *lib_version);
+	EXPECT_EQ(5u, *lib_version);
 
 	*lib_version = 0xFFFFFFFF;
 
@@ -92,7 +92,7 @@ TEST_F(DLError, typelib_version_mismatch_returned)
 
 TEST_F(DLError, version_mismatch_returned)
 {
-	unused u;
+	unused u{};
 	size_t dummy;
 	unsigned char packed[sizeof(unused) * 10]; // large enough buffer!
 	unsigned char swaped[sizeof(unused) * 10]; // large enough buffer!
@@ -113,11 +113,11 @@ TEST_F(DLError, version_mismatch_returned)
 	conv.instance = packed;
 	unsigned int* instance_version;
 	instance_version = conv.instance_version + 1;
-	EXPECT_EQ(1u, *instance_version);
+	EXPECT_EQ(2u, *instance_version);
 	*instance_version = 0xFFFFFFFF;
 	conv.instance = swaped;
 	instance_version = conv.instance_version + 1;
-	EXPECT_EQ(0x01000000u, *instance_version);
+	EXPECT_EQ(0x02000000u, *instance_version);
 	*instance_version = 0xFFFFFFFF;
 
 	// test all functions in...

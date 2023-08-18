@@ -16,7 +16,8 @@
 #include "dl_swap.h"
 
 #include <stdarg.h> // for va_list
-#include <new> // for inplace new
+#include <new>      // for inplace new
+#include <utility>  // for std::move
 
 #define DL_BITMASK(_Bits)                   ( (1ULL << (_Bits)) - 1ULL )
 #define DL_BITRANGE(_MinBit,_MaxBit)		( ((1ULL << (_MaxBit)) | ((1ULL << (_MaxBit))-1ULL)) ^ ((1ULL << (_MinBit))-1ULL) )
@@ -47,8 +48,8 @@
 	#define DL_UNUSED
 #endif
 
-static const uint32_t DL_UNUSED DL_TYPELIB_VERSION         = 4; // format version for type-libraries.
-static const uint32_t DL_UNUSED DL_INSTANCE_VERSION        = 1; // format version for instances.
+static const uint32_t DL_UNUSED DL_TYPELIB_VERSION         = 5; // format version for type-libraries.
+static const uint32_t DL_UNUSED DL_INSTANCE_VERSION        = 2; // format version for instances.
 static const uint32_t DL_UNUSED DL_INSTANCE_VERSION_SWAPED = dl_swap_endian_uint32( DL_INSTANCE_VERSION );
 static const uint32_t DL_UNUSED DL_TYPELIB_ID              = ('D'<< 24) | ('L' << 16) | ('T' << 8) | 'L';
 static const uint32_t DL_UNUSED DL_TYPELIB_ID_SWAPED       = dl_swap_endian_uint32( DL_TYPELIB_ID );
@@ -89,8 +90,8 @@ typedef enum
 
 static const uintptr_t DL_NULL_PTR_OFFSET[2] =
 {
-	(uintptr_t)0xFFFFFFFF, // DL_PTR_SIZE_32BIT
-	(uintptr_t)-1          // DL_PTR_SIZE_64BIT
+	(uintptr_t)0, // DL_PTR_SIZE_32BIT
+	(uintptr_t)0  // DL_PTR_SIZE_64BIT
 };
 
 struct dl_typelib_header
@@ -107,6 +108,7 @@ struct dl_typelib_header
 	uint32_t default_value_size;
 	uint32_t typeinfo_strings_size;
 	uint32_t c_includes_size;
+	uint32_t metadatas_count;
 };
 
 struct dl_data_header
@@ -116,7 +118,9 @@ struct dl_data_header
 	dl_typeid_t root_instance_type;
 	uint32_t    instance_size;
 	uint8_t     is_64_bit_ptr; // currently uses uint8 instead of bitfield to be compiler-compliant.
-	uint8_t     pad[7];
+	uint8_t     not_using_ptr_chain_patching; // currently uses uint8 instead of bitfield to be compiler-compliant.
+	uint8_t     pad[2];
+	uint32_t    first_pointer_to_patch;
 };
 
 enum dl_ptr_size_t
@@ -150,6 +154,8 @@ struct dl_member_desc
 	uint32_t    default_value_offset; // if M_UINT32_MAX, default value is not present, otherwise offset into default-value-data.
 	uint32_t    default_value_size;
 	uint32_t    flags;
+	uint32_t    metadata_count;
+	uint32_t    metadata_start;
 
 	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
 	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
@@ -241,7 +247,8 @@ struct dl_type_desc
 	uint32_t member_count;
 	uint32_t member_start;
 	uint32_t comment;
-
+	uint32_t metadata_count;
+	uint32_t metadata_start;
 };
 
 struct dl_enum_value_desc
@@ -249,6 +256,8 @@ struct dl_enum_value_desc
 	uint32_t main_alias;
 	uint32_t comment;
 	uint64_t value;
+	uint32_t metadata_count;
+	uint32_t metadata_start;
 };
 
 struct dl_enum_desc
@@ -261,6 +270,8 @@ struct dl_enum_desc
 	uint32_t          alias_count; /// number of aliases for this enum, always at least 1. Alias 0 is consider the "main name" of the value and need to be a valid c enum name.
 	uint32_t          alias_start; /// offset into alias list where aliases for this enum-value start.
 	uint32_t		  comment;
+	uint32_t          metadata_count;
+	uint32_t          metadata_start;
 };
 
 struct dl_enum_alias_desc
@@ -281,6 +292,7 @@ struct dl_context
 	unsigned int member_count;
 	unsigned int enum_value_count;
 	unsigned int enum_alias_count;
+	unsigned int metadatas_count;
 
 	size_t type_capacity;
 	size_t enum_capacity;
@@ -305,6 +317,11 @@ struct dl_context
 	size_t c_includes_size;
 	size_t c_includes_cap;
 
+	void** metadatas;
+	size_t metadatas_cap;
+	const void** metadata_infos;
+	dl_typeid_t* metadata_typeinfos;
+
 	uint8_t* default_data;
 	size_t   default_data_size;
 };
@@ -314,6 +331,12 @@ struct dl_substr
 	const char* str;
 	int len;
 };
+
+#ifdef _MSC_VER
+#  define DL_FORCEINLINE __forceinline
+#else
+#  define DL_FORCEINLINE inline __attribute__( ( always_inline ) )
+#endif
 
 // A growable array using a stack buffer while small. Use it to avoid dynamic allocations while the stack is big enough, but fall back to heap if it grows past the wanted stack size
 template <typename T, int SIZE>
@@ -381,12 +404,12 @@ public:
 		m_nElements++;
 	}
 
-	T& operator[](size_t _iEl)
+	DL_FORCEINLINE T& operator[]( size_t _iEl )
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Ptr[_iEl];
 	}
-	const T& operator[](size_t _iEl) const
+	DL_FORCEINLINE const T& operator[]( size_t _iEl ) const
 	{
 		DL_ASSERT(_iEl < m_nElements && "Index out of bound");
 		return m_Ptr[_iEl];
@@ -394,10 +417,11 @@ public:
 };
 
 #if defined( __GNUC__ )
+#	define _Printf_format_string_
 inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... ) __attribute__((format( printf, 2, 3 )));
 #endif
 
-inline void dl_log_error( dl_ctx_t dl_ctx, const char* fmt, ... )
+inline void dl_log_error( dl_ctx_t dl_ctx, _Printf_format_string_ const char* fmt, ... )
 {
 	if( dl_ctx->error_msg_func == 0x0 )
 		return;

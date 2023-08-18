@@ -7,7 +7,9 @@
 #include "dl_txt_read.h"
 
 #include <stdlib.h>
+#include <algorithm>
 #include <limits.h>
+#include <algorithm>
 #include <float.h>
 #include <limits>
 
@@ -129,10 +131,16 @@ inline float dl_strtof(const char* str, char** endptr)
 	return res;
 }
 
+static inline uint32_t dl_internal_hash_buffer( dl_substr str )
+{
+	return dl_internal_hash_buffer((const uint8_t*)str.str, (size_t)str.len);
+}
+
 struct dl_txt_pack_ctx
 {
 	explicit dl_txt_pack_ctx(dl_allocator alloc)
 	    : subdata(alloc)
+	    , ptrs(alloc)
 	{
 	}
 
@@ -142,10 +150,12 @@ struct dl_txt_pack_ctx
 	struct SSubData
 	{
 		dl_substr name;
+		uint32_t name_hash;
 		const dl_type_desc* type;
 		size_t patch_pos;
 	}; 
 	CArrayStatic<SSubData, 256> subdata;
+	dl_patched_ptrs ptrs;
 };
 
 static void dl_txt_pack_eat_and_write_int8( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
@@ -223,7 +233,7 @@ static bool dl_txt_pack_eat_and_write_null(dl_txt_pack_ctx* packctx)
 	dl_txt_eat_white( &packctx->read_ctx );
 	if( strncmp( packctx->read_ctx.iter, "null", 4 ) == 0 )
 	{
-		dl_binary_writer_write_ptr( packctx->writer, (uintptr_t)-1 );
+		dl_binary_writer_write_ptr( packctx->writer, (uintptr_t) 0 );
 		packctx->read_ctx.iter += 4;
 		return true;
 	}
@@ -270,6 +280,8 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	}
 	dl_binary_writer_write_uint8( packctx->writer, '\0' );
 	dl_binary_writer_seek_set( packctx->writer, curr );
+	if( !packctx->writer->dummy )
+		packctx->ptrs.add( dl_binary_writer_tell( packctx->writer ) );
 	dl_binary_writer_write( packctx->writer, &strpos, sizeof(size_t) );
 }
 
@@ -309,7 +321,10 @@ static void dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	if( ptr.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_INVALID_MEMBER_TYPE, "expected string" );
 
-	packctx->subdata.Add({ ptr, type, patch_pos });
+	if( !packctx->writer->dummy )
+		packctx->ptrs.add( patch_pos );
+
+	packctx->subdata.Add({ ptr, dl_internal_hash_buffer(ptr), type, patch_pos });
 }
 
 static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr symbol )
@@ -321,9 +336,9 @@ static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx*
 	}
 }
 
-static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
+static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type );
 
-static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member, uint32_t array_length )
+static dl_error_t dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_member_desc* member, uint32_t array_length )
 {
 	switch( member->StorageType() )
 	{
@@ -456,11 +471,13 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
 			for( uint32_t i = 0; i < array_length -1; ++i )
 			{
 				dl_binary_writer_seek_set( packctx->writer, array_pos + i * type->size[DL_PTR_SIZE_HOST] );
-				dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+				dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+				if( DL_ERROR_OK != err ) return err;
 				dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ',' );
 			}
 			dl_binary_writer_seek_set( packctx->writer, array_pos + (array_length - 1) * type->size[DL_PTR_SIZE_HOST] );
-			dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+			dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+			if( DL_ERROR_OK != err ) return err;
 		}
 		break;
 		case DL_TYPE_STORAGE_ENUM_INT8:
@@ -494,6 +511,7 @@ static void dl_txt_pack_eat_and_write_array( dl_ctx_t dl_ctx, dl_txt_pack_ctx* p
     if(*packctx->read_ctx.iter == ',')
         ++packctx->read_ctx.iter;
     dl_txt_eat_white( &packctx->read_ctx );
+	return DL_ERROR_OK;
 }
 
 static void dl_txt_pack_array_item_size_align( dl_ctx_t dl_ctx,
@@ -777,11 +795,11 @@ static void dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 
 		uint8_t* member_data = packctx->writer->data + member_pos;
 		if( !packctx->writer->dummy )
-			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size );
+			dl_internal_patch_member( dl_ctx, member, member_data, (uintptr_t)packctx->writer->data, subdata_pos - member_size - sizeof( dl_data_header ), &packctx->ptrs );
 	}
 }
 
-static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
+static dl_error_t dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_t instance_pos, const dl_member_desc* member )
 {
 	size_t member_pos = instance_pos + member->offset[DL_PTR_SIZE_HOST];
 	dl_binary_writer_seek_set( packctx->writer, member_pos );
@@ -804,7 +822,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				case DL_TYPE_STORAGE_FP64:   dl_txt_pack_eat_and_write_fp64( dl_ctx, packctx );   break;
 				case DL_TYPE_STORAGE_STR:    dl_txt_pack_eat_and_write_string( dl_ctx, packctx ); break;
 				case DL_TYPE_STORAGE_PTR:    dl_txt_pack_eat_and_write_ptr( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ), member_pos ); break;
-				case DL_TYPE_STORAGE_STRUCT: dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) ); break;
+				case DL_TYPE_STORAGE_STRUCT: return dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, dl_internal_find_type( dl_ctx, member->type_id ) );
 				case DL_TYPE_STORAGE_ENUM_INT8:
 				case DL_TYPE_STORAGE_ENUM_INT16:
 				case DL_TYPE_STORAGE_ENUM_INT32:
@@ -832,7 +850,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 			uint32_t array_length = dl_txt_pack_find_array_length( dl_ctx, packctx, member );
 			if( array_length == 0 )
 			{
-				dl_binary_writer_write_pint( packctx->writer, (size_t)-1 );
+				dl_binary_writer_write_pint( packctx->writer, (size_t)0 );
 				dl_binary_writer_write_uint32( packctx->writer, 0 );
 			}
 			else
@@ -842,12 +860,16 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 				size_t array_pos = dl_binary_writer_needed_size( packctx->writer );
 				array_pos = dl_internal_align_up( array_pos, element_align );
 
+	            if( !packctx->writer->dummy )
+				    packctx->ptrs.add( dl_binary_writer_tell( packctx->writer ) );
+
 				dl_binary_writer_write_pint( packctx->writer, array_pos );
 				dl_binary_writer_write_uint32( packctx->writer, array_length );
 				dl_binary_writer_seek_end( packctx->writer );
 				dl_binary_writer_align( packctx->writer, element_align );
 				dl_binary_writer_reserve( packctx->writer, array_length * element_size );
-				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
+				dl_error_t err = dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
+				if( DL_ERROR_OK != err ) return err;
 			}
 			dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
 		}
@@ -865,7 +887,10 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 			}
 
 			if(array_length > 0)
-				dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
+			{
+				dl_error_t err = dl_txt_pack_eat_and_write_array( dl_ctx, packctx, member, array_length );
+				if( DL_ERROR_OK != err ) return err;
+			}
 
 			switch(member->StorageType())
 			{
@@ -886,7 +911,7 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 							const dl_member_desc* sub_member = dl_get_type_member(dl_ctx, sub_type, sub_member_i);
 							dl_txt_pack_write_default_value(dl_ctx, packctx, sub_member, current_member_array_position + sub_member->offset[DL_PTR_SIZE_HOST]);
 						}
-							current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
+						current_member_array_position += sub_type->size[DL_PTR_SIZE_HOST];
 					}
 					break;
 				}
@@ -942,9 +967,10 @@ static void dl_txt_pack_member( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, size_
 		default:
 			DL_ASSERT(false);
 	}
+	return DL_ERROR_OK;
 }
 
-static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
+static dl_error_t dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '[' );
 
@@ -955,7 +981,9 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	// ... pack all members in order ...
 	for( uint32_t member_index = 0; member_index < type->member_count; ++member_index )
 	{
-		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		dl_error_t err = dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		if( err != DL_ERROR_OK )
+			return err;
 
 		dl_txt_eat_white( &packctx->read_ctx );
 
@@ -973,6 +1001,7 @@ static void dl_txt_pack_eat_and_write_array_struct( dl_ctx_t dl_ctx, dl_txt_pack
 	}
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ']' );
+	return DL_ERROR_OK;
 }
 
 static const dl_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
@@ -1003,7 +1032,7 @@ static const dl_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
 	return res;
 }
 
-static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
+static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, const dl_type_desc* type )
 {
 	uint64_t members_set[DL_MEMBERS_IN_TYPE_MAX / 64] = {0};
 	uint32_t member_index = 0xFFFFFFFF;
@@ -1012,8 +1041,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 
 	if( *packctx->read_ctx.iter == '[' )
 	{
-		dl_txt_pack_eat_and_write_array_struct( dl_ctx, packctx, type );
-		return;
+		return dl_txt_pack_eat_and_write_array_struct( dl_ctx, packctx, type );
 	}
 
 	// ... find open {
@@ -1028,7 +1056,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		// ... read all members ...
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( *packctx->read_ctx.iter == ',' ) ++packctx->read_ctx.iter;
-		// We allow traailing commas, so consume whitespaces to see if we have a struct termination.
+		// We allow trailing commas, so consume whitespaces to see if we have a struct termination.
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( *packctx->read_ctx.iter == '}' ) break;
 
@@ -1060,7 +1088,7 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, "multiple members of union-type was set! %s.%.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		}
 
-		uint32_t member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
+		uint32_t member_name_hash = dl_internal_hash_buffer(member_name);
 		member_index = dl_internal_find_member( dl_ctx, type, member_name_hash );
 		if( member_index > type->member_count )
 		{
@@ -1079,7 +1107,8 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
 		// ... read member ...
-		dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		dl_error_t err = dl_txt_pack_member( dl_ctx, packctx, instance_pos, dl_get_type_member( dl_ctx, type, member_index ) );
+		if( DL_ERROR_OK != err ) return err;
 	}
 
 	// ... find close }
@@ -1109,7 +1138,35 @@ static void dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			dl_txt_pack_write_default_value(dl_ctx, packctx, member, member_pos);
 		}
 	}
+	return DL_ERROR_OK;
 }
+
+struct SSubInstance
+{
+	dl_substr name;
+	size_t pos;
+	uint32_t name_hash;
+};
+
+struct dl_internal_sort_pred
+{
+	inline bool operator()(const SSubInstance& i1, const SSubInstance& i2)
+	{
+		return i1.name_hash < i2.name_hash;
+	}
+	inline bool operator()(const dl_txt_pack_ctx::SSubData& i1, const dl_txt_pack_ctx::SSubData& i2)
+	{
+		return i1.name_hash < i2.name_hash;
+	}
+	inline bool operator()(const SSubInstance& i1, uint32_t i2)
+	{
+		return i1.name_hash < i2;
+	}
+	inline bool operator()(const dl_txt_pack_ctx::SSubData& i1, uint32_t i2)
+	{
+		return i1.name_hash < i2;
+	}
+};
 
 static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx )
 {
@@ -1120,16 +1177,12 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	packctx->read_ctx.iter = packctx->subdata_pos;
 
-	struct SSubInstance
-	{
-		dl_substr name;
-		size_t pos;
-	};
 	CArrayStatic<SSubInstance, 256> subinstances(dl_ctx->alloc);
-	subinstances.Add({ { "__root" , 6}, 0 });
+	subinstances.Add({ { "__root", 6 }, sizeof(dl_data_header), dl_internal_hash_string("__root") });
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '{' );
 
+	std::sort( packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
 	while( true )
 	{
 		dl_txt_eat_white( &packctx->read_ctx );
@@ -1140,32 +1193,40 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		if( subdata_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing subdata instance-name." );
 
+		uint32_t name_hash = dl_internal_hash_buffer(subdata_name);
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
-		size_t subdata_item = std::numeric_limits<size_t>::max();
-		for (size_t i = 0; i < packctx->subdata.Len(); ++i)
+		const dl_txt_pack_ctx::SSubData* results = std::lower_bound(packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + packctx->subdata.Len(), name_hash, dl_internal_sort_pred());
+		while (results != packctx->subdata.m_Ptr + packctx->subdata.Len())
 		{
-			if( packctx->subdata[i].name.len != subdata_name.len )
-				continue;
-
-			if( strncmp( packctx->subdata[i].name.str, subdata_name.str, (size_t)subdata_name.len ) == 0 )
+			if( results->name_hash != name_hash )
 			{
-				subdata_item = i;
+				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata '%.*s'", subdata_name.len, subdata_name.str );
+			}
+
+			if( results->name.len == subdata_name.len && strncmp(results->name.str, subdata_name.str, (size_t)subdata_name.len) == 0 )
+			{
 				break;
 			}
+			++results;
 		}
 
-		if (subdata_item == std::numeric_limits<size_t>::max())
-			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "non-used subdata." );
-		const dl_type_desc* type = packctx->subdata[subdata_item].type;
+		const dl_type_desc* type = results->type;
 
 		dl_binary_writer_seek_end( packctx->writer );
 		dl_binary_writer_align( packctx->writer, type->alignment[DL_PTR_SIZE_HOST] );
 		size_t inst_pos = dl_binary_writer_tell( packctx->writer );
 
-		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+		size_t used_subdatas = packctx->subdata.Len();
+		dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, type );
+		if( DL_ERROR_OK != err ) return err;
+		if( packctx->subdata.Len() != used_subdatas )
+		{
+			std::sort( packctx->subdata.m_Ptr + used_subdatas, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
+			std::inplace_merge( packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + used_subdatas, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
+		}
 
-		subinstances.Add({ subdata_name, inst_pos });
+		subinstances.Add( { subdata_name, inst_pos, dl_internal_hash_buffer(subdata_name) } );
 
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( packctx->read_ctx.iter[0] == ',' )
@@ -1176,22 +1237,25 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 	dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
+	std::sort( subinstances.m_Ptr, subinstances.m_Ptr + subinstances.Len(), dl_internal_sort_pred() );
 	for( size_t i = 0; i < packctx->subdata.Len(); ++i )
 	{
 		bool found = false;
-		for( size_t j = 0; j < subinstances.Len(); ++j )
+		uint32_t name_hash = dl_internal_hash_buffer(packctx->subdata[i].name);
+		const SSubInstance* results = std::lower_bound(subinstances.m_Ptr, subinstances.m_Ptr + subinstances.Len(), name_hash, dl_internal_sort_pred());
+		while (results != subinstances.m_Ptr + subinstances.Len())
 		{
-			if( packctx->subdata[i].name.len != subinstances[j].name.len )
-				continue;
+			if( results->name_hash != name_hash )
+				break;
 
-			if( strncmp( packctx->subdata[i].name.str, subinstances[j].name.str, (size_t)subinstances[j].name.len ) == 0 )
+			if( results->name.len == packctx->subdata[i].name.len && strncmp(results->name.str, packctx->subdata[i].name.str, (size_t)packctx->subdata[i].name.len) == 0 )
 			{
 				found = true;
 				dl_binary_writer_seek_set( packctx->writer, packctx->subdata[i].patch_pos );
-				dl_binary_writer_write_ptr( packctx->writer, subinstances[j].pos );
+				dl_binary_writer_write_ptr( packctx->writer, results->pos );
 			}
+			++results;
 		}
-
 		if( !found )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "referenced subdata \"%.*s\"", packctx->subdata[i].name.len, packctx->subdata[i].name.str );
 	}
@@ -1227,21 +1291,24 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		}
 
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
-		dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
+ 		dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
+		if( DL_ERROR_OK != err ) return 0x0;
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, '}' );
 
-		dl_txt_pack_finalize_subdata( dl_ctx, packctx );
+		err = dl_txt_pack_finalize_subdata( dl_ctx, packctx );
+		if( DL_ERROR_OK != err ) return 0x0;
+
 		return root_type;
 	}
 	return 0x0;
 }
 
-dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes )
+dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, bool use_fast_ptr_patch )
 {
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer,
-						   out_buffer + sizeof(dl_data_header),
-						   out_buffer_size - sizeof(dl_data_header),
+						   out_buffer,
+						   out_buffer_size,
 						   out_buffer_size == 0,
 						   DL_ENDIAN_HOST,
 						   DL_ENDIAN_HOST,
@@ -1254,30 +1321,55 @@ dl_error_t dl_txt_pack( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char
 	packctx.subdata_pos = 0x0;
 	packctx.read_ctx.err = DL_ERROR_OK;
 
+	dl_binary_writer_write_zero( &writer, sizeof( dl_data_header ) );
 	const dl_type_desc* root_type = dl_txt_pack_inner( dl_ctx, &packctx );
 	if( packctx.read_ctx.err == DL_ERROR_OK )
 	{
 		// write header
 		if( out_buffer_size > 0 )
 		{
-			dl_data_header header;
-			memset(&header, 0x0, sizeof(dl_data_header));
-			header.id                 = DL_INSTANCE_ID;
-			header.version            = DL_INSTANCE_VERSION;
-			header.root_instance_type = dl_internal_typeid_of( dl_ctx, root_type );
-			header.instance_size      = (uint32_t)dl_binary_writer_needed_size( &writer );
-			header.is_64_bit_ptr      = sizeof(void*) == 8 ? 1 : 0;
-			memcpy( out_buffer, &header, sizeof(dl_data_header) );
+			CArrayStatic<uintptr_t, 256>& pointers = packctx.ptrs.addresses;
+
+			dl_data_header& header        = *(dl_data_header*)writer.data;
+			header.id                     = DL_INSTANCE_ID;
+			header.version                = DL_INSTANCE_VERSION;
+			header.root_instance_type     = dl_internal_typeid_of( dl_ctx, root_type );
+			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header ));
+			header.is_64_bit_ptr          = sizeof( void* ) == 8 ? 1 : 0;
+			header.first_pointer_to_patch = pointers.Len() ? (uint32_t)pointers[0] : 0;
+
+			uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
+			if( dl_binary_writer_needed_size( &writer ) >= ( 1ULL << offset_shift ) || !use_fast_ptr_patch )
+				header.not_using_ptr_chain_patching = 1;
+			else
+			{
+				std::sort( pointers.m_Ptr, pointers.m_Ptr + pointers.m_nElements );
+				if( !packctx.writer->dummy && pointers.Len() )
+				{
+					pointers.Add( pointers[pointers.Len() - 1] ); // Adding last pointer again so the offset to next pointer becomes 0 which terminates patching
+					for( size_t i = 0; i < pointers.Len() - 1; ++i )
+					{
+						uintptr_t offset                                = *(uintptr_t*)&packctx.writer->data[pointers[i]];
+						*(uintptr_t*)&packctx.writer->data[pointers[i]] = offset | ( ( (uintptr_t)( pointers[i + 1] - pointers[i] ) ) << offset_shift );
+					}
+				}
+			}
 		}
 
 		if( produced_bytes )
-			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer ) + sizeof(dl_data_header);
+			*produced_bytes = (unsigned int)dl_binary_writer_needed_size( &writer );
 	}
 	else
 	{
 		dl_report_error_location( dl_ctx, packctx.read_ctx.start, packctx.read_ctx.end, packctx.read_ctx.iter );
 	}
 	return packctx.read_ctx.err;
+}
+
+dl_error_t dl_txt_pack(dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes)
+{
+	bool use_fast_ptr_patch = true;
+	return dl_txt_pack_internal( dl_ctx, txt_instance, out_buffer, out_buffer_size, produced_bytes, use_fast_ptr_patch );
 }
 
 dl_error_t dl_txt_pack_calc_size( dl_ctx_t dl_ctx, const char* txt_instance, size_t* out_instance_size )

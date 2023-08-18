@@ -45,7 +45,7 @@ static const int DL_INLINE_ARRAY_LENGTH_MAX = 0xFFFF;
 	DL_ERROR_TYPE_MISMATCH                                 - Expected type A but found type B.
 	DL_ERROR_TYPE_NOT_FOUND                                - Could not find a requested type. Is the correct type library loaded?
 	DL_ERROR_MEMBER_NOT_FOUND                              - Could not find a requested member of a type.
-	DL_ERROR_BUFFER_TO_SMALL                               - Provided buffer is to small.
+	DL_ERROR_BUFFER_TOO_SMALL                              - Provided buffer is to small.
 	DL_ERROR_ENDIAN_MISMATCH                               - Endianness of provided data is not the same as the platform's.
 	DL_ERROR_BAD_ALIGNMENT                                 - One argument has a bad alignment that will break, for example, loaded data.
 	DL_ERROR_UNSUPPORTED_OPERATION                         - The operation is not supported by dl-function.
@@ -59,7 +59,7 @@ static const int DL_INLINE_ARRAY_LENGTH_MAX = 0xFFFF;
 
 	DL_ERROR_INTERNAL_ERROR                                - Internal error, contact dev!
 */
-typedef enum
+typedef enum DL_NODISCARD
 {
 	DL_ERROR_OK,
 	DL_ERROR_MALFORMED_DATA,
@@ -67,10 +67,9 @@ typedef enum
 	DL_ERROR_OUT_OF_LIBRARY_MEMORY,
 	DL_ERROR_OUT_OF_INSTANCE_MEMORY,
 	DL_ERROR_DYNAMIC_SIZE_TYPES_AND_NO_INSTANCE_ALLOCATOR,
-	DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS,
 	DL_ERROR_TYPE_MISMATCH,
 	DL_ERROR_TYPE_NOT_FOUND,
-	DL_ERROR_BUFFER_TO_SMALL,
+	DL_ERROR_BUFFER_TOO_SMALL,
 	DL_ERROR_ENDIAN_MISMATCH,
 	DL_ERROR_BAD_ALIGNMENT,
 	DL_ERROR_INVALID_PARAMETER,
@@ -349,7 +348,7 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 		instance - Ptr to instance to calculate size of.
 		out_size - Ptr where to store the amount of bytes needed to store the instances.
 */
-dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, void* instance, size_t* out_size);
+dl_error_t DL_DLL_EXPORT dl_instance_calc_size( dl_ctx_t dl_ctx, dl_typeid_t type, const void* instance, size_t* out_size);
 
 /*
 	Function: dl_instace_store

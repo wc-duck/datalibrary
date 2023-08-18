@@ -23,6 +23,11 @@ struct dlbench
 	dl_ctx_t ctx;
 };
 
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4834) // discarding return value of function with 'nodiscard' attribute
+#endif
+
 UBENCH_F_SETUP(dlbench)
 {
 	dl_create_params_t p;
@@ -153,7 +158,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_array_fp32)
 	{
 		static float data2[] = { 1.0f, 2.0f, 3.0f };
 		inst.arr[i].arr.data = data2;
-		inst.arr[i].arr.count = DL_ARRAY_LENGTH( data2 );
+		inst.arr[i].arr.count = DL_ARRAY_LENGTH(data2);
 	}
 
 	dlbench& f = *ubench_fixture;
@@ -201,3 +206,7 @@ UBENCH_EX_F(dlbench, txt_pack_big_array_str_null)
 }
 
 UBENCH_MAIN();
+
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif

@@ -29,15 +29,18 @@ typedef struct dl_type_context_info
 */
 typedef struct dl_type_info
 {
-	dl_typeid_t  tid;
-	const char*  name;
-	const char*  comment;
-	unsigned int size;
-	unsigned int alignment;
-	unsigned int member_count;
-	unsigned int is_extern : 1;
-	unsigned int is_union : 1;
-	unsigned int should_verify : 1;
+	dl_typeid_t        tid;
+	const char*        name;
+	const char*        comment;
+	unsigned int       size;
+	unsigned int       alignment;
+	unsigned int       member_count;
+	unsigned int       metadata_count;
+	const dl_typeid_t* metadata_type_ids;
+	const void**       metadata_instances;
+	unsigned int       is_extern : 1;
+	unsigned int       is_union : 1;
+	unsigned int       should_verify : 1;
 } dl_type_info_t;
 
 /*
@@ -46,36 +49,42 @@ typedef struct dl_type_info
 */
 typedef struct dl_member_info
 {
-	const char*       name;
-	const char*       comment;
-	dl_type_atom_t    atom;
-	dl_type_storage_t storage;
-	dl_typeid_t       type_id;
-	unsigned int      size;
-	unsigned int      alignment;
-	unsigned int      offset;
-	unsigned int      array_count;
-	unsigned int      bits;
-	unsigned int 	  is_const : 1;
-	unsigned int 	  should_verify : 1;
+	const char*        name;
+	const char*        comment;
+	dl_type_atom_t     atom;
+	dl_type_storage_t  storage;
+	dl_typeid_t        type_id;
+	unsigned int       size;
+	unsigned int       alignment;
+	unsigned int       offset;
+	unsigned int       array_count;
+	unsigned int       bits;
+	unsigned int       metadata_count;
+	const dl_typeid_t* metadata_type_ids;
+	const void**       metadata_instances;
+	unsigned int 	   is_const : 1;
+	unsigned int 	   should_verify : 1;
 } dl_member_info_t;
 
 /*
-	Struct: dl_type_info_t
+	Struct: dl_enum_info
 		Struct used to retrieve information about a specific DL-enum.
 */
 typedef struct dl_enum_info
 {
-	dl_typeid_t       tid;
-	const char*       name;
-	const char*       comment;
-	dl_type_storage_t storage;
-	unsigned int      value_count;
-	unsigned int      is_extern : 1;
+	dl_typeid_t        tid;
+	const char*        name;
+	const char*        comment;
+	dl_type_storage_t  storage;
+	unsigned int       value_count;
+	unsigned int       metadata_count;
+	const dl_typeid_t* metadata_type_ids;
+	const void**       metadata_instances;
+	unsigned int       is_extern : 1;
 } dl_enum_info_t;
 
 /*
-	Struct: dl_member_info_t
+	Struct: dl_enum_value_info
 		Struct used to retrieve information about a specific DL-enum-value.
 */
 typedef struct dl_enum_value_info
@@ -93,6 +102,9 @@ typedef struct dl_enum_value_info
 		uint32_t u32;
 		uint64_t u64;
 	} value;
+	unsigned int       metadata_count;
+	const dl_typeid_t* metadata_type_ids;
+	const void**       metadata_instances;
 } dl_enum_value_info_t;
 
 #ifdef __cplusplus
@@ -221,7 +233,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_info( dl_ctx_t dl_ctx, dl_typeid_t 
 		members_size  - Size of _pMembers.
 
 	Returns:
-		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if out_members do not fit all members, or other error if appropriate!
+		DL_ERROR_OK on success, DL_ERROR_BUFFER_TOO_SMALL if out_members do not fit all members, or other error if appropriate!
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid_t type, dl_member_info_t* out_members, unsigned int out_members_size );
 
@@ -236,7 +248,7 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		out_values_size - Size of out_values.
 
 	Returns:
-		DL_ERROR_OK on success, DL_ERROR_BUFFER_TO_SMALL if out_members do not fit all members, or other error if appropriate!
+		DL_ERROR_OK on success, DL_ERROR_BUFFER_TOO_SMALL if out_members do not fit all members, or other error if appropriate!
 */
 dl_error_t DL_DLL_EXPORT dl_reflect_get_enum_values( dl_ctx_t dl_ctx, dl_typeid_t type, dl_enum_value_info_t* out_values, unsigned int out_values_size );
 

@@ -362,7 +362,7 @@ TEST_F( DLTypeLibUnpackTxt, round_about )
 	EXPECT_EQ( 2u, info.num_types );
 	EXPECT_EQ( 2u, info.num_enums );
 
-	dl_context_destroy( ctx2 );
+	EXPECT_DL_ERR_OK(dl_context_destroy( ctx2 ));
 }
 
 TEST_F( DLTypeLibUnpackTxt, round_about_big )
@@ -388,7 +388,7 @@ TEST_F( DLTypeLibUnpackTxt, round_about_big )
 
 	free((void*)testlib_txt_buffer);
 
-	dl_context_destroy( ctx2 );
+	EXPECT_DL_ERR_OK(dl_context_destroy( ctx2 ));
 }
 
 
@@ -405,7 +405,7 @@ static uint8_t* test_pack_txt_type_lib( const char* lib_txt, size_t lib_txt_size
 	uint8_t* packed = (uint8_t*)malloc(*out_size);
 	EXPECT_DL_ERR_OK( dl_context_write_type_library( ctx, packed, *out_size, 0x0 ) );
 
-	dl_context_destroy( ctx );
+	EXPECT_DL_ERR_OK(dl_context_destroy( ctx ));
 	return packed;
 }
 
@@ -440,4 +440,24 @@ TEST_F( DLTypeLib, enum_in_2_tlds )
 // invalid type
 
 // enum that do not fit in type!
+
+TEST_F( DLTypeLib, defaults_in_2_tlds )
+{
+	// capturing bug where default values in a second tld would generate DL_ERROR_OUT_OF_DEFAULT_VALUE_SLOTS if the 
+	// first tld had default values.	
+
+	const char typelib1[] = STRINGIFY({ "module" : "tl1", "types" : { "tl1_type" : { "members" : [ { "name" : "m1", "type" : "fp32", "default" : 1.0 } ] } } });
+	const char typelib2[] = STRINGIFY({ "module" : "tl2", "types" : { "tl2_type" : { "members" : [ { "name" : "m2", "type" : "fp32", "default" : 2.0 } ] } } });
+
+	size_t tl1_size;
+	size_t tl2_size;
+	uint8_t* tl1 = test_pack_txt_type_lib( typelib1, sizeof(typelib1)-1, &tl1_size );
+	uint8_t* tl2 = test_pack_txt_type_lib( typelib2, sizeof(typelib2)-1, &tl2_size );
+
+	EXPECT_DL_ERR_OK( dl_context_load_type_library( ctx, tl1, tl1_size ) );
+	EXPECT_DL_ERR_OK( dl_context_load_type_library( ctx, tl2, tl2_size ) );
+
+	free(tl1);
+	free(tl2);
+}
 

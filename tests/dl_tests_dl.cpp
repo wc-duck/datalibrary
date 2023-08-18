@@ -113,6 +113,53 @@ TYPED_TEST(DLBase, bug4)
 	}
 }
 
+TYPED_TEST(DLBase, bug5)
+{
+	// testing bug where array of structs with pointers caused crash
+	PtrChain arr[2];
+	arr[0].Int = 2;
+	arr[0].Next = &arr[1];
+	arr[1].Int = 1;
+	arr[1].Next = &arr[0];
+
+	BugTest5 original;
+	original.array.data = &arr[0];
+	original.array.count = 2;
+
+	BugTest5 loaded[1024];
+
+	this->do_the_round_about(original.TYPE_ID, &original, &loaded, sizeof(loaded));
+
+	EXPECT_EQ(2U, loaded[0].array[0].Int);
+}
+
+TYPED_TEST( DLBase, DISABLED_bug6 )
+{
+	// testing that pointers to structs work, and doesn't create redundant data
+	PtrChain arr[2];
+	arr[0].Int  = 2;
+	arr[0].Next = &arr[1];
+	arr[1].Int  = 1;
+	arr[1].Next = &arr[0];
+
+	BugTest5 original;
+	original.array.count = 2;
+	original.array.data  = &arr[0];
+
+	BugTest5 loaded[1024];
+
+	this->do_the_round_about( original.TYPE_ID, &original, &loaded, sizeof( loaded ) );
+
+	EXPECT_EQ( &loaded[0].array[0], loaded[0].array[0].Next->Next );
+	EXPECT_EQ( &loaded[0].array[1], loaded[0].array[1].Next->Next );
+
+	size_t circular_store_size;
+	EXPECT_DL_ERR_OK( dl_instance_calc_size(this->Ctx, original.TYPE_ID, &original, &circular_store_size) );
+	size_t single_ptr_store_size;
+	EXPECT_DL_ERR_OK( dl_instance_calc_size(this->Ctx, arr[0].TYPE_ID, &arr[0], &single_ptr_store_size) );
+	EXPECT_EQ( circular_store_size, single_ptr_store_size + sizeof( original.array ) + sizeof( arr[0] ) );
+}
+
 TYPED_TEST(DLBase, str_before_array_bug)
 {
 	// Test for bug #7, where string written before array would lead to mis-alignment of the array.
