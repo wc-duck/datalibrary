@@ -219,7 +219,7 @@
 			]
 		},
 
-		"A128BitAlignedType" : { "align" : 128, "members" : [ { "name" : "Int",  "type" : "uint32" } ] },
+		"A128BitAlignedType" : { "align" : 128, "members" : [ { "name" : "Int",  "type" : "uint32", "default": 1337 } ] },
 
 		"TestingEnum" : { "members" : [ { "name" : "TheEnum", "type" : "TestEnum1" } ] },
 
@@ -359,9 +359,9 @@
 
 		"bug_alignment_struct" : {
 			"members" : [
-				{ "name" : "i32",     "type" : "uint32" },
-				{ "name" : "aligned", "type" : "A128BitAlignedType" },
-				{ "name" : "ptr",     "type" : "Pods2*" }
+				{ "name" : "i32",     "type" : "uint32", "default": 90 },
+				{ "name" : "aligned", "type" : "A128BitAlignedType", "default": { } },
+				{ "name" : "ptr",     "type" : "Pods2*", "default": null }
 			]
 		},
 
