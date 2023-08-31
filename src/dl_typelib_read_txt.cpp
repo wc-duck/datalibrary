@@ -251,10 +251,11 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 
 	// TODO: convert packed instance to typelib endian/ptrsize here!
 
-	size_t inst_size = prod_bytes - sizeof( dl_data_header );
+	size_t offset_to_data_start = dl_internal_align_up( sizeof( dl_data_header ), def_type->alignment[DL_PTR_SIZE_HOST] );
+	size_t inst_size = prod_bytes - offset_to_data_start;
 
 	ctx->default_data = (uint8_t*)dl_realloc( &ctx->alloc, ctx->default_data, ctx->default_data_size + inst_size, ctx->default_data_size );
-	memcpy( ctx->default_data + ctx->default_data_size, pack_buffer + sizeof( dl_data_header ), inst_size );
+	memcpy( ctx->default_data + ctx->default_data_size, pack_buffer + offset_to_data_start, inst_size );
 
 	dl_free( &ctx->alloc, pack_buffer );
 
