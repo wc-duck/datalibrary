@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="dl_substr">
+    <DisplayString Encoding="Utf8">{str,[len]s8}</DisplayString>
+    <StringView>str,[len]s8</StringView>
+  </Type>
+  <Type Name="dl_type_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->typedata_strings + name,s8}</DisplayString>  
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[typeid]">(*ctx)->type_ids[this - (*ctx)->type_descs],X</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Synthetic Name="[members]">
+        <DisplayString>Count:{member_count} [{*((*ctx)->member_descs + member_start)}...]</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>member_count</Size>
+            <ValuePointer>(*ctx)->member_descs + member_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Item Name="[flags]" ExcludeView="simple">flags</Item>
+      <Item Name="[size]" ExcludeView="simple">size[DL_PTR_SIZE_HOST]</Item>
+      <Item Name="[alignment]" ExcludeView="simple">alignment[DL_PTR_SIZE_HOST]</Item>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count:{metadata_count}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_member_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->typedata_strings + name,s8}</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Item Name="[flags]" ExcludeView="simple">flags</Item>
+      <Item Name="[type]">type</Item>
+      <Item Name="[typeid]">type_id,X</Item>
+      <Item Name="[offset]" ExcludeView="simple">offset[DL_PTR_SIZE_HOST]</Item>
+      <Item Name="[size]" ExcludeView="simple">size[DL_PTR_SIZE_HOST]</Item>
+      <Item Name="[alignment]" ExcludeView="simple">alignment[DL_PTR_SIZE_HOST]</Item>
+      <Synthetic Name="[default values]" Condition="default_value_offset!=0xFFFFFFFF">
+        <Expand>
+          <ArrayItems>
+            <Size>default_value_size</Size>
+            <ValuePointer>(*ctx)->default_data + default_value_offset</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count:{metadata_count}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_enum_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->typedata_strings + name,s8}</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Item Name="[storage]" ExcludeView="simple">storage</Item>
+      <Item Name="[flags]" ExcludeView="simple">flags</Item>
+      <Synthetic Name="[values]" Condition="value_count!=0">
+        <DisplayString>Count:{value_count} [{*((*ctx)->enum_value_descs + value_start)}...]</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>value_count</Size>
+            <ValuePointer>(*ctx)->enum_value_descs + value_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[aliases]" Condition="alias_count!=0">
+        <DisplayString>Count:{alias_count} [{*((*ctx)->enum_alias_descs + alias_start)}...]</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>alias_count</Size>
+            <ValuePointer>(*ctx)->enum_alias_descs + alias_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count:{metadata_count}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_enum_value_desc">
+	  <DisplayString Condition="main_alias >= (*ctx)->enum_alias_count">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->enum_alias_descs + main_alias}</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->enum_alias_descs + main_alias</Item>
+      <Item Name="[value]" ExcludeView="simple">value</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count:{metadata_count}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_enum_alias_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->typedata_strings + name,s8}</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[value_index]" ExcludeView="simple">value_index</Item>
+    </Expand>
+  </Type>
+  <Type Name="dl_context">
+    <Expand>
+      <Synthetic Name="[types]">
+      <DisplayString>Size:{type_count}, Capacity:{type_capacity}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>type_count</Size>
+            <ValuePointer>type_descs</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[enums]">
+      <DisplayString>Size:{enum_count}, Capacity:{enum_capacity}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>enum_count</Size>
+            <ValuePointer>enum_descs</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+    </Expand>
+  </Type>
+  <Type Name="dl_array&lt;*&gt;">
+    <DisplayString>Size = {count}</DisplayString>
+    <Expand>
+      <ArrayItems>
+        <Size>count</Size>
+        <ValuePointer>data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>
