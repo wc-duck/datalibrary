@@ -641,13 +641,13 @@ static dl_error_t dl_context_write_c_header_member( dl_binary_writer* writer, dl
 			break;
 		case DL_TYPE_ATOM_BITFIELD:
 			if( *last_was_bf && member->storage == DL_TYPE_STORAGE_UINT64 )
-				dl_binary_writer_write_string_fmt( writer, "    uint64_t %s : %u;\n", member->name, member->bits );
+				dl_binary_writer_write_string_fmt( writer, "    uint64_t %s : %u;\n", member->name, member->bitfield_bits );
 			else
 			{
 				dl_binary_writer_write_string_fmt(writer, "    ");
 				dl_error_t err = dl_context_write_type(ctx, member->storage, member->type_id, writer);
 				if (DL_ERROR_OK != err) return err;
-				dl_binary_writer_write_string_fmt(writer, " %s : %u;\n", member->name, member->bits);
+				dl_binary_writer_write_string_fmt(writer, " %s : %u;\n", member->name, member->bitfield_bits);
 			}
 		break;
 		case DL_TYPE_ATOM_ARRAY:
