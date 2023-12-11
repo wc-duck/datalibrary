@@ -3,7 +3,9 @@
 #ifndef DL_DL_TYPES_H_INCLUDED
 #define DL_DL_TYPES_H_INCLUDED
 
-#define DL_DEBUGGING_ENABLED
+#ifndef DL_NATVIS_ENABLED
+#define DL_NATVIS_ENABLED 0 // Define this to 1 if you are using Visual Studio as debugger and want NATVIS information
+#endif
 
 #ifdef __cplusplus
 	#define __STDC_LIMIT_MACROS
@@ -226,7 +228,7 @@ struct dl_member_desc
 		type = (dl_type_t)( ( (unsigned int)type & ~DL_TYPE_INLINE_ARRAY_CNT_MASK ) | (count << DL_TYPE_INLINE_ARRAY_CNT_MIN_BIT) );
 	}
 
-#ifdef DL_DEBUGGING_ENABLED
+#if DL_NATVIS_ENABLED
 	// This is just for natvis, not to be used elsewhere
 	static const dl_ctx_t* ctx;
 #endif
@@ -257,7 +259,7 @@ struct dl_type_desc
 	uint32_t metadata_count;
 	uint32_t metadata_start;
 
-#ifdef DL_DEBUGGING_ENABLED
+#if DL_NATVIS_ENABLED
 	// This is just for natvis, not to be used elsewhere
 	static const dl_ctx_t* ctx;
 #endif
@@ -271,7 +273,7 @@ struct dl_enum_value_desc
 	uint32_t metadata_count;
 	uint32_t metadata_start;
 
-#ifdef DL_DEBUGGING_ENABLED
+#if DL_NATVIS_ENABLED
 	// This is just for natvis, not to be used elsewhere
 	static const dl_ctx_t* ctx;
 #endif
@@ -290,7 +292,7 @@ struct dl_enum_desc
 	uint32_t          metadata_count;
 	uint32_t          metadata_start;
 
-#ifdef DL_DEBUGGING_ENABLED
+#if DL_NATVIS_ENABLED
 	// This is just for natvis, not to be used elsewhere
 	static const dl_ctx_t* ctx;
 #endif
@@ -301,7 +303,7 @@ struct dl_enum_alias_desc
 	uint32_t name;
 	uint32_t value_index; ///< index of the value this alias belong to.
 
-#ifdef DL_DEBUGGING_ENABLED
+#if DL_NATVIS_ENABLED
 	// This is just for natvis, not to be used elsewhere
 	static const dl_ctx_t* ctx;
 #endif

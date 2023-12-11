@@ -7,14 +7,16 @@
 
 #include <algorithm>
 
-#ifdef DL_DEBUGGING_ENABLED
-// This is just for natvis, not to be used elsewhere
-dl_ctx_t g_DlDebuggingContext           = nullptr;
-const dl_ctx_t* dl_type_desc::ctx       = &g_DlDebuggingContext;
-const dl_ctx_t* dl_member_desc::ctx     = &g_DlDebuggingContext;
-const dl_ctx_t* dl_enum_value_desc::ctx = &g_DlDebuggingContext;
-const dl_ctx_t* dl_enum_desc::ctx       = &g_DlDebuggingContext;
-const dl_ctx_t* dl_enum_alias_desc::ctx = &g_DlDebuggingContext;
+#if DL_NATVIS_ENABLED
+// g_DlActiveNatvisCtx controls what context the Visual Studio Natvis framework will use when presenting information about types in the debugger windows
+// This global g_DlActiveNatvisCtx is only used indirectly, the debugger only uses the dl_*::ctx variables which are two level pointers to the context
+// Manually change g_DlActiveNatvisCtx in the debugger if you want to view a different context
+dl_ctx_t g_DlActiveNatvisCtx            = nullptr;
+const dl_ctx_t* dl_type_desc::ctx       = &g_DlActiveNatvisCtx;
+const dl_ctx_t* dl_member_desc::ctx     = &g_DlActiveNatvisCtx;
+const dl_ctx_t* dl_enum_value_desc::ctx = &g_DlActiveNatvisCtx;
+const dl_ctx_t* dl_enum_desc::ctx       = &g_DlActiveNatvisCtx;
+const dl_ctx_t* dl_enum_alias_desc::ctx = &g_DlActiveNatvisCtx;
 #endif
 
 dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_params )
@@ -35,8 +37,8 @@ dl_error_t dl_context_create( dl_ctx_t* dl_ctx, dl_create_params_t* create_param
 
 	*dl_ctx = ctx;
 
-#ifdef DL_DEBUGGING_ENABLED
-	g_DlDebuggingContext = ctx;
+#if DL_NATVIS_ENABLED
+	g_DlActiveNatvisCtx = ctx;
 #endif
 
 	return DL_ERROR_OK;
