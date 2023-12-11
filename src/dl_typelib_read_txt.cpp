@@ -898,7 +898,7 @@ static void dl_context_load_txt_type_library_read_includes( dl_ctx_t ctx, dl_txt
 		char include_path[512];
 		if( size_t(include.len) < sizeof( include_path ) )
 		{
-			memcpy( include_path, include.str, include.len );
+			memcpy( include_path, include.str, size_t(include.len) );
 			include_path[include.len] = '\0';
 
 			bool was_performing_include = ctx->performing_include;
