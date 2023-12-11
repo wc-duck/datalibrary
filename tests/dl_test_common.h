@@ -17,10 +17,10 @@
 	#define snprintf _snprintf // ugly fugly.
 #endif // defined(_MSC_VER)
 
-#define ASSERT_DL_ERR_EQ(_Expect, _Res) { dl_error_t err = _Res; ASSERT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
-#define ASSERT_DL_ERR_OK(_Res) ASSERT_DL_ERR_EQ( DL_ERROR_OK, _Res)
-#define EXPECT_DL_ERR_EQ(_Expect, _Res) { dl_error_t err = _Res; EXPECT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
-#define EXPECT_DL_ERR_OK(_Res) EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
+#define ASSERT_DL_ERR_EQ(_Expect, _Res)  { dl_error_t err = _Res; ASSERT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
+#define EXPECT_DL_ERR_EQ(_Expect, _Res)  { dl_error_t err = _Res; EXPECT_EQ(_Expect, err) << "Result:   " << dl_error_to_string(err) ; }
+#define ASSERT_DL_ERR_OK(_Res)           ASSERT_DL_ERR_EQ( DL_ERROR_OK, _Res)
+#define EXPECT_DL_ERR_OK(_Res)           EXPECT_DL_ERR_EQ( DL_ERROR_OK, _Res)
 #define DL_ARRAY_LENGTH(Array) (uint32_t)(sizeof(Array)/sizeof(Array[0]))
 
 #define STRINGIFY( ... ) #__VA_ARGS__
@@ -40,17 +40,14 @@ const char* ArrayToString(T* arr, unsigned int _Count, char* buff, size_t buff_s
 }
 
 #define EXPECT_ARRAY_EQ(_Count, _Expect, _Actual) \
-	{ \
-		bool WasEq = true; \
-		for(unsigned int EXPECT_ARRAY_EQ_i = 0; EXPECT_ARRAY_EQ_i < _Count && WasEq; ++EXPECT_ARRAY_EQ_i) \
-			WasEq = _Expect[EXPECT_ARRAY_EQ_i] == _Actual[EXPECT_ARRAY_EQ_i]; \
-		char ExpectBuf[1024]; \
-		char ActualBuf[1024]; \
-		char Err[2048]; \
-		snprintf(Err, DL_ARRAY_LENGTH(Err), "Expected:\n%s\nActual:\n%s", \
-											ArrayToString(_Expect, _Count, ExpectBuf, DL_ARRAY_LENGTH(ExpectBuf)), \
-											ArrayToString(_Actual, _Count, ActualBuf, DL_ARRAY_LENGTH(ActualBuf))); \
-		EXPECT_TRUE(WasEq) << Err; \
+	{                                                                                                                 \
+		bool WasEq = true;                                                                                            \
+		for(unsigned int EXPECT_ARRAY_EQ_i = 0; EXPECT_ARRAY_EQ_i < _Count && WasEq; ++EXPECT_ARRAY_EQ_i)             \
+			WasEq = _Expect[EXPECT_ARRAY_EQ_i] == _Actual[EXPECT_ARRAY_EQ_i];                                         \
+		char ExpectBuf[4096];                                                                                         \
+		EXPECT_TRUE(WasEq) << "Expected:\n" << ArrayToString(_Expect, _Count, ExpectBuf, DL_ARRAY_LENGTH(ExpectBuf))  \
+						   << "\n"                                                                                    \
+							  "Actual:\n"   << ArrayToString(_Actual, _Count, ExpectBuf, DL_ARRAY_LENGTH(ExpectBuf)); \
 	}
 
 template <typename T>
