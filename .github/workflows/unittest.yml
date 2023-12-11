@@ -28,7 +28,8 @@ jobs:
 
     - name: Install Valgrind
       run: |
-        sudo apt install valgrind
+        sudo apt-get update
+        sudo apt install valgrind --fix-missing
         echo "Valgrind installed"
 
     - name: Build project
