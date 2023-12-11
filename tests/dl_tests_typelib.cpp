@@ -461,6 +461,18 @@ TEST_F( DLTypeLib, defaults_in_2_tlds )
 	free(tl2);
 }
 
+TEST_F( DLTypeLibTxt, DISABLED_default_inl_arr_of_bits )
+{
+	// Only one default value for an inline array of two
+	const char json_typelib[] = STRINGIFY( {
+		"types": {
+			"BitField": { "members": [ { "name": "bits", "type": "bitfield:1" } ] },
+			"InlineArray": { "members": [ { "name": "seeds", "type": "BitField[2]", "default": [ { "bits": 1 } ] } ] }
+		}
+	} );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, json_typelib, sizeof( json_typelib ) - 1 ) );
+}
+
 TEST_F( DLTypeLibTxt, long_default_value )
 {
 	const char json_typelib[] = STRINGIFY( {

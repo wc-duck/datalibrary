@@ -201,6 +201,17 @@ static const dl_builtin_type* dl_find_builtin_type( const char* name )
 dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage );
 dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, bool use_fast_ptr_patch );
 
+struct SScopedPointer
+{
+	~SScopedPointer()
+	{
+		if (alloc)
+			dl_free( alloc, ptr );
+	}
+	dl_allocator* alloc = nullptr;
+	void* ptr;
+};
+
 static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_state, unsigned int member_index )
 {
 	if( ctx->member_descs[member_index].default_value_offset == 0xFFFFFFFF )
@@ -232,11 +243,14 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	def_member->offset[1] = 0;
 
 	int wanted_length = dl_internal_str_format( def_buffer, sizeof(def_buffer), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
+	SScopedPointer def_buffer_scope {};
 	if( size_t(wanted_length) >= sizeof( def_buffer ) )
 	{
 		def_buffer_ptr = (char*)dl_alloc( &ctx->alloc, wanted_length + 1 );
+		def_buffer_scope.alloc = &ctx->alloc;
+		def_buffer_scope.ptr = def_buffer_ptr;
 		int written_length = dl_internal_str_format( def_buffer_ptr, wanted_length + 1, "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
-		DL_ASSERT( wanted_length == written_length );
+		DL_ASSERT( wanted_length == written_length ); (void) written_length;
 	}
 
 	size_t prod_bytes;
@@ -256,15 +270,13 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 															dl_internal_member_name( ctx, member ),
 															dl_error_to_string( err ) );
 
-	if( def_buffer_ptr != def_buffer )
-		dl_free( &ctx->alloc, def_buffer_ptr );
-
 	// TODO: convert packed instance to typelib endian/ptrsize here!
 
-	size_t inst_size = prod_bytes - sizeof( dl_data_header );
+	size_t offset_to_data_start = dl_internal_align_up( sizeof( dl_data_header ), def_type->alignment[DL_PTR_SIZE_HOST] );
+	size_t inst_size = prod_bytes - offset_to_data_start;
 
 	ctx->default_data = (uint8_t*)dl_realloc( &ctx->alloc, ctx->default_data, ctx->default_data_size + inst_size, ctx->default_data_size );
-	memcpy( ctx->default_data + ctx->default_data_size, pack_buffer + sizeof( dl_data_header ), inst_size );
+	memcpy( ctx->default_data + ctx->default_data_size, pack_buffer + offset_to_data_start, inst_size );
 
 	dl_free( &ctx->alloc, pack_buffer );
 
@@ -564,7 +576,7 @@ static void dl_context_create_metadata( dl_ctx_t ctx, dl_txt_read_ctx* read_stat
 		dl_txt_read_failed( ctx, read_state, err, "Failed to pack metadata" );
 	DL_ASSERT( instance_size == consumed );
 
-	size_t meta_index = metadata - ctx->metadatas;
+	size_t meta_index = (size_t)(metadata - ctx->metadatas);
 	DL_ASSERT( meta_index < ctx->metadatas_count );
 	ctx->metadata_infos[meta_index] = loaded_instance;
 	ctx->metadata_typeinfos[meta_index] = metadata_header->root_instance_type;
