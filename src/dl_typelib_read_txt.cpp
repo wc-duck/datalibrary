@@ -246,10 +246,10 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	SScopedPointer def_buffer_scope {};
 	if( size_t(wanted_length) >= sizeof( def_buffer ) )
 	{
-		def_buffer_ptr = (char*)dl_alloc( &ctx->alloc, wanted_length + 1 );
+		def_buffer_ptr = (char*)dl_alloc( &ctx->alloc, size_t(wanted_length + 1) );
 		def_buffer_scope.alloc = &ctx->alloc;
 		def_buffer_scope.ptr = def_buffer_ptr;
-		int written_length = dl_internal_str_format( def_buffer_ptr, wanted_length + 1, "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
+		int written_length = dl_internal_str_format( def_buffer_ptr, size_t(wanted_length + 1), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
 		DL_ASSERT( wanted_length == written_length ); (void) written_length;
 	}
 
