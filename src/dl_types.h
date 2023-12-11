@@ -17,7 +17,6 @@
 
 #include <stdarg.h> // for va_list
 #include <new>      // for inplace new
-#include <utility>  // for std::move
 
 #define DL_BITMASK(_Bits)                   ( (1ULL << (_Bits)) - 1ULL )
 #define DL_BITRANGE(_MinBit,_MaxBit)		( ((1ULL << (_MaxBit)) | ((1ULL << (_MaxBit))-1ULL)) ^ ((1ULL << (_MinBit))-1ULL) )
@@ -395,13 +394,6 @@ public:
 	{
 		GrowIfNeeded();
 		new (&m_Ptr[m_nElements]) T(_Element);
-		m_nElements++;
-	}
-
-	void Add(T&& _Element)
-	{
-		GrowIfNeeded();
-		new (&m_Ptr[m_nElements]) T(std::move(_Element));
 		m_nElements++;
 	}
 
