@@ -88,12 +88,12 @@ TEST_F( DLTypeLibTxt, simple_read_write )
 	});
 
 	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1, 0, 0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_OK, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1, 0 ) );
 }
 
 static void typelibtxt_expect_error( dl_ctx_t ctx, dl_error_t expect, const char* libstr )
 {
-	EXPECT_DL_ERR_EQ( expect, dl_context_load_txt_type_library( ctx, libstr, strlen(libstr), 0, 0 ) );
+	EXPECT_DL_ERR_EQ( expect, dl_context_load_txt_type_library( ctx, libstr, strlen(libstr), 0 ) );
 }
 
 TEST_F( DLTypeLibTxt, member_missing_type )
@@ -140,7 +140,7 @@ TEST_F( DLTypeLibTxt, missing_comma )
 	});
 
 	// ... load typelib ...
-	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1, 0, 0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1, 0 ) );
 }
 
 TEST_F( DLTypeLibTxt, crash1 )
@@ -164,7 +164,7 @@ TEST_F( DLTypeLibTxt, crash1 )
 	});
 
 	// ... load typelib ...
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1, 0, 0 ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, single_member_typelib, sizeof(single_member_typelib)-1, 0 ) );
 }
 
 TEST_F( DLTypeLibTxt, nonexisting_type )
@@ -252,7 +252,7 @@ TEST_F( DLTypeLibTxt, invalid_type_fmt_bitfield )
 
 TEST_F( DLTypeLibTxt, empty_typelib )
 {
-	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, 0x0, 0, 0, 0 ) );
+	EXPECT_DL_ERR_EQ( DL_ERROR_TXT_PARSE_ERROR, dl_context_load_txt_type_library( ctx, 0x0, 0, 0 ) );
 }
 
 TEST_F( DLTypeLibTxt, invalid_type_fmt_pointer_to_pod )
@@ -343,7 +343,7 @@ TEST_F( DLTypeLibUnpackTxt, round_about )
 	});
 
 	// ... pack from text ...
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, testlib1, sizeof(testlib1)-1, 0, 0 ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, testlib1, sizeof(testlib1)-1, 0 ) );
 
 	size_t txt_size = 0;
 	char testlib_txt_buffer[2048];
@@ -354,7 +354,7 @@ TEST_F( DLTypeLibUnpackTxt, round_about )
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
 	p.error_msg_func = test_log_error;
 	EXPECT_DL_ERR_OK( dl_context_create( &ctx2, &p ) );
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx2, testlib_txt_buffer, txt_size, 0, 0 ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx2, testlib_txt_buffer, txt_size, 0 ) );
 
 	// ... check that typelib contain the enum and the type ...
 	dl_type_context_info_t info;
@@ -376,11 +376,12 @@ TEST_F( DLTypeLibUnpackTxt, round_about_big )
 		};
 		EXPECT_STREQ( "../local/generated/to_include.bin", file_to_include );
 		EXPECT_EQ( (void*)1, handler_ctx );
-		return dl_context_load_txt_type_library( dl_ctx, testlib2, sizeof(testlib2) - 1, 0, 0 );
+		return dl_context_load_txt_type_library( dl_ctx, testlib2, sizeof(testlib2) - 1, 0 );
 	};
 
 	// ... pack from text ...
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, testlib1, sizeof(testlib1) - 1, include_handler, (void*)1 ) );
+	dl_load_type_library_params_t load_params{ include_handler, (void*)1 };
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, testlib1, sizeof(testlib1) - 1, &load_params ) );
 
 	size_t txt_buffer_size = 4096*8;
 	size_t txt_size = 0;
@@ -392,7 +393,7 @@ TEST_F( DLTypeLibUnpackTxt, round_about_big )
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
 	p.error_msg_func = test_log_error;
 	EXPECT_DL_ERR_OK( dl_context_create( &ctx2, &p ) );
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx2, testlib_txt_buffer, txt_size, 0, 0 ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx2, testlib_txt_buffer, txt_size, 0 ) );
 
 	free((void*)testlib_txt_buffer);
 
@@ -407,7 +408,7 @@ static uint8_t* test_pack_txt_type_lib( const char* lib_txt, size_t lib_txt_size
 	DL_CREATE_PARAMS_SET_DEFAULT(p);
 	p.error_msg_func = test_log_error;
 	EXPECT_DL_ERR_OK( dl_context_create( &ctx, &p ) );
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, lib_txt, lib_txt_size, 0, 0 ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, lib_txt, lib_txt_size, 0 ) );
 
 	EXPECT_DL_ERR_OK( dl_context_write_type_library( ctx, 0x0, 0, out_size ) );
 	uint8_t* packed = (uint8_t*)malloc(*out_size);

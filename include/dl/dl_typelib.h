@@ -24,28 +24,44 @@ extern "C" {
 	    Is responsible for locating and loading a type-library into dl_ctx.
 
 	Parameters:
-	    handler_ctx     - context passed in to dl_context_load_txt_type_library_with_includes()
-	    dl_ctx          - dl-context to load typelib into.
-	    file_to_include - the path to the file to include
+	    handler_ctx        - context passed in to dl_context_load_txt_type_library()
+	    dl_ctx             - dl-context to load typelib into.
+	    include_identifier - the text given in the include, commonly a relative path but could be any string
+
+	Return:
+		DL_ERROR_OK on success. 
  */
-typedef dl_error_t ( *dl_include_handler )( void* handler_ctx, dl_ctx_t dl_ctx, const char* file_to_include );
+typedef dl_error_t ( *dl_include_handler )( void* handler_ctx, dl_ctx_t dl_ctx, const char* include_identifier );
+
+/*
+	Struct: dl_load_txt_type_library_params_t
+		Passed with configuration parameters to dl_context_load_txt_type_library.
+		This struct is open to change in later versions of dl.
+
+	Members:
+		include_handler - a callback function which tries to load the given type library, can be nullptr
+		handler_ctx     - this will be passed straight down to the include_handler callback
+*/
+typedef struct dl_load_type_library_params_t
+{
+	dl_include_handler include_handler;
+	void* handler_ctx;
+} dl_load_type_library_params_t;
 
 /*
  	Function: dl_context_load_txt_type_library
 		Load type-library from text representation into dl_ctx.
 
 	Parameters:
-		dl_ctx          - dl-context to load typelib into..
-		lib_data        - pointer to loaded txt-type library to load.
-		lib_data_size   - size of string pointed to by lib_data.
-		include_handler - a callback function which tries to load the given type library, can be nullptr
-		handler_ctx     - this will be passed straight down to the handler callback
-
+		dl_ctx        - dl-context to load typelib into.
+		lib_data      - pointer to loaded txt-type library to load.
+		lib_data_size - size of string pointed to by lib_data.
+		load_params   - optional parameters which controls how the type library is loaded.
 
 	Note:
 		This function do not have the same rules of memory allocation and might allocate memory behind the scenes.
  */
-dl_error_t DL_DLL_EXPORT dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size, dl_include_handler include_handler, void* handler_ctx );
+dl_error_t DL_DLL_EXPORT dl_context_load_txt_type_library( dl_ctx_t dl_ctx, const char* lib_data, size_t lib_data_size, const dl_load_type_library_params_t* load_params );
 
 /*
 	Function: dl_context_write_type_library

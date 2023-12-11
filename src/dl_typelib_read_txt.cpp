@@ -1454,7 +1454,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 	}
 }
 
-dl_error_t dl_context_load_txt_type_library( dl_ctx_t ctx, const char* lib_data, size_t lib_data_size, dl_include_handler include_handler, void* handler_ctx )
+dl_error_t dl_context_load_txt_type_library( dl_ctx_t ctx, const char* lib_data, size_t lib_data_size, const dl_load_type_library_params_t* load_params )
 {
 	(void)lib_data_size;
 
@@ -1463,8 +1463,8 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t ctx, const char* lib_data,
 	read_state.end   = lib_data + lib_data_size;
 	read_state.iter  = lib_data;
 	read_state.err   = DL_ERROR_OK;
-	read_state.include_handler = include_handler;
-	read_state.include_handler_ctx = handler_ctx;
+	read_state.include_handler = load_params ? load_params->include_handler : nullptr;
+	read_state.include_handler_ctx = load_params ? load_params->handler_ctx : nullptr;
 
 	dl_context_load_txt_type_library_inner( ctx, &read_state );
 

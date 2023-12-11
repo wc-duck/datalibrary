@@ -182,8 +182,11 @@ static dl_error_t include_handler( void* callback_context, dl_ctx_t ctx, const c
 static dl_error_t load_typelib( dl_ctx_t ctx, unsigned char* lib_data, size_t lib_data_size, std::vector<const char*>* include_directories )
 {
 	dl_error_t err = dl_context_load_type_library( ctx, lib_data, lib_data_size );
-	if( err != DL_ERROR_OK )
-		err = dl_context_load_txt_type_library( ctx, (const char*)lib_data, lib_data_size, include_handler, (void*)include_directories ); // ... try text ...
+	if (err != DL_ERROR_OK)
+	{
+		dl_load_type_library_params_t load_params{ include_handler, (void*)include_directories };
+		err = dl_context_load_txt_type_library( ctx, (const char*)lib_data, lib_data_size, &load_params ); // ... try text ...
+	}
 
 	if( err != DL_ERROR_OK )
 		VERBOSE_OUTPUT( "failed to load typelib with error %s", dl_error_to_string( err ) );
