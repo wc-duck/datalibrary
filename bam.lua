@@ -166,11 +166,7 @@ function make_dl_settings( base_settings )
 	if settings.platform == 'linux_x86' or settings.platform == 'linux_x86_64' then
 		settings.cc.flags:Add("-Wall","-Werror", "-Wextra", "-Wconversion", "-Wstrict-aliasing=2")
 	else
-		--[[
-			/wd4324 = warning C4324: 'SA128BitAlignedType' : structure was padded due to __declspec(align())
-			/wd4127 = warning C4127: conditional expression is constant.
-		--]]
-		settings.cc.flags:Add("/W4", "/WX", "/wd4324", "/wd4127")
+		settings.cc.flags:Add("/W4", "/WX")
 		settings.cc.flags_c:Add("/TP")
 	end
 	return settings

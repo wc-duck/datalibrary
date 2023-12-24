@@ -818,6 +818,20 @@ static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_
 			{
 				err = dl_context_write_c_header_member( writer, ctx, &members[member_index], &last_was_bf );
 				if (DL_ERROR_OK != err) return err;
+				size_t next_offset = (member_index == type->member_count - 1) ? type->size : members[member_index + 1].offset;
+				size_t size_without_padding = members[member_index].offset + members[member_index].size;
+				if (size_without_padding < next_offset )
+				{
+					if (size_without_padding - next_offset >= 8)
+						for (int i = 0; i < (next_offset - size_without_padding) / 8; ++i)
+							dl_binary_writer_write_string_fmt( writer, "    uint64_t : 64; // Explicit padding to avoid msvc warning 4324\n");
+					else if (size_without_padding - next_offset >= 4)
+						dl_binary_writer_write_string_fmt( writer, "    uint32_t : 32; // Explicit padding to avoid msvc warning 4324\n");
+					else if (size_without_padding - next_offset >= 2)
+						dl_binary_writer_write_string_fmt( writer, "    uint16_t : 16; // Explicit padding to avoid msvc warning 4324\n");
+					else
+						dl_binary_writer_write_string_fmt( writer, "    uint8_t : 8; // Explicit padding to avoid msvc warning 4324\n");
+				}
 			}
 		}
 
