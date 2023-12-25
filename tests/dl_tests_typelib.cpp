@@ -480,7 +480,7 @@ TEST_F( DLTypeLibTxt, DISABLED_default_inl_arr_of_bits )
 		}
 	} );
 
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, json_typelib, sizeof( json_typelib ) - 1 ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, json_typelib, sizeof( json_typelib ) - 1, 0 ) );
 }
 
 TEST_F( DLTypeLibTxt, long_default_value )
@@ -519,5 +519,5 @@ TEST_F( DLTypeLibTxt, long_default_value )
 	} );
 
 	// ... load typelib ...
-	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, json_typelib, sizeof( json_typelib ) - 1 ) );
+	EXPECT_DL_ERR_OK( dl_context_load_txt_type_library( ctx, json_typelib, sizeof( json_typelib ) - 1, 0 ) );
 }
