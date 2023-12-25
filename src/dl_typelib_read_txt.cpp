@@ -723,6 +723,7 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 	*type_iter   = 0x0;
 	*end_iter    = 0x0;
 	*is_extern   = false;
+	*verify      = true;
 
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
