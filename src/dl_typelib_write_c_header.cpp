@@ -823,7 +823,7 @@ static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_
 				if (size_without_padding < next_offset )
 				{
 					if (size_without_padding - next_offset >= 8)
-						for (int i = 0; i < (next_offset - size_without_padding) / 8; ++i)
+						for (size_t i = 0; i < (next_offset - size_without_padding) / 8U; ++i)
 							dl_binary_writer_write_string_fmt( writer, "    uint64_t : 64; // Explicit padding to avoid msvc warning 4324\n");
 					else if (size_without_padding - next_offset >= 4)
 						dl_binary_writer_write_string_fmt( writer, "    uint32_t : 32; // Explicit padding to avoid msvc warning 4324\n");
