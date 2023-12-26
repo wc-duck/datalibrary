@@ -203,6 +203,26 @@ typedef void  (*dl_free_func) ( void* ptr, void* alloc_ctx );
 typedef void  (*dl_error_msg_handler)( const char* msg, void* msg_ctx );
 
 /*
+	Function: dl_patch_func
+		Callback used by DL to patch one type into another
+
+	Parameters:
+	    dl_ctx       - The context which contains 'wanted_type' and all its target sub-types
+		current_type - The type id for the 'src' data, stored as unpacked dl data
+		src          - The source data to patch
+		wanted_type  - The target type id for the 'dst' data
+		dst          - Could either be a pointer to src if the patching was done in-place, or a pointer allocated with alloc_ctx
+		alloc_f      - Callback function to allocate memory with
+		alloc_ctx    - The context to pass into the 'alloc_f' allocation function above
+	    error_f      - Callback function to report errors with. Should only be used if the function knows how to produce the 'wanted_type' but failed to interpret the src data. Can be nullptr if no error function is registered
+		error_ctx    - The context to pass into the 'error_f' error report function above
+
+	Return:
+		DL_ERROR_OK if this function successfully patched the data
+*/
+typedef dl_error_t (*dl_patch_func)( dl_ctx_t dl_ctx, dl_typeid_t current_type, void* src, dl_typeid_t wanted_type, void** dst, dl_alloc_func alloc_f, void* alloc_ctx, dl_error_msg_handler error_f, void* error_ctx );
+
+/*
 	Struct: dl_create_params_t
 		Passed with initialization parameters to dl_context_create.
 		This struct is open to change in later versions of dl.
@@ -334,6 +354,67 @@ dl_error_t DL_DLL_EXPORT dl_instance_load( dl_ctx_t             dl_ctx,         
 dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,          dl_typeid_t type,
 												   unsigned char* packed_instance, size_t      packed_instance_size,
 												   void**         loaded_instance, size_t*     consumed );
+
+/*
+	Function: dl_context_get_patch_func
+	    Returns a callback function which tries to patch data from type ids stored in dl_ctx
+
+	Parameters:
+	    dl_ctx     - The dl context which contains the type ids which the function can patch from
+	    patch_func - Output: A function pointer which will patch known types
+	    patch_ctx  - Output: A context pointer to pass in with the function pointer
+*/
+void DL_DLL_EXPORT dl_context_get_patch_func( dl_ctx_t dl_ctx, dl_patch_func* patch_func, void** patch_ctx );
+
+/*
+	Struct: dl_patch_params_t
+	    Passed to dl_instance_patch with settings about patching.
+
+	Members:
+	    patch_funcs      - the function callbacks which will be called to try to patch the data
+	    patch_ctxs       - the contexts to pass into the function callbacks above, there need to be patch_func_count of them
+	    patch_func_count - how many functions there are
+	    packed_instance  - 1 if the instance is provided as packed data with a header, 0 if it is already unpacked
+	    wanted_type      - the type to convert to, should be known by the dl_ctx
+*/
+typedef struct dl_patch_params
+{
+	dl_patch_func* patch_funcs;
+	void** patch_ctxs;
+	unsigned int patch_func_count;
+	uint8_t packed_instance;
+	dl_typeid_t wanted_type;
+} dl_patch_params_t;
+
+/*
+	Struct: dl_linked_free_list_t
+	    A linked list of pointers allocated by dl_instance_patch, to be freed by the caller
+
+	Members:
+	    ptr  - the pointer to free
+	    next - a pointer to the next pointer to free, or null if this was the last pointer
+*/
+typedef struct dl_linked_free_list
+{
+	void* ptr;
+	struct dl_linked_free_list* next;
+} dl_linked_free_list_t;
+
+/*
+	Function: dl_instance_patch
+	    This function will try to patch a stale type definition to match the types in the current context
+
+	Parameters:
+	    dl_ctx       - the target dl context which contains the types to convert to
+	    patch_params - settings to control the patching
+	    instance     - the data which should be patched
+	    out_instance - Output: the pointer to the patched unpacked instance
+	    free_list    - Output: null or a linked list of pointers which build up the out_instance and the caller needs to free
+
+	Note:
+		This function can call itself recursively. If not called inplace it might also allocate several memory chunks which are returned as the free_list
+*/
+dl_error_t DL_DLL_EXPORT dl_instance_patch( dl_ctx_t dl_ctx, const dl_patch_params_t* patch_params, void* instance, void** out_instance, dl_linked_free_list_t* free_list );
 
 /*
 	Group: Store
