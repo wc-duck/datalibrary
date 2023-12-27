@@ -94,6 +94,12 @@
 			"members" : [
 				{ "name" : "members", "type" : "complex_member[]" }
 			]
+		},
+		"struct_with_enum" : {
+			// The header generation failed to produce correct C code for this
+			"members" : [
+				{ "name" : "member", "type" : "extern_enum" }
+			]
 		}
 	}
 }
