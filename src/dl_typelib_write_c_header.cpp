@@ -613,6 +613,13 @@ static dl_error_t dl_context_write_c_header_member( dl_binary_writer* writer, dl
 				case DL_TYPE_STORAGE_ENUM_INT32:
 				case DL_TYPE_STORAGE_ENUM_UINT8:
 				case DL_TYPE_STORAGE_ENUM_UINT16:
+				{
+					dl_enum_info_t sub_type;
+					dl_error_t err = dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
+					if (DL_ERROR_OK != err) return err;
+					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", sub_type.name, member->name );
+				}
+				break;
 				case DL_TYPE_STORAGE_ENUM_UINT32:
 				{
 					dl_enum_info_t sub_type;
@@ -627,7 +634,7 @@ static dl_error_t dl_context_write_c_header_member( dl_binary_writer* writer, dl
 					dl_enum_info_t sub_type;
 					dl_error_t err = dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
 					if (DL_ERROR_OK != err) return err;
-					dl_binary_writer_write_string_fmt( writer, "    DL_C_ENUM DL_ALIGN(8) %s %s;\n", sub_type.name, member->name );
+					dl_binary_writer_write_string_fmt( writer, "    DL_ALIGN(8) %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				default:
