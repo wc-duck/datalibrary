@@ -118,16 +118,12 @@ TYPED_TEST(DLBase, struct_in_struct_in_struct)
 	EXPECT_EQ(original.p2struct.Pod2.Int2, loaded.p2struct.Pod2.Int2);
 }
 
-static dl_error_t PatchPods4_PatchFunction( dl_ctx_t dl_ctx, dl_typeid_t current_type, void* src, dl_typeid_t wanted_type, void** dst, dl_alloc_func alloc_f, void* alloc_ctx, dl_error_msg_handler error_f, void* error_ctx )
+static dl_error_t PatchPods4_PatchFunction( dl_ctx_t dl_ctx, void*, dl_patch_params* patch_params, dl_error_msg_handler error_f, void* error_ctx )
 {
 	(void)dl_ctx;
-	(void)src;
-	(void)dst;
-	(void)alloc_f;
-	(void)alloc_ctx;
 	(void)error_f;
 	(void)error_ctx;
-	if (wanted_type == PatchPods4_TYPE_ID && current_type == PodsDefaults_TYPE_ID)
+	if (patch_params->input_type == PodsDefaults_TYPE_ID && patch_params->wanted_type == PatchPods4_TYPE_ID)
 	{
 		// Do conversion here
 		return DL_ERROR_OK;
@@ -135,7 +131,7 @@ static dl_error_t PatchPods4_PatchFunction( dl_ctx_t dl_ctx, dl_typeid_t current
 	return DL_ERROR_TYPE_NOT_FOUND;
 }
 
-TYPED_TEST(DLBase, struct_patch)
+TEST_F(DL, struct_patch)
 {
 	dl_patch_func patch_func;
 	void* patch_ctx;
@@ -155,23 +151,26 @@ TYPED_TEST(DLBase, struct_patch)
 	EXPECT_DL_ERR_OK(dl_context_create( &target_ctx, &p ));
 	EXPECT_DL_ERR_OK(dl_context_load_txt_type_library( target_ctx, typelib, sizeof(typelib) - 1 ));
 
-	dl_linked_free_list free_list;
-	dl_patch_params patch_params{ &patch_func, &patch_ctx, 1, true, 0 };
+	size_t needed_size;
+	uint8_t out_instance[1024];
+	dl_patch_params patch_params{ &patch_func, &patch_ctx, 1, true, false, 0, 0, instance, out_instance, sizeof(out_instance), &needed_size };
 
-
-	void* out_instance;
+	// Change order
 	patch_params.wanted_type = PatchPods1_TYPE_ID;
-	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params, instance, &out_instance, &free_list ));
-	patch_params.wanted_type = PatchPods2_TYPE_ID;
-	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params, instance, &out_instance, &free_list ));
+	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
+	// Remove and add members
+	//patch_params.wanted_type = PatchPods2_TYPE_ID;
+	//EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
+	// Change types
 	patch_params.wanted_type = PatchPods3_TYPE_ID;
-	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params, instance, &out_instance, &free_list ));
+	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
+	// Advanced type change
 	patch_params.wanted_type = PatchPods4_TYPE_ID;
-	EXPECT_DL_ERR_EQ(DL_ERROR_TYPE_NOT_FOUND, dl_instance_patch( target_ctx, &patch_params, instance, &out_instance, &free_list ));
+	EXPECT_DL_ERR_EQ(DL_ERROR_TYPE_NOT_FOUND, dl_instance_patch( target_ctx, &patch_params ));
 
 	patch_func = PatchPods4_PatchFunction;
 	patch_params.wanted_type = PatchPods4_TYPE_ID;
-	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params, instance, &out_instance, &free_list ));
+	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
 
 	EXPECT_DL_ERR_OK(dl_context_destroy( target_ctx ));
 }
