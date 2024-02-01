@@ -335,6 +335,77 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 												   unsigned char* packed_instance, size_t      packed_instance_size,
 												   void**         loaded_instance, size_t*     consumed );
 
+struct dl_patch_params; // Forward decl to avoid msvc warning 4115
+
+/*
+	Function: dl_patch_func
+		Callback used by DL to patch one type into another, passed into 'dl_instance_patch()'
+
+	Parameters:
+	    dl_ctx       - the context which contains 'wanted_type' and all its target sub-types
+		patch_ctx    - the user data context passed in with the patch function
+	    patch_params - settings to control the patching
+	    error_f      - callback function to report errors with. Should only be used if the function knows how to produce the 'wanted_type' but failed to interpret the src data. Can be nullptr if no error function is registered
+		error_ctx    - the context to pass into the 'error_f' error report function above
+
+	Return:
+		DL_ERROR_OK if this function successfully patched the data
+*/
+typedef dl_error_t (*dl_patch_func)( dl_ctx_t dl_ctx, void* patch_ctx, struct dl_patch_params* patch_params, dl_error_msg_handler error_f, void* error_ctx );
+
+/*
+	Struct: dl_patch_params_t
+	    Passed to dl_instance_patch with settings about patching.
+
+	Members:
+	    patch_funcs               - the function callbacks which will be called to try to patch the data
+	    patch_ctxs                - the contexts to pass into the function callbacks above, there need to be patch_func_count of them
+	    patch_func_count          - how many functions there are
+	    packed_instance_as_input  - 1 if the 'instance' is provided as packed data with a header, 0 if it is already unpacked
+	    packed_instance_as_output - 1 if the 'out_instance' should be written as packed data with a header, 0 if it should be unpacked
+	    input_type                - the type of the input data, can be 0 if 'packed_instance_as_input' is true
+	    wanted_type               - the type to convert to, need to be known by the dl_ctx
+	    instance                  - the data which should be patched
+	    out_instance              - a pointer to a buffer where to store the out_instance. Run this function twice and check 'used_out_instance_size' to see the needed size
+	    out_instance_size         - the size of the 'out_instance' buffer
+		used_out_instance_size    - the needed/used size of the 'out_instance' buffer
+*/
+typedef struct dl_patch_params
+{
+	dl_patch_func* patch_funcs;
+	void**         patch_ctxs;
+	unsigned int   patch_func_count;
+	uint8_t        packed_instance_as_input : 1;
+	uint8_t        packed_instance_as_output : 1;
+	dl_typeid_t    input_type;
+	dl_typeid_t    wanted_type;
+	const uint8_t* instance;
+	uint8_t*       out_instance;
+	size_t         out_instance_size;
+	size_t*        used_out_instance_size;
+} dl_patch_params_t;
+
+/*
+	Function: dl_context_get_patch_func
+	    Returns a callback function which tries to patch data from type ids stored in dl_ctx
+
+	Parameters:
+	    dl_ctx     - The dl context which contains the type ids which the function can patch from
+	    patch_func - Output: A function pointer which will patch known types
+	    patch_ctx  - Output: A context pointer to pass in with the function pointer
+*/
+void DL_DLL_EXPORT dl_context_get_patch_func( dl_ctx_t dl_ctx, dl_patch_func* patch_func, void** patch_ctx );
+
+/*
+	Function: dl_instance_patch
+	    This function will try to patch a stale type definition to match the types in the current context
+
+	Parameters:
+	    dl_ctx                 - the target dl context which contains the types to convert to
+	    patch_params           - settings to control the patching
+*/
+dl_error_t DL_DLL_EXPORT dl_instance_patch( dl_ctx_t dl_ctx, dl_patch_params_t* patch_params );
+
 /*
 	Group: Store
 */

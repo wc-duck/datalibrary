@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 #include "dl_tests_base.h"
+#include <dl/dl_txt.h>
+#include <dl/dl_typelib.h>
 
 TYPED_TEST(DLBase, pods)
 {
@@ -114,4 +116,61 @@ TYPED_TEST(DLBase, struct_in_struct_in_struct)
 	EXPECT_EQ(original.p2struct.Pod1.Int2, loaded.p2struct.Pod1.Int2);
 	EXPECT_EQ(original.p2struct.Pod2.Int1, loaded.p2struct.Pod2.Int1);
 	EXPECT_EQ(original.p2struct.Pod2.Int2, loaded.p2struct.Pod2.Int2);
+}
+
+static dl_error_t PatchPods4_PatchFunction( dl_ctx_t dl_ctx, void*, dl_patch_params* patch_params, dl_error_msg_handler error_f, void* error_ctx )
+{
+	(void)dl_ctx;
+	(void)error_f;
+	(void)error_ctx;
+	if (patch_params->input_type == PodsDefaults_TYPE_ID && patch_params->wanted_type == PatchPods4_TYPE_ID)
+	{
+		// Do conversion here
+		return DL_ERROR_OK;
+	}
+	return DL_ERROR_TYPE_NOT_FOUND;
+}
+
+TEST_F(DL, struct_patch)
+{
+	dl_patch_func patch_func;
+	void* patch_ctx;
+	dl_context_get_patch_func( Ctx, &patch_func, &patch_ctx );
+
+	const char typelib[] = {
+		#include "generated/unittest2.txt.h"
+	};
+
+	const char* text_data = STRINGIFY( { "PodsDefaults" : {} } );
+	unsigned char instance[1024];
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, instance, sizeof(instance), 0x0));
+
+	dl_ctx_t target_ctx;
+	dl_create_params_t p;
+	DL_CREATE_PARAMS_SET_DEFAULT(p);
+	EXPECT_DL_ERR_OK(dl_context_create( &target_ctx, &p ));
+	EXPECT_DL_ERR_OK(dl_context_load_txt_type_library( target_ctx, typelib, sizeof(typelib) - 1 ));
+
+	size_t needed_size;
+	uint8_t out_instance[1024];
+	dl_patch_params patch_params{ &patch_func, &patch_ctx, 1, true, false, 0, 0, instance, out_instance, sizeof(out_instance), &needed_size };
+
+	// Change order
+	patch_params.wanted_type = PatchPods1_TYPE_ID;
+	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
+	// Remove and add members
+	//patch_params.wanted_type = PatchPods2_TYPE_ID;
+	//EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
+	// Change types
+	patch_params.wanted_type = PatchPods3_TYPE_ID;
+	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
+	// Advanced type change
+	patch_params.wanted_type = PatchPods4_TYPE_ID;
+	EXPECT_DL_ERR_EQ(DL_ERROR_TYPE_NOT_FOUND, dl_instance_patch( target_ctx, &patch_params ));
+
+	patch_func = PatchPods4_PatchFunction;
+	patch_params.wanted_type = PatchPods4_TYPE_ID;
+	EXPECT_DL_ERR_OK(dl_instance_patch( target_ctx, &patch_params ));
+
+	EXPECT_DL_ERR_OK(dl_context_destroy( target_ctx ));
 }
