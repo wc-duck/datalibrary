@@ -182,7 +182,7 @@ TEST_F(DLReflect, enum_member_size_align)
 	EXPECT_EQ(sizeof(dummy.mem_name),                                       mem.size); \
 	EXPECT_EQ((unsigned int)((uint8_t*)&dummy.mem_name - (uint8_t*)&dummy), mem.offset); \
 	EXPECT_EQ(DL_ARRAY_LENGTH(dummy.mem_name),                              mem.array_count); \
-	EXPECT_EQ(0u,                                                           mem.bits)
+	EXPECT_EQ(0u,                                                           mem.bitfield_bits)
 
 	CHECK_INL_ARRAY(members[0], e_int8,   DL_TYPE_STORAGE_ENUM_INT8);
 	CHECK_INL_ARRAY(members[1], e_int16,  DL_TYPE_STORAGE_ENUM_INT16);
@@ -277,6 +277,53 @@ TEST_F(DLReflect, is_union_reflected)
 	EXPECT_FALSE( info.is_union );
 	EXPECT_DL_ERR_OK( dl_reflect_get_type_info( Ctx, test_union_simple_TYPE_ID, &info ) );
 	EXPECT_TRUE( info.is_union );
+}
+
+#define CHECK_BITFIELD_MEMBER_CORRECT( member, MEMBER_NAME, BITFIELD_BITS, BITFIELD_OFFSET ) { \
+	EXPECT_EQ(DL_TYPE_ATOM_BITFIELD, member.atom); \
+	EXPECT_STREQ(#MEMBER_NAME,       member.name ); \
+	EXPECT_EQ(BITFIELD_BITS,         member.bitfield_bits); \
+	EXPECT_EQ(BITFIELD_OFFSET,       member.bitfield_offset); \
+}
+
+TEST_F(DLReflect, is_bitfield_reflected)
+{
+	dl_member_info_t TestBits_members[7];
+	EXPECT_DL_ERR_OK( dl_reflect_get_type_members( Ctx, TestBits_TYPE_ID, TestBits_members, DL_ARRAY_LENGTH( TestBits_members ) ) );
+
+	CHECK_BITFIELD_MEMBER_CORRECT(TestBits_members[0], Bit1, 1, 0);
+	CHECK_BITFIELD_MEMBER_CORRECT(TestBits_members[1], Bit2, 2, 1);
+	CHECK_BITFIELD_MEMBER_CORRECT(TestBits_members[2], Bit3, 3, 3);
+	CHECK_BITFIELD_MEMBER_CORRECT(TestBits_members[4], Bit4, 1, 0);
+	CHECK_BITFIELD_MEMBER_CORRECT(TestBits_members[5], Bit5, 2, 1);
+	CHECK_BITFIELD_MEMBER_CORRECT(TestBits_members[6], Bit6, 3, 3);
+
+	uint8_t value = 0b10101;
+	TestBits bits;
+	memset(&bits, 0, sizeof(bits));
+	uint8_t* data = reinterpret_cast<uint8_t*>( &bits );
+
+	#define ASSIGN_BITFIELD( member ) data[member.offset] = uint8_t(data[member.offset] | ( value & ( ( 1 << member.bitfield_bits ) - 1 ) ) << member.bitfield_offset)
+
+	ASSIGN_BITFIELD( TestBits_members[0] );
+	ASSIGN_BITFIELD( TestBits_members[1] );
+	ASSIGN_BITFIELD( TestBits_members[2] );
+	data[TestBits_members[3].offset] |= value;
+
+	value ^= 0xFFU;
+	ASSIGN_BITFIELD( TestBits_members[4] );
+	ASSIGN_BITFIELD( TestBits_members[5] );
+	ASSIGN_BITFIELD( TestBits_members[6] );
+
+	value ^= 0xFFU;
+	EXPECT_EQ( value & 0b1, bits.Bit1 );
+	EXPECT_EQ( value & 0b11, bits.Bit2 );
+	EXPECT_EQ( value & 0b111, bits.Bit3 );
+	EXPECT_EQ( value, bits.make_it_uneven );
+	value ^= 0xFFU;
+	EXPECT_EQ( value & 0b1, bits.Bit4 );
+	EXPECT_EQ( value & 0b11, bits.Bit5 );
+	EXPECT_EQ( value & 0b111, bits.Bit6 );
 }
 
 TEST_F(DLReflect, type_lookup)

@@ -50,12 +50,13 @@ dl_error_t dl_context_destroy(dl_ctx_t dl_ctx)
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_ptr_chain_patching( const dl_data_header* header, uint8_t* instance )
+static dl_error_t dl_ptr_chain_patching( const dl_data_header* header, uint8_t* instance, const dl_type_desc* instance_type )
 {
 	uintptr_t offset_shift = sizeof(uintptr_t) * 4;
 	uintptr_t offset_mask = (1ULL << offset_shift) - 1;
-	uint8_t* base_ptr = (uint8_t*)instance - sizeof(dl_data_header);
-	uint8_t* patch_mem = base_ptr;
+	size_t header_offset        = dl_internal_align_up( sizeof( dl_data_header ), instance_type->alignment[DL_PTR_SIZE_HOST] );
+	uint8_t* base_ptr           = instance - header_offset;
+	uint8_t* patch_mem          = base_ptr;
 	uintptr_t offset_to_pointer = header->first_pointer_to_patch; // 0 is the patch terminator
 	while( offset_to_pointer != 0 )
 	{
@@ -63,7 +64,7 @@ static dl_error_t dl_ptr_chain_patching( const dl_data_header* header, uint8_t* 
 		if( patch_mem > instance + header->instance_size )
 			return DL_ERROR_MALFORMED_DATA;
 		uintptr_t offsets = *(uintptr_t*)patch_mem;
-		if( (offsets & offset_mask) > (header->instance_size + sizeof(*header)) )
+		if( (offsets & offset_mask) > (header->instance_size + header_offset) )
 			return DL_ERROR_MALFORMED_DATA;
 		offset_to_pointer = offsets >> offset_shift;
 		*(uint8_t**)patch_mem = (offsets & offset_mask) + base_ptr;
@@ -95,15 +96,16 @@ dl_error_t dl_instance_load( dl_ctx_t             dl_ctx,          dl_typeid_t  
 	//	return DL_ERROR_BAD_ALIGNMENT;
 
 	DL_ASSERT( (uint8_t*)instance + header->instance_size > packed_instance || (uint8_t*)instance < packed_instance + header->instance_size );
-	memcpy( instance, packed_instance + sizeof(dl_data_header), header->instance_size );
+	size_t header_offset = dl_internal_align_up( sizeof( dl_data_header ), root_type->alignment[DL_PTR_SIZE_HOST] );
+	memcpy( instance, packed_instance + header_offset, header->instance_size );
 
 	if (consumed)
-		*consumed = (size_t)header->instance_size + sizeof(dl_data_header);
+		*consumed = (size_t)header->instance_size + header_offset;
 
 	if( header->not_using_ptr_chain_patching )
-		dl_internal_patch_instance( dl_ctx, root_type, (uint8_t*)instance, 0x0, (uintptr_t)instance - sizeof( dl_data_header ) );
+		dl_internal_patch_instance( dl_ctx, root_type, (uint8_t*)instance, 0x0, (uintptr_t)instance - header_offset );
 	else
-		return dl_ptr_chain_patching( header, (uint8_t*)instance );
+		return dl_ptr_chain_patching( header, (uint8_t*)instance, root_type );
 
 	return DL_ERROR_OK;
 }
@@ -120,22 +122,23 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	if( header->version != DL_INSTANCE_VERSION )        return DL_ERROR_VERSION_MISMATCH;
 	if( header->root_instance_type != type_id )         return DL_ERROR_TYPE_MISMATCH;
 
-	*loaded_instance = packed_instance + sizeof(dl_data_header);
+	const dl_type_desc* root_type = dl_internal_find_type( dl_ctx, header->root_instance_type );
+	if( root_type == 0x0 )
+		return DL_ERROR_TYPE_NOT_FOUND;
 
-	if (consumed)
-		*consumed = header->instance_size + sizeof(dl_data_header);
+	size_t header_offset = dl_internal_align_up( sizeof( dl_data_header ), root_type->alignment[DL_PTR_SIZE_HOST] );
+	*loaded_instance = packed_instance + header_offset;
+
+	if( consumed )
+		*consumed = header->instance_size + header_offset;
 
 	if( header->version == DL_INSTANCE_VERSION && !header->not_using_ptr_chain_patching )
 	{
-		return dl_ptr_chain_patching( header, (uint8_t*)*loaded_instance );
+		return dl_ptr_chain_patching( header, (uint8_t*)*loaded_instance, root_type );
 	}
 	else if( header->not_using_ptr_chain_patching )
 	{
-		const dl_type_desc* type = dl_internal_find_type( dl_ctx, header->root_instance_type );
-		if( type == 0x0 )
-			return DL_ERROR_TYPE_NOT_FOUND;
-
-		dl_internal_patch_instance( dl_ctx, type, packed_instance + sizeof( dl_data_header ), 0x0, (uintptr_t)packed_instance );
+		dl_internal_patch_instance( dl_ctx, root_type, (uint8_t*)*loaded_instance, 0x0, (uintptr_t)packed_instance );
 	}
 	return DL_ERROR_OK;
 }
@@ -449,10 +452,11 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	CDLBinStoreContext store_context( writer, dl_ctx->alloc, ptrs, strings );
 
 	dl_data_header* header = (dl_data_header*)out_buffer;
+	size_t header_plus_alignment = dl_internal_align_up( sizeof( dl_data_header ), type->alignment[DL_PTR_SIZE_HOST] );
 	if( out_buffer_size > 0 )
 	{
-		if( instance == out_buffer + sizeof(dl_data_header) )
-			memset( out_buffer, 0, sizeof(dl_data_header) );
+		if( instance == out_buffer + header_plus_alignment )
+			memset( out_buffer, 0, header_plus_alignment );
 		else
 			memset( out_buffer, 0, out_buffer_size );
 
@@ -461,11 +465,11 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 		header->root_instance_type = type_id;
 		header->is_64_bit_ptr      = sizeof( void* ) == 8 ? 1 : 0;
 	}
-	dl_binary_writer_seek_set( &store_context.writer, sizeof( dl_data_header ) );
+	dl_binary_writer_seek_set( &store_context.writer, header_plus_alignment );
 	dl_binary_writer_update_needed_size( &store_context.writer );
 
 	dl_binary_writer_reserve( &store_context.writer, type->size[DL_PTR_SIZE_HOST] );
-	store_context.AddWrittenPtr( instance, sizeof( dl_data_header ) ); // if pointer refere to root-node, it can be found at offset "sizeof(dl_data_header)"
+	store_context.AddWrittenPtr( instance, header_plus_alignment ); // if pointer refers to root-node, it can be found at offset "sizeof(dl_data_header)" plus alignment
 
 	dl_error_t err = dl_internal_instance_store( dl_ctx, type, (uint8_t*)instance, &store_context );
 
@@ -473,7 +477,7 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 	dl_binary_writer_seek_end( &store_context.writer );
 	if( header )
 	{
-		header->instance_size = uint32_t( dl_binary_writer_tell( &store_context.writer ) - sizeof( dl_data_header ) );
+		header->instance_size = uint32_t( dl_binary_writer_tell( &store_context.writer ) - header_plus_alignment );
 
 		uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
 		if( dl_binary_writer_tell( &store_context.writer ) >= ( 1ULL << offset_shift ) )

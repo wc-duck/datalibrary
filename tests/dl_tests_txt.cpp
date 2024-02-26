@@ -502,6 +502,26 @@ TEST_F( DLText, default_value_array_array )
 	EXPECT_EQ( 7u, loaded[0].Arr[1].u32_arr[1] );
 }
 
+TEST_F( DLText, default_value_alignment )
+{
+	// default-values should be set correctly!
+
+	const char* text_data = STRINGIFY( { "bug_alignment_struct" : {} } );
+
+	unsigned char out_data_text[1024];
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+
+	bug_alignment_struct loaded[10];
+
+	// load binary
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, bug_alignment_struct::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ( 90U, loaded[0].i32 );
+	EXPECT_EQ( 1337U, loaded[0].aligned.Int );
+	EXPECT_EQ( nullptr, loaded[0].ptr );
+}
+
 TEST_F( DLText, array_struct )
 {
 	const char* text_data = STRINGIFY( { "Pods" : [ -1, -2, -3, -4, 1, 2, 3, 4, 2.3, 3.4 ] } );

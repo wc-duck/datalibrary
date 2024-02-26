@@ -151,7 +151,8 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 		out_members[member_index].alignment      = member->alignment[DL_PTR_SIZE_HOST];
 		out_members[member_index].offset         = member->offset[DL_PTR_SIZE_HOST];
 		out_members[member_index].array_count    = 0;
-		out_members[member_index].bits           = 0;
+		out_members[member_index].bitfield_bits  = 0;
+		out_members[member_index].bitfield_offset = 0;
 		out_members[member_index].metadata_count = member->metadata_count;
 		out_members[member_index].metadata_type_ids  = &dl_ctx->metadata_typeinfos[member->metadata_start];
 		out_members[member_index].metadata_instances = &dl_ctx->metadata_infos[member->metadata_start];
@@ -164,7 +165,8 @@ dl_error_t DL_DLL_EXPORT dl_reflect_get_type_members( dl_ctx_t dl_ctx, dl_typeid
 				out_members[member_index].array_count = member->inline_array_cnt();
 				break;
 			case DL_TYPE_ATOM_BITFIELD:
-				out_members[member_index].bits = member->bitfield_bits();
+			    out_members[member_index].bitfield_bits   = member->bitfield_bits();
+			    out_members[member_index].bitfield_offset = member->bitfield_offset();
 				break;
 			default:
 				break;

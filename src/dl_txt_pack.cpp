@@ -131,6 +131,11 @@ inline float dl_strtof(const char* str, char** endptr)
 	return res;
 }
 
+static inline uint32_t dl_internal_hash_buffer( dl_substr str )
+{
+	return dl_internal_hash_buffer((const uint8_t*)str.str, (size_t)str.len);
+}
+
 struct dl_txt_pack_ctx
 {
 	explicit dl_txt_pack_ctx(dl_allocator alloc)
@@ -270,7 +275,7 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	if( str.str == 0x0 )
 		dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected a value of type 'string' or 'null'" );
 
-	uint32_t hash = dl_internal_hash_buffer( (const uint8_t*)str.str, str.len );
+	uint32_t hash = dl_internal_hash_buffer( str );
 	size_t strpos = packctx->GetStringOffset( str, hash );
 	if( strpos == 0 )
 	{
@@ -350,7 +355,7 @@ static bool dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 	if( !packctx->writer->dummy )
 		packctx->ptrs.Add( patch_pos );
 
-	packctx->subdata.Add({ ptr, dl_internal_hash_buffer((const uint8_t*)ptr.str, ptr.len), type, patch_pos });
+	packctx->subdata.Add({ ptr, dl_internal_hash_buffer( ptr ), type, patch_pos });
 	return true;
 }
 
@@ -1115,7 +1120,7 @@ static dl_error_t dl_txt_pack_eat_and_write_struct( dl_ctx_t dl_ctx, dl_txt_pack
 				dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_MULTIPLE_MEMBERS_IN_UNION_SET, "multiple members of union-type was set! %s.%.*s", dl_internal_type_name( dl_ctx, type ), member_name.len, member_name.str );
 		}
 
-		uint32_t member_name_hash = dl_internal_hash_buffer( (const uint8_t*)member_name.str, (size_t)member_name.len);
+		uint32_t member_name_hash = dl_internal_hash_buffer(member_name);
 		member_index = dl_internal_find_member( dl_ctx, type, member_name_hash );
 		if( member_index > type->member_count )
 		{
@@ -1221,7 +1226,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 		if( subdata_name.str == 0x0 )
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_MALFORMED_DATA, "expected map-key containing subdata instance-name." );
 
-		uint32_t name_hash = dl_internal_hash_buffer((const uint8_t*)subdata_name.str, subdata_name.len);
+		uint32_t name_hash = dl_internal_hash_buffer(subdata_name);
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
 
 		const dl_txt_pack_ctx::SSubData* results = std::lower_bound(packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + packctx->subdata.Len(), name_hash, dl_internal_sort_pred());
@@ -1254,7 +1259,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 			std::inplace_merge( packctx->subdata.m_Ptr, packctx->subdata.m_Ptr + used_subdatas, packctx->subdata.m_Ptr + packctx->subdata.Len(), dl_internal_sort_pred() );
 		}
 
-		subinstances.Add( { subdata_name, inst_pos, dl_internal_hash_buffer((const uint8_t*)subdata_name.str, subdata_name.len) } );
+		subinstances.Add( { subdata_name, inst_pos, dl_internal_hash_buffer(subdata_name) } );
 
 		dl_txt_eat_white( &packctx->read_ctx );
 		if( packctx->read_ctx.iter[0] == ',' )
@@ -1269,7 +1274,7 @@ static dl_error_t dl_txt_pack_finalize_subdata( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 	for( size_t i = 0; i < packctx->subdata.Len(); ++i )
 	{
 		bool found = false;
-		uint32_t name_hash = dl_internal_hash_buffer((const uint8_t*)packctx->subdata[i].name.str, packctx->subdata[i].name.len);
+		uint32_t name_hash = dl_internal_hash_buffer(packctx->subdata[i].name);
 		const SSubInstance* results = std::lower_bound(subinstances.m_Ptr, subinstances.m_Ptr + subinstances.Len(), name_hash, dl_internal_sort_pred());
 		while (results != subinstances.m_Ptr + subinstances.Len())
 		{
@@ -1318,6 +1323,7 @@ static const dl_type_desc* dl_txt_pack_inner( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TYPE_NOT_FOUND, "root type was set as \"%.*s\", but no such type was loaded.", root_type_name.len, root_type_name.str );
 		}
 
+		dl_binary_writer_align( packctx->writer, root_type->alignment[DL_PTR_SIZE_HOST] );
 		dl_txt_eat_char( dl_ctx, &packctx->read_ctx, ':' );
  		dl_error_t err = dl_txt_pack_eat_and_write_struct( dl_ctx, packctx, root_type );
 		if( DL_ERROR_OK != err ) return 0x0;
@@ -1362,7 +1368,7 @@ dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsi
 			header.id                     = DL_INSTANCE_ID;
 			header.version                = DL_INSTANCE_VERSION;
 			header.root_instance_type     = dl_internal_typeid_of( dl_ctx, root_type );
-			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - sizeof( dl_data_header ));
+			header.instance_size          = uint32_t(dl_binary_writer_needed_size( &writer ) - dl_internal_align_up<uint32_t>( sizeof( dl_data_header ), root_type->alignment[DL_PTR_SIZE_HOST] ));
 			header.is_64_bit_ptr          = sizeof( void* ) == 8 ? 1 : 0;
 
 			uintptr_t offset_shift = sizeof( uintptr_t ) * 4;
