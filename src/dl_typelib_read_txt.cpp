@@ -16,6 +16,12 @@
 #   define DL_CONSTANT_EXPRESSION(expr) (expr)
 #endif
 
+template <size_t len>
+static inline bool dl_streq( const char ( &s1 )[len], const char* s2 )
+{
+	return strncmp( s1, s2, len - 1 ) == 0;
+}
+
 template <typename T>
 static inline T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
 {
@@ -685,12 +691,12 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 
 			dl_txt_eat_char( ctx, read_state, ':' );
 
-			if( strncmp( "value", key.str, 5 ) == 0 )
+			if( dl_streq( "value", key.str ) )
 			{
 				value->value = dl_context_load_txt_type_library_read_enum_value( ctx, storage, read_state );
 				value_set = true;
 			}
-			else if( strncmp( "aliases", key.str, 7 ) == 0 )
+			else if( dl_streq( "aliases", key.str ) )
 			{
 				dl_txt_eat_char( ctx, read_state, '[' );
 				do
@@ -703,7 +709,7 @@ static void dl_context_load_txt_type_library_read_enum_values( dl_ctx_t ctx,
 				} while( dl_txt_try_eat_char( read_state, ',' ) );
 				dl_txt_eat_char( ctx, read_state, ']' );
 			}
-			else if( strncmp( "comment", key.str, 7 ) == 0 )
+			else if( dl_streq( "comment", key.str ) )
 			{
 				if(value->comment != 0xFFFFFFFF)
 					dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "enum value have multiple 'comment'-sections present!" );
@@ -739,12 +745,14 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 															 const char** values_iter,
 															 const char** type_iter,
 															 const char** end_iter,
-															 bool*        is_extern)
+															 bool*        is_extern,
+															 bool*        verify)
 {
 	*values_iter = 0x0;
 	*type_iter   = 0x0;
 	*end_iter    = 0x0;
 	*is_extern   = false;
+	*verify      = true;
 
 	dl_txt_eat_char( ctx, read_state, '{' );
 	do
@@ -753,25 +761,29 @@ static void dl_context_load_txt_type_library_find_enum_keys( dl_ctx_t ctx,
 		dl_txt_eat_char( ctx, read_state, ':' );
 		dl_txt_eat_white( read_state );
 
-		if( strncmp( "values", key.str, 6 ) == 0 )
+		if( dl_streq( "values", key.str ) )
 		{
 			if(*values_iter)
 				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'values' set twice on enum '%.*s'", name->len, name->str );
 			*values_iter = read_state->iter;
 			read_state->iter = dl_txt_skip_map(read_state->iter, read_state->end);
 		}
-		else if( strncmp( "type", key.str, 4 ) == 0 )
+		else if( dl_streq( "type", key.str ) )
 		{
 			if(*type_iter)
 				dl_txt_read_failed( ctx, read_state, DL_ERROR_MALFORMED_DATA, "'type' set twice on enum '%.*s'", name->len, name->str );
 			*type_iter = read_state->iter;
 			read_state->iter = dl_txt_skip_string(read_state->iter + 1, read_state->end) + 1; // TODO: fix haxx, skip_string is not eating ' or "
 		}
-		else if( strncmp( "extern", key.str, 6 ) == 0 )
+		else if( dl_streq( "extern", key.str ) )
 		{
 			*is_extern = dl_txt_eat_bool( read_state ) == 1;
 		}
-		else if( strncmp( "comment", key.str, 7 ) == 0 )
+		else if( dl_streq( "verify", key.str ) )
+		{
+			*verify = dl_txt_eat_bool( read_state ) == 1;
+		}
+		else if( dl_streq( "comment", key.str ) )
 		{
 			*comment = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
@@ -801,8 +813,9 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	const char* end_iter;
 	dl_substr comment = { 0, 0 };
 	bool        is_extern;
+	bool        verify;
 	uint32_t    meta_data_record[2] = {0,0};
-	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &comment, meta_data_record, &values_iter, &type_iter, &end_iter, &is_extern);
+	dl_context_load_txt_type_library_find_enum_keys(ctx, read_state, name, &comment, meta_data_record, &values_iter, &type_iter, &end_iter, &is_extern, &verify);
 
 	dl_type_storage_t storage = DL_TYPE_STORAGE_CNT;
 	if(type_iter)
@@ -816,23 +829,23 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 		{
 			case 4:
 			{
-				if( strncmp("int8", type_str.str, 4) == 0 )
+				if( dl_streq("int8", type_str.str) )
 					storage = DL_TYPE_STORAGE_ENUM_INT8;
 			}
 			break;
 			case 5:
 			{
-					 if( strncmp("int16", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT16;
-				else if( strncmp("int32", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT32;
-				else if( strncmp("int64", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_INT64;
-				else if( strncmp("uint8", type_str.str, 5) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT8;
+					 if( dl_streq("int16", type_str.str) ) storage = DL_TYPE_STORAGE_ENUM_INT16;
+				else if( dl_streq("int32", type_str.str) ) storage = DL_TYPE_STORAGE_ENUM_INT32;
+				else if( dl_streq("int64", type_str.str) ) storage = DL_TYPE_STORAGE_ENUM_INT64;
+				else if( dl_streq("uint8", type_str.str) ) storage = DL_TYPE_STORAGE_ENUM_UINT8;
 			}
 			break;
 			case 6:
 			{
-					 if( strncmp("uint16", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT16;
-				else if( strncmp("uint32", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT32;
-				else if( strncmp("uint64", type_str.str, 6) == 0 ) storage = DL_TYPE_STORAGE_ENUM_UINT64;
+					 if( dl_streq("uint16", type_str.str) ) storage = DL_TYPE_STORAGE_ENUM_UINT16;
+				else if( dl_streq("uint32", type_str.str) ) storage = DL_TYPE_STORAGE_ENUM_UINT32;
+				else if( dl_streq("uint64", type_str.str) ) storage = DL_TYPE_STORAGE_ENUM_UINT64;
 			}
 			break;
 			default:
@@ -868,7 +881,11 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 	// TODO: add test for missing enum value ...
 
 	dl_enum_desc* edesc = dl_alloc_enum(ctx, name);
-	edesc->flags          = is_extern ? (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL : 0;
+	edesc->flags        = 0;
+	if( is_extern || ctx->performing_include )
+		edesc->flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
+	if( verify && !ctx->performing_include )
+		edesc->flags |= (uint32_t)DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN;
 	edesc->storage        = storage;
 	edesc->value_count    = ctx->enum_value_count - value_start;
 	edesc->value_start    = value_start;
@@ -881,7 +898,6 @@ static void dl_context_load_txt_type_library_read_enum( dl_ctx_t ctx, dl_txt_rea
 
 static void dl_context_load_txt_type_library_read_c_includes( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
 {
-	// uint32_t includes = 0;
 	dl_txt_eat_char( ctx, read_state, '[' );
 	dl_txt_eat_white( read_state );
 	if( *read_state->iter == ']' )
@@ -891,6 +907,40 @@ static void dl_context_load_txt_type_library_read_c_includes( dl_ctx_t ctx, dl_t
 	{
 		dl_substr include = dl_txt_eat_and_expect_string( ctx, read_state );
 		dl_alloc_include(ctx, &include);
+	} while (dl_txt_try_eat_char( read_state, ','));
+
+	dl_txt_eat_char( ctx, read_state, ']' );
+}
+
+static void dl_context_load_txt_type_library_read_includes( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
+{
+	dl_txt_eat_char( ctx, read_state, '[' );
+	dl_txt_eat_white( read_state );
+	if( *read_state->iter == ']' )
+		return; // ... empty includes ...
+
+	do
+	{
+		dl_substr include = dl_txt_eat_and_expect_string( ctx, read_state );
+		if( read_state->include_handler == nullptr )
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPELIB_MISSING_INCLUDE_HANDLER, "Found include '%.*s', but there is no include handler installed", include.len, include.str );
+
+		char include_path[512];
+		if( size_t(include.len) < sizeof( include_path ) )
+		{
+			memcpy( include_path, include.str, size_t(include.len) );
+			include_path[include.len] = '\0';
+
+			bool was_performing_include = ctx->performing_include;
+			ctx->performing_include = true;
+			dl_error_t err = read_state->include_handler( read_state->include_handler_ctx, ctx, include_path );
+			if( err != DL_ERROR_OK )
+				dl_txt_read_failed( ctx, read_state, err, "Failed to include '%s'", include_path );
+			ctx->performing_include = was_performing_include;
+		}
+		else
+			dl_txt_read_failed( ctx, read_state, DL_ERROR_INTERNAL_ERROR, "Too long include path '%.*s', max is 511 chars", include.len, include.str );
+
 	} while (dl_txt_try_eat_char( read_state, ','));
 
 	dl_txt_eat_char( ctx, read_state, ']' );
@@ -915,7 +965,7 @@ static void dl_context_load_txt_type_library_read_enums( dl_ctx_t ctx, dl_txt_re
 
 static int dl_parse_type( dl_ctx_t ctx, dl_substr* type, dl_member_desc* member, dl_txt_read_ctx* read_state )
 {
-    #define DL_PARSE_TYPE_VALID_FMT_STR "\nvalid formats, 'type', 'type*', 'type[count]', 'type[]', 'bitfield:bits'"
+	#define DL_PARSE_TYPE_VALID_FMT_STR "\nvalid formats, 'type', 'type*', 'type[count]', 'type[]', 'bitfield:bits'"
 
 	// ... strip whitespace ...
 	char   type_name[2048];
@@ -949,77 +999,77 @@ static int dl_parse_type( dl_ctx_t ctx, dl_substr* type, dl_member_desc* member,
 		}
 		switch( *iter )
 		{
-            case '[':
-            {
-                ++iter;
-                if( *iter == ']' )
-                    is_array = true;
-                else
-                {
-                    char* next = 0x0;
-                    inline_array_len = (unsigned int)strtoul( iter, &next, 0 );
-                    if( iter == next )
-                    {
-                        // ... failed to parse inline array as number, try it as an enum ..
-                        while( *next != ']' && ( isalnum(*next) || *next == '_' ) ) ++next;
+			case '[':
+			{
+				++iter;
+				if( *iter == ']' )
+					is_array = true;
+				else
+				{
+					char* next = 0x0;
+					inline_array_len = (unsigned int)strtoul( iter, &next, 0 );
+					if( iter == next )
+					{
+						// ... failed to parse inline array as number, try it as an enum ..
+						while( *next != ']' && ( isalnum(*next) || *next == '_' ) ) ++next;
 
-                        if( *next != ']' )
-                            dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+						if( *next != ']' )
+							dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
 
-                        inline_array_enum_value = iter;
-                        inline_array_enum_value_size = (size_t)(next - iter);
-                    }
-                    else
-                    {
-                        if( *next != ']' )
-                            dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
-                    }
-                    iter = next + 1;
-                    is_inline_array = true;
-                }
-            }
-            break;
+						inline_array_enum_value = iter;
+						inline_array_enum_value_size = (size_t)(next - iter);
+					}
+					else
+					{
+						if( *next != ']' )
+							dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "%.*s is not a valid type", type->len, type->str );
+					}
+					iter = next + 1;
+					is_inline_array = true;
+				}
+			}
+			break;
 
-            case ':':
-            {
-                if(strcmp( "bitfield", type_name ) != 0)
-                    dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR,
-                        "found char (':') when parsing type '%.*s', this is only valid for type 'bitfield'"
-                        DL_PARSE_TYPE_VALID_FMT_STR,
-                        type->len, type->str );
+			case ':':
+			{
+				if(strcmp( "bitfield", type_name ) != 0)
+					dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR,
+						"found char (':') when parsing type '%.*s', this is only valid for type 'bitfield'"
+						DL_PARSE_TYPE_VALID_FMT_STR,
+						type->len, type->str );
 
-                ++iter;
+				++iter;
 
-                member->type = dl_make_type( DL_TYPE_ATOM_BITFIELD, DL_TYPE_STORAGE_UINT8 );
-                member->type_id = 0;
-                char* next = 0x0;
-                unsigned int bits = (unsigned int)strtoul( iter, &next, 0 );
-                if( iter == next || *next != '\"' )
-                    dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
+				member->type = dl_make_type( DL_TYPE_ATOM_BITFIELD, DL_TYPE_STORAGE_UINT8 );
+				member->type_id = 0;
+				char* next = 0x0;
+				unsigned int bits = (unsigned int)strtoul( iter, &next, 0 );
+				if( iter == next || *next != '\"' )
+					dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
 
-                member->set_bitfield_bits( bits );
+				member->set_bitfield_bits( bits );
 
-                // type etc?
-                return 1;
-            }
-            break;
-            case '*':
-            {
-                // ignore ...
-            }
-            break;
+				// type etc?
+				return 1;
+			}
+			break;
+			case '*':
+			{
+				// ignore ...
+			}
+			break;
 
-            default:
-            {
-                dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR,
-                    "invalid char ('%c') found when parsing type '%.*s'\n"
-                    DL_PARSE_TYPE_VALID_FMT_STR,
-                    *iter, type->len, type->str );
-            }
+			default:
+			{
+				dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR,
+					"invalid char ('%c') found when parsing type '%.*s'\n"
+					DL_PARSE_TYPE_VALID_FMT_STR,
+					*iter, type->len, type->str );
+			}
 		}
 	}
 
-	if( strcmp( "bitfield", type_name ) == 0 )
+	if( dl_streq( "bitfield", type_name ) )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_TXT_PARSE_ERROR, "bitfield has a bad format, should be \"bitfield:<num_bits>\"" );
 
 	dl_type_atom_t atom = DL_TYPE_ATOM_POD;
@@ -1066,7 +1116,7 @@ static int dl_parse_type( dl_ctx_t ctx, dl_substr* type, dl_member_desc* member,
 		}
 	}
 
-    #undef DL_PARSE_TYPE_VALID_FMT_STR
+	#undef DL_PARSE_TYPE_VALID_FMT_STR
 
 	return 1;
 }
@@ -1104,19 +1154,19 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 		dl_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
 
 		dl_txt_eat_char( ctx, read_state, ':' );
-		if( strncmp( "name", key.str, 4 ) == 0 )
+		if( dl_streq( "name", key.str ) )
 		{
 			name = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
-		else if( strncmp( "type", key.str, 4 ) == 0 )
+		else if( dl_streq( "type", key.str ) )
 		{
 			type = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
-		else if( strncmp( "comment", key.str, 7 ) == 0 )
+		else if( dl_streq( "comment", key.str ) )
 		{
 			comment = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
-		else if( strncmp( "default", key.str, 7 ) == 0 )
+		else if( dl_streq( "default", key.str ) )
 		{
 			dl_txt_eat_white( read_state );
 			const char* start = read_state->iter;
@@ -1141,11 +1191,11 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 			default_val.len = (int)(end - start);
 			read_state->iter = end;
 		}
-		else if( strncmp( "const", key.str, 5) == 0)
+		else if( dl_streq( "const", key.str ) )
 		{
 			is_const = dl_txt_eat_bool( read_state ) == 1;
 		}
-		else if( strncmp( "verify", key.str, 6) == 0)
+		else if( dl_streq( "verify", key.str ) )
 		{
 			verify = dl_txt_eat_bool( read_state ) == 1;
 		}
@@ -1173,9 +1223,9 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 		member->default_value_size   = (uint32_t)default_val.len;
 	}
 
-	if(is_const)
+	if( is_const )
 		member->flags |= (uint32_t)DL_MEMBER_FLAG_IS_CONST;
-	if(verify)
+	if( verify && !ctx->performing_include )
 		member->flags |= (uint32_t)DL_MEMBER_FLAG_VERIFY_EXTERNAL_SIZE_OFFSET;
 
 	dl_txt_eat_char( ctx, read_state, '}' );
@@ -1226,23 +1276,23 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 			break;
 
 		dl_txt_eat_char( ctx, read_state, ':' );
-		if( strncmp( "members", key.str, 7 ) == 0 )
+		if( dl_streq( "members", key.str ) )
 		{
 			member_count = dl_context_load_txt_type_library_read_members( ctx, read_state, name );
 		}
-		else if( strncmp( "align", key.str, 5 ) == 0 )
+		else if( dl_streq( "align", key.str ) )
 		{
 			align = dl_txt_pack_eat_uint32( ctx, read_state );
 		}
-		else if( strncmp( "extern", key.str, 6 ) == 0 )
+		else if( dl_streq( "extern", key.str ) )
 		{
 			is_extern = dl_txt_eat_bool( read_state ) == 1;
 		}
-		else if( strncmp( "verify", key.str, 6 ) == 0 )
+		else if( dl_streq( "verify", key.str ) )
 		{
 			verify = dl_txt_eat_bool( read_state ) == 1;
 		}
-		else if( strncmp( "comment", key.str, 7 ) == 0 )
+		else if( dl_streq( "comment", key.str ) )
 		{
 			comment = dl_txt_eat_and_expect_string( ctx, read_state );
 		}
@@ -1276,11 +1326,11 @@ static void dl_context_load_txt_type_library_read_type( dl_ctx_t ctx, dl_txt_rea
 	type->metadata_count   = meta_data_record[0];
 	type->metadata_start = meta_data_record[1];
 
-	if( is_extern )
+	if( is_extern || ctx->performing_include )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_EXTERNAL;
 	if( is_union )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_IS_UNION;
-	if( verify )
+	if( verify && !ctx->performing_include )
 		type->flags |= (uint32_t)DL_TYPE_FLAG_VERIFY_EXTERNAL_SIZE_ALIGN;
 
 	dl_txt_eat_char( ctx, read_state, '}' );
@@ -1320,6 +1370,12 @@ static const dl_type_desc* dl_internal_member_owner( dl_ctx_t ctx, const dl_memb
 
 static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ctx* read_state )
 {
+	struct SMemberRange
+	{
+		uint32_t start;
+		uint32_t end;
+	};
+	CArrayStatic<SMemberRange, 16> member_ranges(ctx->alloc);
 #if defined(_MSC_VER )
 #pragma warning(push)
 #pragma warning(disable:4611)
@@ -1330,7 +1386,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 #endif
 	{
 		uint32_t type_start = ctx->type_count;
-		uint32_t member_start = ctx->member_count;
+		member_ranges.Add( { ctx->member_count, 0 } );
 		uint32_t metadata_start = (uint32_t) ctx->metadatas_count;
 
 		dl_txt_eat_char( ctx, read_state, '{' );
@@ -1340,24 +1396,30 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 			dl_substr key = dl_txt_eat_and_expect_string( ctx, read_state );
 			dl_txt_eat_char( ctx, read_state, ':' );
 
-			if( strncmp( "module", key.str, 6 ) == 0 )
+			if( dl_streq( "module", key.str ) )
 			{
 				dl_substr module = dl_txt_eat_and_expect_string( ctx, read_state );
 				(void)module;
 			}
-			else if( strncmp( "c_includes", key.str, 10 ) == 0 )
+			else if( dl_streq( "c_includes", key.str ) )
 			{
 				dl_context_load_txt_type_library_read_c_includes( ctx, read_state );
 			}
-			else if( strncmp( "enums", key.str, 5 ) == 0 )
+			else if( dl_streq( "tld_includes", key.str ) )
+			{
+				member_ranges[member_ranges.Len() - 1].end = ctx->member_count;
+				dl_context_load_txt_type_library_read_includes( ctx, read_state );
+				member_ranges.Add( { ctx->member_count, 0 } );
+			}
+			else if( dl_streq( "enums", key.str ) )
 			{
 				dl_context_load_txt_type_library_read_enums( ctx, read_state );
 			}
-			else if( strncmp( "unions", key.str, 6 ) == 0 )
+			else if( dl_streq( "unions", key.str ) )
 			{
 				dl_context_load_txt_type_library_read_types( ctx, read_state, true );
 			}
-			else if( strncmp( "types", key.str, 5 ) == 0 )
+			else if( dl_streq( "types", key.str ) )
 			{
 				dl_context_load_txt_type_library_read_types( ctx, read_state, false );
 			}
@@ -1367,39 +1429,48 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 		} while( dl_txt_try_eat_char( read_state, ',') );
 
 		dl_txt_eat_char( ctx, read_state, '}' );
+		member_ranges[member_ranges.Len() - 1].end = ctx->member_count;
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
 			dl_load_txt_calc_type_size_and_align( ctx, read_state, ctx->type_descs + i );
 
 		// fixup members
-		for( uint32_t member_index = member_start; member_index < ctx->member_count; ++member_index )
+		for( uint32_t member_range = 0; member_range < member_ranges.Len(); ++member_range )
 		{
-			dl_member_desc* member = ctx->member_descs + member_index;
-			if( member->type_id )
+			for( uint32_t member_index = member_ranges[member_range].start; member_index < member_ranges[member_range].end; ++member_index )
 			{
-				const dl_enum_desc* enum_sub_type = dl_internal_find_enum( ctx, member->type_id );
-				if( enum_sub_type )
+				dl_member_desc* member = ctx->member_descs + member_index;
+				if( member->type_id )
 				{
-					// ... type was really an enum ...
-					member->set_storage( enum_sub_type->storage );
-				}
-				else
-				{
-					const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
-					if( sub_type == 0x0 )
-					{
-						const dl_type_desc* owner_type = dl_internal_member_owner( ctx, member );
-						dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND, 
-											"couldn't find type for member '%s::%s'", 
-											dl_internal_type_name( ctx, owner_type ),
-											dl_internal_member_name( ctx, member ) );
-					}
+					    const dl_enum_desc* enum_sub_type = dl_internal_find_enum( ctx, member->type_id );
+					    if( enum_sub_type )
+					    {
+						    // ... type was really an enum ...
+						    member->set_storage( enum_sub_type->storage );
+					    }
+					    else
+					    {
+						    const dl_type_desc* sub_type = dl_internal_find_type( ctx, member->type_id );
+						    if( sub_type == 0x0 )
+						    {
+							    const dl_type_desc* owner_type = dl_internal_member_owner( ctx, member );
+							    dl_txt_read_failed( ctx, read_state, DL_ERROR_TYPE_NOT_FOUND,
+							                        "couldn't find type for member '%s::%s'",
+							                        dl_internal_type_name( ctx, owner_type ),
+							                        dl_internal_member_name( ctx, member ) );
+						    }
+					    }
 				}
 			}
 		}
 
-		for( uint32_t member_index = member_start; member_index < ctx->member_count; ++member_index )
-			dl_load_txt_build_default_data( ctx, read_state, member_index );
+		for( uint32_t member_range = 0; member_range < member_ranges.Len(); ++member_range )
+		{
+			for( uint32_t member_index = member_ranges[member_range].start; member_index < member_ranges[member_range].end; ++member_index )
+			{
+				dl_load_txt_build_default_data( ctx, read_state, member_index );
+			}
+		}
 
 		for( unsigned int i = type_start; i < ctx->type_count; ++i )
 			dl_context_load_txt_type_set_flags( ctx, read_state, ctx->type_descs + i );
@@ -1413,7 +1484,7 @@ static void dl_context_load_txt_type_library_inner( dl_ctx_t ctx, dl_txt_read_ct
 	}
 }
 
-dl_error_t dl_context_load_txt_type_library( dl_ctx_t ctx, const char* lib_data, size_t lib_data_size )
+dl_error_t dl_context_load_txt_type_library( dl_ctx_t ctx, const char* lib_data, size_t lib_data_size, const dl_load_type_library_params_t* load_params )
 {
 	(void)lib_data_size;
 
@@ -1422,6 +1493,8 @@ dl_error_t dl_context_load_txt_type_library( dl_ctx_t ctx, const char* lib_data,
 	read_state.end   = lib_data + lib_data_size;
 	read_state.iter  = lib_data;
 	read_state.err   = DL_ERROR_OK;
+	read_state.include_handler = load_params ? load_params->include_handler : nullptr;
+	read_state.include_handler_ctx = load_params ? load_params->handler_ctx : nullptr;
 
 	dl_context_load_txt_type_library_inner( ctx, &read_state );
 

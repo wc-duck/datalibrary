@@ -10,6 +10,7 @@
 #include "generated/unittest.h"
 #include "generated/unittest2.h"
 #include "generated/sized_enums.h"
+#include "generated/to_include.h"
 
 #include <stdio.h>
 

@@ -5,6 +5,8 @@
 #include <setjmp.h>
 #include "dl_types.h"
 
+#include <dl/dl_typelib.h>
+
 struct dl_txt_read_ctx
 {
 	jmp_buf jumpbuf;
@@ -12,6 +14,8 @@ struct dl_txt_read_ctx
 	const char* end;
 	const char* iter;
 	dl_error_t err;
+	dl_include_handler include_handler;
+	void* include_handler_ctx;
 };
 
 

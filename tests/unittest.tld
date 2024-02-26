@@ -3,6 +3,9 @@
 
 	"c_includes" : [ "<stdio.h>" ], // just testing... not actually needed!
 
+	// Testing an include of a binary type library definition, used only as a metadata type and thus not added to c_includes
+	"tld_includes" : [ "../local/generated/to_include.bin" ],
+
 	"enums" : {
 		"TestEnum1" : {
 			"values" : {
@@ -50,6 +53,14 @@
 	"types" : {
 		"unused" : { "members" : [ { "name" : "member",  "type" : "int32", "comment" : "only used in unittests to check for errors" } ] },
 
+		"use_included_type" : {
+			"members" : [
+				{ "name" : "member",  "type" : "int8" }
+			]
+			//"metadata" : [
+			//	{ "included_type" : { "name": "use_included_type" } }
+			//]
+		},
 		"Pods" : {
 			"members" : [
 				{ "name" : "i8",  "type" : "int8"   },
