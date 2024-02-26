@@ -165,7 +165,7 @@ static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* w
 										dl_context_type_to_string( ctx, member->storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_BITFIELD:
-			dl_binary_writer_write_fmt( writer, "\"type\" : \"bitfield:%u\"", member->bits );
+			dl_binary_writer_write_fmt( writer, "\"type\" : \"bitfield:%u\"", member->bitfield_bits );
 		break;
 		case DL_TYPE_ATOM_ARRAY:
 			dl_binary_writer_write_fmt( writer,

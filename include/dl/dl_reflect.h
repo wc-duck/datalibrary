@@ -58,7 +58,8 @@ typedef struct dl_member_info
 	unsigned int       alignment;
 	unsigned int       offset;
 	unsigned int       array_count;
-	unsigned int       bits;
+	unsigned short     bitfield_bits;
+	unsigned short     bitfield_offset;
 	unsigned int       metadata_count;
 	const dl_typeid_t* metadata_type_ids;
 	const void**       metadata_instances;

@@ -16,7 +16,7 @@
 #include "dl_swap.h"
 
 #include <stdarg.h> // for va_list
-#include <new> // for inplace new
+#include <new>      // for inplace new
 
 #define DL_BITMASK(_Bits)                   ( (1ULL << (_Bits)) - 1ULL )
 #define DL_BITRANGE(_MinBit,_MaxBit)		( ((1ULL << (_MaxBit)) | ((1ULL << (_MaxBit))-1ULL)) ^ ((1ULL << (_MinBit))-1ULL) )
@@ -158,8 +158,8 @@ struct dl_member_desc
 
 	dl_type_atom_t    AtomType()        const { return dl_type_atom_t( (type & DL_TYPE_ATOM_MASK) >> DL_TYPE_ATOM_MIN_BIT); }
 	dl_type_storage_t StorageType()     const { return dl_type_storage_t( (type & DL_TYPE_STORAGE_MASK) >> DL_TYPE_STORAGE_MIN_BIT); }
-	uint32_t          bitfield_bits()   const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT; }
-	uint32_t          bitfield_offset() const { return ( (uint32_t)(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT; }
+	uint16_t          bitfield_bits()   const { return uint16_t(( uint32_t(type) & DL_TYPE_BITFIELD_SIZE_MASK ) >> DL_TYPE_BITFIELD_SIZE_MIN_BIT); }
+	uint16_t          bitfield_offset() const { return uint16_t(( uint32_t(type) & DL_TYPE_BITFIELD_OFFSET_MASK ) >> DL_TYPE_BITFIELD_OFFSET_MIN_BIT); }
 	bool              IsSimplePod()     const
 	{
 		return StorageType() != DL_TYPE_STORAGE_STR &&

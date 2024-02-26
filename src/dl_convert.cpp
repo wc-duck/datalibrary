@@ -1044,7 +1044,8 @@ dl_error_t dl_internal_convert_no_header( dl_ctx_t            dl_ctx,           
 			new_header->not_using_ptr_chain_patching = 1;
 		else
 			new_header->not_using_ptr_chain_patching = 0;
-		new_header->instance_size = uint32_t( *needed_size - sizeof( dl_data_header ) );
+		size_t header_offset      = dl_internal_align_up( sizeof( dl_data_header ), root_type->alignment[DL_PTR_SIZE_HOST] );
+		new_header->instance_size = uint32_t( *needed_size - header_offset );
 
 		if( conv_ctx.m_lPatchOffset.Len() )
 		{
@@ -1134,19 +1135,20 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 	dl_binary_writer writer;
 	dl_binary_writer_init( &writer, out_instance, out_instance_size, out_instance == 0x0, src_endian, out_endian, dst_ptr_size );
 
+	size_t header_offset = dl_internal_align_up( sizeof( dl_data_header ), root_type->alignment[DL_PTR_SIZE_HOST] );
 	if( packed_instance == out_instance )
-		dl_binary_writer_reserve( &writer, sizeof( dl_data_header ) );
+		dl_binary_writer_reserve( &writer, header_offset );
 	else
-		dl_binary_writer_write_zero( &writer, sizeof( dl_data_header ) );
+		dl_binary_writer_write_zero( &writer, header_offset );
 
 	if(out_instance != 0x0)
 	{
 		dl_data_header* new_header = (dl_data_header*)out_instance;
-		memset(new_header, 0, sizeof(dl_data_header));
+		memset(new_header, 0, header_offset);
 		new_header->id                 = DL_INSTANCE_ID;
 		new_header->version            = DL_INSTANCE_VERSION;
 		new_header->root_instance_type = type;
-		new_header->instance_size      = uint32_t( out_instance_size - sizeof( dl_data_header ) );
+		new_header->instance_size      = uint32_t( out_instance_size - header_offset );
 		new_header->is_64_bit_ptr      = out_ptr_size == 4 ? 0 : 1;
 
 		uintptr_t offset_shift = out_ptr_size * 4;
@@ -1169,7 +1171,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 			while( offset_to_next_pointer_to_patch != 0 ) // 0 is the patch terminator
 			{
 				patch_mem += offset_to_next_pointer_to_patch;
-				if( patch_mem > packed_instance + sizeof(header) + header.instance_size )
+				if( patch_mem > packed_instance + header_offset + header.instance_size )
 					return DL_ERROR_MALFORMED_DATA;
 				uint64_t offsets = *(uint64_t*)patch_mem;
 				if( src_endian != DL_ENDIAN_HOST )
@@ -1184,7 +1186,7 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 			while( offset_to_next_pointer_to_patch != 0 ) // 0 is the patch terminator
 			{
 				patch_mem += offset_to_next_pointer_to_patch;
-				if (patch_mem > packed_instance + sizeof(header) + header.instance_size)
+				if( patch_mem > packed_instance + header_offset + header.instance_size )
 					return DL_ERROR_MALFORMED_DATA;
 				uint32_t offsets = *(uint32_t*)patch_mem;
 				if( src_endian != DL_ENDIAN_HOST )
@@ -1199,8 +1201,8 @@ static dl_error_t dl_internal_convert_instance( dl_ctx_t       dl_ctx,          
 		packed_header->first_pointer_to_patch = 0;
 	}
 	return dl_internal_convert_no_header( dl_ctx,
-										  packed_instance + sizeof(dl_data_header),
-										  packed_instance + (header.version == DL_INSTANCE_VERSION ? 0 : sizeof(dl_data_header)),
+	                                      packed_instance + header_offset,
+										  packed_instance + (header.version == DL_INSTANCE_VERSION ? 0 : header_offset),
 										  conv_ctx,
 										  &writer,
 										  out_size,

@@ -205,6 +205,23 @@ TYPED_TEST(DLBase, bug_first_member_in_struct)
 	EXPECT_EQ( desc.components[1].ptr,  loaded[0].components[1].ptr );
 }
 
+TYPED_TEST(DLBase, bug_alignment_struct)
+{
+	// testing bug where first member of struct do not have the same
+	// alignment as parent-struct and this struct is part of an array.
+	Pods2 ps                  = { 1, 2 };
+	bug_alignment_struct desc = { 1, { 2 }, &ps };
+
+	bug_alignment_struct DL_ALIGN( 8 ) loaded[10];
+
+	this->do_the_round_about( bug_alignment_struct::TYPE_ID, &desc, loaded, sizeof( loaded ) );
+
+	EXPECT_EQ( desc.i32,         loaded[0].i32 );
+	EXPECT_EQ( desc.aligned.Int, loaded[0].aligned.Int );
+	EXPECT_EQ( desc.ptr->Int1,   loaded[0].ptr->Int1 );
+	EXPECT_EQ( desc.ptr->Int2,   loaded[0].ptr->Int2 );
+}
+
 TYPED_TEST(DLBase, bug_test_1)
 {
 	// Testing bug where padding in array-member was missed in some cases.
