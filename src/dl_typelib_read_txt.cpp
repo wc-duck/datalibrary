@@ -8,6 +8,14 @@
 #include <stdlib.h> // strtoul
 #include <ctype.h>
 
+#if (__cplusplus >= 201703L) // C++17
+#   define DL_CONSTANT_EXPRESSION(expr) constexpr(expr)
+#elif defined(_MSC_VER)
+#   define DL_CONSTANT_EXPRESSION(expr) (0, (expr))
+#else
+#   define DL_CONSTANT_EXPRESSION(expr) (expr)
+#endif
+
 template <size_t len>
 static inline bool dl_streq( const char ( &s1 )[len], const char* s2 )
 {
@@ -410,7 +418,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 					{
 						const char* enum_value_name = 0x0;
 						uint32_t enum_value_name_len = 0;
-						if( sizeof(void*) == 8 )
+						if DL_CONSTANT_EXPRESSION( sizeof(void*) == 8 )
 						{
 							enum_value_name = (const char*)( ( (uint64_t)member->size[0] ) | (uint64_t)member->size[1] << 32 );
 							enum_value_name_len = member->alignment[0];
@@ -1095,7 +1103,7 @@ static int dl_parse_type( dl_ctx_t ctx, dl_substr* type, dl_member_desc* member,
 		{
 			// If the inline array size is an enum we have to lookup the size when we are sure that all enums are parsed, temporarily store pointer and string-length
 			// in size/align of member.
-			if( sizeof(void*) == 8 )
+			if DL_CONSTANT_EXPRESSION( sizeof(void*) == 8 )
 			{
 				member->set_size( (uint32_t)( (uint64_t)inline_array_enum_value & 0xFFFFFFFF ), (uint32_t)( ( (uint64_t)inline_array_enum_value >> 32 ) & 0xFFFFFFFF ) );
 				member->set_align( (uint32_t)(inline_array_enum_value_size & 0xFFFFFFFF ), 0 );
