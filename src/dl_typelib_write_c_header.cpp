@@ -613,12 +613,19 @@ static dl_error_t dl_context_write_c_header_member( dl_binary_writer* writer, dl
 				case DL_TYPE_STORAGE_ENUM_INT32:
 				case DL_TYPE_STORAGE_ENUM_UINT8:
 				case DL_TYPE_STORAGE_ENUM_UINT16:
-				case DL_TYPE_STORAGE_ENUM_UINT32:
 				{
 					dl_enum_info_t sub_type;
 					dl_error_t err = dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
 					if (DL_ERROR_OK != err) return err;
 					dl_binary_writer_write_string_fmt( writer, "    %s %s;\n", sub_type.name, member->name );
+				}
+				break;
+				case DL_TYPE_STORAGE_ENUM_UINT32:
+				{
+					dl_enum_info_t sub_type;
+					dl_error_t err = dl_reflect_get_enum_info( ctx, member->type_id, &sub_type );
+					if (DL_ERROR_OK != err) return err;
+					dl_binary_writer_write_string_fmt( writer, "    DL_C_ENUM %s %s;\n", sub_type.name, member->name );
 				}
 				break;
 				case DL_TYPE_STORAGE_ENUM_INT64:
@@ -655,7 +662,7 @@ static dl_error_t dl_context_write_c_header_member( dl_binary_writer* writer, dl
 		    dl_binary_writer_write_string_fmt(writer, "    DL_DECLARE_ARRAY(");
 		    dl_error_t err = dl_context_write_operator_array_access_type(ctx, member->storage, member->type_id, writer);
 			if (DL_ERROR_OK != err) return err;
-		    dl_binary_writer_write_string_fmt(writer, ") %s;\n ", member->name);
+		    dl_binary_writer_write_string_fmt(writer, ") %s;\n", member->name);
 		}
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
@@ -818,6 +825,20 @@ static dl_error_t dl_context_write_c_header_types( dl_binary_writer* writer, dl_
 			{
 				err = dl_context_write_c_header_member( writer, ctx, &members[member_index], &last_was_bf );
 				if (DL_ERROR_OK != err) return err;
+				size_t next_offset = (member_index == type->member_count - 1) ? type->size : members[member_index + 1].offset;
+				size_t size_without_padding = members[member_index].offset + members[member_index].size;
+				if (size_without_padding < next_offset )
+				{
+					if (size_without_padding - next_offset >= 8)
+						for (size_t i = 0; i < (next_offset - size_without_padding) / 8U; ++i)
+							dl_binary_writer_write_string_fmt( writer, "    uint64_t : 64; // Explicit padding to avoid msvc warning 4324\n");
+					else if (size_without_padding - next_offset >= 4)
+						dl_binary_writer_write_string_fmt( writer, "    uint32_t : 32; // Explicit padding to avoid msvc warning 4324\n");
+					else if (size_without_padding - next_offset >= 2)
+						dl_binary_writer_write_string_fmt( writer, "    uint16_t : 16; // Explicit padding to avoid msvc warning 4324\n");
+					else
+						dl_binary_writer_write_string_fmt( writer, "    uint8_t : 8; // Explicit padding to avoid msvc warning 4324\n");
+				}
 			}
 		}
 

@@ -8,6 +8,14 @@
 #include <stdlib.h> // strtoul
 #include <ctype.h>
 
+#if (__cplusplus >= 201703L) // C++17
+#   define DL_CONSTANT_EXPRESSION(expr) constexpr(expr)
+#elif defined(_MSC_VER)
+#   define DL_CONSTANT_EXPRESSION(expr) (0, (expr))
+#else
+#   define DL_CONSTANT_EXPRESSION(expr) (expr)
+#endif
+
 template <typename T>
 static inline T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
 {
@@ -201,6 +209,17 @@ static const dl_builtin_type* dl_find_builtin_type( const char* name )
 dl_type_t dl_make_type( dl_type_atom_t atom, dl_type_storage_t storage );
 dl_error_t dl_txt_pack_internal( dl_ctx_t dl_ctx, const char* txt_instance, unsigned char* out_buffer, size_t out_buffer_size, size_t* produced_bytes, bool use_fast_ptr_patch );
 
+struct SScopedPointer
+{
+	~SScopedPointer()
+	{
+		if (alloc)
+			dl_free( alloc, ptr );
+	}
+	dl_allocator* alloc = nullptr;
+	void* ptr;
+};
+
 static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_state, unsigned int member_index )
 {
 	if( ctx->member_descs[member_index].default_value_offset == 0xFFFFFFFF )
@@ -215,7 +234,8 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	uint32_t def_start = member->default_value_offset;
 	uint32_t def_len   = member->default_value_size;
 
-	char def_buffer[2048]; // TODO: no hardcode =/
+	char def_buffer[2048];
+	char* def_buffer_ptr = def_buffer;
 
 	// TODO: check that typename do not exist in the ctx!
 
@@ -230,11 +250,20 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	def_member->offset[0] = 0;
 	def_member->offset[1] = 0;
 
-	dl_internal_str_format( def_buffer, sizeof(def_buffer), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
+	int wanted_length = dl_internal_str_format( def_buffer, sizeof(def_buffer), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
+	SScopedPointer def_buffer_scope {};
+	if( size_t(wanted_length) >= sizeof( def_buffer ) )
+	{
+		def_buffer_ptr = (char*)dl_alloc( &ctx->alloc, size_t(wanted_length + 1) );
+		def_buffer_scope.alloc = &ctx->alloc;
+		def_buffer_scope.ptr = def_buffer_ptr;
+		int written_length = dl_internal_str_format( def_buffer_ptr, size_t(wanted_length + 1), "{\"a_type_here\":{\"%s\":%.*s}}", dl_internal_member_name( ctx, member ), (int)def_len, read_state->start + def_start );
+		DL_ASSERT( wanted_length == written_length ); (void) written_length;
+	}
 
 	size_t prod_bytes;
 	dl_error_t err;
-	err = dl_txt_pack( ctx, def_buffer, 0x0, 0, &prod_bytes );
+	err = dl_txt_pack( ctx, def_buffer_ptr, 0x0, 0, &prod_bytes );
 	if( err != DL_ERROR_OK )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_INVALID_DEFAULT_VALUE, "failed to pack default-value for member \"%s\" with error \"%s\"",
 															dl_internal_member_name( ctx, member ),
@@ -243,7 +272,7 @@ static void dl_load_txt_build_default_data( dl_ctx_t ctx, dl_txt_read_ctx* read_
 	uint8_t* pack_buffer = (uint8_t*)dl_alloc( &ctx->alloc, prod_bytes );
 
 	bool use_fast_ptr_patch = false;
-	err = dl_txt_pack_internal( ctx, def_buffer, pack_buffer, prod_bytes, 0x0, use_fast_ptr_patch );
+	err = dl_txt_pack_internal( ctx, def_buffer_ptr, pack_buffer, prod_bytes, 0x0, use_fast_ptr_patch );
 	if( err != DL_ERROR_OK )
 		dl_txt_read_failed( ctx, read_state, DL_ERROR_INVALID_DEFAULT_VALUE, "failed to pack default-value for member \"%s\" with error \"%s\"",
 															dl_internal_member_name( ctx, member ),
@@ -383,7 +412,7 @@ static void dl_load_txt_calc_type_size_and_align( dl_ctx_t ctx, dl_txt_read_ctx*
 					{
 						const char* enum_value_name = 0x0;
 						uint32_t enum_value_name_len = 0;
-						if( sizeof(void*) == 8 )
+						if DL_CONSTANT_EXPRESSION( sizeof(void*) == 8 )
 						{
 							enum_value_name = (const char*)( ( (uint64_t)member->size[0] ) | (uint64_t)member->size[1] << 32 );
 							enum_value_name_len = member->alignment[0];
@@ -1024,7 +1053,7 @@ static int dl_parse_type( dl_ctx_t ctx, dl_substr* type, dl_member_desc* member,
 		{
 			// If the inline array size is an enum we have to lookup the size when we are sure that all enums are parsed, temporarily store pointer and string-length
 			// in size/align of member.
-			if( sizeof(void*) == 8 )
+			if DL_CONSTANT_EXPRESSION( sizeof(void*) == 8 )
 			{
 				member->set_size( (uint32_t)( (uint64_t)inline_array_enum_value & 0xFFFFFFFF ), (uint32_t)( ( (uint64_t)inline_array_enum_value >> 32 ) & 0xFFFFFFFF ) );
 				member->set_align( (uint32_t)(inline_array_enum_value_size & 0xFFFFFFFF ), 0 );
