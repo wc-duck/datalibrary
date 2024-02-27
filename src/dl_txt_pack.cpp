@@ -396,7 +396,7 @@ static void dl_txt_pack_eat_and_write_anyptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	if( !packctx->writer->dummy )
 		packctx->ptrs.add( data_pos );
 
-	packctx->subdata.Add({ ptr, dl_internal_hash_buffer((const uint8_t*)ptr.str, ptr.len), type, data_pos });
+	packctx->subdata.Add({ ptr, dl_internal_hash_buffer( ptr ), type, data_pos });
 
 	packctx->subdata[packctx->subdata.Len() - 1].type = type;
 	dl_binary_writer_seek_set( packctx->writer, data_pos + sizeof(void*) );
