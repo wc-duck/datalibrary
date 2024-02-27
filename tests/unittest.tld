@@ -78,6 +78,9 @@
         "strArray"  : { "members" : [ { "name" : "arr",  "type" : "string[]" } ] },
         "ptrArray"  : { "members" : [ { "name" : "arr",  "type" : "Pods*[]"  } ] },
         "enumArray" : { "members" : [ { "name" : "arr",  "type" : "TestEnum1[]" } ] },
+        "anyptrArray"  : { "members" : [ { "name" : "arr",  "type" : "any_pointer[]" } ] },
+        "anyArrayArray" : { "members" : [ { "name" : "arr",  "type" : "any_array[]" } ] },
+        "anyArray"  : { "members" : [ { "name" : "arr",  "type" : "any_array" } ] },
         "default_empty_type" : { "members" : [ { "name" : "empty", "type" : "uint32", "default" : 0 } ] },
 		"type_with_meta" : {
 			"members" : [
@@ -121,6 +124,8 @@
 		"WithInlineArray"             : { "members" : [ { "name" : "Array",    "type" : "uint32[3]" } ] },
 		"WithInlineStructArray"       : { "members" : [ { "name" : "Array",    "type" : "Pods2[3]" } ] },
 		"WithInlineStructStructArray" : { "members" : [ { "name" : "Array",    "type" : "WithInlineStructArray[2]" } ] },
+		"WithInlineAnyptrArray"       : { "members" : [ { "name" : "Array",    "type" : "any_pointer[4]" } ] },
+		"WithInlineAnyarrayArray"     : { "members" : [ { "name" : "Array",    "type" : "any_array[3]" } ] },
 
 		"SubString"                   : { "members" : [ { "name" : "Str",      "type" : "string" } ] },
 		"InlineArrayWithSubString"    : { "members" : [ { "name" : "Array",    "type" : "SubString[2]" } ] },
@@ -169,6 +174,13 @@
 			"members" : [
 				{ "name" : "Ptr1", "type" : "Pods*" },
 				{ "name" : "Ptr2", "type" : "Pods*" }
+			]
+		},
+
+		"AnyPtr" : {
+			"members" : [
+				{ "name" : "Ptr1", "type" : "any_pointer" },
+				{ "name" : "Ptr2", "type" : "any_pointer" }
 			]
 		},
 
@@ -255,20 +267,23 @@
 		/*
 			And a multiline comment here
 		*/
-		"DefaultStr" :      { "members" : [ { "name" : "Str",    "type" : "string",    "default" : "cowbells ftw!"              } ] },
-		"DefaultEnum" :     { "members" : [ { "name" : "Enum",   "type" : "TestEnum1", "default" : "TESTENUM1_VALUE3"           } ] },
-		"DefaultStruct" :   { "members" : [ { "name" : "Struct", "type" : "Pods2",     "default" : { "Int1" : 13, "Int2" : 37 } } ] },
-		"DefaultPtr"  :     { "members" : [ { "name" : "Ptr",    "type" : "Pods*",     "default" : null                         } ] },
+		"DefaultStr" :      { "members" : [ { "name" : "Str",    "type" : "string",      "default" : "cowbells ftw!"              } ] },
+		"DefaultEnum" :     { "members" : [ { "name" : "Enum",   "type" : "TestEnum1",   "default" : "TESTENUM1_VALUE3"           } ] },
+		"DefaultStruct" :   { "members" : [ { "name" : "Struct", "type" : "Pods2",       "default" : { "Int1" : 13, "Int2" : 37 } } ] },
+		"DefaultPtr"  :     { "members" : [ { "name" : "Ptr",    "type" : "Pods*",       "default" : null                         } ] },
+		"DefaultAnyPtr" :   { "members" : [ { "name" : "Ptr",    "type" : "any_pointer", "default" : null                         } ] },
+		"DefaultAnyArray" : { "members" : [ { "name" : "Arr",    "type" : "any_array",   "default" : {"data":[]}                  } ] },
 
 		/**
 			another comment
 		*/
-		"DefaultInlArrayPod"  : { "members" : [ { "name" : "Arr",  "type" : "uint32[4]",    "default" : [ 1, 3, 3, 7 ] } ] },
-		"DefaultInlArrayStr"  : { "members" : [ { "name" : "Arr",  "type" : "string[4]",    "default" : [ "cow", "bells", "are", "cool" ] } ] },
-		"DefaultInlArrayEnum" : { "members" : [ { "name" : "Arr",  "type" : "TestEnum1[4]", "default" : [ "TESTENUM1_VALUE3",
-		                                                                                                  "TESTENUM1_VALUE1",
-		                                                                                                  "TESTENUM1_VALUE2",
-		                                                                                                  "TESTENUM1_VALUE4" ] } ] },
+		"DefaultInlArrayPod"  : { "members" : [ { "name" : "Arr",  "type" : "uint32[4]",      "default" : [ 1, 3, 3, 7 ] } ] },
+		"DefaultInlArrayAnyPtr":{ "members" : [ { "name" : "Arr",  "type" : "any_pointer[2]", "default" : [ null, null ] } ] },
+		"DefaultInlArrayStr"  : { "members" : [ { "name" : "Arr",  "type" : "string[4]",      "default" : [ "cow", "bells", "are", "cool" ] } ] },
+		"DefaultInlArrayEnum" : { "members" : [ { "name" : "Arr",  "type" : "TestEnum1[4]",   "default" : [ "TESTENUM1_VALUE3",
+		                                                                                                    "TESTENUM1_VALUE1",
+		                                                                                                    "TESTENUM1_VALUE2",
+		                                                                                                    "TESTENUM1_VALUE4" ] } ] },
 		"DefaultInlArrayArray" : { "members" : [ {
 									  "name" : "Arr",
 									  "type" : "PodArray1[2]",
@@ -277,7 +292,9 @@
 	                             ] },
 		///* hard one
 		"DefaultArrayPod"  :    { "members" : [ { "name" : "Arr",  "type" : "uint32[]",    "default" : [ 1, 3, 3, 7 ] } ] },
+		"DefaultArrayAnyPtr" :  { "members" : [ { "name" : "Arr",  "type" : "any_pointer[]",    "default" : [ null, null ] } ] },
 		"DefaultArrayStr"  :    { "members" : [ { "name" : "Arr",  "type" : "string[]",    "default" : [ "cow", "bells", "are", "cool" ] } ] },
+		"ArrayDefaultArrayStr" :{ "members" : [ { "name" : "Arr1",  "type" : "DefaultArrayStr" }, { "name" : "Arr2",  "type" : "DefaultArrayStr", "default" : { "Arr" : [ "cow", "bells", "are", "cool", "bells" ] } } ] },
 		"DefaultArrayEnum" :    { "members" : [ { "name" : "Arr",  "type" : "TestEnum1[]", "default" : [ "TESTENUM1_VALUE3",
 		                                                                                                 "TESTENUM1_VALUE1",
 		                                                                                                 "TESTENUM1_VALUE2",

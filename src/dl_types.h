@@ -27,6 +27,14 @@
 
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 
+#if (__cplusplus >= 201703L) // C++17
+#   define DL_CONSTANT_EXPRESSION(expr) constexpr(expr)
+#elif defined(_MSC_VER)
+#   define DL_CONSTANT_EXPRESSION(expr) (0, (expr))
+#else
+#   define DL_CONSTANT_EXPRESSION(expr) (expr)
+#endif
+
 #if defined( __LP64__ ) && !defined(__APPLE__)
 	#define DL_INT64_FMT_STR  "%ld"
 	#define DL_UINT64_FMT_STR "%lu"
@@ -163,8 +171,10 @@ struct dl_member_desc
 	bool              IsSimplePod()     const
 	{
 		return StorageType() != DL_TYPE_STORAGE_STR &&
-	           StorageType() != DL_TYPE_STORAGE_PTR &&
-	           StorageType() != DL_TYPE_STORAGE_STRUCT;
+			   StorageType() != DL_TYPE_STORAGE_PTR &&
+			   StorageType() != DL_TYPE_STORAGE_ANY_POINTER &&
+			   StorageType() != DL_TYPE_STORAGE_ANY_ARRAY &&
+			   StorageType() != DL_TYPE_STORAGE_STRUCT;
 	}
 
 	void set_size( uint32_t bit32, uint32_t bit64 )
@@ -330,6 +340,11 @@ struct dl_substr
 	const char* str;
 	int len;
 };
+
+static inline dl_substr dl_string_to_substr( const char* str )
+{
+	return dl_substr{ str, int(strlen(str)) };
+}
 
 #ifdef _MSC_VER
 #  define DL_FORCEINLINE __forceinline
@@ -518,6 +533,12 @@ static inline size_t dl_pod_size( dl_type_storage_t storage )
 		case DL_TYPE_STORAGE_STR:
 		case DL_TYPE_STORAGE_PTR:
 			return sizeof(void*);
+
+		case DL_TYPE_STORAGE_ANY_POINTER:
+			return 2 * sizeof(void*);
+
+		case DL_TYPE_STORAGE_ANY_ARRAY:
+			return 3 * sizeof(void*);
 
 		default:
 			DL_ASSERT(false && "This should not happen!");

@@ -58,7 +58,7 @@ static void dl_endian_swap_enum_desc( dl_enum_desc* desc )
 static void dl_endian_swap_member_desc( dl_member_desc* desc )
 {
 	desc->type                         = (dl_type_t)dl_swap_endian_uint32( (uint32_t)desc->type );
-	desc->type_id	                   = dl_swap_endian_uint32( desc->type_id );
+	desc->type_id                      = dl_swap_endian_uint32( desc->type_id );
 	desc->size[DL_PTR_SIZE_32BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_32BIT] );
 	desc->size[DL_PTR_SIZE_64BIT]      = dl_swap_endian_uint32( desc->size[DL_PTR_SIZE_64BIT] );
 	desc->offset[DL_PTR_SIZE_32BIT]    = dl_swap_endian_uint32( desc->offset[DL_PTR_SIZE_32BIT] );

@@ -54,8 +54,8 @@ template<unsigned int conv_ptr_size, dl_endian_t conv_endian>
 struct convert_inplace_test
 {
 	static void do_it( dl_ctx_t       dl_ctx,       dl_typeid_t type,
-			           unsigned char* store_buffer, size_t      store_size,
-			           unsigned char** out_buffer,   size_t*     out_size )
+					   unsigned char* store_buffer, size_t      store_size,
+					   unsigned char** out_buffer,   size_t*     out_size )
 	{
 		convert_inplace_test_do_it( dl_ctx, type, store_buffer, store_size, out_buffer, out_size, conv_ptr_size, conv_endian );
 	}
@@ -75,7 +75,7 @@ struct DLBase : public DL
 		dl_ctx_t dl_ctx = this->Ctx;
 		// calc size of stored instance
 		size_t store_size = 0;
-		EXPECT_DL_ERR_OK(dl_instance_calc_size(dl_ctx, type, pack_me, &store_size));
+		ASSERT_DL_ERR_OK(dl_instance_calc_size(dl_ctx, type, pack_me, &store_size));
 		unsigned char* store_buffer = (unsigned char*)malloc(store_size+1);
 		for( unsigned int i = 0; i < TEST_REPS; ++i )
 		{

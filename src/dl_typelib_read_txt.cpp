@@ -8,14 +8,6 @@
 #include <stdlib.h> // strtoul
 #include <ctype.h>
 
-#if (__cplusplus >= 201703L) // C++17
-#   define DL_CONSTANT_EXPRESSION(expr) constexpr(expr)
-#elif defined(_MSC_VER)
-#   define DL_CONSTANT_EXPRESSION(expr) (0, (expr))
-#else
-#   define DL_CONSTANT_EXPRESSION(expr) (expr)
-#endif
-
 template <typename T>
 static inline T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
 {
@@ -166,6 +158,14 @@ static void dl_set_member_size_and_align_from_builtin( dl_type_storage_t storage
 			member->set_size( 4, 8 );
 			member->set_align( 4, 8 );
 			break;
+		case DL_TYPE_STORAGE_ANY_POINTER:
+			member->set_size( 8, 16 );
+			member->set_align( 4, 8 );
+			break;
+		case DL_TYPE_STORAGE_ANY_ARRAY:
+			member->set_size( 12, 24 );
+			member->set_align( 4, 8 );
+			break;
 		default:
 		{
 			uint32_t size = (uint32_t)dl_pod_size(storage);
@@ -182,17 +182,19 @@ struct dl_builtin_type
 };
 
 static const dl_builtin_type BUILTIN_TYPES[] = {
-	{ "int8",   DL_TYPE_STORAGE_INT8 },
-	{ "uint8",  DL_TYPE_STORAGE_UINT8 },
-	{ "int16",  DL_TYPE_STORAGE_INT16 },
-	{ "uint16", DL_TYPE_STORAGE_UINT16 },
-	{ "int32",  DL_TYPE_STORAGE_INT32 },
-	{ "uint32", DL_TYPE_STORAGE_UINT32 },
-	{ "int64",  DL_TYPE_STORAGE_INT64 },
-	{ "uint64", DL_TYPE_STORAGE_UINT64 },
-	{ "fp32",   DL_TYPE_STORAGE_FP32 },
-	{ "fp64",   DL_TYPE_STORAGE_FP64 },
-	{ "string", DL_TYPE_STORAGE_STR },
+	{ "int8",        DL_TYPE_STORAGE_INT8 },
+	{ "uint8",       DL_TYPE_STORAGE_UINT8 },
+	{ "int16",       DL_TYPE_STORAGE_INT16 },
+	{ "uint16",      DL_TYPE_STORAGE_UINT16 },
+	{ "int32",       DL_TYPE_STORAGE_INT32 },
+	{ "uint32",      DL_TYPE_STORAGE_UINT32 },
+	{ "int64",       DL_TYPE_STORAGE_INT64 },
+	{ "uint64",      DL_TYPE_STORAGE_UINT64 },
+	{ "fp32",        DL_TYPE_STORAGE_FP32 },
+	{ "fp64",        DL_TYPE_STORAGE_FP64 },
+	{ "string",      DL_TYPE_STORAGE_STR },
+	{ "any_pointer", DL_TYPE_STORAGE_ANY_POINTER },
+	{ "any_array",   DL_TYPE_STORAGE_ANY_ARRAY },
 };
 
 static const dl_builtin_type* dl_find_builtin_type( const char* name )
@@ -533,6 +535,7 @@ static bool dl_context_load_txt_type_has_subdata( dl_ctx_t ctx, dl_txt_read_ctx*
 		{
 			case DL_TYPE_STORAGE_STR:
 			case DL_TYPE_STORAGE_PTR:
+			case DL_TYPE_STORAGE_ANY_POINTER:
 				return true;
 			case DL_TYPE_STORAGE_STRUCT:
 			{
@@ -621,8 +624,8 @@ static bool dl_txt_try_eat_char( dl_txt_read_ctx* read_state, char c )
 }
 
 static uint64_t dl_context_load_txt_type_library_read_enum_value( dl_ctx_t ctx,
-															      dl_type_storage_t   storage,
-															      dl_txt_read_ctx*    read_state )
+																  dl_type_storage_t   storage,
+																  dl_txt_read_ctx*    read_state )
 {
 	switch(storage)
 	{

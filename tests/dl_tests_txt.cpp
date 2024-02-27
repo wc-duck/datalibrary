@@ -201,12 +201,27 @@ TEST_F(DLText, default_value_ptr)
 	const char* text_data = STRINGIFY( { "DefaultPtr" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultPtr P1 = { 0 }; // this is so ugly!
+	DefaultPtr P1;
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultPtr::TYPE_ID, &P1, sizeof(DefaultPtr), out_data_text, sizeof(out_data_text), 0x0));
 
 	EXPECT_EQ(0x0, P1.Ptr);
+}
+
+TEST_F(DLText, default_value_anyptr)
+{
+	// default-values should be set correctly!
+
+	const char* text_data = STRINGIFY( { "DefaultAnyPtr" : {} } );
+
+	unsigned char out_data_text[1024];
+	DefaultAnyPtr P1;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultAnyPtr::TYPE_ID, &P1, sizeof(DefaultAnyPtr), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(0x0, P1.Ptr.ptr);
 }
 
 TEST_F(DLText, zero_as_ptr_fail)
@@ -223,7 +238,7 @@ TEST_F(DLText, default_value_struct)
 	const char* text_data = STRINGIFY( { "DefaultStruct" : {} } );
 
 	unsigned char out_data_text[1024];
-	DefaultStruct loaded; // this is so ugly!
+	DefaultStruct loaded;
 
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultStruct::TYPE_ID, &loaded, sizeof(DefaultStruct), out_data_text, sizeof(out_data_text), 0x0));
@@ -297,6 +312,22 @@ TEST_F(DLText, default_value_inline_array_pod)
 	EXPECT_EQ(3u, loaded.Arr[1]);
 	EXPECT_EQ(3u, loaded.Arr[2]);
 	EXPECT_EQ(7u, loaded.Arr[3]);
+}
+
+TEST_F(DLText, default_value_inline_array_anyptr)
+{
+	// default-values should be set correctly!
+
+	const char* text_data = STRINGIFY( { "DefaultInlArrayAnyPtr" : {} } );
+
+	unsigned char out_data_text[1024];
+	DefaultInlArrayAnyPtr loaded;
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultInlArrayAnyPtr::TYPE_ID, &loaded, sizeof(DefaultInlArrayAnyPtr), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_EQ(nullptr, loaded.Arr[0].ptr);
+	EXPECT_EQ(nullptr, loaded.Arr[1].ptr);
 }
 
 TEST_F(DLText, default_value_inline_array_enum)
@@ -826,6 +857,40 @@ TEST_F( DLText, unquoted_object_keys )
 	}
 }
 
+TEST_F( DLText, any_pointers_missing_fields )
+{
+		//"DefaultAnyArray" : { "members" : [ { "name" : "Arr",    "type" : "any_array",   "default" : {"data":[]}                  } ] },
+	unsigned char out_text_data[1024];
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "type": "single_int", "data" : "ptr1" }, "__subdata" : { "ptr1": { "val": 1 } } } });
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "type": "single_int", "data" : null } } });
+		EXPECT_DL_ERR_OK( dl_txt_pack(Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "data" : null } } });
+		EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "data" : "ptr1" }, "__subdata" : { "ptr1": { "val": 1 } } } });
+		EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { "type": "single_int" } } });
+		EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+
+	{
+		const char* test_text = STRINGIFY({ "DefaultAnyPtr" : { "Ptr" : { } } });
+		EXPECT_DL_ERR_EQ( DL_ERROR_MALFORMED_DATA, dl_txt_pack( Ctx, test_text, out_text_data, DL_ARRAY_LENGTH(out_text_data), 0x0 ) );
+	}
+}
 
 TEST_F( DLText, single_line_comments )
 {

@@ -24,17 +24,19 @@ static const char* dl_context_type_to_string( dl_ctx_t ctx, dl_type_storage_t st
 			    return nullptr;
 			return sub_type.name;
 		}
-		case DL_TYPE_STORAGE_INT8:   return "int8";
-		case DL_TYPE_STORAGE_UINT8:  return "uint8";
-		case DL_TYPE_STORAGE_INT16:  return "int16";
-		case DL_TYPE_STORAGE_UINT16: return "uint16";
-		case DL_TYPE_STORAGE_INT32:  return "int32";
-		case DL_TYPE_STORAGE_UINT32: return "uint32";
-		case DL_TYPE_STORAGE_INT64:  return "int64";
-		case DL_TYPE_STORAGE_UINT64: return "uint64";
-		case DL_TYPE_STORAGE_FP32:   return "fp32";
-		case DL_TYPE_STORAGE_FP64:   return "fp64";
-		case DL_TYPE_STORAGE_STR:    return "string";
+		case DL_TYPE_STORAGE_INT8:        return "int8";
+		case DL_TYPE_STORAGE_UINT8:       return "uint8";
+		case DL_TYPE_STORAGE_INT16:       return "int16";
+		case DL_TYPE_STORAGE_UINT16:      return "uint16";
+		case DL_TYPE_STORAGE_INT32:       return "int32";
+		case DL_TYPE_STORAGE_UINT32:      return "uint32";
+		case DL_TYPE_STORAGE_INT64:       return "int64";
+		case DL_TYPE_STORAGE_UINT64:      return "uint64";
+		case DL_TYPE_STORAGE_FP32:        return "fp32";
+		case DL_TYPE_STORAGE_FP64:        return "fp64";
+		case DL_TYPE_STORAGE_STR:         return "string";
+		case DL_TYPE_STORAGE_ANY_POINTER: return "any_pointer";
+		case DL_TYPE_STORAGE_ANY_ARRAY:   return "any_array";
 		default:
 			DL_ASSERT(false);
 			return 0x0;
@@ -66,7 +68,7 @@ static dl_error_t dl_context_write_txt_enum( dl_ctx_t ctx, dl_binary_writer* wri
 	if( DL_ERROR_OK != err ) return err;
 
 	dl_binary_writer_write_fmt( writer, "    \"%s\" : {\n"
-	                                    "      \"values\" : {\n", enum_info.name );
+										"      \"values\" : {\n", enum_info.name );
 
 	dl_enum_value_info_t* values = (dl_enum_value_info_t*)malloc( enum_info.value_count * sizeof( dl_enum_value_info_t ) );
 	err = dl_reflect_get_enum_values( ctx, tid, values, enum_info.value_count );
@@ -166,7 +168,11 @@ static dl_error_t dl_context_write_txt_member( dl_ctx_t ctx, dl_binary_writer* w
 			dl_binary_writer_write_fmt( writer, "\"type\" : \"bitfield:%u\"", member->bitfield_bits );
 		break;
 		case DL_TYPE_ATOM_ARRAY:
-			dl_binary_writer_write_fmt( writer, "\"type\" : \"%s[]\"", dl_context_type_to_string( ctx, member->storage, member->type_id ) );
+			dl_binary_writer_write_fmt( writer,
+										member->storage == DL_TYPE_STORAGE_ANY_ARRAY
+											? "\"type\" : \"%s\""
+											: "\"type\" : \"%s[]\"",
+										dl_context_type_to_string( ctx, member->storage, member->type_id ) );
 		break;
 		case DL_TYPE_ATOM_INLINE_ARRAY:
 			dl_binary_writer_write_fmt( writer,
