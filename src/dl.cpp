@@ -1,4 +1,5 @@
 #include "dl_types.h"
+#include "dl_store.h"
 #include "dl_swap.h"
 #include "dl_binary_writer.h"
 #include "dl_patch_ptr.h"
@@ -142,63 +143,6 @@ dl_error_t DL_DLL_EXPORT dl_instance_load_inplace( dl_ctx_t       dl_ctx,       
 	return DL_ERROR_OK;
 }
 
-struct CDLBinStoreContext
-{
-	CDLBinStoreContext( uint8_t* out_data, size_t out_data_size, bool is_dummy, dl_allocator alloc )
-	    : written_ptrs(alloc)
-	    , ptrs(alloc)
-		, strings(alloc)
-	{
-		dl_binary_writer_init( &writer, out_data, out_data_size, is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
-	}
-
-	uintptr_t FindWrittenPtr( void* ptr )
-	{
-		if( ptr == 0 )
-			return (uintptr_t)0;
-
-		size_t len = written_ptrs.Len();
-		for( size_t i = 0; i < len; ++i )
-			if( written_ptrs[i].ptr == ptr )
-				return written_ptrs[i].pos;
-
-		return (uintptr_t)0;
-	}
-
-	void AddWrittenPtr( const void* ptr, uintptr_t pos )
-	{
-		written_ptrs.Add( { pos, ptr } );
-	}
-
-	uint32_t GetStringOffset(const char* str, uint32_t length, uint32_t hash)
-	{
-		for (size_t i = 0; i < strings.Len(); ++i)
-			if (strings[i].hash == hash && strings[i].length == length && strcmp(str, strings[i].str) == 0)
-				return strings[i].offset;
-
-		return 0;
-	}
-
-	dl_binary_writer writer;
-
-	struct SWrittenPtr
-	{
-		uintptr_t   pos;
-		const void* ptr;
-	};
-	CArrayStatic<SWrittenPtr, 128> written_ptrs;
-	CArrayStatic<uintptr_t, 256> ptrs;
-
-	struct SString
-	{
-		const char* str;
-		uint32_t length;
-		uint32_t hash;
-		uint32_t offset;
-	};
-	CArrayStatic<SString, 128> strings;
-};
-
 static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	char* str = *(char**)instance;
@@ -216,7 +160,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 		dl_binary_writer_seek_end(&store_ctx->writer);
 		offset = dl_binary_writer_tell(&store_ctx->writer);
 		dl_binary_writer_write(&store_ctx->writer, str, length + 1);
-		store_ctx->strings.Add( {str, length, hash, (uint32_t) offset} );
+		store_ctx->strings.Add( {{str, length}, hash, (uint32_t) offset} );
 		dl_binary_writer_seek_set(&store_ctx->writer, pos);
 	}
 	if( !store_ctx->writer.dummy )
@@ -224,9 +168,9 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 	dl_binary_writer_write( &store_ctx->writer, &offset, sizeof(uintptr_t) );
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx );
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, const uint8_t* instance, CDLBinStoreContext* store_ctx );
 
-static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, const uint8_t* instance, const dl_type_desc* sub_type, CDLBinStoreContext* store_ctx )
 {
 	uint8_t* data = *(uint8_t**)instance;
 	uintptr_t offset = store_ctx->FindWrittenPtr( data );
@@ -265,7 +209,7 @@ static dl_error_t dl_internal_store_ptr( dl_ctx_t dl_ctx, uint8_t* instance, con
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t storage_type, const dl_type_desc* sub_type, const uint8_t* instance, uint32_t count, uintptr_t size, CDLBinStoreContext* store_ctx )
 {
 	switch( storage_type )
 	{
@@ -304,7 +248,7 @@ static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t st
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, uint8_t* instance, CDLBinStoreContext* store_ctx )
+dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* member, const uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	dl_type_atom_t    atom_type    = member->AtomType();
 	dl_type_storage_t storage_type = member->StorageType();
@@ -377,8 +321,8 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 			uintptr_t size = 0;
 			const dl_type_desc* sub_type = 0x0;
 
-			uint8_t* data_ptr = instance;
-			uint32_t count    = *(uint32_t*)( data_ptr + sizeof(void*) );
+			const uint8_t* data_ptr = instance;
+			uint32_t count          = *(const uint32_t*)( data_ptr + sizeof(void*) );
 
 			uintptr_t offset = 0;
 
@@ -417,7 +361,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 				dl_binary_writer_seek_set( &store_ctx->writer, pos );
 
 				if( !store_ctx->writer.dummy )
-				    store_ctx->ptrs.Add( dl_binary_writer_tell( &store_ctx->writer ) );
+					store_ctx->ptrs.Add( dl_binary_writer_tell( &store_ctx->writer ) );
 			}
 
 			// make room for ptr
@@ -425,6 +369,8 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 
 			// write count
 			dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32_t) );
+			if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
+				dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 		}
 		return DL_ERROR_OK;
 
@@ -440,7 +386,7 @@ static dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_des
 	return DL_ERROR_OK;
 }
 
-static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, uint8_t* instance, CDLBinStoreContext* store_ctx )
+static dl_error_t dl_internal_instance_store( dl_ctx_t dl_ctx, const dl_type_desc* type, const uint8_t* instance, CDLBinStoreContext* store_ctx )
 {
 	bool last_was_bitfield = false;
 
@@ -499,7 +445,11 @@ dl_error_t dl_instance_store( dl_ctx_t       dl_ctx,     dl_typeid_t type_id,   
 		return DL_ERROR_TYPE_NOT_FOUND;
 
 	bool store_ctx_is_dummy = out_buffer_size == 0;
-	CDLBinStoreContext store_context( out_buffer, out_buffer_size, store_ctx_is_dummy, dl_ctx->alloc );
+	dl_binary_writer writer;
+	dl_binary_writer_init( &writer, out_buffer, out_buffer_size, store_ctx_is_dummy, DL_ENDIAN_HOST, DL_ENDIAN_HOST, DL_PTR_SIZE_HOST );
+	CArrayStatic<uintptr_t, 256> ptrs( dl_ctx->alloc );
+	CArrayStatic<CDLBinStoreContext::SString, 128> strings( dl_ctx->alloc );
+	CDLBinStoreContext store_context( writer, dl_ctx->alloc, ptrs, strings );
 
 	dl_data_header* header = (dl_data_header*)out_buffer;
 	size_t header_plus_alignment = dl_internal_align_up( sizeof( dl_data_header ), type->alignment[DL_PTR_SIZE_HOST] );

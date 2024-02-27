@@ -27,6 +27,14 @@
 
 #define DL_ARRAY_LENGTH(Array) (sizeof(Array)/sizeof(Array[0]))
 
+#if (__cplusplus >= 201703L) // C++17
+#   define DL_CONSTANT_EXPRESSION(expr) constexpr(expr)
+#elif defined(_MSC_VER)
+#   define DL_CONSTANT_EXPRESSION(expr) (0, (expr))
+#else
+#   define DL_CONSTANT_EXPRESSION(expr) (expr)
+#endif
+
 #if defined( __LP64__ ) && !defined(__APPLE__)
 	#define DL_INT64_FMT_STR  "%ld"
 	#define DL_UINT64_FMT_STR "%lu"
@@ -323,12 +331,13 @@ struct dl_context
 
 	uint8_t* default_data;
 	size_t   default_data_size;
+	bool     default_data_patched;
 };
 
 struct dl_substr
 {
 	const char* str;
-	int len;
+	uint32_t len;
 };
 
 #ifdef _MSC_VER
@@ -384,7 +393,7 @@ public:
 		}
 	}
 
-	inline size_t Len()
+	inline size_t Len() const
 	{
 		return m_nElements;
 	}

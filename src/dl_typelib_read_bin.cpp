@@ -1,6 +1,7 @@
 #include <dl/dl_typelib.h>
 #include "dl_internal_util.h"
 #include "dl_types.h"
+#include "dl_patch_ptr.h"
 
 static void dl_internal_load_type_library_defaults( dl_ctx_t       dl_ctx,
 														  const uint8_t* default_data,
@@ -87,6 +88,20 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 {
 	if(lib_data_size < sizeof(dl_typelib_header))
 		return DL_ERROR_MALFORMED_DATA;
+	
+	if (dl_ctx->default_data_patched)
+	{
+		for( unsigned int i = 0; i < dl_ctx->member_count; ++i )
+		{
+			dl_member_desc& member_desc = dl_ctx->member_descs[ i ];
+			if( member_desc.default_value_size && member_desc.default_value_size != member_desc.size[DL_PTR_SIZE_HOST] )
+			{
+				uint8_t* default_data = dl_ctx->default_data + member_desc.default_value_offset;
+				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, static_cast<uintptr_t>( sizeof(dl_data_header) - (size_t)default_data ) );
+			}
+		}
+		dl_ctx->default_data_patched = false; // This is not thread safe. It would be better to avoid moving around default data and keep it patched like meta data
+	}
 
 	dl_typelib_header header;
 	dl_internal_read_typelibrary_header(&header, lib_data);
@@ -131,16 +146,15 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 		}
 	}
 
-	memcpy( dl_ctx->type_ids         + dl_ctx->type_count,            lib_data + types_lookup_offset, sizeof( dl_typeid_t ) * header.type_count );
-	memcpy( dl_ctx->enum_ids         + dl_ctx->enum_count,            lib_data + enums_lookup_offset, sizeof( dl_typeid_t ) * header.enum_count );
-	memcpy( dl_ctx->type_descs       + dl_ctx->type_count,            lib_data + types_offset,        sizeof( dl_type_desc ) * header.type_count );
-	memcpy( dl_ctx->enum_descs       + dl_ctx->enum_count,            lib_data + enums_offset,        sizeof( dl_enum_desc ) * header.enum_count );
-	memcpy( dl_ctx->member_descs     + dl_ctx->member_count,          lib_data + members_offset,      sizeof( dl_member_desc ) * header.member_count );
-	memcpy( dl_ctx->enum_value_descs + dl_ctx->enum_value_count,      lib_data + enum_values_offset,  sizeof( dl_enum_value_desc ) * header.enum_value_count );
-	memcpy( dl_ctx->enum_alias_descs + dl_ctx->enum_alias_count,      lib_data + enum_aliases_offset, sizeof( dl_enum_alias_desc ) * header.enum_alias_count );
+	memcpy( dl_ctx->type_ids         + dl_ctx->type_count,            lib_data + types_lookup_offset,     sizeof( dl_typeid_t ) * header.type_count );
+	memcpy( dl_ctx->enum_ids         + dl_ctx->enum_count,            lib_data + enums_lookup_offset,     sizeof( dl_typeid_t ) * header.enum_count );
+	memcpy( dl_ctx->type_descs       + dl_ctx->type_count,            lib_data + types_offset,            sizeof( dl_type_desc ) * header.type_count );
+	memcpy( dl_ctx->enum_descs       + dl_ctx->enum_count,            lib_data + enums_offset,            sizeof( dl_enum_desc ) * header.enum_count );
+	memcpy( dl_ctx->member_descs     + dl_ctx->member_count,          lib_data + members_offset,          sizeof( dl_member_desc ) * header.member_count );
+	memcpy( dl_ctx->enum_value_descs + dl_ctx->enum_value_count,      lib_data + enum_values_offset,      sizeof( dl_enum_value_desc ) * header.enum_value_count );
+	memcpy( dl_ctx->enum_alias_descs + dl_ctx->enum_alias_count,      lib_data + enum_aliases_offset,     sizeof( dl_enum_alias_desc ) * header.enum_alias_count );
 	memcpy( dl_ctx->typedata_strings + dl_ctx->typedata_strings_size, lib_data + typedata_strings_offset, header.typeinfo_strings_size );
-	if(header.c_includes_size)
-		memcpy( dl_ctx->c_includes   + dl_ctx->c_includes_size,       lib_data + c_includes_offset,       header.c_includes_size );
+	memcpy( dl_ctx->c_includes       + dl_ctx->c_includes_size,       lib_data + c_includes_offset,       header.c_includes_size );
 
 	if( DL_ENDIAN_HOST == DL_ENDIAN_BIG )
 	{

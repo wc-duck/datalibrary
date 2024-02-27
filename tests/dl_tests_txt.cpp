@@ -194,6 +194,23 @@ TEST_F(DLText, default_value_with_data_in_struct)
 	EXPECT_STREQ("who", loaded[0].Str);
 }
 
+TEST_F(DLText, default_value_with_data_in_struct_merge_strings)
+{
+	// default-values should be set correctly!
+
+	const char* text_data = STRINGIFY( { "DefaultWithOtherDataBefore" : { "t1" : "who" } } );
+
+	unsigned char out_data_text[1024];
+	DefaultWithOtherDataBefore loaded[10]; // this is so ugly!
+
+	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
+	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultWithOtherDataBefore::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));
+
+	EXPECT_STREQ("who", loaded[0].t1);
+	EXPECT_STREQ("who", loaded[0].Str);
+	EXPECT_EQ(loaded[0].Str, loaded[0].t1);
+}
+
 TEST_F(DLText, default_value_ptr)
 {
 	// default-values should be set correctly!
@@ -425,15 +442,42 @@ TEST_F(DLText, default_value_array_string)
 	EXPECT_DL_ERR_OK(dl_txt_pack(Ctx, text_data, out_data_text, sizeof(out_data_text), 0x0));
 	EXPECT_DL_ERR_OK(dl_instance_load(Ctx, DefaultArrayStr::TYPE_ID, loaded, sizeof(loaded), out_data_text, sizeof(out_data_text), 0x0));
 
-	EXPECT_EQ(4u, loaded[0].Arr.count);
+	EXPECT_EQ(5u, loaded[0].Arr.count);
 
 	EXPECT_STREQ("cow",   loaded[0].Arr[0]);
 	EXPECT_STREQ("bells", loaded[0].Arr[1]);
 	EXPECT_STREQ("are",   loaded[0].Arr[2]);
 	EXPECT_STREQ("cool",  loaded[0].Arr[3]);
+	EXPECT_STREQ("bells", loaded[0].Arr[4]);
+	EXPECT_EQ(loaded[0].Arr[1], loaded[0].Arr[4]);
 }
 
-TEST_F(DLText, default_value_array_array)
+TEST_F( DLText, default_value_double_array_string )
+{
+	// default-values should be set correctly!
+
+	const char* text_data = STRINGIFY( { "ArrayDefaultArrayStr" : { "Arr1" : { "Arr" : ["are"] } } } );
+
+	unsigned char out_data_text[1024];
+	ArrayDefaultArrayStr loaded[10];
+
+	EXPECT_DL_ERR_OK( dl_txt_pack( Ctx, text_data, out_data_text, sizeof( out_data_text ), 0x0 ) );
+	EXPECT_DL_ERR_OK( dl_instance_load( Ctx, ArrayDefaultArrayStr::TYPE_ID, loaded, sizeof( loaded ), out_data_text, sizeof( out_data_text ), 0x0 ) );
+
+	EXPECT_EQ( 1u, loaded[0].Arr1.Arr.count );
+	EXPECT_EQ( 5u, loaded[0].Arr2.Arr.count );
+
+	EXPECT_STREQ( "are", loaded[0].Arr1.Arr[0] );
+	EXPECT_STREQ( "cow", loaded[0].Arr2.Arr[0] );
+	EXPECT_STREQ( "bells", loaded[0].Arr2.Arr[1] );
+	EXPECT_STREQ( "are", loaded[0].Arr2.Arr[2] );
+	EXPECT_STREQ( "cool", loaded[0].Arr2.Arr[3] );
+	EXPECT_STREQ( "bells", loaded[0].Arr2.Arr[4] );
+	EXPECT_EQ( loaded[0].Arr1.Arr[0], loaded[0].Arr2.Arr[2] );
+	EXPECT_EQ( loaded[0].Arr2.Arr[1], loaded[0].Arr2.Arr[4] );
+}
+
+TEST_F( DLText, default_value_array_array )
 {
 	// default-values should be set correctly!
 

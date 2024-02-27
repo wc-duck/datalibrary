@@ -1,5 +1,6 @@
 #include <dl/dl_typelib.h>
 #include "dl_binary_writer.h"
+#include "dl_patch_ptr.h"
 
 dl_error_t dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_lib, size_t out_lib_size, size_t* produced_bytes )
 {
@@ -20,6 +21,20 @@ dl_error_t dl_context_write_type_library( dl_ctx_t dl_ctx, unsigned char* out_li
 	header.typeinfo_strings_size = (uint32_t)dl_ctx->typedata_strings_size;
 	header.c_includes_size       = (uint32_t)dl_ctx->c_includes_size;
 	header.metadatas_count        = (uint32_t)dl_ctx->metadatas_count;
+	
+	if (dl_ctx->default_data_patched)
+	{
+		for( unsigned int i = 0; i < dl_ctx->member_count; ++i )
+		{
+			dl_member_desc& member_desc = dl_ctx->member_descs[ i ];
+			if( member_desc.default_value_size && member_desc.default_value_size != member_desc.size[DL_PTR_SIZE_HOST] )
+			{
+				uint8_t* default_data = dl_ctx->default_data + member_desc.default_value_offset;
+				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, static_cast<uintptr_t>(-(ptrdiff_t)default_data) );
+			}
+		}
+		dl_ctx->default_data_patched = false; // This is not thread safe. It would be better to avoid moving around default data and keep it patched like meta data
+	}
 
 	dl_binary_writer_write( &writer, &header, sizeof( dl_typelib_header ) );
 	if(dl_ctx->type_count)            dl_binary_writer_write( &writer, dl_ctx->type_ids, sizeof( dl_typeid_t ) * dl_ctx->type_count );

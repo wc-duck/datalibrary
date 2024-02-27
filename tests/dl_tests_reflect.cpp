@@ -23,12 +23,12 @@ TEST_F(DLReflect, pods)
 	dl_member_info_t Members[128];
 	memset( &Info, 0x0, sizeof(dl_type_info_t) );
 
-	EXPECT_DL_ERR_OK(dl_reflect_get_type_info( Ctx, Pods::TYPE_ID, &Info ));
-	EXPECT_DL_ERR_OK(dl_reflect_get_type_members( Ctx, Pods::TYPE_ID, Members, DL_ARRAY_LENGTH(Members) ));
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_info( Ctx, PodsDefaults::TYPE_ID, &Info ));
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_members( Ctx, PodsDefaults::TYPE_ID, Members, DL_ARRAY_LENGTH(Members) ));
 
-	EXPECT_EQ   ((uint32_t)Pods::TYPE_ID, Info.tid );
-	EXPECT_STREQ("Pods", Info.name);
-	EXPECT_EQ   (10u,    Info.member_count);
+	EXPECT_EQ   ((uint32_t)PodsDefaults::TYPE_ID, Info.tid );
+	EXPECT_STREQ("PodsDefaults", Info.name);
+	EXPECT_EQ   (10u,            Info.member_count);
 
 	EXPECT_STREQ("i8",                   Members[0].name);
 	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[0].atom);
@@ -69,6 +69,42 @@ TEST_F(DLReflect, pods)
 	EXPECT_STREQ("f64",                  Members[9].name);
 	EXPECT_EQ   (DL_TYPE_ATOM_POD,       Members[9].atom);
 	EXPECT_EQ   (DL_TYPE_STORAGE_FP64,   Members[9].storage);
+	
+	EXPECT_EQ(    2, *reinterpret_cast<const int8_t*  >( Members[0].default_data) );
+	EXPECT_EQ(    3, *reinterpret_cast<const int16_t* >( Members[1].default_data) );
+	EXPECT_EQ(    4, *reinterpret_cast<const int32_t* >( Members[2].default_data) );
+	EXPECT_EQ(  5LL, *reinterpret_cast<const int64_t* >( Members[3].default_data) );
+	EXPECT_EQ(   6U, *reinterpret_cast<const uint8_t* >( Members[4].default_data) );
+	EXPECT_EQ(   7U, *reinterpret_cast<const uint16_t*>( Members[5].default_data) );
+	EXPECT_EQ(   8U, *reinterpret_cast<const uint32_t*>( Members[6].default_data) );
+	EXPECT_EQ( 9ULL, *reinterpret_cast<const uint64_t*>( Members[7].default_data) );
+	EXPECT_EQ( 10.f, *reinterpret_cast<const float*   >( Members[8].default_data) );
+	EXPECT_EQ( 11.0, *reinterpret_cast<const double*  >( Members[9].default_data) );
+}
+
+TEST_F(DLReflect, array_array_default)
+{
+	dl_type_info_t   Info;
+	dl_member_info_t Members[16];
+	memset( &Info, 0x0, sizeof(dl_type_info_t) );
+
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_info( Ctx, DefaultArrayArray::TYPE_ID, &Info ));
+	EXPECT_DL_ERR_OK(dl_reflect_get_type_members( Ctx, DefaultArrayArray::TYPE_ID, Members, DL_ARRAY_LENGTH(Members) ));
+
+	EXPECT_EQ   ((uint32_t)DefaultArrayArray::TYPE_ID, Info.tid );
+	EXPECT_STREQ("DefaultArrayArray", Info.name);
+	EXPECT_EQ   (1u,                  Info.member_count);
+	
+	EXPECT_STREQ("Arr",               Members[0].name);
+	EXPECT_EQ   (nullptr,             Members[0].comment);
+	
+	const DefaultArrayArray* array_array = reinterpret_cast<const DefaultArrayArray*>(Members[0].default_data);
+	EXPECT_EQ   (2U,                  array_array->Arr.count);
+	EXPECT_EQ   (2U,                  array_array->Arr[0].u32_arr.count);
+	EXPECT_EQ   (1U,                  array_array->Arr[0].u32_arr[0]);
+	EXPECT_EQ   (3U,                  array_array->Arr[0].u32_arr[1]);
+	EXPECT_EQ   (3U,                  array_array->Arr[1].u32_arr[0]);
+	EXPECT_EQ   (7U,                  array_array->Arr[1].u32_arr[1]);
 }
 
 TEST_F(DLReflect, enums)
