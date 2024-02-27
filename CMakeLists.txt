@@ -10,6 +10,7 @@ endif()
 if(MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
+	add_definitions(-DDL_NATVIS_ENABLED=1)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /WX")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4324") # structure was padded due to alignment specifier
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4127") # conditional expression is constant
@@ -123,4 +124,18 @@ if (DATA_LIBRARY_BENCHMARK)
 	add_executable(dlbench ${DLBENCH_SRCS})
 	target_link_libraries(dlbench PRIVATE data_library)
 	include_directories(src include build/local)
+endif()
+
+if ((CMAKE_VERSION GREATER 3.7.9) OR (CMAKE_VERSION EQUAL 3.7.9))
+    if (MSVC_IDE)
+        option(VS_ADD_NATIVE_VISUALIZERS "Configure project to use Visual Studio native visualizers" TRUE)
+    else()
+        set(VS_ADD_NATIVE_VISUALIZERS FALSE CACHE INTERNAL "Native visualizers are Visual Studio extension" FORCE)
+    endif()
+    # add natvis file to the library so it will automatically be loaded into Visual Studio
+    if(VS_ADD_NATIVE_VISUALIZERS)
+        target_sources(GSL INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/datalibrary.natvis
+        )
+    endif()
 endif()

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="dl_substr">
+    <DisplayString Encoding="Utf8">{str,[len]s8}</DisplayString>
+    <StringView>str,[len]s8</StringView>
+  </Type>
+  <Type Name="dl_type_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString Condition="member_count &gt; 3">struct {(*ctx)->typedata_strings + name,s8b} {{{member_count,u} members}}</DisplayString>
+    <DisplayString Condition="member_count &gt; 2">struct {(*ctx)->typedata_strings + name,s8b} {{{*((*ctx)->member_descs + member_start)}; {*((*ctx)->member_descs + member_start + 1)}; {*((*ctx)->member_descs + member_start + 2)};}}</DisplayString>
+    <DisplayString Condition="member_count &gt; 1">struct {(*ctx)->typedata_strings + name,s8b} {{{*((*ctx)->member_descs + member_start)}; {*((*ctx)->member_descs + member_start + 1)};}}</DisplayString>
+    <DisplayString>struct {(*ctx)->typedata_strings + name,s8b} {{{*((*ctx)->member_descs + member_start)};]</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[typeid]">(*ctx)->type_ids[this - (*ctx)->type_descs],X</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Synthetic Name="[members]">
+        <DisplayString Condition="member_count &gt; 3">Count: {member_count,u}, {{{*((*ctx)->member_descs + member_start)}; {*((*ctx)->member_descs + member_start + 1)}; {*((*ctx)->member_descs + member_start + 2)}; ...}}</DisplayString>
+        <DisplayString Condition="member_count &gt; 2">Count: {member_count,u}, {{{*((*ctx)->member_descs + member_start)}; {*((*ctx)->member_descs + member_start + 1)}; {*((*ctx)->member_descs + member_start + 2)};}}</DisplayString>
+        <DisplayString Condition="member_count &gt; 1">Count: {member_count,u}, {{{*((*ctx)->member_descs + member_start)}; {*((*ctx)->member_descs + member_start + 1)};}}</DisplayString>
+        <DisplayString>Count: {member_count,u}, {{{*((*ctx)->member_descs + member_start)};]</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>member_count</Size>
+            <ValuePointer>(*ctx)->member_descs + member_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Item Name="[flags]" ExcludeView="simple">flags</Item>
+      <Item Name="[size]" ExcludeView="simple">size[DL_PTR_SIZE_HOST]</Item>
+      <Item Name="[alignment]" ExcludeView="simple">alignment[DL_PTR_SIZE_HOST]</Item>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count: {metadata_count,u}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_member_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+	<DisplayString Condition="type == 0x0000">int8 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0100">int16 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0200">int32 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0300">int64 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0400">uint8 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0500">uint16 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0600">uint32 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0700">uint64 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0800">float {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0900">double {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0A00">enum:int8 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0B00">enum:int16 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0C00">enum:int32 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0D00">enum:int64 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0E00">enum:uint8 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0F00">enum:uint16 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1000">enum:uint32 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1100">enum:uint64 {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1200">const char* {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1300">ptr {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1400">struct {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1500">anypointer {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1600">anyarray {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0001">dl_array&lt;int8&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0101">dl_array&lt;int16&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0201">dl_array&lt;int32&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0301">dl_array&lt;int64&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0401">dl_array&lt;uint8&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0501">dl_array&lt;uint16&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0601">dl_array&lt;uint32&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0701">dl_array&lt;uint64&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0801">dl_array&lt;float&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0901">dl_array&lt;double&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0A01">dl_array&lt;enum:int8&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0B01">dl_array&lt;enum:int16&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0C01">dl_array&lt;enum:int32&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0D01">dl_array&lt;enum:int64&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0E01">dl_array&lt;enum:uint8&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x0F01">dl_array&lt;enum:uint16&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1001">dl_array&lt;enum:uint32&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1101">dl_array&lt;enum:uint64&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1201">dl_array&lt;const char*&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1301">dl_array&lt;ptr&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1401">dl_array&lt;struct&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1501">dl_array&lt;anypointer&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="type == 0x1601">dl_array&lt;anyarray&gt; {(*ctx)->typedata_strings + name,s8b}</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0002">int8 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0102">int16 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0202">int32 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0302">int64 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0402">uint8 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0502">uint16 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0602">uint32 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0702">uint64 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0802">float {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0902">double {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0A02">enum:int8 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0B02">enum:int16 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0C02">enum:int32 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0D02">enum:int64 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0E02">enum:uint8 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0F02">enum:uint16 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x1002">enum:uint32 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x1102">enum:uint64 {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x1202">const char* {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x1302">ptr {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x1402">struct {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x1502">anypointer {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x1602">anyarray {(*ctx)->typedata_strings + name,s8b}[{type&gt;&gt;16,u}]</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0403">uint8 {(*ctx)->typedata_strings + name,s8b}:{(type&gt;&gt;16)&amp;0xFF,u}</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0503">uint16 {(*ctx)->typedata_strings + name,s8b}:{(type&gt;&gt;16)&amp;0xFF,u}</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0603">uint32 {(*ctx)->typedata_strings + name,s8b}:{(type&gt;&gt;16)&amp;0xFF,u}</DisplayString>
+	<DisplayString Condition="(type &amp; 0xFFFF) == 0x0703">uint64 {(*ctx)->typedata_strings + name,s8b}:{(type&gt;&gt;16)&amp;0xFF,u}</DisplayString>
+    <DisplayString>{(*ctx)->typedata_strings + name,s8b}, {(dl_type_atom_t)(type &amp; 0xFF)}</DisplayString>
+    <Expand>
+      <Item Name="[name]">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Item Name="[atom]">(dl_type_atom_t)(type &amp; 0xFF)</Item>
+      <Item Name="[storage]">(dl_type_storage_t)((type &gt;&gt; 8) &amp; 0xFF)</Item>
+      <Item Name="[flags]" ExcludeView="simple">flags</Item>
+      <Item Name="[typeid]" Condition="type_id!=0">type_id,X</Item>
+      <Item Name="[offset]" ExcludeView="simple">offset[DL_PTR_SIZE_HOST]</Item>
+      <Item Name="[bitoffset]" Condition="(type&amp;0xFF)==3" ExcludeView="simple">(type&gt;&gt;24)&amp;0xFF,u</Item>
+      <Item Name="[bitcount]" Condition="(type&amp;0xFF)==3" ExcludeView="simple">(type&gt;&gt;16)&amp;0xFF,u</Item>
+      <Item Name="[size]" ExcludeView="simple">size[DL_PTR_SIZE_HOST]</Item>
+      <Item Name="[alignment]" ExcludeView="simple">alignment[DL_PTR_SIZE_HOST]</Item>
+      <Synthetic Name="[default values]" Condition="default_value_offset!=0xFFFFFFFF">
+        <Expand>
+          <ArrayItems>
+            <Size>default_value_size</Size>
+            <ValuePointer>(*ctx)->default_data + default_value_offset</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count: {metadata_count,u}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_enum_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->typedata_strings + name,s8}</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Item Name="[storage]" ExcludeView="simple">storage</Item>
+      <Item Name="[flags]" ExcludeView="simple">flags</Item>
+      <Synthetic Name="[values]" Condition="value_count!=0">
+        <DisplayString>Count: {value_count,u}, [{*((*ctx)->enum_value_descs + value_start)}...]</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>value_count</Size>
+            <ValuePointer>(*ctx)->enum_value_descs + value_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[aliases]" Condition="alias_count!=0">
+        <DisplayString>Count: {alias_count,u}, [{*((*ctx)->enum_alias_descs + alias_start)}...]</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>alias_count</Size>
+            <ValuePointer>(*ctx)->enum_alias_descs + alias_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count: {metadata_count,u}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_enum_value_desc">
+    <DisplayString Condition="main_alias >= (*ctx)->enum_alias_count">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->enum_alias_descs + main_alias,na}</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->enum_alias_descs + main_alias,na</Item>
+      <Item Name="[value]" ExcludeView="simple">value</Item>
+      <Item Name="[comment]" Condition="comment!=0xFFFFFFFF" ExcludeView="simple">(*ctx)->typedata_strings + comment,s8</Item>
+      <Synthetic Name="[metadata]" Condition="metadata_count!=0">
+        <DisplayString>Count: {metadata_count,u}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>metadata_count</Size>
+            <ValuePointer>(*ctx)->metadatas + metadata_start</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+	</Expand>
+  </Type>
+  <Type Name="dl_enum_alias_desc">
+	<DisplayString Condition="name >= (*ctx)->typedata_strings_size">Change g_DlDebuggingContext in watch window</DisplayString>
+    <DisplayString>{(*ctx)->typedata_strings + name,s8}</DisplayString>
+    <Expand>
+      <Item Name="[name]" ExcludeView="simple">(*ctx)->typedata_strings + name,s8</Item>
+      <Item Name="[value_index]" ExcludeView="simple">value_index</Item>
+    </Expand>
+  </Type>
+  <Type Name="dl_context">
+    <Expand>
+      <Synthetic Name="[types]">
+      <DisplayString>Size:{type_count}, Capacity:{type_capacity}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>type_count</Size>
+            <ValuePointer>type_descs</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[enums]">
+      <DisplayString>Size:{enum_count}, Capacity:{enum_capacity}</DisplayString>
+        <Expand>
+          <ArrayItems>
+            <Size>enum_count</Size>
+            <ValuePointer>enum_descs</ValuePointer>
+	      </ArrayItems>
+        </Expand>
+      </Synthetic>
+    </Expand>
+  </Type>
+  <Type Name="dl_array&lt;*&gt;">
+    <DisplayString>Size = {count}</DisplayString>
+    <Expand>
+      <ArrayItems>
+        <Size>count</Size>
+        <ValuePointer>data</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>
