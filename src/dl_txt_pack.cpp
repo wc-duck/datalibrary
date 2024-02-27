@@ -282,7 +282,7 @@ static void dl_txt_pack_eat_and_write_string( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 		size_t curr = dl_binary_writer_tell( packctx->writer );
 		dl_binary_writer_seek_end( packctx->writer );
 		strpos = dl_binary_writer_tell( packctx->writer );
-		for( int i = 0; i < str.len; ++i )
+		for( uint32_t i = 0; i < str.len; ++i )
 		{
 			if( str.str[i] == '\\' )
 			{
@@ -361,7 +361,7 @@ static bool dl_txt_pack_eat_and_write_ptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* pac
 
 static void dl_txt_pack_validate_c_symbol_key( dl_ctx_t dl_ctx, dl_txt_pack_ctx* packctx, dl_substr symbol )
 {
-	for(int i = 0; i < symbol.len; ++i)
+	for(uint32_t i = 0; i < symbol.len; ++i)
 	{
 		if(!isalnum(symbol.str[i]) || symbol.str[i] == '_')
 			dl_txt_read_failed( dl_ctx, &packctx->read_ctx, DL_ERROR_TXT_PARSE_ERROR, "found a non-valid key \"%.*s\" in data, did you miss a string-terminator? (\" or \')", symbol.len, symbol.str );

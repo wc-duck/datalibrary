@@ -152,7 +152,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 		return;
 	}
 	uint32_t hash = dl_internal_hash_string(str);
-	int length = (int) strlen(str);
+	uint32_t length = (uint32_t) strlen(str);
 	uintptr_t offset = store_ctx->GetStringOffset(str, length, hash);
 	if (offset == 0) // Merge identical strings
 	{
@@ -160,7 +160,7 @@ static void dl_internal_store_string( const uint8_t* instance, CDLBinStoreContex
 		dl_binary_writer_seek_end(&store_ctx->writer);
 		offset = dl_binary_writer_tell(&store_ctx->writer);
 		dl_binary_writer_write(&store_ctx->writer, str, length + 1);
-		store_ctx->strings.Add( {str, length, hash, (uint32_t) offset} );
+		store_ctx->strings.Add( {{str, length}, hash, (uint32_t) offset} );
 		dl_binary_writer_seek_set(&store_ctx->writer, pos);
 	}
 	if( !store_ctx->writer.dummy )
@@ -369,7 +369,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 
 			// write count
 			dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32_t) );
-			if (sizeof(uintptr_t) == 8)
+			if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
 				dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 		}
 		return DL_ERROR_OK;

@@ -33,7 +33,7 @@ struct CDLBinStoreContext
 		written_ptrs.Add( { pos, ptr } );
 	}
 
-	uint32_t GetStringOffset( const char* str, int length, uint32_t hash ) const
+	uint32_t GetStringOffset( const char* str, uint32_t length, uint32_t hash ) const
 	{
 		for( size_t i = 0; i < strings.Len(); ++i )
 			if( strings[i].hash == hash && strings[i].str.len == length && memcmp( str, strings[i].str.str, length ) == 0 )
