@@ -306,7 +306,7 @@ static dl_error_t dl_internal_store_array( dl_ctx_t dl_ctx, dl_type_storage_t st
 				if( DL_ERROR_OK != err )
 					return err;
 				dl_binary_writer_write_uint32( &store_ctx->writer, tid );
-				if (sizeof(uintptr_t) == 8)
+				if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
 					dl_binary_writer_write_zero( &store_ctx->writer, 4 );
 			}
 			break;
@@ -350,12 +350,12 @@ static dl_error_t dl_internal_store_anyarray( dl_ctx_t dl_ctx, const uint8_t* da
 
 		// write count
 		dl_binary_writer_write( &store_ctx->writer, &sub_count, sizeof(uint32_t) );
-		if (sizeof(uintptr_t) == 8)
+		if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
 			dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 
 		// write type id
 		dl_binary_writer_write( &store_ctx->writer, &sub_type_id, sizeof(uint32_t) );
-		if (sizeof(uintptr_t) == 8)
+		if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
 			dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 	}
 	return DL_ERROR_OK;
@@ -506,7 +506,7 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 
 							// write count
 							dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32_t) );
-							if (sizeof(uintptr_t) == 8)
+							if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
 								dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 							return DL_ERROR_OK;
 						}
@@ -542,14 +542,14 @@ dl_error_t dl_internal_store_member( dl_ctx_t dl_ctx, const dl_member_desc* memb
 
 			// write count
 			dl_binary_writer_write( &store_ctx->writer, &count, sizeof(uint32_t) );
-			if (sizeof(uintptr_t) == 8)
+			if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
 				dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 
 			if (member->StorageType() == DL_TYPE_STORAGE_ANY_ARRAY)
 			{
 				// write type id
 				dl_binary_writer_write( &store_ctx->writer, (data_ptr + 2 * sizeof(void*)), sizeof(uint32_t) );
-				if (sizeof(uintptr_t) == 8)
+				if DL_CONSTANT_EXPRESSION(sizeof(uintptr_t) == 8)
 					dl_binary_writer_write_zero( &store_ctx->writer, sizeof(uint32_t) );
 			}
 		}

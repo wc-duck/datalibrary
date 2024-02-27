@@ -8,14 +8,6 @@
 #include <stdlib.h> // strtoul
 #include <ctype.h>
 
-#if (__cplusplus >= 201703L) // C++17
-#   define DL_CONSTANT_EXPRESSION(expr) constexpr(expr)
-#elif defined(_MSC_VER)
-#   define DL_CONSTANT_EXPRESSION(expr) (0, (expr))
-#else
-#   define DL_CONSTANT_EXPRESSION(expr) (expr)
-#endif
-
 template <typename T>
 static inline T* dl_grow_array( dl_allocator* alloc, T* ptr, size_t* cap, size_t min_inc )
 {

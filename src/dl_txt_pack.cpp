@@ -401,7 +401,7 @@ static void dl_txt_pack_eat_and_write_anyptr( dl_ctx_t dl_ctx, dl_txt_pack_ctx* 
 	packctx->subdata[packctx->subdata.Len() - 1].type = type;
 	dl_binary_writer_seek_set( packctx->writer, data_pos + sizeof(void*) );
 	dl_binary_writer_write_uint32( packctx->writer, dl_internal_typeid_of( dl_ctx, packctx->subdata[packctx->subdata.Len() - 1].type ) );
-	if( sizeof(uintptr_t) == 8 )
+	if DL_CONSTANT_EXPRESSION( sizeof(uintptr_t) == 8 )
 		dl_binary_writer_write_zero( packctx->writer, sizeof(uint32_t) );
 }
 
@@ -488,10 +488,10 @@ static void dl_txt_pack_eat_and_write_anyarray( dl_ctx_t dl_ctx, dl_txt_pack_ctx
 
 		dl_binary_writer_write_pint( packctx->writer, array_pos );
 		dl_binary_writer_write_uint32( packctx->writer, array_length );
-		if( sizeof(uintptr_t) == 8 )
+		if DL_CONSTANT_EXPRESSION( sizeof(uintptr_t) == 8 )
 			dl_binary_writer_write_zero( packctx->writer, sizeof(uint32_t) );
 		dl_binary_writer_write_uint32( packctx->writer, type_id );
-		if( sizeof(uintptr_t) == 8 )
+		if DL_CONSTANT_EXPRESSION( sizeof(uintptr_t) == 8 )
 			dl_binary_writer_write_zero( packctx->writer, sizeof(uint32_t) );
 		dl_binary_writer_seek_end( packctx->writer );
 		dl_binary_writer_reserve( packctx->writer, array_length * element_size );
