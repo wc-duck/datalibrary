@@ -1131,7 +1131,7 @@ static void dl_context_load_txt_type_library_read_member( dl_ctx_t ctx, dl_txt_r
 					while(*end != ',' && *end != '}') ++end;
 			}
 			default_val.str = start;
-			default_val.len = (int)(end - start);
+			default_val.len = (uint32_t)(end - start);
 			read_state->iter = end;
 		}
 		else if( strncmp( "const", key.str, 5) == 0)

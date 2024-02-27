@@ -821,7 +821,7 @@ static dl_error_t dl_txt_pack_write_default_value( dl_ctx_t              dl_ctx,
 			CDLBinStoreContext store_ctx( *packctx->writer, dl_ctx->alloc, packctx->ptrs, packctx->strings );
 			uint8_t* default_data = (uint8_t*)dl_alloc( &dl_ctx->alloc, member->default_value_size );
 			memcpy( default_data, member_default_value, member->default_value_size );
-			dl_internal_patch_member( dl_ctx, member, default_data, (uintptr_t)0, (uintptr_t)default_data - sizeof( dl_data_header ) );
+			dl_internal_patch_member( dl_ctx, member, default_data, nullptr, (uintptr_t)default_data - sizeof( dl_data_header ) );
 			err = dl_internal_store_member( dl_ctx, member, default_data, &store_ctx );
 			dl_free( &dl_ctx->alloc, default_data );
 		}
@@ -1054,7 +1054,7 @@ static const dl_substr dl_txt_eat_object_key( dl_txt_read_ctx* readctx )
 			if(key_start != key_end)
 			{
 				res.str = key_start;
-				res.len = (int)(key_end - key_start);
+				res.len = (uint32_t)(key_end - key_start);
 				readctx->iter = res.str + res.len;
 				return res;
 			}

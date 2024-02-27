@@ -98,7 +98,7 @@ static dl_substr dl_txt_eat_string_quote( dl_txt_read_ctx* readctx, char quote )
 		if( *key_end == quote )
 		{
 			res.str = key_start;
-			res.len = (int)(key_end - key_start);
+			res.len = (uint32_t)(key_end - key_start);
 			readctx->iter = res.str + res.len + 1;
 			return res;
 		}

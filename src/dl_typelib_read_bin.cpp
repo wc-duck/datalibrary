@@ -97,7 +97,7 @@ dl_error_t dl_context_load_type_library( dl_ctx_t dl_ctx, const unsigned char* l
 			if( member_desc.default_value_size && member_desc.default_value_size != member_desc.size[DL_PTR_SIZE_HOST] )
 			{
 				uint8_t* default_data = dl_ctx->default_data + member_desc.default_value_offset;
-				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, static_cast<uintptr_t>( sizeof(dl_data_header) - (ptrdiff_t)default_data ) );
+				dl_internal_patch_member( dl_ctx, &member_desc, default_data, 0, static_cast<uintptr_t>( sizeof(dl_data_header) - (size_t)default_data ) );
 			}
 		}
 		dl_ctx->default_data_patched = false; // This is not thread safe. It would be better to avoid moving around default data and keep it patched like meta data
